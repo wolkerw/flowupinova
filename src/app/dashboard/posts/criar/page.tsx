@@ -227,8 +227,6 @@ const captureVideoFrame = (
         reject(new Error("Erro ao carregar vídeo"));
       }
     };
-
-    video.load();
   });
 };
 
@@ -510,43 +508,25 @@ const VideoPreviewPlayer = ({
     video.playsInline = true;
     video.loop = true;
 
-    const startPlay = () => {
+    const playVideo = () => {
       video.muted = true;
       video.defaultMuted = true;
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch((err) => {
-            console.warn("[AUTOPLAY_PAUSED]", err?.message);
-            setIsPlaying(false);
-          });
+      const p = video.play();
+      if (p !== undefined) {
+        p.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       }
     };
 
-    const handleCanPlay = () => startPlay();
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handlePlaying = () => setIsPlaying(true);
-
-    video.addEventListener("canplay", handleCanPlay);
-    video.addEventListener("play", handlePlay);
-    video.addEventListener("pause", handlePause);
-    video.addEventListener("playing", handlePlaying);
-
-    video.load();
+    video.addEventListener("canplay", playVideo);
+    video.addEventListener("playing", () => setIsPlaying(true));
+    video.addEventListener("pause", () => setIsPlaying(false));
 
     if (video.readyState >= 2) {
-      startPlay();
+      playVideo();
     }
 
     return () => {
-      video.removeEventListener("canplay", handleCanPlay);
-      video.removeEventListener("play", handlePlay);
-      video.removeEventListener("pause", handlePause);
-      video.removeEventListener("playing", handlePlaying);
+      video.removeEventListener("canplay", playVideo);
     };
   }, [src]);
 
@@ -564,17 +544,12 @@ const VideoPreviewPlayer = ({
       video.defaultMuted = isMuted;
       video
         .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch((err) => {
-          console.warn("[PLAY_MUTED_FALLBACK]", err);
+        .then(() => setIsPlaying(true))
+        .catch(() => {
           video.muted = true;
           video.defaultMuted = true;
           setIsMuted(true);
-          video.play().then(() => setIsPlaying(true)).catch((e2) => {
-            console.error("[VIDEO_PLAY_ERROR]", e2);
-          });
+          video.play().then(() => setIsPlaying(true)).catch(() => {});
         });
     } else {
       video.pause();
@@ -612,7 +587,6 @@ const VideoPreviewPlayer = ({
         loop
         playsInline
         preload="auto"
-        controls={false}
       />
 
       {showPlayToggle && !isPlaying && (
