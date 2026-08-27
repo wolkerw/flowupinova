@@ -61,6 +61,8 @@ export interface MediaFileInput {
   file: File;
   publicUrl?: string;
   type?: string;
+  thumbnailFile?: File;
+  thumbnailUrl?: string;
 }
 
 // Interface for data coming from the client
@@ -430,6 +432,16 @@ export async function schedulePost(
     imageUrls = await Promise.all(uploadPromises);
     console.log("[POST_SERVICE] URLs finais processadas:", imageUrls);
 
+    // Upload de miniaturas / capas personalizadas de vídeo, caso existam
+    const thumbnailUploadPromises = postData.media.map(async (mediaItem) => {
+      if (mediaItem.thumbnailFile && mediaItem.thumbnailFile.size > 0) {
+        console.log("[POST_SERVICE] Fazendo upload de thumbnail/capa personalizada...");
+        return await uploadMediaAndGetURL(userId, mediaItem.thumbnailFile);
+      }
+      return mediaItem.thumbnailUrl || null;
+    });
+    const thumbnailUrls = await Promise.all(thumbnailUploadPromises);
+
     // Validação final: Garantir que não existam URLs blob ou vazias
     if (imageUrls.some((url) => !url || url.startsWith("blob:"))) {
       throw new Error(
@@ -462,7 +474,7 @@ export async function schedulePost(
       postData.postType === "story" ||
       (postData.text && postData.text.toLowerCase().includes("#story"));
 
-    const postToSave: Omit<PostData, "id" | "imageUrl"> = {
+    const postToSave: any = {
       text: postData.text,
       imageUrls: imageUrls,
       isCarousel: postData.isCarousel,
@@ -475,9 +487,11 @@ export async function schedulePost(
       isStory: isStory,
       postType: postData.postType || (isStory ? "story" : isVideo ? "reel" : "feed"),
       mediaType: isStory ? "STORIES" : isVideo ? "REELS" : "IMAGE",
-      mediaFiles: imageUrls.map((url) => ({
+      thumbnailUrl: thumbnailUrls[0] || (isVideoMedia(imageUrls[0]) ? undefined : imageUrls[0]),
+      mediaFiles: imageUrls.map((url, i) => ({
         url,
         type: isVideoMedia(url) ? "video" : "image",
+        thumbnailUrl: thumbnailUrls[i] || undefined,
       })),
     };
 

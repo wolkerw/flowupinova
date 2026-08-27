@@ -125,6 +125,77 @@ type MediaItem = {
   publicUrl?: string;
   originalUrl?: string;
   editorLayers?: EditorLayer[];
+  thumbnailUrl?: string;
+  thumbnailBlob?: Blob;
+  thumbnailFile?: File;
+  videoDuration?: number;
+  thumbnailTime?: number;
+};
+
+const captureVideoFrame = (
+  videoSource: File | string,
+  timestamp: number = 0.1
+): Promise<{ blob: Blob; dataUrl: string; duration: number }> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+
+    const objectUrl =
+      typeof videoSource === "string" ? videoSource : URL.createObjectURL(videoSource);
+    video.src = objectUrl;
+
+    const cleanup = () => {
+      if (typeof videoSource !== "string") {
+        URL.revokeObjectURL(objectUrl);
+      }
+      video.remove();
+    };
+
+    video.onloadedmetadata = () => {
+      const targetTime = Math.min(Math.max(timestamp, 0.001), (video.duration || 1) - 0.01);
+      video.currentTime = targetTime;
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 1080;
+        canvas.height = video.videoHeight || 1920;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          cleanup();
+          reject(new Error("Canvas context não disponível"));
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        canvas.toBlob(
+          (blob) => {
+            const duration = video.duration || 0;
+            cleanup();
+            if (blob) {
+              resolve({ blob, dataUrl, duration });
+            } else {
+              reject(new Error("Falha ao gerar blob do frame"));
+            }
+          },
+          "image/jpeg",
+          0.92
+        );
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("Erro ao carregar vídeo para captura de frame"));
+    };
+  });
 };
 
 const LogoOverlay = ({
@@ -381,11 +452,13 @@ const adaptImageToStory = (
 
 const VideoPreviewPlayer = ({
   src,
+  thumbnailUrl,
   className,
   objectFit = "cover",
   showPlayToggle = true,
 }: {
   src?: string;
+  thumbnailUrl?: string;
   className?: string;
   objectFit?: "cover" | "contain";
   showPlayToggle?: boolean;
@@ -393,13 +466,11 @@ const VideoPreviewPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src || src.trim() === "") return;
 
-    setErrorMsg(null);
     video.defaultMuted = true;
     video.muted = true;
     video.playsInline = true;
@@ -407,6 +478,7 @@ const VideoPreviewPlayer = ({
 
     const startPlay = () => {
       video.muted = true;
+      video.defaultMuted = true;
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
@@ -419,7 +491,14 @@ const VideoPreviewPlayer = ({
       }
     };
 
-    video.addEventListener("loadeddata", startPlay);
+    const handleLoadedMetadata = () => {
+      if (video.currentTime === 0) {
+        video.currentTime = 0.001;
+      }
+      startPlay();
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("canplay", startPlay);
 
     if (video.readyState >= 2) {
@@ -427,7 +506,7 @@ const VideoPreviewPlayer = ({
     }
 
     return () => {
-      video.removeEventListener("loadeddata", startPlay);
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("canplay", startPlay);
     };
   }, [src]);
@@ -448,8 +527,7 @@ const VideoPreviewPlayer = ({
         .then(() => {
           setIsPlaying(true);
         })
-        .catch((err) => {
-          console.warn("[PLAY_RETRY_MUTED]", err);
+        .catch(() => {
           video.muted = true;
           setIsMuted(true);
           video.play().then(() => setIsPlaying(true)).catch(() => {});
@@ -478,6 +556,7 @@ const VideoPreviewPlayer = ({
         key={src}
         ref={videoRef}
         src={src}
+        poster={thumbnailUrl}
         className={cn(
           "h-full w-full pointer-events-none",
           objectFit === "cover" ? "object-cover" : "object-contain",
@@ -491,28 +570,9 @@ const VideoPreviewPlayer = ({
         controls={false}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onError={(e) => {
-          const err = e.currentTarget.error;
-          console.warn("[VIDEO_PLAYBACK_INFO]", err?.code, err?.message);
-          setErrorMsg(
-            err?.code === 4
-              ? "Codec não suportado pelo navegador (ex: H.265/HEVC da Apple ou MOV incompatível). Use MP4 com codec H.264."
-              : "Erro ao carregar vídeo no navegador."
-          );
-        }}
       />
 
-      {errorMsg && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/85 p-4 text-center text-white">
-          <AlertTriangle className="mb-2 h-8 w-8 text-amber-400" />
-          <p className="text-xs font-semibold text-amber-200">{errorMsg}</p>
-          <p className="mt-1 text-[10px] text-gray-400">
-            Dica: Converta o vídeo para MP4 padrão (H.264).
-          </p>
-        </div>
-      )}
-
-      {showPlayToggle && !errorMsg && !isPlaying && (
+      {showPlayToggle && !isPlaying && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition-all">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-transform hover:scale-110">
             <Play className="h-7 w-7 fill-white text-white translate-x-0.5" />
@@ -521,16 +581,14 @@ const VideoPreviewPlayer = ({
       )}
 
       {/* Mini controle de áudio discreto no canto */}
-      {!errorMsg && (
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="absolute bottom-3 right-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white shadow backdrop-blur transition-all hover:scale-110 hover:bg-black/80"
-          title={isMuted ? "Ativar som" : "Desativar som"}
-        >
-          {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={toggleMute}
+        className="absolute bottom-3 right-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white shadow backdrop-blur transition-all hover:scale-110 hover:bg-black/80"
+        title={isMuted ? "Ativar som" : "Desativar som"}
+      >
+        {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+      </button>
     </div>
   );
 };
@@ -602,6 +660,7 @@ const InstagramPreview = ({
                   <div className="relative h-full w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black">
                     <VideoPreviewPlayer
                       src={mediaSrc}
+                      thumbnailUrl={currentMedia?.thumbnailUrl}
                       objectFit="contain"
                       showPlayToggle={true}
                       className="absolute inset-0 h-full w-full object-contain"
@@ -637,6 +696,7 @@ const InstagramPreview = ({
                 isCurrentVideo ? (
                   <VideoPreviewPlayer
                     src={mediaSrc}
+                    thumbnailUrl={currentMedia?.thumbnailUrl}
                     objectFit="cover"
                     showPlayToggle={true}
                     className="absolute inset-0 h-full w-full object-cover"
@@ -661,6 +721,7 @@ const InstagramPreview = ({
                     {isCurrentVideo ? (
                       <VideoPreviewPlayer
                         src={mediaSrc}
+                        thumbnailUrl={currentMedia?.thumbnailUrl}
                         objectFit="contain"
                         showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
@@ -760,9 +821,14 @@ const InstagramPreview = ({
       {/* Image */}
       <div className="relative aspect-square bg-gray-200">
         {currentMedia ? (
-          currentMedia.type === "video" ? (
+          currentMedia.type === "video" ||
+          (currentMedia.file &&
+            (currentMedia.file.type?.startsWith("video") ||
+              isVideoMedia(currentMedia.file.name, currentMedia.file.type))) ||
+          isVideoMedia(currentMedia.publicUrl || currentMedia.previewUrl) ? (
             <VideoPreviewPlayer
               src={currentMedia.publicUrl || currentMedia.previewUrl}
+              thumbnailUrl={currentMedia.thumbnailUrl}
               objectFit="cover"
               showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
@@ -902,6 +968,7 @@ const FacebookPreview = ({
                   <div className="relative h-full w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black">
                     <VideoPreviewPlayer
                       src={mediaSrc}
+                      thumbnailUrl={singleItem?.thumbnailUrl}
                       objectFit="contain"
                       showPlayToggle={true}
                       className="absolute inset-0 h-full w-full object-contain"
@@ -937,6 +1004,7 @@ const FacebookPreview = ({
                 isSingleVideo ? (
                   <VideoPreviewPlayer
                     src={mediaSrc}
+                    thumbnailUrl={singleItem?.thumbnailUrl}
                     objectFit="cover"
                     showPlayToggle={true}
                     className="absolute inset-0 h-full w-full object-cover"
@@ -961,6 +1029,7 @@ const FacebookPreview = ({
                     {isSingleVideo ? (
                       <VideoPreviewPlayer
                         src={mediaSrc}
+                        thumbnailUrl={singleItem?.thumbnailUrl}
                         objectFit="contain"
                         showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
@@ -1084,9 +1153,14 @@ const FacebookPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          singleItem.type === "video" ? (
+          singleItem.type === "video" ||
+          (singleItem.file &&
+            (singleItem.file.type?.startsWith("video") ||
+              isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
+          isVideoMedia(singleItem.publicUrl || singleItem.previewUrl) ? (
             <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              thumbnailUrl={singleItem.thumbnailUrl}
               objectFit="cover"
               showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
@@ -1350,9 +1424,14 @@ const LinkedInPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          singleItem.type === "video" ? (
+          singleItem.type === "video" ||
+          (singleItem.file &&
+            (singleItem.file.type?.startsWith("video") ||
+              isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
+          isVideoMedia(singleItem.publicUrl || singleItem.previewUrl) ? (
             <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              thumbnailUrl={singleItem.thumbnailUrl}
               objectFit="cover"
               showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
@@ -1552,6 +1631,13 @@ export default function CriarConteudoPage() {
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [storyAdaptationMode, setStoryAdaptationMode] = useState<"blur" | "crop" | "solid">("blur");
   const [originalStoryMedia, setOriginalStoryMedia] = useState<MediaItem | null>(null);
+
+  // Estados para escolha e captura de thumbnail / capa do vídeo
+  const [thumbnailTime, setThumbnailTime] = useState<number>(0.1);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [isCustomCover, setIsCustomCover] = useState<boolean>(false);
+  const customCoverInputRef = useRef<HTMLInputElement>(null);
+  const [isCapturingFrame, setIsCapturingFrame] = useState<boolean>(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -2264,31 +2350,151 @@ export default function CriarConteudoPage() {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const newMediaItems: MediaItem[] = Array.from(files).map((file) => {
-        const isVideo =
-          file.type.startsWith("video") || isVideoMedia(file.name, file.type);
-        return {
-          file: file,
-          previewUrl: URL.createObjectURL(file),
-          type: isVideo ? "video" : "image",
-        };
-      });
+      setIsUploading(true);
+      try {
+        const newMediaItems: MediaItem[] = await Promise.all(
+          Array.from(files).map(async (file) => {
+            const isVideo =
+              file.type.startsWith("video") || isVideoMedia(file.name, file.type);
+            const previewUrl = URL.createObjectURL(file);
+            let thumbnailUrl: string | undefined;
+            let thumbnailBlob: Blob | undefined;
+            let duration: number | undefined;
 
-      if (selectedType === "carousel") {
-        if (mediaItems.length + newMediaItems.length > 10) {
-          toast({
-            variant: "destructive",
-            title: "Limite excedido",
-            description: "Você pode adicionar no máximo 10 mídias a um carrossel.",
-          });
-          return;
+            if (isVideo) {
+              try {
+                const frame = await captureVideoFrame(file, 0.1);
+                thumbnailUrl = frame.dataUrl;
+                thumbnailBlob = frame.blob;
+                duration = frame.duration;
+                setVideoDuration(frame.duration);
+                setThumbnailTime(0.1);
+                setIsCustomCover(false);
+              } catch (err) {
+                console.warn("Não foi possível capturar frame inicial do vídeo:", err);
+              }
+            }
+
+            return {
+              file: file,
+              previewUrl: previewUrl,
+              type: isVideo ? "video" : "image",
+              thumbnailUrl,
+              thumbnailBlob,
+              videoDuration: duration,
+              thumbnailTime: 0.1,
+            };
+          })
+        );
+
+        if (selectedType === "carousel") {
+          if (mediaItems.length + newMediaItems.length > 10) {
+            toast({
+              variant: "destructive",
+              title: "Limite excedido",
+              description: "Você pode adicionar no máximo 10 mídias a um carrossel.",
+            });
+            return;
+          }
+          setMediaItems((prev) => [...prev, ...newMediaItems]);
+        } else {
+          setMediaItems(newMediaItems.slice(0, 1)); // Only first file for single post
         }
-        setMediaItems((prev) => [...prev, ...newMediaItems]);
-      } else {
-        setMediaItems(newMediaItems.slice(0, 1)); // Only first file for single post
+      } catch (err) {
+        console.error("Erro ao processar arquivos:", err);
+      } finally {
+        setIsUploading(false);
       }
     }
     if (event.target) event.target.value = "";
+  };
+
+  const handleSeekThumbnail = async (time: number) => {
+    setThumbnailTime(time);
+    const videoItemIndex = mediaItems.findIndex(
+      (m) => m.type === "video" || isVideoMedia(m.file?.name, m.file?.type)
+    );
+    if (videoItemIndex === -1) return;
+    const item = mediaItems[videoItemIndex];
+    if (!item.file) return;
+
+    try {
+      setIsCapturingFrame(true);
+      const frame = await captureVideoFrame(item.file, time);
+      setMediaItems((prev) => {
+        const next = [...prev];
+        next[videoItemIndex] = {
+          ...next[videoItemIndex],
+          thumbnailUrl: frame.dataUrl,
+          thumbnailBlob: frame.blob,
+          thumbnailTime: time,
+          thumbnailFile: undefined, // Limpa arquivo customizado ao arrastar slider
+        };
+        return next;
+      });
+      setIsCustomCover(false);
+    } catch (err) {
+      console.warn("Erro ao capturar frame:", err);
+    } finally {
+      setIsCapturingFrame(false);
+    }
+  };
+
+  const handleCustomCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const videoItemIndex = mediaItems.findIndex(
+      (m) => m.type === "video" || isVideoMedia(m.file?.name, m.file?.type)
+    );
+    if (videoItemIndex === -1) return;
+
+    const dataUrl = URL.createObjectURL(file);
+    setMediaItems((prev) => {
+      const next = [...prev];
+      next[videoItemIndex] = {
+        ...next[videoItemIndex],
+        thumbnailUrl: dataUrl,
+        thumbnailBlob: file,
+        thumbnailFile: file,
+      };
+      return next;
+    });
+    setIsCustomCover(true);
+    toast({
+      title: "Capa Personalizada Definida!",
+      description: "A imagem selecionada será usada como capa do vídeo.",
+    });
+    if (e.target) e.target.value = "";
+  };
+
+  const handleResetToVideoFrame = async () => {
+    const videoItemIndex = mediaItems.findIndex(
+      (m) => m.type === "video" || isVideoMedia(m.file?.name, m.file?.type)
+    );
+    if (videoItemIndex === -1) return;
+    const item = mediaItems[videoItemIndex];
+    if (!item.file) return;
+
+    try {
+      const frame = await captureVideoFrame(item.file, thumbnailTime || 0.1);
+      setMediaItems((prev) => {
+        const next = [...prev];
+        next[videoItemIndex] = {
+          ...next[videoItemIndex],
+          thumbnailUrl: frame.dataUrl,
+          thumbnailBlob: frame.blob,
+          thumbnailFile: undefined,
+        };
+        return next;
+      });
+      setIsCustomCover(false);
+      toast({
+        title: "Frame Restaurado",
+        description: "A capa voltou a ser o frame capturado do vídeo.",
+      });
+    } catch (err) {
+      console.warn("Erro ao restaurar frame:", err);
+    }
   };
 
   const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2324,6 +2530,9 @@ export default function CriarConteudoPage() {
     const itemToRemove = mediaItems[index];
     if (itemToRemove.previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(itemToRemove.previewUrl);
+    }
+    if (itemToRemove.thumbnailUrl && itemToRemove.thumbnailUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(itemToRemove.thumbnailUrl);
     }
     setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
@@ -2411,10 +2620,20 @@ export default function CriarConteudoPage() {
       return;
     }
 
-    const mediaToPublish: MediaFileInput[] = mediaItems.map((item) => ({
-      file: item.file,
-      publicUrl: item.publicUrl,
-    }));
+    const mediaToPublish: MediaFileInput[] = mediaItems.map((item) => {
+      let thumbFile = item.thumbnailFile;
+      if (!thumbFile && item.thumbnailBlob) {
+        thumbFile = new File([item.thumbnailBlob], `thumb_${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+      }
+      return {
+        file: item.file,
+        publicUrl: item.publicUrl,
+        thumbnailFile: thumbFile,
+        thumbnailUrl: item.thumbnailUrl,
+      };
+    });
 
     if (!mediaToPublish.every((m) => m.file || m.publicUrl)) {
       toast({
@@ -2608,14 +2827,21 @@ export default function CriarConteudoPage() {
                             <div className="group relative aspect-square overflow-hidden rounded-md bg-slate-900">
                               {isVideo ? (
                                 <div className="relative flex h-full w-full items-center justify-center bg-slate-950">
-                                  <video
-                                    src={item.previewUrl}
-                                    className="h-full w-full object-cover opacity-90"
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                  />
-                                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40">
+                                  {item.thumbnailUrl ? (
+                                    <Image
+                                      src={item.thumbnailUrl}
+                                      alt={`Preview Vídeo ${index}`}
+                                      layout="fill"
+                                      objectFit="cover"
+                                      className="rounded-md"
+                                      unoptimized
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-slate-900">
+                                      <Video className="h-6 w-6 text-white/70" />
+                                    </div>
+                                  )}
+                                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30">
                                     <Video className="h-6 w-6 text-white/90 drop-shadow" />
                                   </div>
                                 </div>
@@ -2804,6 +3030,125 @@ export default function CriarConteudoPage() {
                     </DialogContent>
                   </Dialog>
                 </div>
+
+                {/* Seção Interativa de Escolha da Capa / Thumbnail do Vídeo */}
+                {mediaItems.some(
+                  (item) =>
+                    item.type === "video" ||
+                    (item.file &&
+                      (item.file.type?.startsWith("video") ||
+                        isVideoMedia(item.file.name, item.file.type))) ||
+                    isVideoMedia(item.publicUrl || item.previewUrl)
+                ) && (
+                  <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileImage className="h-5 w-5 text-blue-600" />
+                        <Label className="font-bold text-gray-900">
+                          Capa da Publicação (Thumbnail)
+                        </Label>
+                      </div>
+                      <Badge variant="outline" className="border-blue-300 bg-blue-100/70 text-[10px] font-semibold text-blue-800">
+                        {isCustomCover ? "Imagem Personalizada" : "Frame do Vídeo"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Escolha o momento exato do vídeo ou envie uma imagem personalizada para ser exibida como capa no feed e stories.
+                    </p>
+
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      {/* Miniatura da Capa Selecionada */}
+                      <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border-2 border-primary bg-slate-950 shadow-md">
+                        {mediaItems.find(
+                          (m) =>
+                            m.type === "video" ||
+                            (m.file &&
+                              (m.file.type?.startsWith("video") ||
+                                isVideoMedia(m.file.name, m.file.type))) ||
+                            isVideoMedia(m.publicUrl || m.previewUrl)
+                        )?.thumbnailUrl ? (
+                          <Image
+                            src={
+                              mediaItems.find(
+                                (m) =>
+                                  m.type === "video" ||
+                                  (m.file &&
+                                    (m.file.type?.startsWith("video") ||
+                                      isVideoMedia(m.file.name, m.file.type))) ||
+                                  isVideoMedia(m.publicUrl || m.previewUrl)
+                              )!.thumbnailUrl!
+                            }
+                            alt="Capa Selecionada"
+                            layout="fill"
+                            objectFit="cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Video className="h-6 w-6 text-white/70" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 text-[8px] font-bold text-white shadow">
+                          Capa
+                        </div>
+                      </div>
+
+                      {/* Controles de Frame e Upload */}
+                      <div className="flex-1 space-y-3">
+                        {videoDuration > 0 && !isCustomCover && (
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-medium text-gray-700">
+                              <span>Capturar frame do vídeo:</span>
+                              <span className="font-bold text-blue-600">
+                                {thumbnailTime.toFixed(1)}s / {videoDuration.toFixed(1)}s
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={videoDuration}
+                              step={0.1}
+                              value={[thumbnailTime]}
+                              onValueChange={([val]) => handleSeekThumbnail(val)}
+                              className="w-full"
+                              disabled={isCapturingFrame}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => customCoverInputRef.current?.click()}
+                            className="flex items-center gap-1.5 border-blue-300 bg-white text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            Enviar Imagem de Capa
+                          </Button>
+                          <input
+                            type="file"
+                            ref={customCoverInputRef}
+                            onChange={handleCustomCoverUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          {isCustomCover && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResetToVideoFrame()}
+                              className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                            >
+                              Restaurar Frame do Vídeo
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {selectedType === "story" && (
                   <div className="space-y-3 border-t pt-4">
