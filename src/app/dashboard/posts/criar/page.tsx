@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
+
+const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -228,17 +231,21 @@ const VideoPreviewPlayer = ({
         className
       )}
     >
-      <video
-        src={src}
-        poster={poster}
-        controls
-        playsInline
-        preload="metadata"
-        className={cn(
-          "h-full w-full",
-          objectFit === "contain" ? "object-contain" : "object-cover"
-        )}
-      />
+      <div className={cn(
+        "absolute inset-0 flex items-center justify-center h-full w-full",
+        objectFit === "contain" ? "[&>div>video]:object-contain" : "[&>div>video]:object-cover"
+      )}>
+        <ReactPlayer
+          url={src}
+          width="100%"
+          height="100%"
+          controls
+          playsinline
+          light={poster} // Usar poster como light para carregar sob demanda e evitar carregamento prematuro
+          playing={false}
+          style={{ position: 'absolute', top: 0, left: 0 }}
+        />
+      </div>
       {/* Badge discreta de vídeo */}
       <div className="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold tracking-wider text-white backdrop-blur-sm">
         <Video className="h-3 w-3" />
