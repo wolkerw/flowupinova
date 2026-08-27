@@ -49,6 +49,10 @@ import {
   Linkedin,
   ChevronDown,
   Paintbrush,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -117,9 +121,132 @@ type MediaItem = {
   type: "image" | "video";
   file: File;
   previewUrl: string;
+  thumbnailUrl?: string;
   publicUrl?: string;
   originalUrl?: string;
   editorLayers?: EditorLayer[];
+};
+
+export async function generateVideoThumbnail(fileOrUrl: File | string): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  return new Promise((resolve) => {
+    try {
+      const video = document.createElement("video");
+      const url = typeof fileOrUrl === "string" ? fileOrUrl : URL.createObjectURL(fileOrUrl);
+      const isRevocable = typeof fileOrUrl !== "string";
+
+      video.preload = "metadata";
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = "anonymous";
+      video.src = url;
+
+      let isResolved = false;
+
+      const cleanup = () => {
+        if (isRevocable) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (_) {}
+        }
+        video.remove();
+      };
+
+      const captureFrame = () => {
+        if (isResolved) return;
+        isResolved = true;
+        try {
+          const width = video.videoWidth || 640;
+          const height = video.videoHeight || 640;
+          if (width > 0 && height > 0) {
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, width, height);
+              const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+              cleanup();
+              resolve(dataUrl);
+              return;
+            }
+          }
+        } catch (_) {}
+        cleanup();
+        resolve(null);
+      };
+
+      video.onloadedmetadata = () => {
+        try {
+          if (video.duration && Number.isFinite(video.duration) && video.duration > 0.1) {
+            video.currentTime = Math.min(0.2, video.duration / 2);
+          } else {
+            captureFrame();
+          }
+        } catch (_) {
+          captureFrame();
+        }
+      };
+
+      video.onseeked = captureFrame;
+
+      video.onerror = () => {
+        if (!isResolved) {
+          isResolved = true;
+          cleanup();
+          resolve(null);
+        }
+      };
+
+      setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          cleanup();
+          resolve(null);
+        }
+      }, 2000);
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
+const VideoPreviewPlayer = ({
+  src,
+  poster,
+  className,
+  objectFit = "cover",
+}: {
+  src: string;
+  poster?: string;
+  className?: string;
+  objectFit?: "cover" | "contain";
+}) => {
+  return (
+    <div
+      className={cn(
+        "relative flex h-full w-full items-center justify-center overflow-hidden bg-black",
+        className
+      )}
+    >
+      <video
+        src={src}
+        poster={poster}
+        controls
+        playsInline
+        preload="metadata"
+        className={cn(
+          "h-full w-full",
+          objectFit === "contain" ? "object-contain" : "object-cover"
+        )}
+      />
+      {/* Badge discreta de vídeo */}
+      <div className="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold tracking-wider text-white backdrop-blur-sm">
+        <Video className="h-3 w-3" />
+        <span>VÍDEO</span>
+      </div>
+    </div>
+  );
 };
 
 const LogoOverlay = ({
@@ -435,6 +562,7 @@ const InstagramPreview = ({
                     {currentMedia.type === "video" ? (
                       <video
                         src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        poster={currentMedia.thumbnailUrl}
                         className="absolute inset-0 h-full w-full object-cover"
                         autoPlay
                         muted
@@ -451,16 +579,14 @@ const InstagramPreview = ({
                       />
                     )}
                   </div>
-                  {/* Imagem Principal Centralizada */}
+                  {/* Imagem/Vídeo Principal Centralizada */}
                   <div className="absolute inset-0 z-10 h-full w-full">
                     {currentMedia.type === "video" ? (
-                      <video
+                      <VideoPreviewPlayer
                         src={currentMedia.publicUrl || currentMedia.previewUrl}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
+                        poster={currentMedia.thumbnailUrl}
+                        objectFit="contain"
+                        className="h-full w-full"
                       />
                     ) : (
                       <Image
@@ -477,13 +603,11 @@ const InstagramPreview = ({
 
               {storyAdaptationMode === "crop" && (
                 currentMedia.type === "video" ? (
-                  <video
+                  <VideoPreviewPlayer
                     src={currentMedia.publicUrl || currentMedia.previewUrl}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
+                    poster={currentMedia.thumbnailUrl}
+                    objectFit="cover"
+                    className="h-full w-full"
                   />
                 ) : (
                   <Image
@@ -503,13 +627,11 @@ const InstagramPreview = ({
                 >
                   <div className="relative h-full w-full">
                     {currentMedia.type === "video" ? (
-                      <video
+                      <VideoPreviewPlayer
                         src={currentMedia.publicUrl || currentMedia.previewUrl}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
+                        poster={currentMedia.thumbnailUrl}
+                        objectFit="contain"
+                        className="h-full w-full"
                       />
                     ) : (
                       <Image
@@ -541,7 +663,7 @@ const InstagramPreview = ({
             />
           )}
 
-          {/* Story UI Overlay (Barras superiores, Perfil, Rodapé) */}
+          {/* Story UI Overlay (Instagram Stories Style) */}
           <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between bg-gradient-to-b from-black/40 via-transparent to-black/30 p-3">
             {/* Top Area */}
             <div className="w-full space-y-2">
@@ -603,17 +725,14 @@ const InstagramPreview = ({
         <MoreVertical className="h-5 cursor-pointer text-gray-600" />
       </div>
 
-      {/* Image */}
+      {/* Image / Video */}
       <div className="relative aspect-square bg-gray-200">
         {currentMedia ? (
           currentMedia.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={currentMedia.publicUrl || currentMedia.previewUrl}
-              className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
+              poster={currentMedia.thumbnailUrl}
+              className="absolute inset-0 h-full w-full"
             />
           ) : (
             <Image
@@ -744,6 +863,7 @@ const FacebookPreview = ({
                     {singleItem.type === "video" ? (
                       <video
                         src={singleItem.publicUrl || singleItem.previewUrl}
+                        poster={singleItem.thumbnailUrl}
                         className="absolute inset-0 h-full w-full object-cover"
                         autoPlay
                         muted
@@ -760,16 +880,14 @@ const FacebookPreview = ({
                       />
                     )}
                   </div>
-                  {/* Imagem Centralizada Quadrada */}
+                  {/* Imagem/Vídeo Centralizada Quadrada */}
                   <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
                     {singleItem.type === "video" ? (
-                      <video
+                      <VideoPreviewPlayer
                         src={singleItem.publicUrl || singleItem.previewUrl}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
+                        poster={singleItem.thumbnailUrl}
+                        objectFit="contain"
+                        className="h-full w-full"
                       />
                     ) : (
                       <Image
@@ -786,13 +904,11 @@ const FacebookPreview = ({
 
               {storyAdaptationMode === "crop" && (
                 singleItem.type === "video" ? (
-                  <video
+                  <VideoPreviewPlayer
                     src={singleItem.publicUrl || singleItem.previewUrl}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
+                    poster={singleItem.thumbnailUrl}
+                    objectFit="cover"
+                    className="h-full w-full"
                   />
                 ) : (
                   <Image
@@ -812,13 +928,11 @@ const FacebookPreview = ({
                 >
                   <div className="relative aspect-square w-full">
                     {singleItem.type === "video" ? (
-                      <video
+                      <VideoPreviewPlayer
                         src={singleItem.publicUrl || singleItem.previewUrl}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
+                        poster={singleItem.thumbnailUrl}
+                        objectFit="contain"
+                        className="h-full w-full"
                       />
                     ) : (
                       <Image
@@ -940,13 +1054,10 @@ const FacebookPreview = ({
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
-              className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
+              poster={singleItem.thumbnailUrl}
+              className="absolute inset-0 h-full w-full"
             />
           ) : (
             <Image
@@ -1093,13 +1204,11 @@ const GooglePreview = ({
       <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
-              className="absolute inset-0 h-full w-full object-contain"
-              autoPlay
-              muted
-              loop
-              playsInline
+              poster={singleItem.thumbnailUrl}
+              objectFit="contain"
+              className="absolute inset-0 h-full w-full"
             />
           ) : (
             <Image
@@ -1210,13 +1319,10 @@ const LinkedInPreview = ({
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
-              className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
+              poster={singleItem.thumbnailUrl}
+              className="absolute inset-0 h-full w-full"
             />
           ) : (
             <Image
@@ -2108,11 +2214,29 @@ export default function CriarConteudoPage() {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const newMediaItems: MediaItem[] = Array.from(files).map((file) => ({
-        file: file,
-        previewUrl: URL.createObjectURL(file),
-        type: file.type.startsWith("video") ? "video" : "image",
-      }));
+      const newMediaItems: MediaItem[] = await Promise.all(
+        Array.from(files).map(async (file) => {
+          const type = file.type.startsWith("video") ? "video" : "image";
+          const previewUrl = URL.createObjectURL(file);
+          let thumbnailUrl = undefined;
+
+          if (type === "video") {
+            try {
+              const tb = await generateVideoThumbnail(file);
+              thumbnailUrl = tb || undefined;
+            } catch (e) {
+              console.warn("Erro ao gerar thumbnail do vídeo", e);
+            }
+          }
+
+          return {
+            file,
+            previewUrl,
+            type,
+            thumbnailUrl,
+          };
+        })
+      );
 
       if (selectedType === "carousel") {
         if (mediaItems.length + newMediaItems.length > 10) {
@@ -2343,6 +2467,10 @@ export default function CriarConteudoPage() {
     (scheduleType === "schedule" && !scheduleDate);
 
   // Cleanup de URLs de blob executado estritamente na desmontagem real da página
+  // Nota: No React 18 Strict Mode, revogar agressivamente no unmount quebra
+  // o preview de vídeos/imagens ao remontar o componente.
+  // Deixaremos a limpeza a cargo do garbage collector ou quando remover um item específico.
+  /*
   useEffect(() => {
     return () => {
       mediaItemsRef.current.forEach((item) => {
@@ -2355,6 +2483,7 @@ export default function CriarConteudoPage() {
       }
     };
   }, []);
+  */
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
@@ -2414,11 +2543,12 @@ export default function CriarConteudoPage() {
         </motion.div>
       )}
 
-      {step === 2 && selectedType && (
+      {step === 2 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="space-y-6"
         >
           <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
             <Card className="border-none shadow-lg">
@@ -2435,16 +2565,28 @@ export default function CriarConteudoPage() {
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                       {mediaItems.map((item, index) => (
                         <div key={index} className="flex flex-col gap-2">
-                          <div className="group relative aspect-square">
+                          <div className="group relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-900">
                             {item.type === "video" ? (
-                              <video
-                                src={item.previewUrl}
-                                className="h-full w-full rounded-md object-cover"
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                              />
+                              <div className="relative h-full w-full">
+                                {item.thumbnailUrl ? (
+                                  <img
+                                    src={item.thumbnailUrl}
+                                    alt={`Miniatura Vídeo ${index}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <video
+                                    src={item.previewUrl}
+                                    className="h-full w-full object-cover"
+                                    preload="auto"
+                                    muted
+                                    playsInline
+                                  />
+                                )}
+                                <div className="pointer-events-none absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase">
+                                  Vídeo
+                                </div>
+                              </div>
                             ) : (
                               <Image
                                 src={item.previewUrl}
@@ -2457,8 +2599,8 @@ export default function CriarConteudoPage() {
                             <button
                               type="button"
                               onClick={() => handleRemoveItem(index)}
-                              className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
-                              title="Remover imagem"
+                              className="absolute right-1 top-1 z-10 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
+                              title="Remover mídia"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
