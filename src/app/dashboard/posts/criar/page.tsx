@@ -2759,26 +2759,45 @@ export default function CriarConteudoPage() {
                             Essas mídias não gastarão novas cotas de geração!
                           </p>
                           <div className="grid grid-cols-2 gap-4 py-2 sm:grid-cols-3">
-                            {galleryImages.map((item) => (
-                              <div
-                                key={item.id}
-                                onClick={() => handleImportFromGallery(item)}
-                                className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
-                              >
-                                <Image
-                                  src={item.url}
-                                  alt="Imagem da Galeria"
-                                  layout="fill"
-                                  objectFit="cover"
-                                  unoptimized
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                                  <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-800 shadow-md">
-                                    Selecionar Imagem
-                                  </span>
+                            {galleryImages.map((item) => {
+                              const isVideo = isVideoMedia(item.url);
+                              return (
+                                <div
+                                  key={item.id}
+                                  onClick={() => handleImportFromGallery(item)}
+                                  className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-slate-950 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
+                                >
+                                  {isVideo ? (
+                                    <div className="relative h-full w-full">
+                                      <video
+                                        src={item.url}
+                                        className="h-full w-full object-cover opacity-90"
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                      />
+                                      <div className="pointer-events-none absolute bottom-1.5 left-1.5 z-10 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+                                        <Video className="h-2.5 w-2.5 text-pink-400" />
+                                        <span>Vídeo</span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <Image
+                                      src={item.url}
+                                      alt="Imagem da Galeria"
+                                      layout="fill"
+                                      objectFit="cover"
+                                      unoptimized
+                                    />
+                                  )}
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-800 shadow-md">
+                                      {isVideo ? "Selecionar Vídeo" : "Selecionar Imagem"}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
