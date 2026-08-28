@@ -133,7 +133,7 @@ type MediaItem = {
   thumbnailTime?: number;
 };
 
-const captureVideoFrame = (
+export const captureVideoFrame = (
   videoSource: File | string,
   timestamp: number = 0.1
 ): Promise<{ blob: Blob; dataUrl: string; duration: number }> => {
@@ -228,6 +228,18 @@ const captureVideoFrame = (
       }
     };
   });
+};
+
+export const generateVideoThumbnail = async (
+  videoSource: File | string,
+  timestamp: number = 0.1
+): Promise<string | null> => {
+  try {
+    const res = await captureVideoFrame(videoSource, timestamp);
+    return res.dataUrl;
+  } catch {
+    return null;
+  }
 };
 
 const LogoOverlay = ({
@@ -474,6 +486,160 @@ const adaptImageToStory = (
     img.onerror = () => {
       reject(new Error("Erro ao carregar a imagem original no Canvas."));
     };
+    const proxyImageUrl =
+      imageUrl.startsWith("blob:") || imageUrl.startsWith("data:") || imageUrl.startsWith("/")
+        ? imageUrl
+        : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(imageUrl)}`;
+    img.src = proxyImageUrl;
+  });
+};
+
+const mergeLogoWithFeedImage = (
+  imageUrl: string,
+  logoUrl?: string | null,
+  logoPosition: LogoPosition = "bottom-right",
+  logoScale: number = 30,
+  logoOpacity: number = 80
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      reject(new Error("Não foi possível criar o contexto 2D do Canvas."));
+      return;
+    }
+
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const w = img.naturalWidth || img.width || 1080;
+        const h = img.naturalHeight || img.height || 1080;
+        canvas.width = w;
+        canvas.height = h;
+
+        // Desenha a imagem principal
+        ctx.drawImage(img, 0, 0, w, h);
+
+        if (logoUrl) {
+          const logoImg = document.createElement("img");
+          logoImg.crossOrigin = "anonymous";
+          logoImg.onload = () => {
+            try {
+              const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+              const logoPixelWidth = w * (visualLogoScale / 100);
+              const logoAspectRatio =
+                (logoImg.naturalHeight || logoImg.height || 1) /
+                (logoImg.naturalWidth || logoImg.width || 1);
+              const logoPixelHeight = logoPixelWidth * logoAspectRatio;
+
+              // Margem de 4% da largura da imagem (exatamente correspondente ao preview 16px / 400px)
+              const margin = w * 0.04;
+              let x = 0;
+              let y = 0;
+
+              switch (logoPosition) {
+                case "top-left":
+                  x = margin;
+                  y = margin;
+                  break;
+                case "top-center":
+                  x = (w - logoPixelWidth) / 2;
+                  y = margin;
+                  break;
+                case "top-right":
+                  x = w - logoPixelWidth - margin;
+                  y = margin;
+                  break;
+                case "left-center":
+                  x = margin;
+                  y = (h - logoPixelHeight) / 2;
+                  break;
+                case "center":
+                  x = (w - logoPixelWidth) / 2;
+                  y = (h - logoPixelHeight) / 2;
+                  break;
+                case "right-center":
+                  x = w - logoPixelWidth - margin;
+                  y = (h - logoPixelHeight) / 2;
+                  break;
+                case "bottom-left":
+                  x = margin;
+                  y = h - logoPixelHeight - margin;
+                  break;
+                case "bottom-center":
+                  x = (w - logoPixelWidth) / 2;
+                  y = h - logoPixelHeight - margin;
+                  break;
+                case "bottom-right":
+                default:
+                  x = w - logoPixelWidth - margin;
+                  y = h - logoPixelHeight - margin;
+                  break;
+              }
+
+              ctx.save();
+              ctx.globalAlpha = Math.max(0.05, Math.min(1, logoOpacity / 100));
+              ctx.drawImage(logoImg, x, y, logoPixelWidth, logoPixelHeight);
+              ctx.restore();
+
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) resolve(blob);
+                  else reject(new Error("Falha ao exportar blob do canvas com logotipo."));
+                },
+                "image/jpeg",
+                0.95
+              );
+            } catch (errLogo) {
+              console.error("Erro ao desenhar logotipo no Canvas:", errLogo);
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) resolve(blob);
+                  else reject(errLogo);
+                },
+                "image/jpeg",
+                0.95
+              );
+            }
+          };
+
+          logoImg.onerror = () => {
+            console.error("Erro ao carregar imagem do logotipo no Canvas.");
+            canvas.toBlob(
+              (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("Falha ao exportar blob do canvas."));
+              },
+              "image/jpeg",
+              0.95
+            );
+          };
+
+          const proxyLogoUrl =
+            logoUrl.startsWith("blob:") || logoUrl.startsWith("data:") || logoUrl.startsWith("/")
+              ? logoUrl
+              : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(logoUrl)}`;
+          logoImg.src = proxyLogoUrl;
+        } else {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Falha ao exportar blob do canvas."));
+            },
+            "image/jpeg",
+            0.95
+          );
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error("Erro ao carregar a imagem original no Canvas."));
+    };
+
     const proxyImageUrl =
       imageUrl.startsWith("blob:") || imageUrl.startsWith("data:") || imageUrl.startsWith("/")
         ? imageUrl
@@ -1651,6 +1817,7 @@ export default function CriarConteudoPage() {
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [storyAdaptationMode, setStoryAdaptationMode] = useState<"blur" | "crop" | "solid">("blur");
   const [originalStoryMedia, setOriginalStoryMedia] = useState<MediaItem | null>(null);
+  const [originalMediaItemsBackup, setOriginalMediaItemsBackup] = useState<MediaItem[] | null>(null);
 
   // Estados para escolha e captura de thumbnail / capa do vídeo
   const [thumbnailTime, setThumbnailTime] = useState<number>(0.1);
@@ -2241,6 +2408,9 @@ export default function CriarConteudoPage() {
     if (step === 2 && mediaItems.length > 0) {
       setIsUploading(true);
 
+      // Salva backup completo dos itens de mídia antes de qualquer transformação
+      setOriginalMediaItemsBackup([...mediaItems]);
+
       if (selectedType === "story") {
         try {
           const item = mediaItems[0];
@@ -2313,38 +2483,70 @@ export default function CriarConteudoPage() {
         return;
       }
 
-      // Fluxo normal de Posts / Carrosséis (chama webhook)
+      // Fluxo de Posts Únicos e Carrosséis para Feed
       toast({
         title: `Processando ${mediaItems.length} mídia(s)...`,
-        description: "Aplicando edições e enviando para o webhook.",
+        description: logoPreviewUrl
+          ? "Aplicando sua logomarca na posição selecionada..."
+          : "Preparando mídias para a etapa final.",
       });
 
       try {
-        const uploadPromises = mediaItems.map((item) => {
-          return processSingleMediaItem(item);
-        });
+        const processedItems: MediaItem[] = await Promise.all(
+          mediaItems.map(async (item, index) => {
+            const isVideo =
+              item.type === "video" ||
+              (item.file &&
+                (item.file.type?.startsWith("video") ||
+                  isVideoMedia(item.file.name, item.file.type))) ||
+              isVideoMedia(item.publicUrl || item.previewUrl || "");
 
-        const processedUrls = await Promise.all(uploadPromises);
+            // Se for vídeo ou não houver logomarca selecionada, mantém o item
+            if (isVideo || !logoPreviewUrl) {
+              return item;
+            }
 
-        setMediaItems((prevItems) =>
-          prevItems.map((item, index) => ({
-            ...item,
-            publicUrl: processedUrls[index],
-          }))
+            // Mescla a imagem com o logotipo na exata posição selecionada
+            const imageUrlToProcess = item.publicUrl || item.previewUrl;
+            const blob = await mergeLogoWithFeedImage(
+              imageUrlToProcess,
+              logoPreviewUrl,
+              logoPosition,
+              logoScale,
+              logoOpacity
+            );
+
+            const fileName = item.file?.name || `branded_post_${index + 1}.jpg`;
+            const brandedFile = new File([blob], fileName, {
+              type: "image/jpeg",
+            });
+            const brandedUrl = URL.createObjectURL(blob);
+
+            return {
+              ...item,
+              file: brandedFile,
+              previewUrl: brandedUrl,
+              publicUrl: brandedUrl,
+            };
+          })
         );
+
+        setMediaItems(processedItems);
 
         toast({
           variant: "success",
-          title: "Sucesso!",
-          description: "Mídias processadas e prontas para a próxima etapa.",
+          title: "Mídias preparadas!",
+          description: logoPreviewUrl
+            ? "Logomarca aplicada com sucesso na posição selecionada."
+            : "Mídias prontas para a próxima etapa.",
         });
         setStep(3);
       } catch (error: any) {
-        console.error("Erro ao enviar para o webhook:", error);
+        console.error("Erro ao aplicar logotipo:", error);
         toast({
           variant: "destructive",
           title: "Erro ao Processar Mídia",
-          description: error.message,
+          description: error.message || "Não foi possível aplicar a logomarca na imagem.",
         });
       } finally {
         setIsUploading(false);
@@ -2353,6 +2555,25 @@ export default function CriarConteudoPage() {
   };
 
   const handleBackToStep2 = () => {
+    if (originalMediaItemsBackup && originalMediaItemsBackup.length > 0) {
+      // Limpar blobs temporários gerados na mesclagem
+      mediaItems.forEach((item) => {
+        if (
+          item.previewUrl &&
+          item.previewUrl.startsWith("blob:") &&
+          !originalMediaItemsBackup.some((orig) => orig.previewUrl === item.previewUrl)
+        ) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+
+      setMediaItems(originalMediaItemsBackup);
+      setOriginalMediaItemsBackup(null);
+      setOriginalStoryMedia(null);
+      setStep(2);
+      return;
+    }
+
     if (selectedType === "story" && originalStoryMedia) {
       // Cleanup do blob de Story adaptado criado temporariamente
       if (mediaItems[0]?.previewUrl && mediaItems[0].previewUrl.startsWith("blob:")) {
