@@ -42,6 +42,10 @@ import {
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
 import {
+  getTikTokConnection,
+  type TikTokConnectionData,
+} from "@/lib/services/tiktok-service";
+import {
   getOnboardingProfile,
   updateOnboardingProfile,
   type OnboardingProfileData,
@@ -199,6 +203,7 @@ export default function Dashboard() {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
     null
   );
+  const [tikTokConnection, setTikTokConnection] = useState<TikTokConnectionData | null>(null);
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -358,15 +363,17 @@ export default function Dashboard() {
     let unsubscribeOnboarding: (() => void) | undefined;
 
     const fetchInitialData = async () => {
-      const [metaConn, instaConn, profile, gmb] = await Promise.all([
+      const [metaConn, instaConn, tikTokConn, profile, gmb] = await Promise.all([
         getMetaConnection(user.uid),
         getInstagramConnection(user.uid),
+        getTikTokConnection(user.uid),
         getOnboardingProfile(user.uid),
         getBusinessProfile(user.uid),
       ]);
 
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
+      setTikTokConnection(tikTokConn);
       setBusinessProfile(profile);
       setGmbProfile(gmb);
 
@@ -826,28 +833,26 @@ export default function Dashboard() {
                               )}
                             </TabsContent>
                             <TabsContent value="tiktok">
-                              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 py-4">
-                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
-                                  <p className="text-xs font-semibold text-slate-500">Visualizações de Vídeo</p>
-                                  <p className="mt-1 text-xl font-bold text-slate-900">12.450</p>
-                                  <span className="text-[10px] text-emerald-600 font-medium">+18.4% esta semana</span>
+                              {tikTokConnection?.isConnected ? (
+                                <div className="py-8 text-center text-gray-500">
+                                  <TikTokIcon className="mx-auto mb-3 h-8 w-8 text-slate-800" />
+                                  <h4 className="text-sm font-semibold text-slate-800">Métricas do TikTok</h4>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    Sua conta do TikTok está conectada. As métricas de engajamento e visualizações serão sincronizadas conforme suas publicações forem veiculadas.
+                                  </p>
                                 </div>
-                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
-                                  <p className="text-xs font-semibold text-slate-500">Curtidas Totais</p>
-                                  <p className="mt-1 text-xl font-bold text-slate-900">3.820</p>
-                                  <span className="text-[10px] text-emerald-600 font-medium">+12.1% esta semana</span>
+                              ) : (
+                                <div className="py-8 text-center text-gray-500">
+                                  <TikTokIcon className="mx-auto mb-3 h-8 w-8 text-slate-400" />
+                                  <h4 className="text-sm font-semibold text-slate-800">Conta do TikTok Não Conectada</h4>
+                                  <p className="mt-1 text-xs text-slate-500 mb-4">
+                                    Conecte sua conta do TikTok na Central de Posts para sincronizar suas métricas.
+                                  </p>
+                                  <Button asChild size="sm" variant="outline">
+                                    <Link href="/dashboard/posts">Conectar TikTok</Link>
+                                  </Button>
                                 </div>
-                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
-                                  <p className="text-xs font-semibold text-slate-500">Compartilhamentos</p>
-                                  <p className="mt-1 text-xl font-bold text-slate-900">640</p>
-                                  <span className="text-[10px] text-emerald-600 font-medium">+24.0% esta semana</span>
-                                </div>
-                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
-                                  <p className="text-xs font-semibold text-slate-500">Comentários</p>
-                                  <p className="mt-1 text-xl font-bold text-slate-900">215</p>
-                                  <span className="text-[10px] text-emerald-600 font-medium">+8.5% esta semana</span>
-                                </div>
-                              </div>
+                              )}
                             </TabsContent>
                             <TabsContent value="youtube">
                               <p className="py-8 text-center text-gray-500">

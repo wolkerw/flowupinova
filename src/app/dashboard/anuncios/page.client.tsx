@@ -1643,7 +1643,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           },
           durationDays: duration,
           targeting: {
-            address: selectedLocations.map((l) => l.name).join(", ") || "Centro Comercial Local",
+            address: selectedLocations.map((l) => l.name).join(", ") || businessProfile?.address || "",
             radiusKm: radius,
             ageMin: ageRange[0],
             ageMax: ageRange[1],

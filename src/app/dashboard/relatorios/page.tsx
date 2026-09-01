@@ -107,57 +107,6 @@ import { MetaAdsCampaignsViewer } from "./_components/MetaAdsCampaignsViewer";
 import { GoogleAdsCampaignsViewer } from "./_components/GoogleAdsCampaignsViewer";
 
 
-const performanceData = [
-  { month: "Jan", impressions: 15000, clicks: 890, conversions: 45 },
-  { month: "Fev", impressions: 18500, clicks: 1240, conversions: 62 },
-  { month: "Mar", impressions: 22100, clicks: 1580, conversions: 78 },
-  { month: "Abr", impressions: 19800, clicks: 1350, conversions: 71 },
-  { month: "Mai", impressions: 25600, clicks: 1890, conversions: 95 },
-  { month: "Jun", impressions: 28300, clicks: 2150, conversions: 112 },
-];
-
-const channelData = [
-  { name: "Google Ads", value: 45, color: "#3B82F6" },
-  { name: "Facebook", value: 30, color: "#8B5CF6" },
-  { name: "Instagram", value: 15, color: "#10B981" },
-  { name: "LinkedIn", value: 10, color: "#F59E0B" },
-];
-
-const kpis = [
-  {
-    title: "ROI Geral",
-    value: "340%",
-    change: "+15%",
-    trend: "up",
-    icon: TrendingUp,
-    color: "text-green-600",
-  },
-  {
-    title: "CPA Médio",
-    value: "R$ 45",
-    change: "-8%",
-    trend: "down",
-    icon: DollarSign,
-    color: "text-green-600",
-  },
-  {
-    title: "Taxa de Conversão",
-    value: "3.2%",
-    change: "+0.5%",
-    trend: "up",
-    icon: ShoppingCart,
-    color: "text-green-600",
-  },
-  {
-    title: "CTR Médio",
-    value: "2.8%",
-    change: "-0.2%",
-    trend: "down",
-    icon: MousePointer,
-    color: "text-red-600",
-  },
-];
-
 const InsightStat = ({
   icon,
   label,

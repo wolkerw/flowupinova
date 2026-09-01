@@ -646,15 +646,22 @@ export async function POST(request: NextRequest) {
       let formattedPhone = ctaLink || profileData?.phone || "";
       formattedPhone = formattedPhone.replace(/\D/g, "");
 
+      if (!formattedPhone) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Para criar um anúncio com o botão 'Ligar Agora', é obrigatório informar um telefone de contato comercial válido no anúncio ou no perfil da sua empresa.",
+          },
+          { status: 400 }
+        );
+      }
+
       // Garante formatação internacional com DDI brasileiro (+55)
-      if (formattedPhone) {
-        if (formattedPhone.startsWith("55")) {
-          formattedPhone = `+${formattedPhone}`;
-        } else {
-          formattedPhone = `+55${formattedPhone}`;
-        }
+      if (formattedPhone.startsWith("55")) {
+        formattedPhone = `+${formattedPhone}`;
       } else {
-        formattedPhone = "+555199922177";
+        formattedPhone = `+55${formattedPhone}`;
       }
 
       callToAction = {
@@ -668,7 +675,17 @@ export async function POST(request: NextRequest) {
     } else if (ctaType === "GET_DIRECTIONS") {
       // Regra de GET_DIRECTIONS:
       // Redireciona diretamente para o endereço geocodificado no Google Maps
-      const mapAddress = address || profileAddress || "Centro Comercial Local, Brasil";
+      const mapAddress = (address || profileAddress || "").trim();
+      if (!mapAddress) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Para criar um anúncio com o botão 'Ver Trajeto', é obrigatório cadastrar o endereço comercial da sua empresa.",
+          },
+          { status: 400 }
+        );
+      }
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`;
 
       callToAction = {
