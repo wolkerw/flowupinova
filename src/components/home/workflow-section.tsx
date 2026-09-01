@@ -3,7 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Check } from "lucide-react";
+import { Sparkles, Check, Lightbulb, Wand2, SendHorizontal, ArrowRight } from "lucide-react";
 import { AnimatedProductFlow, AnimatedAvatarFlow } from "./animated-flows";
 import { AnimatedEditorFlow } from "./animated-editor-flow";
 
@@ -13,6 +13,7 @@ const FadeInView = ({ children, delay = 0 }: { children: React.ReactNode; delay?
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: "-100px" }}
     transition={{ duration: 0.7, ease: "easeOut", delay }}
+    className="h-full"
   >
     {children}
   </motion.div>
@@ -43,9 +44,9 @@ export const WorkflowSection = () => {
   const columns = [col1, col2, col3, col4];
 
   return (
-    <section id="como-funciona" className="relative overflow-hidden bg-white pb-32">
+    <section id="como-funciona" className="relative overflow-hidden bg-white pb-32 scroll-mt-20">
       {/* Section Header with FULL WIDTH Mosaic */}
-      <div className="relative mb-32 flex h-[600px] w-full items-center justify-center overflow-hidden bg-slate-50 py-24 md:py-40">
+      <div className="relative mb-20 flex h-[540px] w-full items-center justify-center overflow-hidden bg-slate-50 py-20 md:py-32">
         {/* Mosaico Background Animado */}
         <div className="pointer-events-none absolute inset-0 z-0 flex select-none items-center gap-4 overflow-hidden px-4 opacity-[0.85]">
           {columns.map((col, i) => (
@@ -81,34 +82,96 @@ export const WorkflowSection = () => {
         {/* Text Content Overlay */}
         <FadeInView>
           <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
-            <h2 className="mb-6 inline-block text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-lg md:text-6xl">
-              A mágica acontece em{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-                segundos
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#0083C7]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#0083C7]">
+              <Sparkles className="h-3.5 w-3.5" /> Como Funciona na Prática
+            </div>
+            <h2 className="mb-6 text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm md:text-5xl lg:text-6xl">
+              Do zero à publicação em{" "}
+              <span className="text-[#0083C7]">
+                3 passos rápidos
               </span>
             </h2>
-            <p className="mx-auto max-w-2xl text-xl font-bold text-slate-900 drop-shadow-md">
-              Veja como nossa IA transforma comandos simples em resultados profissionais prontos
-              para publicar.
+            <p className="mx-auto max-w-2xl text-lg font-medium text-slate-700 md:text-xl">
+              Você no controle do marketing da sua empresa, sem precisar contratar agência ou perder horas criando artes.
             </p>
           </div>
         </FadeInView>
       </div>
 
       <div className="container mx-auto px-4 lg:px-8">
+        {/* 3 Passos Claros e Objetivos */}
+        <div className="mb-28">
+          <div className="grid gap-8 md:grid-cols-3">
+            {/* Passo 1 */}
+            <FadeInView delay={0.1}>
+              <div className="relative flex h-full flex-col rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/50 p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-[#FA6305]">
+                    <Lightbulb className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
+                    PASSO 01
+                  </span>
+                </div>
+                <h3 className="mb-3 text-2xl font-bold text-slate-900">
+                  Diga o que precisa
+                </h3>
+                <p className="leading-relaxed text-slate-600">
+                  Basta digitar em poucas palavras o tema do post (ex: <em>"Promoção de jaquetas impermeáveis"</em>) ou enviar uma foto do seu produto ou avatar.
+                </p>
+              </div>
+            </FadeInView>
+
+            {/* Passo 2 */}
+            <FadeInView delay={0.2}>
+              <div className="relative flex h-full flex-col rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/50 p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-[#0083C7]">
+                    <Wand2 className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
+                    PASSO 02
+                  </span>
+                </div>
+                <h3 className="mb-3 text-2xl font-bold text-slate-900">
+                  A IA gera tudo
+                </h3>
+                <p className="leading-relaxed text-slate-600">
+                  Em segundos, nossa IA cria a imagem profissional em alta definição com a identidade da sua marca e redige a legenda perfeita com hashtags.
+                </p>
+              </div>
+            </FadeInView>
+
+            {/* Passo 3 */}
+            <FadeInView delay={0.3}>
+              <div className="relative flex h-full flex-col rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/50 p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                    <SendHorizontal className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
+                    PASSO 03
+                  </span>
+                </div>
+                <h3 className="mb-3 text-2xl font-bold text-slate-900">
+                  Aprove e publique
+                </h3>
+                <p className="leading-relaxed text-slate-600">
+                  Visualize a prévia pronta, edite se quiser e publique ou agende com 1 clique direto no Instagram, Facebook e Google Meu Negócio.
+                </p>
+              </div>
+            </FadeInView>
+          </div>
+        </div>
+
         {/* Ideia para Postagem (Entre mosaico e fluxos) */}
         <div className="mb-40 text-center">
           <FadeInView>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-1 text-xs font-bold uppercase tracking-wider text-[#FA6305]">
+              Demonstração Interativa
+            </div>
             <h3 className="mb-16 text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
-              Da{" "}
-              <span className="bg-gradient-to-r from-orange-500 to-orange-400 bg-clip-text text-transparent">
-                Ideia
-              </span>{" "}
-              à{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-                Postagem
-              </span>{" "}
-              em Segundos
+              Veja a transformação acontecendo
             </h3>
 
             <div className="flex flex-col items-center justify-center gap-8 md:flex-row md:gap-12">

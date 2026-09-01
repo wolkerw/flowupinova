@@ -20,7 +20,7 @@ export const FeaturesGrid = () => {
   return (
     <section
       id="recursos"
-      className="relative border-t border-slate-800 bg-slate-900 py-24 text-white"
+      className="relative border-t border-slate-800 bg-slate-900 py-24 text-white scroll-mt-20"
     >
       {/* Background Glow */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-blue-500/10 blur-[100px]" />

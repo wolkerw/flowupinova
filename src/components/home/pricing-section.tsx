@@ -20,7 +20,7 @@ const FadeInView = ({ children, delay = 0 }: { children: React.ReactNode; delay?
 
 export const PricingSection = () => {
   return (
-    <section id="planos" className="relative overflow-hidden bg-slate-50 py-24">
+    <section id="planos" className="relative overflow-hidden bg-slate-50 py-24 scroll-mt-20">
       <div className="container mx-auto px-4 lg:px-8">
         <FadeInView>
           <div className="mx-auto mb-20 max-w-3xl text-center">

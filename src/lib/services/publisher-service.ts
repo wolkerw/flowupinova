@@ -1,5 +1,8 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { getAuthenticatedGoogleClient } from "@/lib/services/google-service-admin";
+import { isVideoMedia } from "@/lib/utils";
+
+export { isVideoMedia };
 
 /**
  * 1. FACEBOOK PUBLISHING
@@ -10,19 +13,32 @@ export async function publishToFacebook(
   imageUrl: string,
   caption: string
 ): Promise<string> {
-  const url = `https://graph.facebook.com/v20.0/${pageId}/photos`;
-  const params = new URLSearchParams({
-    url: imageUrl,
-    caption: caption,
-    access_token: accessToken,
-  });
+  const isVideo = isVideoMedia(imageUrl);
+  let url: string;
+  let params: URLSearchParams;
+
+  if (isVideo) {
+    url = `https://graph.facebook.com/v20.0/${pageId}/videos`;
+    params = new URLSearchParams({
+      file_url: imageUrl,
+      description: caption,
+      access_token: accessToken,
+    });
+  } else {
+    url = `https://graph.facebook.com/v20.0/${pageId}/photos`;
+    params = new URLSearchParams({
+      url: imageUrl,
+      caption: caption,
+      access_token: accessToken,
+    });
+  }
 
   const response = await fetch(`${url}?${params.toString()}`, { method: "POST" });
   const data = await response.json();
 
   if (!response.ok || !data.id) {
     console.error("[PUBLISHER_FB_ERROR] Falha ao publicar na Página do Facebook:", data.error);
-    throw new Error(data.error?.message || "Falha ao publicar a foto na Página do Facebook.");
+    throw new Error(data.error?.message || "Falha ao publicar a mídia na Página do Facebook.");
   }
 
   return data.id;
@@ -75,31 +91,63 @@ async function createMediaItemContainer(
   isCarouselItem: boolean,
   caption?: string,
   collaborators?: string[],
-  userTags?: InstagramUserTag[]
+  userTags?: InstagramUserTag[],
+  mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES",
+  isStory?: boolean
 ): Promise<string> {
   const host = "https://graph.instagram.com";
   const url = `${host}/v20.0/${instagramId}/media`;
 
+  const isVideo = mediaType === "VIDEO" || mediaType === "REELS" || isVideoMedia(imageUrl);
+  const isStoryMedia = isStory || mediaType === "STORIES";
+
   const params = new URLSearchParams({
-    image_url: imageUrl,
     access_token: accessToken,
   });
 
-  if (isCarouselItem) {
-    params.append("is_carousel_item", "true");
-  }
+  if (isStoryMedia) {
+    params.append("media_type", "STORIES");
+    if (isVideo) {
+      params.append("video_url", imageUrl);
+    } else {
+      params.append("image_url", imageUrl);
+    }
+    // Stories não aceitam caption, collaborators ou user_tags diretamente no container base
+  } else if (isVideo) {
+    // Para vídeos no Feed/Reels, a Meta unificou em REELS
+    params.append("media_type", "REELS");
+    params.append("video_url", imageUrl);
 
-  if (!isCarouselItem && caption) {
-    params.append("caption", caption);
-  }
+    if (caption) {
+      params.append("caption", caption);
+    }
+    if (collaborators && collaborators.length > 0) {
+      const formattedCollaborators = `[${collaborators.map((c) => `'${c}'`).join(",")}]`;
+      params.append("collaborators", formattedCollaborators);
+    }
+    if (userTags && userTags.length > 0) {
+      params.append("user_tags", JSON.stringify(userTags));
+    }
+  } else {
+    // Foto estática (Feed ou Carrossel)
+    params.append("image_url", imageUrl);
 
-  if (!isCarouselItem && collaborators && collaborators.length > 0) {
-    const formattedCollaborators = `[${collaborators.map((c) => `'${c}'`).join(",")}]`;
-    params.append("collaborators", formattedCollaborators);
-  }
+    if (isCarouselItem) {
+      params.append("is_carousel_item", "true");
+    }
 
-  if (userTags && userTags.length > 0) {
-    params.append("user_tags", JSON.stringify(userTags));
+    if (!isCarouselItem && caption) {
+      params.append("caption", caption);
+    }
+
+    if (!isCarouselItem && collaborators && collaborators.length > 0) {
+      const formattedCollaborators = `[${collaborators.map((c) => `'${c}'`).join(",")}]`;
+      params.append("collaborators", formattedCollaborators);
+    }
+
+    if (userTags && userTags.length > 0) {
+      params.append("user_tags", JSON.stringify(userTags));
+    }
   }
 
   const response = await fetch(`${url}?${params.toString()}`, { method: "POST" });
@@ -210,7 +258,7 @@ async function createCarouselContainer(
 async function checkContainerStatus(containerId: string, accessToken: string): Promise<void> {
   const host = "https://graph.instagram.com";
   let attempts = 0;
-  while (attempts < 12) {
+  while (attempts < 24) {
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const statusUrl = `${host}/v20.0/${containerId}?fields=status_code&access_token=${accessToken}`;
@@ -261,7 +309,9 @@ export async function publishToInstagram(
   isCarousel: boolean,
   text: string,
   collaborators?: string[],
-  userTags?: InstagramUserTag[]
+  userTags?: InstagramUserTag[],
+  mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES",
+  isStory?: boolean
 ): Promise<string> {
   const caption = text.slice(0, 2200);
   let creationId: string;
@@ -277,7 +327,9 @@ export async function publishToInstagram(
         true,
         undefined,
         undefined,
-        index === 0 ? userTags : undefined
+        index === 0 ? userTags : undefined,
+        undefined,
+        false
       )
     );
     const childContainerIds = await Promise.all(childContainerPromises);
@@ -297,7 +349,9 @@ export async function publishToInstagram(
       false,
       caption,
       collaborators,
-      userTags
+      userTags,
+      mediaType,
+      isStory
     );
   }
 

@@ -38,6 +38,7 @@ import type { LinkedInConnectionData } from "@/lib/services/linkedin-service";
 
 export interface LinkedInPostsViewerProps {
   connection: LinkedInConnectionData | null;
+  periodDays?: string;
 }
 
 const mockLinkedInPosts = [
@@ -121,7 +122,7 @@ const linkedinAiRecommendations = [
   },
 ];
 
-export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
+export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInPostsViewerProps) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "trending" | "declining">("all");
@@ -152,16 +153,38 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
     );
   }
 
-  const filteredPosts = mockLinkedInPosts.filter((p) => {
-    if (activeTab === "trending") return p.status === "trending";
-    if (activeTab === "declining") return p.status === "declining";
-    return true;
-  });
+  const cutoffDate = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    return d;
+  }, [periodDays]);
 
-  const totalImpressions = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.impressions, 0);
-  const totalLikes = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.likes, 0);
-  const totalComments = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.comments, 0);
-  const totalShares = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.shares, 0);
+  const filteredPosts = React.useMemo(() => {
+    return mockLinkedInPosts.filter((p) => {
+      const isWithinDate = new Date(p.createdTime) >= cutoffDate;
+      if (!isWithinDate) return false;
+      if (activeTab === "trending") return p.status === "trending";
+      if (activeTab === "declining") return p.status === "declining";
+      return true;
+    });
+  }, [activeTab, cutoffDate]);
+
+  const totalImpressions = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + p.metrics.impressions, 0),
+    [filteredPosts]
+  );
+  const totalLikes = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + p.metrics.likes, 0),
+    [filteredPosts]
+  );
+  const totalComments = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + p.metrics.comments, 0),
+    [filteredPosts]
+  );
+  const totalShares = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + p.metrics.shares, 0),
+    [filteredPosts]
+  );
 
   return (
     <div className="space-y-8 font-sans">

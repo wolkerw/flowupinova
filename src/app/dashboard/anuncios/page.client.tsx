@@ -55,6 +55,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import "leaflet/dist/leaflet.css";
 import type { BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getScheduledPosts } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection } from "@/lib/services/meta-service";
@@ -338,7 +339,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [selectedLocations, setSelectedLocations] = useState<any[]>([]);
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
   const mapLayersRef = useRef<any[]>([]);
-  const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
   const mapInstanceRef = useRef<any>(null);
 
   // Estados para Faturamento / Cobrança
@@ -495,38 +495,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [campaignObjective, hasWhatsAppConnected]);
 
-  // 1. Carrega scripts e estilos do Leaflet dinamicamente para o Mapa Visual
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if ((window as any).L) {
-      setIsLeafletLoaded(true);
-      return;
-    }
-
-    if (!document.getElementById("leaflet-css")) {
-      const link = document.createElement("link");
-      link.id = "leaflet-css";
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-    }
-
-    if (!document.getElementById("leaflet-js")) {
-      const script = document.createElement("script");
-      script.id = "leaflet-js";
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.async = true;
-      script.onload = () => {
-        setIsLeafletLoaded(true);
-      };
-      document.head.appendChild(script);
-    } else {
-      setIsLeafletLoaded(true);
-    }
-  }, []);
-
-  // 2. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
+  // 1. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
   useEffect(() => {
     if (currentStep === 3 && selectedLocations.length === 0 && businessProfile?.address) {
       const geocodeProfileAddress = async () => {
@@ -560,138 +529,167 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [currentStep, businessProfile, selectedLocations]);
 
-  // 3. Inicializa e sincroniza o mapa Leaflet
+  // 2. Inicializa e sincroniza o mapa Leaflet de forma autônoma e local
   useEffect(() => {
-    if (!isLeafletLoaded || currentStep !== 3 || typeof window === "undefined") return;
+    if (currentStep !== 3 || typeof window === "undefined") return;
 
-    const L = (window as any).L;
-    if (!L) return;
+    let isMounted = true;
 
-    let initialLat = -30.0346;
-    let initialLng = -51.2177;
-    let zoomLevel = 12;
+    const initMap = async () => {
+      const L = (await import("leaflet")).default;
+      if (!isMounted) return;
 
-    if (selectedLocations.length > 0) {
-      const firstLoc = selectedLocations[0];
-      if (typeof firstLoc.latitude === "number" && typeof firstLoc.longitude === "number") {
-        initialLat = firstLoc.latitude;
-        initialLng = firstLoc.longitude;
-        zoomLevel = firstLoc.type === "País" || firstLoc.type === "Estado" ? 4 : 14;
-      }
-    }
+      const mapContainer = document.getElementById("targeting-map");
+      if (!mapContainer) return;
 
-    const mapContainer = document.getElementById("targeting-map");
-    if (!mapContainer) return;
+      let initialLat = -30.0346;
+      let initialLng = -51.2177;
+      let zoomLevel = 12;
 
-    const syncMapElements = (map: any) => {
-      // Remove todos os elementos anteriores do mapa
-      if (mapLayersRef.current) {
-        mapLayersRef.current.forEach((layer) => {
-          map.removeLayer(layer);
-        });
-        mapLayersRef.current = [];
+      if (selectedLocations.length > 0) {
+        const firstLoc = selectedLocations[0];
+        if (typeof firstLoc.latitude === "number" && typeof firstLoc.longitude === "number") {
+          initialLat = firstLoc.latitude;
+          initialLng = firstLoc.longitude;
+          zoomLevel = firstLoc.type === "País" || firstLoc.type === "Estado" ? 4 : 14;
+        }
       }
 
-      if (selectedLocations.length === 0) return;
+      const syncMapElements = (map: any) => {
+        if (mapLayersRef.current) {
+          mapLayersRef.current.forEach((layer) => {
+            try {
+              map.removeLayer(layer);
+            } catch {}
+          });
+          mapLayersRef.current = [];
+        }
 
-      const bounds = L.latLngBounds([]);
-      let hasLayers = false;
+        if (selectedLocations.length === 0) return;
 
-      selectedLocations.forEach((loc) => {
-        const isArea = loc.type === "País" || loc.type === "Estado";
-        if (isArea) {
-          if (loc.geoJson) {
-            const geoJsonLayer = L.geoJSON(loc.geoJson, {
-              style: {
+        const bounds = L.latLngBounds([]);
+        let hasLayers = false;
+
+        selectedLocations.forEach((loc) => {
+          const isArea = loc.type === "País" || loc.type === "Estado";
+          if (isArea) {
+            if (loc.geoJson) {
+              const geoJsonLayer = L.geoJSON(loc.geoJson, {
+                style: {
+                  color: "#0284c7",
+                  fillColor: "#0284c7",
+                  fillOpacity: 0.15,
+                  weight: 2,
+                },
+              }).addTo(map);
+              mapLayersRef.current.push(geoJsonLayer);
+              bounds.extend(geoJsonLayer.getBounds());
+              hasLayers = true;
+            } else if (loc.boundingBox) {
+              const b: [[number, number], [number, number]] = [
+                [loc.boundingBox[0], loc.boundingBox[2]],
+                [loc.boundingBox[1], loc.boundingBox[3]],
+              ];
+              const rect = L.rectangle(b, {
+                color: "#0284c7",
+                fillColor: "#0284c7",
+                fillOpacity: 0.2,
+                weight: 2,
+              }).addTo(map);
+              mapLayersRef.current.push(rect);
+              bounds.extend(b);
+              hasLayers = true;
+            }
+          } else {
+            if (typeof loc.latitude === "number" && typeof loc.longitude === "number") {
+              const latLng = new L.LatLng(loc.latitude, loc.longitude);
+              const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0284c7" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+              const customPinIcon = L.icon({
+                iconUrl: "data:image/svg+xml;base64," + btoa(pinSvg),
+                iconSize: [36, 36],
+                iconAnchor: [18, 36],
+              });
+              const marker = L.marker(latLng, {
+                icon: customPinIcon,
+                draggable: false,
+              }).addTo(map);
+              mapLayersRef.current.push(marker);
+
+              const circle = L.circle(latLng, {
                 color: "#0284c7",
                 fillColor: "#0284c7",
                 fillOpacity: 0.15,
-                weight: 2,
-              },
-            }).addTo(map);
-            mapLayersRef.current.push(geoJsonLayer);
-            bounds.extend(geoJsonLayer.getBounds());
-            hasLayers = true;
-          } else if (loc.boundingBox) {
-            const b = [
-              [loc.boundingBox[0], loc.boundingBox[2]],
-              [loc.boundingBox[1], loc.boundingBox[3]],
-            ];
-            const rect = L.rectangle(b, {
-              color: "#0284c7",
-              fillColor: "#0284c7",
-              fillOpacity: 0.2,
-              weight: 2,
-            }).addTo(map);
-            mapLayersRef.current.push(rect);
-            bounds.extend(b);
-            hasLayers = true;
-          }
-        } else {
-          if (typeof loc.latitude === "number" && typeof loc.longitude === "number") {
-            const latLng = new L.LatLng(loc.latitude, loc.longitude);
-            const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0284c7" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
-            const customPinIcon = L.icon({
-              iconUrl: "data:image/svg+xml;base64," + btoa(pinSvg),
-              iconSize: [36, 36],
-              iconAnchor: [18, 36],
-            });
-            const marker = L.marker(latLng, {
-              icon: customPinIcon,
-              draggable: false, // Desativa pin arrastável
-            }).addTo(map);
-            mapLayersRef.current.push(marker);
+                radius: radius * 1000,
+              }).addTo(map);
+              mapLayersRef.current.push(circle);
 
-            const circle = L.circle(latLng, {
-              color: "#0284c7",
-              fillColor: "#0284c7",
-              fillOpacity: 0.15,
-              radius: radius * 1000,
-            }).addTo(map);
-            mapLayersRef.current.push(circle);
-
-            bounds.extend(latLng);
-            bounds.extend(circle.getBounds());
-            hasLayers = true;
+              bounds.extend(latLng);
+              bounds.extend(circle.getBounds());
+              hasLayers = true;
+            }
           }
+        });
+
+        if (hasLayers) {
+          map.fitBounds(bounds, { padding: [30, 30] });
         }
-      });
+      };
 
-      if (hasLayers) {
-        map.fitBounds(bounds, { padding: [30, 30] });
+      if (mapInstanceRef.current) {
+        syncMapElements(mapInstanceRef.current);
+        setTimeout(() => {
+          mapInstanceRef.current?.invalidateSize();
+        }, 100);
+        return;
+      }
+
+      if ((mapContainer as any)._leaflet_id) {
+        delete (mapContainer as any)._leaflet_id;
+      }
+
+      try {
+        const map = L.map("targeting-map", {
+          center: [initialLat, initialLng],
+          zoom: zoomLevel,
+          zoomControl: true,
+        });
+        mapInstanceRef.current = map;
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map);
+
+        syncMapElements(map);
+
+        setTimeout(() => {
+          if (isMounted && mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        }, 100);
+        setTimeout(() => {
+          if (isMounted && mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        }, 350);
+      } catch (err) {
+        console.warn("[LEAFLET_MAP_INIT_ERROR]", err);
       }
     };
 
-    if (mapInstanceRef.current) {
-      syncMapElements(mapInstanceRef.current);
-      return;
-    }
-
-    const map = L.map("targeting-map", {
-      center: [initialLat, initialLng],
-      zoom: zoomLevel,
-      zoomControl: true,
-    });
-    mapInstanceRef.current = map;
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-
-    syncMapElements(map);
-
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    initMap();
 
     return () => {
+      isMounted = false;
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch {}
         mapInstanceRef.current = null;
         mapLayersRef.current = [];
       }
     };
-  }, [isLeafletLoaded, currentStep, selectedLocations, radius]);
+  }, [currentStep, selectedLocations, radius]);
 
   // Estados de IA e Carregamento
   const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
@@ -1550,6 +1548,22 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   };
 
+  // Abre o modal de escolha de post validando previamente se há forma de pagamento ativa
+  const handleOpenChoosePostModal = () => {
+    if (billingStatus && !billingStatus.hasPaymentMethod) {
+      setIsBillingModalOpen(true);
+      setBillingGuideActive(false);
+      toast({
+        variant: "destructive",
+        title: "Forma de pagamento necessária",
+        description:
+          "Sua conta de anúncios da Meta ainda não possui uma forma de pagamento ativa (cartão, Pix ou boleto). Configure o faturamento para poder impulsionar.",
+      });
+      return;
+    }
+    setIsChoosePostModalOpen(true);
+  };
+
   // Preenche dados ao selecionar um post para impulsionar
   const handleSelectPostToBoost = (post: any) => {
     setSelectedPost(post);
@@ -1831,7 +1845,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     };
     return ctas[cta] || "Saiba Mais";
   };
-  const isMetaActive = !!(metaConnection.isConnected && metaConnection.adAccountId);
+  const isMetaActive = !!(metaConnection.isConnected && (metaConnection.adAccountId || adAccountId));
   const isGoogleActive = !!(googleAdsConnection.isConnected && googleAdsConnection.adAccountId);
   const isAnyActive = isMetaActive || isGoogleActive;
 
@@ -1946,8 +1960,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       {/* BANNER DE PREVENÇÃO DE COBRANÇA PENDENTE */}
       {!isCreating &&
-        metaConnection.isConnected &&
-        metaConnection.adAccountId &&
+        isMetaActive &&
         billingStatus &&
         !billingStatus.hasPaymentMethod && (
           <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 duration-300 animate-in fade-in slide-in-from-top-2 md:flex-row md:items-center">
@@ -1964,28 +1977,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center">
               <Button
                 onClick={() => {
                   setBillingGuideActive(false);
                   setIsBillingModalOpen(true);
                 }}
                 size="sm"
-                className="h-8 rounded-lg bg-amber-600 text-[10px] font-bold text-white hover:bg-amber-700"
+                className="h-8 rounded-lg bg-amber-600 px-4 text-[11px] font-bold text-white shadow-xs transition-colors hover:bg-amber-700 active:scale-95"
               >
                 Configurar Faturamento
-              </Button>
-              <Button
-                onClick={() => {
-                  setBillingGuideActive(true);
-                  setBillingGuideStep(1);
-                  setIsBillingModalOpen(true);
-                }}
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-lg border-amber-200 text-[10px] font-bold text-amber-700 hover:bg-amber-50"
-              >
-                Recarregar Saldo
               </Button>
             </div>
           </div>
@@ -4427,7 +4428,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               <div>
                 {activePlatformTab === "meta" && isMetaActive && (
                   <Button
-                    onClick={() => setIsChoosePostModalOpen(true)}
+                    onClick={handleOpenChoosePostModal}
                     className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-transform duration-200 hover:bg-primary/95 active:scale-95"
                   >
                     <Plus className="h-4 w-4" />
@@ -4550,7 +4551,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           {activePlatformTab === "meta" ? (
                             publishedPosts.length > 0 ? (
                               <Button
-                                onClick={() => setIsChoosePostModalOpen(true)}
+                                onClick={handleOpenChoosePostModal}
                                 className="font-poppins flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-primary/95 active:scale-95"
                               >
                                 <Plus className="h-3.5 w-3.5" />

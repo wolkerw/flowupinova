@@ -23,6 +23,7 @@ import type { InstagramConnectionData } from "./instagram-service";
 import type { GoogleConnectionData } from "./google-service";
 import type { LinkedInConnectionData } from "./linkedin-service";
 import { config } from "@/lib/config";
+import { isVideoMedia } from "@/lib/utils";
 
 // Interface for data stored in Firestore
 export interface PostData {
@@ -51,12 +52,17 @@ export interface PostData {
   creationId?: string;
   collaborators?: string[];
   userTags?: { username: string; x: number; y: number }[];
+  mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
+  isStory?: boolean;
+  postType?: "feed" | "story" | "reel";
 }
 
 export interface MediaFileInput {
   file: File;
   publicUrl?: string;
   type?: string;
+  thumbnailFile?: File;
+  thumbnailUrl?: string;
 }
 
 // Interface for data coming from the client
@@ -73,6 +79,9 @@ export type PostDataInput = {
   linkedinConnection?: LinkedInConnectionData;
   collaborators?: string[];
   userTags?: { username: string; x: number; y: number }[];
+  isStory?: boolean;
+  postType?: "feed" | "story" | "reel";
+  mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
 };
 
 // Interface for data being sent to the client from the service
@@ -158,6 +167,10 @@ async function publishPostImmediately(
 
       if (platform === "instagram") {
         apiPath = "/api/instagram/v2/publish"; // Use the V2 route for Instagram
+        const isStory =
+          postData.isStory ||
+          postData.postType === "story" ||
+          (postData.text && postData.text.toLowerCase().includes("#story"));
         payload = {
           postData: {
             text: postData.text,
@@ -167,6 +180,8 @@ async function publishPostImmediately(
             instagramId: postData.connections.instagramId,
             collaborators: postData.collaborators,
             userTags: postData.userTags,
+            mediaType: postData.mediaType,
+            isStory,
           },
         };
       } else if (platform === "facebook") {
@@ -417,6 +432,16 @@ export async function schedulePost(
     imageUrls = await Promise.all(uploadPromises);
     console.log("[POST_SERVICE] URLs finais processadas:", imageUrls);
 
+    // Upload de miniaturas / capas personalizadas de vídeo, caso existam
+    const thumbnailUploadPromises = postData.media.map(async (mediaItem) => {
+      if (mediaItem.thumbnailFile && mediaItem.thumbnailFile.size > 0) {
+        console.log("[POST_SERVICE] Fazendo upload de thumbnail/capa personalizada...");
+        return await uploadMediaAndGetURL(userId, mediaItem.thumbnailFile);
+      }
+      return mediaItem.thumbnailUrl || null;
+    });
+    const thumbnailUrls = await Promise.all(thumbnailUploadPromises);
+
     // Validação final: Garantir que não existam URLs blob ou vazias
     if (imageUrls.some((url) => !url || url.startsWith("blob:"))) {
       throw new Error(
@@ -436,7 +461,20 @@ export async function schedulePost(
       instagramUsername: postData.instagramConnection?.instagramUsername || null,
     };
 
-    const postToSave: Omit<PostData, "id" | "imageUrl"> = {
+    const isVideo =
+      postData.media.some(
+        (m) =>
+          m.type === "video" ||
+          (m.file && m.file.type.startsWith("video")) ||
+          (m.publicUrl && isVideoMedia(m.publicUrl))
+      ) || imageUrls.some((url) => isVideoMedia(url));
+
+    const isStory =
+      postData.isStory ||
+      postData.postType === "story" ||
+      (postData.text && postData.text.toLowerCase().includes("#story"));
+
+    const postToSave: any = {
       text: postData.text,
       imageUrls: imageUrls,
       isCarousel: postData.isCarousel,
@@ -446,6 +484,15 @@ export async function schedulePost(
       connections: connectionsToSave,
       ...(postData.collaborators ? { collaborators: postData.collaborators } : {}),
       ...(postData.userTags ? { userTags: postData.userTags } : {}),
+      isStory: isStory,
+      postType: postData.postType || (isStory ? "story" : isVideo ? "reel" : "feed"),
+      mediaType: isStory ? "STORIES" : isVideo ? "REELS" : "IMAGE",
+      thumbnailUrl: thumbnailUrls[0] || (isVideoMedia(imageUrls[0]) ? undefined : imageUrls[0]),
+      mediaFiles: imageUrls.map((url, i) => ({
+        url,
+        type: isVideoMedia(url) ? "video" : "image",
+        thumbnailUrl: thumbnailUrls[i] || undefined,
+      })),
     };
 
     const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);

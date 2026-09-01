@@ -27,9 +27,12 @@ import {
   Download,
   Maximize2,
   X,
+  Play,
+  Film,
+  Video,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, isVideoMedia } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -46,6 +49,7 @@ interface GalleryMediaItem {
   isPublished?: boolean;
   publishedPlatforms?: string[];
   publishedAt?: any;
+  type?: "image" | "video";
 }
 
 export default function GaleriaPage() {
@@ -89,6 +93,7 @@ export default function GaleriaPage() {
 
         if (isPostPublished) {
           const urls: string[] = [];
+          if (post.videoUrl) urls.push(post.videoUrl);
           if (post.imageUrl) urls.push(post.imageUrl);
           if (Array.isArray(post.imageUrls)) urls.push(...post.imageUrls);
           if (Array.isArray(post.mediaFiles)) {
@@ -134,6 +139,8 @@ export default function GaleriaPage() {
           }
         }
 
+        const isVideo = isVideoMedia(item.url) || item.fileName?.toLowerCase().endsWith(".mp4");
+
         return {
           ...item,
           usedInPostId: isItemPub ? item.usedInPostId || postMeta?.postId || "published" : null,
@@ -141,10 +148,12 @@ export default function GaleriaPage() {
           publishedPlatforms: postMeta?.platforms,
           publishedAt: postMeta?.scheduledAt,
           caption: item.caption || postMeta?.text || null,
+          type: isVideo ? "video" : "image",
+          fileName: item.fileName || (isVideo ? "video.mp4" : "imagem.jpg"),
         };
       });
 
-      // 3. Incluir também posts publicados do Firestore cujas imagens ainda não estejam catalogadas na galeria
+      // 3. Incluir também posts publicados do Firestore cujas imagens/vídeos ainda não estejam catalogados na galeria
       rawPosts.forEach((post) => {
         const isPostPublished =
           post.status === "published" ||
@@ -153,12 +162,17 @@ export default function GaleriaPage() {
 
         if (isPostPublished) {
           const urls: string[] = [];
+          if (post.videoUrl) urls.push(post.videoUrl);
           if (post.imageUrl) urls.push(post.imageUrl);
           if (Array.isArray(post.imageUrls)) urls.push(...post.imageUrls);
+          if (Array.isArray(post.mediaFiles)) {
+            urls.push(...post.mediaFiles.map((m: any) => m.url).filter(Boolean));
+          }
 
           urls.forEach((u, idx) => {
             if (u && !existingUrls.has(u) && !u.startsWith("blob:") && !u.startsWith("data:")) {
               existingUrls.add(u);
+              const isVideo = isVideoMedia(u) || post.type === "story" && isVideoMedia(u) || post.type === "video";
               processedGalleryItems.push({
                 id: `post_media_${post.id}_${idx}`,
                 url: u,
@@ -167,11 +181,12 @@ export default function GaleriaPage() {
                 prompt: null,
                 createdAt: post.scheduledAt || post.createdAt || new Date(),
                 usedInPostId: post.id,
-                fileName: `publicacao_${idx + 1}.jpg`,
+                fileName: isVideo ? `video_${idx + 1}.mp4` : `publicacao_${idx + 1}.jpg`,
                 caption: post.text || null,
                 isPublished: true,
                 publishedPlatforms: post.platforms || [],
                 publishedAt: post.scheduledAt || post.createdAt,
+                type: isVideo ? "video" : "image",
               });
             }
           });
@@ -265,8 +280,9 @@ export default function GaleriaPage() {
   };
 
   const handleCreatePost = (item: GalleryMediaItem) => {
-    // Salvar informações da imagem na sessionStorage para carregar diretamente na tela de manual
+    // Salvar informações da imagem/vídeo na sessionStorage para carregar diretamente na tela de manual
     try {
+      const isVideo = isVideoMedia(item.url) || item.type === "video";
       sessionStorage.setItem(
         "preloaded_gallery_image",
         JSON.stringify({
@@ -274,10 +290,11 @@ export default function GaleriaPage() {
           storagePath: item.storagePath,
           prompt: item.prompt,
           caption: item.caption || null,
+          type: isVideo ? "video" : "image",
         })
       );
       toast({
-        title: "Carregando imagem...",
+        title: isVideo ? "Carregando vídeo..." : "Carregando imagem...",
         description: "Redirecionando você para o Criador de Post Manual.",
       });
       router.push("/dashboard/posts/criar?from_gallery=true");
@@ -291,14 +308,14 @@ export default function GaleriaPage() {
 
     if (
       !confirm(
-        "Tem certeza que deseja excluir esta imagem da sua galeria? Esta ação é definitiva e removerá o arquivo do armazenamento."
+        "Tem certeza que deseja excluir esta mídia da sua galeria? Esta ação é definitiva e removerá o arquivo do armazenamento."
       )
     ) {
       return;
     }
 
     toast({
-      title: "Excluindo imagem...",
+      title: "Excluindo mídia...",
       description: "Removendo do banco de dados e do armazenamento do Firebase.",
     });
 
@@ -318,7 +335,7 @@ export default function GaleriaPage() {
       toast({
         variant: "success",
         title: "Sucesso!",
-        description: "Imagem excluída da sua galeria com sucesso.",
+        description: "Mídia excluída da sua galeria com sucesso.",
       });
     } catch (error: any) {
       console.error("Erro ao excluir item da galeria:", error);
@@ -333,9 +350,10 @@ export default function GaleriaPage() {
   const handleDownloadImage = async (url: string, fileName: string) => {
     try {
       setIsDownloading(url);
+      const isVideo = isVideoMedia(url);
       toast({
         title: "Iniciando download...",
-        description: "Preparando a imagem para download.",
+        description: isVideo ? "Preparando o vídeo para download." : "Preparando a imagem para download.",
       });
 
       const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`;
@@ -345,7 +363,7 @@ export default function GaleriaPage() {
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = fileName || "numvapt-imagem.jpg";
+      link.download = fileName || (isVideo ? "numvapt-video.mp4" : "numvapt-imagem.jpg");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -354,14 +372,14 @@ export default function GaleriaPage() {
       toast({
         variant: "success",
         title: "Download Concluído!",
-        description: "Sua imagem foi baixada com sucesso.",
+        description: isVideo ? "Seu vídeo foi baixado com sucesso." : "Sua imagem foi baixada com sucesso.",
       });
     } catch (error) {
-      console.error("Erro ao baixar imagem por blob, tentando fallback de nova aba:", error);
+      console.error("Erro ao baixar mídia por blob, tentando fallback de nova aba:", error);
       window.open(url, "_blank");
       toast({
         title: "Download Iniciado",
-        description: "A imagem foi aberta em uma nova aba para você salvá-la.",
+        description: "O arquivo foi aberto em uma nova aba para você salvá-lo.",
       });
     } finally {
       setIsDownloading(null);
@@ -469,16 +487,37 @@ export default function GaleriaPage() {
                     transition={{ duration: 0.3 }}
                     className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-                    {/* Imagem do Card */}
-                    <div className="relative aspect-square w-full overflow-hidden bg-gray-50">
-                      <Image
-                        src={item.url}
-                        alt="Imagem da galeria"
-                        layout="fill"
-                        objectFit="cover"
-                        unoptimized
-                        className="transition-transform duration-500 ease-out group-hover:scale-105"
-                      />
+                    {/* Mídia do Card (Vídeo ou Imagem) */}
+                    <div className="relative aspect-square w-full overflow-hidden bg-slate-950">
+                      {isVideoMedia(item.url) || item.type === "video" ? (
+                        <div className="relative h-full w-full">
+                          <video
+                            src={item.url}
+                            className="h-full w-full object-cover opacity-90 transition-transform duration-500 ease-out group-hover:scale-105"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                          <div className="pointer-events-none absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white shadow backdrop-blur-sm">
+                            <Film className="h-3 w-3 text-pink-400" />
+                            <span>Vídeo</span>
+                          </div>
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white shadow-md backdrop-blur-sm transition-transform group-hover:scale-110">
+                              <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <Image
+                          src={item.url}
+                          alt="Imagem da galeria"
+                          layout="fill"
+                          objectFit="cover"
+                          unoptimized
+                          className="transition-transform duration-500 ease-out group-hover:scale-105"
+                        />
+                      )}
 
                       {/* Badge de Status */}
                       <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-1">
@@ -626,27 +665,37 @@ export default function GaleriaPage() {
 
       <Dialog open={!!selectedImageToView} onOpenChange={(open) => !open && setSelectedImageToView(null)}>
         <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-2xl">
-          <DialogTitle className="sr-only">Visualizar Imagem</DialogTitle>
+          <DialogTitle className="sr-only">Visualizar Mídia</DialogTitle>
           <DialogDescription className="sr-only">
-            Visualização em tamanho grande da imagem selecionada.
+            Visualização em tamanho grande da mídia selecionada.
           </DialogDescription>
           {selectedImageToView && (
-            <div className="relative w-full h-[80vh] flex items-center justify-center bg-black/40 rounded-lg backdrop-blur-sm">
+            <div className="relative w-full h-[80vh] flex items-center justify-center bg-black/90 rounded-lg backdrop-blur-sm overflow-hidden p-4">
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-4 top-4 z-50 h-10 w-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white"
+                className="absolute right-4 top-4 z-50 h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
                 onClick={() => setSelectedImageToView(null)}
               >
                 <X className="h-5 w-5" />
               </Button>
-              <Image
-                src={selectedImageToView}
-                alt="Imagem em tamanho grande"
-                layout="fill"
-                objectFit="contain"
-                unoptimized
-              />
+              {isVideoMedia(selectedImageToView) ? (
+                <video
+                  src={selectedImageToView}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-full max-w-full rounded-md object-contain shadow-2xl"
+                />
+              ) : (
+                <Image
+                  src={selectedImageToView}
+                  alt="Mídia em tamanho grande"
+                  layout="fill"
+                  objectFit="contain"
+                  unoptimized
+                />
+              )}
             </div>
           )}
         </DialogContent>

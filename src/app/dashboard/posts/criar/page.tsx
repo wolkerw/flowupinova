@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
@@ -49,6 +50,10 @@ import {
   Linkedin,
   ChevronDown,
   Paintbrush,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -70,6 +75,7 @@ import {
   type PostDataInput,
   type MediaFileInput,
 } from "@/lib/services/posts-service";
+import { isVideoMedia } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -120,6 +126,120 @@ type MediaItem = {
   publicUrl?: string;
   originalUrl?: string;
   editorLayers?: EditorLayer[];
+  thumbnailUrl?: string;
+  thumbnailBlob?: Blob;
+  thumbnailFile?: File;
+  videoDuration?: number;
+  thumbnailTime?: number;
+};
+
+export const captureVideoFrame = (
+  videoSource: File | string,
+  timestamp: number = 0.1
+): Promise<{ blob: Blob; dataUrl: string; duration: number }> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    if (
+      typeof videoSource === "string" &&
+      (videoSource.startsWith("http://") || videoSource.startsWith("https://"))
+    ) {
+      video.crossOrigin = "anonymous";
+    }
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+
+    let objectUrl = "";
+    if (typeof videoSource === "string") {
+      video.src = videoSource;
+    } else {
+      objectUrl = URL.createObjectURL(videoSource);
+      video.src = objectUrl;
+    }
+
+    let isDone = false;
+    const cleanup = () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      video.remove();
+    };
+
+    const timeout = setTimeout(() => {
+      if (!isDone) {
+        isDone = true;
+        cleanup();
+        reject(new Error("Timeout ao capturar frame"));
+      }
+    }, 8000);
+
+    const finish = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimeout(timeout);
+      try {
+        const w = video.videoWidth || 720;
+        const h = video.videoHeight || 1280;
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+          canvas.toBlob(
+            (blob) => {
+              const dur = video.duration || 0;
+              cleanup();
+              resolve({
+                blob: blob || new Blob([]),
+                dataUrl,
+                duration: dur,
+              });
+            },
+            "image/jpeg",
+            0.9
+          );
+        } else {
+          cleanup();
+          reject(new Error("Canvas context indisponível"));
+        }
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    video.onseeked = finish;
+
+    video.onloadeddata = () => {
+      const dur = video.duration || 1;
+      const t = Math.min(Math.max(timestamp, 0.01), Math.max(dur - 0.05, 0.01));
+      video.currentTime = t;
+    };
+
+    video.onerror = () => {
+      if (!isDone) {
+        isDone = true;
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error("Erro ao carregar vídeo"));
+      }
+    };
+  });
+};
+
+export const generateVideoThumbnail = async (
+  videoSource: File | string,
+  timestamp: number = 0.1
+): Promise<string | null> => {
+  try {
+    const res = await captureVideoFrame(videoSource, timestamp);
+    return res.dataUrl;
+  } catch {
+    return null;
+  }
 };
 
 const LogoOverlay = ({
@@ -374,6 +494,291 @@ const adaptImageToStory = (
   });
 };
 
+const mergeLogoWithFeedImage = (
+  imageUrl: string,
+  logoUrl?: string | null,
+  logoPosition: LogoPosition = "bottom-right",
+  logoScale: number = 30,
+  logoOpacity: number = 80
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      reject(new Error("Não foi possível criar o contexto 2D do Canvas."));
+      return;
+    }
+
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const w = img.naturalWidth || img.width || 1080;
+        const h = img.naturalHeight || img.height || 1080;
+        canvas.width = w;
+        canvas.height = h;
+
+        // Desenha a imagem principal
+        ctx.drawImage(img, 0, 0, w, h);
+
+        if (logoUrl) {
+          const logoImg = document.createElement("img");
+          logoImg.crossOrigin = "anonymous";
+          logoImg.onload = () => {
+            try {
+              const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+              const logoPixelWidth = w * (visualLogoScale / 100);
+              const logoAspectRatio =
+                (logoImg.naturalHeight || logoImg.height || 1) /
+                (logoImg.naturalWidth || logoImg.width || 1);
+              const logoPixelHeight = logoPixelWidth * logoAspectRatio;
+
+              // Margem de 4% da largura da imagem (exatamente correspondente ao preview 16px / 400px)
+              const margin = w * 0.04;
+              let x = 0;
+              let y = 0;
+
+              switch (logoPosition) {
+                case "top-left":
+                  x = margin;
+                  y = margin;
+                  break;
+                case "top-center":
+                  x = (w - logoPixelWidth) / 2;
+                  y = margin;
+                  break;
+                case "top-right":
+                  x = w - logoPixelWidth - margin;
+                  y = margin;
+                  break;
+                case "left-center":
+                  x = margin;
+                  y = (h - logoPixelHeight) / 2;
+                  break;
+                case "center":
+                  x = (w - logoPixelWidth) / 2;
+                  y = (h - logoPixelHeight) / 2;
+                  break;
+                case "right-center":
+                  x = w - logoPixelWidth - margin;
+                  y = (h - logoPixelHeight) / 2;
+                  break;
+                case "bottom-left":
+                  x = margin;
+                  y = h - logoPixelHeight - margin;
+                  break;
+                case "bottom-center":
+                  x = (w - logoPixelWidth) / 2;
+                  y = h - logoPixelHeight - margin;
+                  break;
+                case "bottom-right":
+                default:
+                  x = w - logoPixelWidth - margin;
+                  y = h - logoPixelHeight - margin;
+                  break;
+              }
+
+              ctx.save();
+              ctx.globalAlpha = Math.max(0.05, Math.min(1, logoOpacity / 100));
+              ctx.drawImage(logoImg, x, y, logoPixelWidth, logoPixelHeight);
+              ctx.restore();
+
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) resolve(blob);
+                  else reject(new Error("Falha ao exportar blob do canvas com logotipo."));
+                },
+                "image/jpeg",
+                0.95
+              );
+            } catch (errLogo) {
+              console.error("Erro ao desenhar logotipo no Canvas:", errLogo);
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) resolve(blob);
+                  else reject(errLogo);
+                },
+                "image/jpeg",
+                0.95
+              );
+            }
+          };
+
+          logoImg.onerror = () => {
+            console.error("Erro ao carregar imagem do logotipo no Canvas.");
+            canvas.toBlob(
+              (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("Falha ao exportar blob do canvas."));
+              },
+              "image/jpeg",
+              0.95
+            );
+          };
+
+          const proxyLogoUrl =
+            logoUrl.startsWith("blob:") || logoUrl.startsWith("data:") || logoUrl.startsWith("/")
+              ? logoUrl
+              : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(logoUrl)}`;
+          logoImg.src = proxyLogoUrl;
+        } else {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Falha ao exportar blob do canvas."));
+            },
+            "image/jpeg",
+            0.95
+          );
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error("Erro ao carregar a imagem original no Canvas."));
+    };
+
+    const proxyImageUrl =
+      imageUrl.startsWith("blob:") || imageUrl.startsWith("data:") || imageUrl.startsWith("/")
+        ? imageUrl
+        : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(imageUrl)}`;
+    img.src = proxyImageUrl;
+  });
+};
+
+const VideoPreviewPlayer = ({
+  src,
+  thumbnailUrl,
+  className,
+  objectFit = "cover",
+  showPlayToggle = true,
+}: {
+  src?: string;
+  thumbnailUrl?: string;
+  className?: string;
+  objectFit?: "cover" | "contain";
+  showPlayToggle?: boolean;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src || src.trim() === "") return;
+
+    video.defaultMuted = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = true;
+
+    const playVideo = () => {
+      video.muted = true;
+      video.defaultMuted = true;
+      const p = video.play();
+      if (p !== undefined) {
+        p.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      }
+    };
+
+    video.addEventListener("canplay", playVideo);
+    video.addEventListener("playing", () => setIsPlaying(true));
+    video.addEventListener("pause", () => setIsPlaying(false));
+
+    if (video.readyState >= 2) {
+      playVideo();
+    }
+
+    return () => {
+      video.removeEventListener("canplay", playVideo);
+    };
+  }, [src]);
+
+  if (!src || src.trim() === "") {
+    return null;
+  }
+
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused || video.ended) {
+      video.muted = isMuted;
+      video.defaultMuted = isMuted;
+      video
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          video.muted = true;
+          video.defaultMuted = true;
+          setIsMuted(true);
+          video.play().then(() => setIsPlaying(true)).catch(() => {});
+        });
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    video.defaultMuted = nextMuted;
+    setIsMuted(nextMuted);
+  };
+
+  return (
+    <div
+      className="group/player relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden bg-black"
+      onClick={togglePlay}
+    >
+      <video
+        key={src}
+        ref={videoRef}
+        src={src}
+        poster={thumbnailUrl}
+        className={cn(
+          "h-full w-full pointer-events-none",
+          objectFit === "cover" ? "object-cover" : "object-contain",
+          className
+        )}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+      />
+
+      {showPlayToggle && !isPlaying && (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition-all"
+          onClick={togglePlay}
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-transform hover:scale-110">
+            <Play className="h-7 w-7 fill-white text-white translate-x-0.5" />
+          </div>
+        </div>
+      )}
+
+      {/* Mini controle de áudio discreto no canto */}
+      <button
+        type="button"
+        onClick={toggleMute}
+        className="absolute bottom-3 right-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white shadow backdrop-blur transition-all hover:scale-110 hover:bg-black/80"
+        title={isMuted ? "Ativar som" : "Desativar som"}
+      >
+        {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+};
+
 const InstagramPreview = ({
   mediaItems,
   user,
@@ -422,6 +827,14 @@ const InstagramPreview = ({
     setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
 
   if (contentType === "story") {
+    const isCurrentVideo =
+      currentMedia?.type === "video" ||
+      (currentMedia?.file &&
+        (currentMedia.file.type?.startsWith("video") ||
+          isVideoMedia(currentMedia.file.name, currentMedia.file.type))) ||
+      isVideoMedia(currentMedia?.publicUrl || currentMedia?.previewUrl || "");
+    const mediaSrc = currentMedia?.publicUrl || currentMedia?.previewUrl || "";
+
     return (
       <div className="flex w-full flex-col items-center justify-center">
         <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl border border-gray-100 bg-black shadow-2xl">
@@ -429,65 +842,54 @@ const InstagramPreview = ({
           {currentMedia ? (
             <div className="absolute inset-0 z-0 h-full w-full">
               {storyAdaptationMode === "blur" && (
-                <>
-                  {/* Fundo Desfocado Ampliado */}
-                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    {currentMedia.type === "video" ? (
-                      <video
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
-                        className="absolute inset-0 h-full w-full object-cover"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : (
+                isCurrentVideo ? (
+                  <div className="relative h-full w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+                    <VideoPreviewPlayer
+                      src={mediaSrc}
+                      thumbnailUrl={currentMedia?.thumbnailUrl}
+                      objectFit="contain"
+                      showPlayToggle={true}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {/* Fundo Desfocado Ampliado */}
+                    <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                       <Image
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        src={mediaSrc}
                         alt="Fundo Desfocado"
                         layout="fill"
                         objectFit="cover"
                         unoptimized
                       />
-                    )}
-                  </div>
-                  {/* Imagem Principal Centralizada */}
-                  <div className="absolute inset-0 z-10 h-full w-full">
-                    {currentMedia.type === "video" ? (
-                      <video
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : (
+                    </div>
+                    {/* Imagem Principal Centralizada */}
+                    <div className="absolute inset-0 z-10 h-full w-full">
                       <Image
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Principal"
                         layout="fill"
                         objectFit="contain"
                         unoptimized
                       />
-                    )}
-                  </div>
-                </>
+                    </div>
+                  </>
+                )
               )}
 
               {storyAdaptationMode === "crop" && (
-                currentMedia.type === "video" ? (
-                  <video
-                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                isCurrentVideo ? (
+                  <VideoPreviewPlayer
+                    src={mediaSrc}
+                    thumbnailUrl={currentMedia?.thumbnailUrl}
+                    objectFit="cover"
+                    showPlayToggle={true}
                     className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
                   />
                 ) : (
                   <Image
-                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    src={mediaSrc}
                     alt="Imagem Cortada"
                     layout="fill"
                     objectFit="cover"
@@ -502,18 +904,17 @@ const InstagramPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative h-full w-full">
-                    {currentMedia.type === "video" ? (
-                      <video
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    {isCurrentVideo ? (
+                      <VideoPreviewPlayer
+                        src={mediaSrc}
+                        thumbnailUrl={currentMedia?.thumbnailUrl}
+                        objectFit="contain"
+                        showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
                       />
                     ) : (
                       <Image
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Centralizada"
                         layout="fill"
                         objectFit="contain"
@@ -606,14 +1007,17 @@ const InstagramPreview = ({
       {/* Image */}
       <div className="relative aspect-square bg-gray-200">
         {currentMedia ? (
-          currentMedia.type === "video" ? (
-            <video
+          currentMedia.type === "video" ||
+          (currentMedia.file &&
+            (currentMedia.file.type?.startsWith("video") ||
+              isVideoMedia(currentMedia.file.name, currentMedia.file.type))) ||
+          isVideoMedia(currentMedia.publicUrl || currentMedia.previewUrl) ? (
+            <VideoPreviewPlayer
               src={currentMedia.publicUrl || currentMedia.previewUrl}
+              thumbnailUrl={currentMedia.thumbnailUrl}
+              objectFit="cover"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -731,6 +1135,14 @@ const FacebookPreview = ({
   const isCarousel = mediaItems.length > 1;
 
   if (contentType === "story") {
+    const isSingleVideo =
+      singleItem?.type === "video" ||
+      (singleItem?.file &&
+        (singleItem.file.type?.startsWith("video") ||
+          isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
+      isVideoMedia(singleItem?.publicUrl || singleItem?.previewUrl || "");
+    const mediaSrc = singleItem?.publicUrl || singleItem?.previewUrl || "";
+
     return (
       <div className="flex w-full flex-col items-center justify-center">
         <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl border border-gray-100 bg-black shadow-2xl">
@@ -738,65 +1150,54 @@ const FacebookPreview = ({
           {singleItem ? (
             <div className="absolute inset-0 z-0 h-full w-full">
               {storyAdaptationMode === "blur" && (
-                <>
-                  {/* Fundo Desfocado Ampliado */}
-                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    {singleItem.type === "video" ? (
-                      <video
-                        src={singleItem.publicUrl || singleItem.previewUrl}
-                        className="absolute inset-0 h-full w-full object-cover"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : (
+                isSingleVideo ? (
+                  <div className="relative h-full w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+                    <VideoPreviewPlayer
+                      src={mediaSrc}
+                      thumbnailUrl={singleItem?.thumbnailUrl}
+                      objectFit="contain"
+                      showPlayToggle={true}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {/* Fundo Desfocado Ampliado */}
+                    <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                       <Image
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        src={mediaSrc}
                         alt="Fundo Desfocado"
                         layout="fill"
                         objectFit="cover"
                         unoptimized
                       />
-                    )}
-                  </div>
-                  {/* Imagem Centralizada Quadrada */}
-                  <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
-                    {singleItem.type === "video" ? (
-                      <video
-                        src={singleItem.publicUrl || singleItem.previewUrl}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : (
+                    </div>
+                    {/* Imagem Centralizada Quadrada */}
+                    <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
                       <Image
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Principal"
                         layout="fill"
                         objectFit="contain"
                         unoptimized
                       />
-                    )}
-                  </div>
-                </>
+                    </div>
+                  </>
+                )
               )}
 
               {storyAdaptationMode === "crop" && (
-                singleItem.type === "video" ? (
-                  <video
-                    src={singleItem.publicUrl || singleItem.previewUrl}
+                isSingleVideo ? (
+                  <VideoPreviewPlayer
+                    src={mediaSrc}
+                    thumbnailUrl={singleItem?.thumbnailUrl}
+                    objectFit="cover"
+                    showPlayToggle={true}
                     className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
                   />
                 ) : (
                   <Image
-                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    src={mediaSrc}
                     alt="Imagem Cortada"
                     layout="fill"
                     objectFit="cover"
@@ -811,18 +1212,17 @@ const FacebookPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative aspect-square w-full">
-                    {singleItem.type === "video" ? (
-                      <video
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                    {isSingleVideo ? (
+                      <VideoPreviewPlayer
+                        src={mediaSrc}
+                        thumbnailUrl={singleItem?.thumbnailUrl}
+                        objectFit="contain"
+                        showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
                       />
                     ) : (
                       <Image
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Centralizada"
                         layout="fill"
                         objectFit="contain"
@@ -939,14 +1339,17 @@ const FacebookPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          singleItem.type === "video" ? (
-            <video
+          singleItem.type === "video" ||
+          (singleItem.file &&
+            (singleItem.file.type?.startsWith("video") ||
+              isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
+          isVideoMedia(singleItem.publicUrl || singleItem.previewUrl) ? (
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              thumbnailUrl={singleItem.thumbnailUrl}
+              objectFit="cover"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -1093,13 +1496,11 @@ const GooglePreview = ({
       <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              objectFit="contain"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-contain"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -1209,14 +1610,17 @@ const LinkedInPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          singleItem.type === "video" ? (
-            <video
+          singleItem.type === "video" ||
+          (singleItem.file &&
+            (singleItem.file.type?.startsWith("video") ||
+              isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
+          isVideoMedia(singleItem.publicUrl || singleItem.previewUrl) ? (
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              thumbnailUrl={singleItem.thumbnailUrl}
+              objectFit="cover"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -1413,6 +1817,14 @@ export default function CriarConteudoPage() {
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [storyAdaptationMode, setStoryAdaptationMode] = useState<"blur" | "crop" | "solid">("blur");
   const [originalStoryMedia, setOriginalStoryMedia] = useState<MediaItem | null>(null);
+  const [originalMediaItemsBackup, setOriginalMediaItemsBackup] = useState<MediaItem[] | null>(null);
+
+  // Estados para escolha e captura de thumbnail / capa do vídeo
+  const [thumbnailTime, setThumbnailTime] = useState<number>(0.1);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [isCustomCover, setIsCustomCover] = useState<boolean>(false);
+  const customCoverInputRef = useRef<HTMLInputElement>(null);
+  const [isCapturingFrame, setIsCapturingFrame] = useState<boolean>(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1610,16 +2022,17 @@ export default function CriarConteudoPage() {
       const storedImage = sessionStorage.getItem("preloaded_gallery_image");
       if (storedImage) {
         const item = JSON.parse(storedImage);
+        const isVideo = isVideoMedia(item.url || item.storagePath || "");
 
         const newMediaItem: MediaItem = {
-          file: new File([], item.storagePath.split("/").pop() || "imagem.jpg"),
+          file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
           previewUrl: item.url,
           publicUrl: item.url,
-          type: "image",
+          type: isVideo ? "video" : "image",
         };
 
         setMediaItems([newMediaItem]);
-        setSelectedType("single_post");
+        setSelectedType(isVideo ? "story" : "single_post");
         setStep(2);
 
         if (item.caption) {
@@ -1630,8 +2043,10 @@ export default function CriarConteudoPage() {
 
         toast({
           variant: "success",
-          title: "Imagem Importada!",
-          description: "Imagem do seu acervo de IA carregada com sucesso na sua área de trabalho.",
+          title: isVideo ? "Vídeo Importado!" : "Imagem Importada!",
+          description: isVideo
+            ? "Vídeo do seu acervo carregado com sucesso na sua área de trabalho."
+            : "Imagem do seu acervo de IA carregada com sucesso na sua área de trabalho.",
         });
       }
     } catch (e) {
@@ -1639,12 +2054,32 @@ export default function CriarConteudoPage() {
     }
   }, [toast]);
 
-  const handleImportFromGallery = (item: GalleryMediaItem) => {
+  const handleImportFromGallery = async (item: GalleryMediaItem) => {
+    const isVideo = isVideoMedia(item.url || item.storagePath || "");
+    let thumbUrl = item.thumbnailUrl || (isVideo ? undefined : item.url);
+    let dur = 0;
+
+    if (isVideo) {
+      try {
+        const frame = await captureVideoFrame(item.url, 0.1);
+        thumbUrl = frame.dataUrl;
+        dur = frame.duration;
+        setVideoDuration(frame.duration);
+        setThumbnailTime(0.1);
+        setIsCustomCover(false);
+      } catch (err) {
+        console.warn("Falha ao gerar frame inicial do vídeo da galeria:", err);
+      }
+    }
+
     const newMediaItem: MediaItem = {
-      file: new File([], item.storagePath.split("/").pop() || "imagem.jpg"),
+      file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
       previewUrl: item.url,
       publicUrl: item.url,
-      type: "image",
+      type: isVideo ? "video" : "image",
+      thumbnailUrl: thumbUrl,
+      videoDuration: dur,
+      thumbnailTime: 0.1,
     };
 
     if (selectedType === "carousel") {
@@ -1668,8 +2103,10 @@ export default function CriarConteudoPage() {
     setIsGalleryOpen(false);
     toast({
       variant: "success",
-      title: "Imagem Importada!",
-      description: "Imagem da galeria adicionada ao post com sucesso.",
+      title: isVideo ? "Vídeo Importado!" : "Mídia Importada!",
+      description: isVideo
+        ? "Vídeo adicionado ao seu post com sucesso."
+        : "Imagem adicionada ao seu post com sucesso.",
     });
   };
 
@@ -1971,15 +2408,22 @@ export default function CriarConteudoPage() {
     if (step === 2 && mediaItems.length > 0) {
       setIsUploading(true);
 
-      if (selectedType === "story") {
-        toast({
-          title: "Processando Story...",
-          description: "Renderizando e adaptando a imagem localmente para proporção 9:16 vertical.",
-        });
+      // Salva backup completo dos itens de mídia antes de qualquer transformação
+      setOriginalMediaItemsBackup([...mediaItems]);
 
+      if (selectedType === "story") {
         try {
           const item = mediaItems[0];
-          if (item.type === "image") {
+          const isVideo =
+            item.type === "video" ||
+            isVideoMedia(item.publicUrl || item.previewUrl || "");
+
+          if (!isVideo && item.type === "image") {
+            toast({
+              title: "Processando Story...",
+              description: "Renderizando e adaptando a imagem localmente para proporção 9:16 vertical.",
+            });
+
             // Fazer backup da mídia original quadrada 1:1
             setOriginalStoryMedia(item);
 
@@ -2011,20 +2455,27 @@ export default function CriarConteudoPage() {
                 publicUrl: adaptedUrl,
               },
             ]);
+
+            toast({
+              variant: "success",
+              title: "Story Adaptado!",
+              description: "A imagem foi redimensionada e ajustada com sucesso para Story.",
+            });
+          } else {
+            toast({
+              variant: "success",
+              title: "Vídeo Pronto!",
+              description: "Vídeo verificado para Story e pronto para publicação.",
+            });
           }
 
-          toast({
-            variant: "success",
-            title: "Story Adaptado!",
-            description: "A imagem foi redimensionada e ajustada com sucesso para Story.",
-          });
           setStep(3);
         } catch (error: any) {
           console.error("Erro ao adaptar Story localmente:", error);
           toast({
             variant: "destructive",
-            title: "Erro ao Adaptar Story",
-            description: error.message || "Ocorreu um erro ao processar a imagem do Story.",
+            title: "Erro ao Processar Story",
+            description: error.message || "Ocorreu um erro ao processar a mídia do Story.",
           });
         } finally {
           setIsUploading(false);
@@ -2032,38 +2483,70 @@ export default function CriarConteudoPage() {
         return;
       }
 
-      // Fluxo normal de Posts / Carrosséis (chama webhook)
+      // Fluxo de Posts Únicos e Carrosséis para Feed
       toast({
         title: `Processando ${mediaItems.length} mídia(s)...`,
-        description: "Aplicando edições e enviando para o webhook.",
+        description: logoPreviewUrl
+          ? "Aplicando sua logomarca na posição selecionada..."
+          : "Preparando mídias para a etapa final.",
       });
 
       try {
-        const uploadPromises = mediaItems.map((item) => {
-          return processSingleMediaItem(item);
-        });
+        const processedItems: MediaItem[] = await Promise.all(
+          mediaItems.map(async (item, index) => {
+            const isVideo =
+              item.type === "video" ||
+              (item.file &&
+                (item.file.type?.startsWith("video") ||
+                  isVideoMedia(item.file.name, item.file.type))) ||
+              isVideoMedia(item.publicUrl || item.previewUrl || "");
 
-        const processedUrls = await Promise.all(uploadPromises);
+            // Se for vídeo ou não houver logomarca selecionada, mantém o item
+            if (isVideo || !logoPreviewUrl) {
+              return item;
+            }
 
-        setMediaItems((prevItems) =>
-          prevItems.map((item, index) => ({
-            ...item,
-            publicUrl: processedUrls[index],
-          }))
+            // Mescla a imagem com o logotipo na exata posição selecionada
+            const imageUrlToProcess = item.publicUrl || item.previewUrl;
+            const blob = await mergeLogoWithFeedImage(
+              imageUrlToProcess,
+              logoPreviewUrl,
+              logoPosition,
+              logoScale,
+              logoOpacity
+            );
+
+            const fileName = item.file?.name || `branded_post_${index + 1}.jpg`;
+            const brandedFile = new File([blob], fileName, {
+              type: "image/jpeg",
+            });
+            const brandedUrl = URL.createObjectURL(blob);
+
+            return {
+              ...item,
+              file: brandedFile,
+              previewUrl: brandedUrl,
+              publicUrl: brandedUrl,
+            };
+          })
         );
+
+        setMediaItems(processedItems);
 
         toast({
           variant: "success",
-          title: "Sucesso!",
-          description: "Mídias processadas e prontas para a próxima etapa.",
+          title: "Mídias preparadas!",
+          description: logoPreviewUrl
+            ? "Logomarca aplicada com sucesso na posição selecionada."
+            : "Mídias prontas para a próxima etapa.",
         });
         setStep(3);
       } catch (error: any) {
-        console.error("Erro ao enviar para o webhook:", error);
+        console.error("Erro ao aplicar logotipo:", error);
         toast({
           variant: "destructive",
           title: "Erro ao Processar Mídia",
-          description: error.message,
+          description: error.message || "Não foi possível aplicar a logomarca na imagem.",
         });
       } finally {
         setIsUploading(false);
@@ -2072,6 +2555,25 @@ export default function CriarConteudoPage() {
   };
 
   const handleBackToStep2 = () => {
+    if (originalMediaItemsBackup && originalMediaItemsBackup.length > 0) {
+      // Limpar blobs temporários gerados na mesclagem
+      mediaItems.forEach((item) => {
+        if (
+          item.previewUrl &&
+          item.previewUrl.startsWith("blob:") &&
+          !originalMediaItemsBackup.some((orig) => orig.previewUrl === item.previewUrl)
+        ) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+
+      setMediaItems(originalMediaItemsBackup);
+      setOriginalMediaItemsBackup(null);
+      setOriginalStoryMedia(null);
+      setStep(2);
+      return;
+    }
+
     if (selectedType === "story" && originalStoryMedia) {
       // Cleanup do blob de Story adaptado criado temporariamente
       if (mediaItems[0]?.previewUrl && mediaItems[0].previewUrl.startsWith("blob:")) {
@@ -2108,27 +2610,151 @@ export default function CriarConteudoPage() {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const newMediaItems: MediaItem[] = Array.from(files).map((file) => ({
-        file: file,
-        previewUrl: URL.createObjectURL(file),
-        type: file.type.startsWith("video") ? "video" : "image",
-      }));
+      setIsUploading(true);
+      try {
+        const newMediaItems: MediaItem[] = await Promise.all(
+          Array.from(files).map(async (file) => {
+            const isVideo =
+              file.type.startsWith("video") || isVideoMedia(file.name, file.type);
+            const previewUrl = URL.createObjectURL(file);
+            let thumbnailUrl: string | undefined;
+            let thumbnailBlob: Blob | undefined;
+            let duration: number | undefined;
 
-      if (selectedType === "carousel") {
-        if (mediaItems.length + newMediaItems.length > 10) {
-          toast({
-            variant: "destructive",
-            title: "Limite excedido",
-            description: "Você pode adicionar no máximo 10 mídias a um carrossel.",
-          });
-          return;
+            if (isVideo) {
+              try {
+                const frame = await captureVideoFrame(file, 0.1);
+                thumbnailUrl = frame.dataUrl;
+                thumbnailBlob = frame.blob;
+                duration = frame.duration;
+                setVideoDuration(frame.duration);
+                setThumbnailTime(0.1);
+                setIsCustomCover(false);
+              } catch (err) {
+                console.warn("Não foi possível capturar frame inicial do vídeo:", err);
+              }
+            }
+
+            return {
+              file: file,
+              previewUrl: previewUrl,
+              type: isVideo ? "video" : "image",
+              thumbnailUrl,
+              thumbnailBlob,
+              videoDuration: duration,
+              thumbnailTime: 0.1,
+            };
+          })
+        );
+
+        if (selectedType === "carousel") {
+          if (mediaItems.length + newMediaItems.length > 10) {
+            toast({
+              variant: "destructive",
+              title: "Limite excedido",
+              description: "Você pode adicionar no máximo 10 mídias a um carrossel.",
+            });
+            return;
+          }
+          setMediaItems((prev) => [...prev, ...newMediaItems]);
+        } else {
+          setMediaItems(newMediaItems.slice(0, 1)); // Only first file for single post
         }
-        setMediaItems((prev) => [...prev, ...newMediaItems]);
-      } else {
-        setMediaItems(newMediaItems.slice(0, 1)); // Only first file for single post
+      } catch (err) {
+        console.error("Erro ao processar arquivos:", err);
+      } finally {
+        setIsUploading(false);
       }
     }
     if (event.target) event.target.value = "";
+  };
+
+  const handleSeekThumbnail = async (time: number) => {
+    setThumbnailTime(time);
+    const videoItemIndex = mediaItems.findIndex(
+      (m) => m.type === "video" || isVideoMedia(m.file?.name, m.file?.type)
+    );
+    if (videoItemIndex === -1) return;
+    const item = mediaItems[videoItemIndex];
+    if (!item.file) return;
+
+    try {
+      setIsCapturingFrame(true);
+      const frame = await captureVideoFrame(item.file, time);
+      setMediaItems((prev) => {
+        const next = [...prev];
+        next[videoItemIndex] = {
+          ...next[videoItemIndex],
+          thumbnailUrl: frame.dataUrl,
+          thumbnailBlob: frame.blob,
+          thumbnailTime: time,
+          thumbnailFile: undefined, // Limpa arquivo customizado ao arrastar slider
+        };
+        return next;
+      });
+      setIsCustomCover(false);
+    } catch (err) {
+      console.warn("Erro ao capturar frame:", err);
+    } finally {
+      setIsCapturingFrame(false);
+    }
+  };
+
+  const handleCustomCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const videoItemIndex = mediaItems.findIndex(
+      (m) => m.type === "video" || isVideoMedia(m.file?.name, m.file?.type)
+    );
+    if (videoItemIndex === -1) return;
+
+    const dataUrl = URL.createObjectURL(file);
+    setMediaItems((prev) => {
+      const next = [...prev];
+      next[videoItemIndex] = {
+        ...next[videoItemIndex],
+        thumbnailUrl: dataUrl,
+        thumbnailBlob: file,
+        thumbnailFile: file,
+      };
+      return next;
+    });
+    setIsCustomCover(true);
+    toast({
+      title: "Capa Personalizada Definida!",
+      description: "A imagem selecionada será usada como capa do vídeo.",
+    });
+    if (e.target) e.target.value = "";
+  };
+
+  const handleResetToVideoFrame = async () => {
+    const videoItemIndex = mediaItems.findIndex(
+      (m) => m.type === "video" || isVideoMedia(m.file?.name, m.file?.type)
+    );
+    if (videoItemIndex === -1) return;
+    const item = mediaItems[videoItemIndex];
+    if (!item.file) return;
+
+    try {
+      const frame = await captureVideoFrame(item.file, thumbnailTime || 0.1);
+      setMediaItems((prev) => {
+        const next = [...prev];
+        next[videoItemIndex] = {
+          ...next[videoItemIndex],
+          thumbnailUrl: frame.dataUrl,
+          thumbnailBlob: frame.blob,
+          thumbnailFile: undefined,
+        };
+        return next;
+      });
+      setIsCustomCover(false);
+      toast({
+        title: "Frame Restaurado",
+        description: "A capa voltou a ser o frame capturado do vídeo.",
+      });
+    } catch (err) {
+      console.warn("Erro ao restaurar frame:", err);
+    }
   };
 
   const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2164,6 +2790,9 @@ export default function CriarConteudoPage() {
     const itemToRemove = mediaItems[index];
     if (itemToRemove.previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(itemToRemove.previewUrl);
+    }
+    if (itemToRemove.thumbnailUrl && itemToRemove.thumbnailUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(itemToRemove.thumbnailUrl);
     }
     setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
@@ -2251,10 +2880,20 @@ export default function CriarConteudoPage() {
       return;
     }
 
-    const mediaToPublish: MediaFileInput[] = mediaItems.map((item) => ({
-      file: item.file,
-      publicUrl: item.publicUrl,
-    }));
+    const mediaToPublish: MediaFileInput[] = mediaItems.map((item) => {
+      let thumbFile = item.thumbnailFile;
+      if (!thumbFile && item.thumbnailBlob) {
+        thumbFile = new File([item.thumbnailBlob], `thumb_${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+      }
+      return {
+        file: item.file,
+        publicUrl: item.publicUrl,
+        thumbnailFile: thumbFile,
+        thumbnailUrl: item.thumbnailUrl,
+      };
+    });
 
     if (!mediaToPublish.every((m) => m.file || m.publicUrl)) {
       toast({
@@ -2294,6 +2933,8 @@ export default function CriarConteudoPage() {
         scheduleType === "schedule" && scheduleDate ? new Date(scheduleDate) : new Date(),
       collaborators: collaborators.length > 0 ? collaborators : undefined,
       userTags: userTags.length > 0 ? userTags : undefined,
+      isStory: selectedType === "story",
+      postType: selectedType === "story" ? "story" : selectedType === "reels" ? "reel" : "feed",
     };
 
     if (effectivePlatforms.includes("facebook") && metaConnection?.isConnected) {
@@ -2433,54 +3074,78 @@ export default function CriarConteudoPage() {
                   <Label className="font-semibold">Seu Acervo</Label>
                   {mediaItems.length > 0 ? (
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                      {mediaItems.map((item, index) => (
-                        <div key={index} className="flex flex-col gap-2">
-                          <div className="group relative aspect-square">
-                            {item.type === "video" ? (
-                              <video
-                                src={item.previewUrl}
-                                className="h-full w-full rounded-md object-cover"
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                              />
-                            ) : (
-                              <Image
-                                src={item.previewUrl}
-                                alt={`Preview ${index}`}
-                                layout="fill"
-                                objectFit="cover"
-                                className="rounded-md"
-                              />
+                      {mediaItems.map((item, index) => {
+                        const isVideo =
+                          item.type === "video" ||
+                          (item.file &&
+                            (item.file.type?.startsWith("video") ||
+                              isVideoMedia(item.file.name, item.file.type))) ||
+                          isVideoMedia(item.publicUrl || item.previewUrl);
+
+                        return (
+                          <div key={index} className="flex flex-col gap-2">
+                            <div className="group relative aspect-square overflow-hidden rounded-md bg-slate-900">
+                              {isVideo ? (
+                                <div className="relative flex h-full w-full items-center justify-center bg-slate-950">
+                                  {item.thumbnailUrl ? (
+                                    <Image
+                                      src={item.thumbnailUrl}
+                                      alt={`Preview Vídeo ${index}`}
+                                      layout="fill"
+                                      objectFit="cover"
+                                      className="rounded-md"
+                                      unoptimized
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-slate-900">
+                                      <Video className="h-6 w-6 text-white/70" />
+                                    </div>
+                                  )}
+                                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30">
+                                    <Video className="h-6 w-6 text-white/90 drop-shadow" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <Image
+                                  src={item.previewUrl}
+                                  alt={`Preview ${index}`}
+                                  layout="fill"
+                                  objectFit="cover"
+                                  className="rounded-md"
+                                  unoptimized
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveItem(index);
+                                }}
+                                className="absolute right-1 top-1 z-20 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
+                                title="Remover mídia"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            {!isVideo && (
+                              <Button
+                                variant="outline"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveImageToCorrect(item.previewUrl);
+                                  setActiveIndexToCorrect(index);
+                                  setIsCorrectionOpen(true);
+                                }}
+                                className="flex h-auto w-full items-center justify-center gap-1.5 rounded-lg border-primary/40 px-2 py-1.5 text-xs font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5"
+                              >
+                                <Paintbrush className="h-3.5 w-3.5 text-primary" />
+                                <span className="truncate">Editar Textos</span>
+                              </Button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(index)}
-                              className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
-                              title="Remover imagem"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
                           </div>
-                          {item.type === "image" && (
-                            <Button
-                              variant="outline"
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveImageToCorrect(item.previewUrl);
-                                setActiveIndexToCorrect(index);
-                                setIsCorrectionOpen(true);
-                              }}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border-primary/40 py-1.5 px-2 text-xs font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5 h-auto"
-                            >
-                              <Paintbrush className="h-3.5 w-3.5 text-primary" />
-                              <span className="truncate">Editar Textos</span>
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : null}
 
@@ -2580,32 +3245,170 @@ export default function CriarConteudoPage() {
                             Essas mídias não gastarão novas cotas de geração!
                           </p>
                           <div className="grid grid-cols-2 gap-4 py-2 sm:grid-cols-3">
-                            {galleryImages.map((item) => (
-                              <div
-                                key={item.id}
-                                onClick={() => handleImportFromGallery(item)}
-                                className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
-                              >
-                                <Image
-                                  src={item.url}
-                                  alt="Imagem da Galeria"
-                                  layout="fill"
-                                  objectFit="cover"
-                                  unoptimized
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                                  <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-800 shadow-md">
-                                    Selecionar Imagem
-                                  </span>
+                            {galleryImages.map((item) => {
+                              const isVideo = isVideoMedia(item.url);
+                              return (
+                                <div
+                                  key={item.id}
+                                  onClick={() => handleImportFromGallery(item)}
+                                  className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-slate-950 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
+                                >
+                                  {isVideo ? (
+                                    <div className="relative h-full w-full">
+                                      <video
+                                        src={item.url}
+                                        className="h-full w-full object-cover opacity-90"
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                      />
+                                      <div className="pointer-events-none absolute bottom-1.5 left-1.5 z-10 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+                                        <Video className="h-2.5 w-2.5 text-pink-400" />
+                                        <span>Vídeo</span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <Image
+                                      src={item.url}
+                                      alt="Imagem da Galeria"
+                                      layout="fill"
+                                      objectFit="cover"
+                                      unoptimized
+                                    />
+                                  )}
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-800 shadow-md">
+                                      {isVideo ? "Selecionar Vídeo" : "Selecionar Imagem"}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
                     </DialogContent>
                   </Dialog>
                 </div>
+
+                {/* Seção Interativa de Escolha da Capa / Thumbnail do Vídeo */}
+                {mediaItems.some(
+                  (item) =>
+                    item.type === "video" ||
+                    (item.file &&
+                      (item.file.type?.startsWith("video") ||
+                        isVideoMedia(item.file.name, item.file.type))) ||
+                    isVideoMedia(item.publicUrl || item.previewUrl)
+                ) && (
+                  <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileImage className="h-5 w-5 text-blue-600" />
+                        <Label className="font-bold text-gray-900">
+                          Capa da Publicação (Thumbnail)
+                        </Label>
+                      </div>
+                      <Badge variant="outline" className="border-blue-300 bg-blue-100/70 text-[10px] font-semibold text-blue-800">
+                        {isCustomCover ? "Imagem Personalizada" : "Frame do Vídeo"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Escolha o momento exato do vídeo ou envie uma imagem personalizada para ser exibida como capa no feed e stories.
+                    </p>
+
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      {/* Miniatura da Capa Selecionada */}
+                      <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border-2 border-primary bg-slate-950 shadow-md">
+                        {mediaItems.find(
+                          (m) =>
+                            m.type === "video" ||
+                            (m.file &&
+                              (m.file.type?.startsWith("video") ||
+                                isVideoMedia(m.file.name, m.file.type))) ||
+                            isVideoMedia(m.publicUrl || m.previewUrl)
+                        )?.thumbnailUrl ? (
+                          <Image
+                            src={
+                              mediaItems.find(
+                                (m) =>
+                                  m.type === "video" ||
+                                  (m.file &&
+                                    (m.file.type?.startsWith("video") ||
+                                      isVideoMedia(m.file.name, m.file.type))) ||
+                                  isVideoMedia(m.publicUrl || m.previewUrl)
+                              )!.thumbnailUrl!
+                            }
+                            alt="Capa Selecionada"
+                            layout="fill"
+                            objectFit="cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Video className="h-6 w-6 text-white/70" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 text-[8px] font-bold text-white shadow">
+                          Capa
+                        </div>
+                      </div>
+
+                      {/* Controles de Frame e Upload */}
+                      <div className="flex-1 space-y-3">
+                        {videoDuration > 0 && !isCustomCover && (
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-medium text-gray-700">
+                              <span>Capturar frame do vídeo:</span>
+                              <span className="font-bold text-blue-600">
+                                {thumbnailTime.toFixed(1)}s / {videoDuration.toFixed(1)}s
+                              </span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={videoDuration}
+                              step={0.1}
+                              value={[thumbnailTime]}
+                              onValueChange={([val]) => handleSeekThumbnail(val)}
+                              className="w-full"
+                              disabled={isCapturingFrame}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => customCoverInputRef.current?.click()}
+                            className="flex items-center gap-1.5 border-blue-300 bg-white text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            Enviar Imagem de Capa
+                          </Button>
+                          <input
+                            type="file"
+                            ref={customCoverInputRef}
+                            onChange={handleCustomCoverUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          {isCustomCover && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResetToVideoFrame()}
+                              className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                            >
+                              Restaurar Frame do Vídeo
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {selectedType === "story" && (
                   <div className="space-y-3 border-t pt-4">
