@@ -29,33 +29,61 @@ export async function POST(request: NextRequest) {
     const host = "https://graph.instagram.com";
     const apiVersion = "v24.0";
 
-    // Métricas suportadas para mídia no Instagram
-    const metrics = "reach,likes,comments,saved,shares,total_interactions";
+    // Métricas analíticas suportadas pela Meta Graph API para mídias
+    const metricCombinations = [
+      "reach,saved,total_interactions",
+      "reach,saved",
+      "reach",
+    ];
 
-    const insightsUrl =
-      `${host}/${apiVersion}/${encodeURIComponent(postId)}/insights` +
-      `?metric=${encodeURIComponent(metrics)}` +
-      `&access_token=${encodeURIComponent(accessToken)}`;
+    let raw: any[] = [];
+    let lastError: any = null;
 
-    const response = await fetch(insightsUrl, { cache: "no-store" });
-    const insightsData = await response.json();
+    // Tentativa 1: Instagram First (graph.instagram.com com o token fornecido)
+    for (const metric of metricCombinations) {
+      try {
+        const insightsUrl = `${host}/${apiVersion}/${encodeURIComponent(postId)}/insights?metric=${encodeURIComponent(metric)}&access_token=${encodeURIComponent(accessToken)}`;
+        const response = await fetch(insightsUrl, { cache: "no-store" });
+        const insightsData = await response.json();
 
-    let raw = insightsData?.data || [];
+        if (response.ok && Array.isArray(insightsData?.data) && insightsData.data.length > 0) {
+          raw = insightsData.data;
+          break;
+        } else if (insightsData?.error) {
+          lastError = insightsData.error;
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
 
-    // Fallback 1: Se graph.instagram.com falhar por falta de permissão, tentar via Facebook Page Token
-    if (!response.ok || insightsData?.error) {
+    // Tentativa 2 & 3: Fallback via Meta / Facebook (Page Token e User Token)
+    if (raw.length === 0) {
       try {
         const uid = await getUidFromCookie().catch(() => null);
         if (uid) {
           const metaConnection = await getMetaConnectionAdmin(uid).catch(() => null);
           const pageToken = metaConnection?.accessToken;
-          if (pageToken) {
-            const fbUrl = `https://graph.facebook.com/v24.0/${encodeURIComponent(postId)}/insights?metric=reach,saved,total_interactions&access_token=${encodeURIComponent(pageToken)}`;
-            const fbRes = await fetch(fbUrl, { cache: "no-store" });
-            const fbData = await fbRes.json();
-            if (fbRes.ok && fbData?.data) {
-              raw = fbData.data;
+          const userMetaToken = metaConnection?.userAccessToken;
+
+          const fbTokensToTry = [pageToken, userMetaToken].filter(Boolean) as string[];
+
+          for (const fbToken of fbTokensToTry) {
+            for (const metric of metricCombinations) {
+              try {
+                const fbUrl = `https://graph.facebook.com/${apiVersion}/${encodeURIComponent(postId)}/insights?metric=${encodeURIComponent(metric)}&access_token=${encodeURIComponent(fbToken)}`;
+                const fbRes = await fetch(fbUrl, { cache: "no-store" });
+                const fbData = await fbRes.json();
+
+                if (fbRes.ok && Array.isArray(fbData?.data) && fbData.data.length > 0) {
+                  raw = fbData.data;
+                  break;
+                }
+              } catch (e) {
+                // Tenta próximo token/métrica
+              }
             }
+            if (raw.length > 0) break;
           }
         }
       } catch (fbFallbackErr) {
@@ -63,15 +91,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Se ainda não obtivemos dados e a Meta retornou erro de permissão (Code 10 ou permission)
-    if (raw.length === 0 && (!response.ok || insightsData?.error)) {
-      const errCode = insightsData?.error?.code;
-      const errMsg = insightsData?.error?.message || "";
+    // Se ainda não obtivemos dados após todas as tentativas na cascata
+    if (raw.length === 0) {
+      const errCode = lastError?.code;
+      const errMsg = String(lastError?.message || "");
       const isPermissionLimitation =
         errCode === 10 ||
+        errCode === 100 ||
         errCode === 200 ||
         errMsg.toLowerCase().includes("permission") ||
-        errMsg.toLowerCase().includes("access");
+        errMsg.toLowerCase().includes("access") ||
+        errMsg.toLowerCase().includes("unsupported");
 
       if (isPermissionLimitation) {
         return NextResponse.json({
@@ -79,12 +109,15 @@ export async function POST(request: NextRequest) {
           permissionLimited: true,
           insights: null,
           message:
-            "A Meta requer liberação da permissão instagram_manage_insights ou a vinculação do perfil à sua Página do Facebook no Meta Business Suite para exibir dados analíticos de alcance e salvamentos.",
+            "Curtidas e comentários estão sincronizados. As métricas analíticas de alcance e salvamentos dependem da liberação da permissão de insights da Meta no painel de desenvolvedores ou da conexão da conta de negócios.",
         });
       }
 
-      console.error("[POST_INSIGHTS_ERROR] Instagram API Error:", insightsData?.error || insightsData);
-      return NextResponse.json({ success: false, error: errMsg || `Falha ao buscar insights (${response.status}).` }, { status: 400 });
+      console.error("[POST_INSIGHTS_ERROR] Falha após todas as tentativas:", lastError);
+      return NextResponse.json(
+        { success: false, error: errMsg || "Falha ao consultar métricas na API da Meta." },
+        { status: 400 }
+      );
     }
 
     const insights = {
