@@ -25,6 +25,31 @@ import type { LinkedInConnectionData } from "./linkedin-service";
 import { config } from "@/lib/config";
 import { isVideoMedia } from "@/lib/utils";
 
+/**
+ * Remove recursivamente todas as propriedades com valor `undefined` para compatibilidade estrita com o Firestore SDK.
+ */
+function deepSanitizeFirestoreData(data: any): any {
+  if (data === null || data === undefined) {
+    return null;
+  }
+  if (data instanceof Timestamp || data instanceof Date) {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data.map((item) => (item === undefined ? null : deepSanitizeFirestoreData(item)));
+  }
+  if (typeof data === "object") {
+    const cleanObj: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleanObj[key] = deepSanitizeFirestoreData(value);
+      }
+    }
+    return cleanObj;
+  }
+  return data;
+}
+
 // Interface for data stored in Firestore
 export interface PostData {
   id?: string;
@@ -487,15 +512,16 @@ export async function schedulePost(
       isStory: isStory,
       postType: postData.postType || (isStory ? "story" : isVideo ? "reel" : "feed"),
       mediaType: isStory ? "STORIES" : isVideo ? "REELS" : "IMAGE",
-      thumbnailUrl: thumbnailUrls[0] || (isVideoMedia(imageUrls[0]) ? undefined : imageUrls[0]),
+      thumbnailUrl: thumbnailUrls[0] || (isVideoMedia(imageUrls[0]) ? null : imageUrls[0]) || null,
       mediaFiles: imageUrls.map((url, i) => ({
         url,
         type: isVideoMedia(url) ? "video" : "image",
-        thumbnailUrl: thumbnailUrls[i] || undefined,
+        thumbnailUrl: thumbnailUrls[i] || null,
       })),
     };
 
-    const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+    const sanitizedPostToSave = deepSanitizeFirestoreData(postToSave);
+    const docRef = await addDoc(getPostsCollectionRef(userId), sanitizedPostToSave);
     console.log(`Post ${docRef.id} document created with status: ${postToSave.status}.`);
 
     if (isImmediate) {
