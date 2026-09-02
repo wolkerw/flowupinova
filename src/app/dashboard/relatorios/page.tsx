@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -106,57 +106,6 @@ import { SocialMediaInsightsSummary } from "./_components/SocialMediaInsightsSum
 import { MetaAdsCampaignsViewer } from "./_components/MetaAdsCampaignsViewer";
 import { GoogleAdsCampaignsViewer } from "./_components/GoogleAdsCampaignsViewer";
 
-
-const performanceData = [
-  { month: "Jan", impressions: 15000, clicks: 890, conversions: 45 },
-  { month: "Fev", impressions: 18500, clicks: 1240, conversions: 62 },
-  { month: "Mar", impressions: 22100, clicks: 1580, conversions: 78 },
-  { month: "Abr", impressions: 19800, clicks: 1350, conversions: 71 },
-  { month: "Mai", impressions: 25600, clicks: 1890, conversions: 95 },
-  { month: "Jun", impressions: 28300, clicks: 2150, conversions: 112 },
-];
-
-const channelData = [
-  { name: "Google Ads", value: 45, color: "#3B82F6" },
-  { name: "Facebook", value: 30, color: "#8B5CF6" },
-  { name: "Instagram", value: 15, color: "#10B981" },
-  { name: "LinkedIn", value: 10, color: "#F59E0B" },
-];
-
-const kpis = [
-  {
-    title: "ROI Geral",
-    value: "340%",
-    change: "+15%",
-    trend: "up",
-    icon: TrendingUp,
-    color: "text-green-600",
-  },
-  {
-    title: "CPA Médio",
-    value: "R$ 45",
-    change: "-8%",
-    trend: "down",
-    icon: DollarSign,
-    color: "text-green-600",
-  },
-  {
-    title: "Taxa de Conversão",
-    value: "3.2%",
-    change: "+0.5%",
-    trend: "up",
-    icon: ShoppingCart,
-    color: "text-green-600",
-  },
-  {
-    title: "CTR Médio",
-    value: "2.8%",
-    change: "-0.2%",
-    trend: "down",
-    icon: MousePointer,
-    color: "text-red-600",
-  },
-];
 
 const InsightStat = ({
   icon,
@@ -397,6 +346,7 @@ const InstagramPostInsightsModal = ({
   const [insights, setInsights] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -404,6 +354,7 @@ const InstagramPostInsightsModal = ({
 
       setIsLoading(true);
       setError(null);
+      setPermissionNotice(null);
       setInsights(null);
 
       try {
@@ -426,13 +377,21 @@ const InstagramPostInsightsModal = ({
         }
 
         const result = await response.json();
-        if (!result.success) {
+        if (result.permissionLimited) {
+          setPermissionNotice(result.message);
+          setInsights(null);
+        } else if (!result.success) {
           throw new Error(result.error || "Falha ao buscar insights detalhados.");
+        } else {
+          setInsights(result.insights);
         }
-        setInsights(result.insights);
       } catch (err: any) {
         console.error(`Failed to fetch insights for post ${post.id}:`, err.message);
-        setError(err.message);
+        if (err.message?.toLowerCase().includes("permission") || err.message?.toLowerCase().includes("access")) {
+          setPermissionNotice("A Meta requer aprovação da permissão instagram_manage_insights ou vinculação da conta à sua Página do Facebook no Meta Business Suite para exibir dados de alcance e salvamentos.");
+        } else {
+          setError(err.message);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -441,15 +400,32 @@ const InstagramPostInsightsModal = ({
     fetchInsights();
   }, [open, post, connection]);
 
-  const finalLikes = insights?.likes ?? post?.like_count ?? 0;
-  const finalComments = insights?.comments ?? post?.comments_count ?? 0;
-  const finalReach = insights?.reach ?? 0;
-  const finalSaved = insights?.saved ?? 0;
-  const finalShares = insights?.shares ?? 0;
+  const finalLikes = post?.like_count ?? insights?.likes ?? 0;
+  const finalComments = post?.comments_count ?? insights?.comments ?? 0;
+  const finalReach =
+    insights?.reach !== undefined
+      ? insights.reach
+      : permissionNotice
+      ? "Sob liberação Meta"
+      : 0;
+  const finalSaved =
+    insights?.saved !== undefined
+      ? insights.saved
+      : permissionNotice
+      ? "Sob liberação Meta"
+      : 0;
+  const finalShares =
+    insights?.shares !== undefined
+      ? insights.shares
+      : permissionNotice
+      ? "Sob liberação Meta"
+      : 0;
 
   const engagementRate =
-    finalReach > 0
-      ? (((finalLikes + finalComments + finalSaved) / finalReach) * 100).toFixed(2) + "%"
+    typeof finalReach === "number" && finalReach > 0
+      ? (((finalLikes + finalComments + (typeof finalSaved === "number" ? finalSaved : 0)) / finalReach) * 100).toFixed(2) + "%"
+      : permissionNotice
+      ? "Calculada após liberação"
       : "0.00%";
 
   return (
@@ -468,6 +444,14 @@ const InstagramPostInsightsModal = ({
             </div>
           )}
           {error && <div className="rounded-md bg-red-50 p-4 text-red-600">{error}</div>}
+          {permissionNotice && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900 duration-300 animate-in fade-in">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div className="leading-relaxed">
+                <strong>Métricas Analíticas Privadas:</strong> Curtidas e comentários estão sincronizados. As métricas de alcance, salvamentos e compartilhamentos dependem da aprovação da permissão de insights da Meta no painel de desenvolvedores ou da vinculação do Instagram à sua Página do Facebook no Meta Business Suite.
+              </div>
+            </div>
+          )}
           {post && (
             <div className="space-y-6">
               <Card className="overflow-hidden bg-white shadow-sm">
@@ -524,7 +508,13 @@ const InstagramPostInsightsModal = ({
   );
 };
 
-const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
+const InstagramMediaViewer = ({
+  connection,
+  periodDays = "30",
+}: {
+  connection: InstagramConnectionData;
+  periodDays?: string;
+}) => {
   const [media, setMedia] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -583,6 +573,37 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
     setIsModalOpen(true);
   };
 
+  const cutoffDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    return d;
+  }, [periodDays]);
+
+  const filteredMedia = useMemo(() => {
+    return media.filter((item) => new Date(item.timestamp) >= cutoffDate);
+  }, [media, cutoffDate]);
+
+  const totalInstagramReach = useMemo(() => {
+    return filteredMedia.reduce((acc, item) => acc + (item.insights?.reach || 0), 0);
+  }, [filteredMedia]);
+
+  const totalInstagramInteractions = useMemo(() => {
+    return filteredMedia.reduce(
+      (acc, item) => acc + (item.like_count || 0) + (item.comments_count || 0),
+      0
+    );
+  }, [filteredMedia]);
+
+  const avgEngagementRate = useMemo(() => {
+    if (totalInstagramReach > 0) {
+      return ((totalInstagramInteractions / totalInstagramReach) * 100).toFixed(1) + "%";
+    }
+    if (totalInstagramInteractions > 0 && filteredMedia.length > 0) {
+      return ((totalInstagramInteractions / filteredMedia.length) * 100).toFixed(1) + "%";
+    }
+    return "0.0%";
+  }, [totalInstagramInteractions, totalInstagramReach, filteredMedia.length]);
+
   if (!connection.isConnected) {
     return (
       <div className="py-10 text-center text-gray-500">
@@ -635,110 +656,85 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
     );
   }
 
-  const instagramAiRecs = [
-    {
-      id: "ig-1",
-      title: "Publicar Carrosséis Educativos",
-      description: "Posts no formato Carrossel obtiveram 58% mais salvamentos no seu perfil do Instagram.",
-      actionText: "Gerar Carrossel IA",
-      badge: "Mais Salvos",
-      badgeColor: "bg-pink-100 text-pink-800 border-pink-200",
-    },
-    {
-      id: "ig-2",
-      title: "Legendas com Chamada para Ação",
-      description: "Posts com a CTA 'Comente X para receber o modelo' tiveram o triplo de engajamento.",
-      actionText: "Criar Legenda",
-      badge: "Dica de Engajamento",
-      badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
-    },
-  ];
-
-  const instagramAchievements = [
-    {
-      id: "ig-ach-1",
-      title: "Top 5% de Engajamento!",
-      description: "Seu perfil alcançou mais de 3.400 interações orgânicas nesta semana.",
-      date: "Esta semana",
-      icon: Heart,
-      color: "bg-pink-100 text-pink-600 border-pink-300",
-    },
-  ];
-
-  const totalInstagramReach = media.reduce((acc, item) => acc + (item.insights?.reach || 0), 0) || 12400;
-  const totalInstagramInteractions = media.reduce((acc, item) => acc + (item.like_count || 0) + (item.comments_count || 0), 0) || 1850;
-
   return (
     <>
       <SocialMediaInsightsSummary
         platformName="Instagram"
         totalReach={totalInstagramReach}
         totalInteractions={totalInstagramInteractions}
-        avgEngagementRate="12.4%"
-        topPostTitle={media[0]?.caption || "Postagem em destaque"}
-        aiRecommendations={instagramAiRecs}
-        achievements={instagramAchievements}
+        avgEngagementRate={avgEngagementRate}
+        topPostTitle={filteredMedia[0]?.caption || "Nenhuma publicação no período"}
       />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {media.map((item) => {
-          const imageSrc = item.thumbnail_url || item.media_url || "https://placehold.co/400x400";
-          const postInsights = item.insights || {};
-          return (
-            <Card
-              key={item.id}
-              className="flex flex-col border-none shadow-lg transition-shadow hover:shadow-xl"
-            >
-              <CardHeader className="p-4">
-                <div className="relative aspect-square overflow-hidden rounded-t-lg bg-gray-100">
-                  <Image
-                    src={imageSrc}
-                    alt="Imagem do post"
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow p-4 pt-0">
-                <p className="mb-2 line-clamp-2 text-sm text-gray-600" title={item.caption}>
-                  {item.caption || "Post sem legenda."}
-                </p>
-                <p className="mb-3 text-xs text-gray-500">
-                  Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
-                </p>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-left">
-                  <div className="flex items-center gap-1.5 text-gray-700">
-                    <Eye className="h-3.5 w-3.5" />
-                    <span className="font-semibold">{postInsights.reach ?? 0}</span>
-                    <span className="text-xs text-gray-500">Alcance</span>
+      {filteredMedia.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-xs">
+          <Instagram className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+          <h4 className="text-base font-semibold text-slate-800">Nenhum post no período selecionado</h4>
+          <p className="mt-1 text-xs text-slate-500">
+            Nenhuma publicação foi encontrada nos últimos {periodDays} dias. Selecione outro período acima para visualizar seus posts.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredMedia.map((item) => {
+            const imageSrc = item.thumbnail_url || item.media_url || "https://placehold.co/400x400";
+            const postInsights = item.insights || {};
+            return (
+              <Card
+                key={item.id}
+                className="flex flex-col border-none shadow-lg transition-shadow hover:shadow-xl"
+              >
+                <CardHeader className="p-4">
+                  <div className="relative aspect-square overflow-hidden rounded-t-lg bg-gray-100">
+                    <Image
+                      src={imageSrc}
+                      alt="Imagem do post"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-700">
-                    <Heart className="h-3.5 w-3.5" />
-                    <span className="font-semibold">{item.like_count}</span>
-                    <span className="text-xs text-gray-500">Curtidas</span>
+                </CardHeader>
+                <CardContent className="flex-grow p-4 pt-0">
+                  <p className="mb-2 line-clamp-2 text-sm text-gray-600" title={item.caption}>
+                    {item.caption || "Post sem legenda."}
+                  </p>
+                  <p className="mb-3 text-xs text-gray-500">
+                    Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-left">
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <Eye className="h-3.5 w-3.5" />
+                      <span className="font-semibold">{postInsights.reach && postInsights.reach > 0 ? postInsights.reach : "—"}</span>
+                      <span className="text-xs text-gray-500">Alcance</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <Heart className="h-3.5 w-3.5" />
+                      <span className="font-semibold">{item.like_count ?? 0}</span>
+                      <span className="text-xs text-gray-500">Curtidas</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      <span className="font-semibold">{item.comments_count ?? 0}</span>
+                      <span className="text-xs text-gray-500">Coment.</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <Save className="h-3.5 w-3.5" />
+                      <span className="font-semibold">{postInsights.saved && postInsights.saved > 0 ? postInsights.saved : "—"}</span>
+                      <span className="text-xs text-gray-500">Salvos</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-700">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    <span className="font-semibold">{item.comments_count}</span>
-                    <span className="text-xs text-gray-500">Coment.</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-gray-700">
-                    <Save className="h-3.5 w-3.5" />
-                    <span className="font-semibold">{postInsights.saved ?? 0}</span>
-                    <span className="text-xs text-gray-500">Salvos</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
-                  <BarChart className="mr-2 h-4 w-4" />
-                  Ver mais Insights
-                </Button>
-              </CardFooter>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+                <CardFooter className="p-4 pt-0">
+                  <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
+                    <BarChart className="mr-2 h-4 w-4" />
+                    Ver mais Insights
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      )}
       {nextCursor && (
         <div className="mt-8 flex justify-center">
           <Button onClick={() => fetchMedia(nextCursor)} disabled={isFetchingMore}>
@@ -757,7 +753,13 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   );
 };
 
-const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
+const MetaPagePostsViewer = ({
+  connection,
+  periodDays = "30",
+}: {
+  connection: MetaConnectionData;
+  periodDays?: string;
+}) => {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -765,6 +767,12 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+  const cutoffTimestamp = useMemo(() => {
+    return Math.floor(
+      (Date.now() - parseInt(periodDays || "30", 10) * 86400 * 1000) / 1000
+    );
+  }, [periodDays]);
 
   const fetchPosts = useCallback(
     async (cursor?: string) => {
@@ -788,6 +796,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
             accessToken: connection.accessToken,
             pageId: connection.pageId,
             after: cursor,
+            since: cutoffTimestamp,
           }),
         });
 
@@ -808,7 +817,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
         setIsFetchingMore(false);
       }
     },
-    [connection]
+    [connection, cutoffTimestamp]
   );
 
   useEffect(() => {
@@ -819,6 +828,41 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     setSelectedPost(post);
     setIsModalOpen(true);
   };
+
+  const cutoffDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    return d;
+  }, [periodDays]);
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => new Date(post.created_time) >= cutoffDate);
+  }, [posts, cutoffDate]);
+
+  const totalFacebookReach = useMemo(() => {
+    return filteredPosts.reduce((acc, item) => acc + (item.insights?.reach || 0), 0);
+  }, [filteredPosts]);
+
+  const totalFacebookInteractions = useMemo(() => {
+    return filteredPosts.reduce(
+      (acc, item) =>
+        acc +
+        (item.insights?.likes || 0) +
+        (item.insights?.comments || 0) +
+        (item.insights?.shares || 0),
+      0
+    );
+  }, [filteredPosts]);
+
+  const avgEngagementRate = useMemo(() => {
+    if (totalFacebookReach > 0) {
+      return ((totalFacebookInteractions / totalFacebookReach) * 100).toFixed(1) + "%";
+    }
+    if (totalFacebookInteractions > 0 && filteredPosts.length > 0) {
+      return ((totalFacebookInteractions / filteredPosts.length) * 100).toFixed(1) + "%";
+    }
+    return "0.0%";
+  }, [totalFacebookInteractions, totalFacebookReach, filteredPosts.length]);
 
   if (!connection.isConnected) {
     return (
@@ -873,106 +917,81 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     );
   }
 
-  const facebookAiRecs = [
-    {
-      id: "fb-1",
-      title: "Priorizar Vídeos Curtos no Facebook",
-      description: "Vídeos curtos geraram 3.2x mais compartilhamentos que posts estáticos na sua página.",
-      actionText: "Gerar Ideias de Vídeo",
-      badge: "Alto Engajamento",
-      badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
-    },
-    {
-      id: "fb-2",
-      title: "Horário de Maior Interação",
-      description: "Seus seguidores no Facebook interagem 40% mais no período entre 18:00 e 20:00.",
-      actionText: "Agendar Post",
-      badge: "Horário Nobre",
-      badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    },
-  ];
-
-  const facebookAchievements = [
-    {
-      id: "fb-ach-1",
-      title: "Recorde de Compartilhamentos!",
-      description: "Sua última publicação alcançou mais de 80 compartilhamentos orgânicos.",
-      date: "Ontem",
-      icon: Share2,
-      color: "bg-blue-100 text-[#1877F2] border-blue-300",
-    },
-  ];
-
-  const totalFacebookReach = posts.reduce((acc, item) => acc + (item.insights?.reach || 0), 0) || 8900;
-  const totalFacebookInteractions = posts.reduce((acc, item) => acc + (item.insights?.likes || 0) + (item.insights?.comments || 0), 0) || 940;
-
   return (
     <>
       <SocialMediaInsightsSummary
         platformName="Facebook"
         totalReach={totalFacebookReach}
         totalInteractions={totalFacebookInteractions}
-        avgEngagementRate="10.8%"
-        topPostTitle={posts[0]?.message || "Publicação em destaque"}
-        aiRecommendations={facebookAiRecs}
-        achievements={facebookAchievements}
+        avgEngagementRate={avgEngagementRate}
+        topPostTitle={filteredPosts[0]?.message || "Nenhuma publicação no período"}
       />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {posts.map((post) => (
-          <Card
-            key={post.id}
-            className="flex flex-col border-none shadow-lg transition-shadow hover:shadow-xl"
-          >
-            <CardHeader className="p-4">
-              <div className="relative aspect-video overflow-hidden rounded-t-lg bg-gray-100">
-                <Image
-                  src={post.full_picture || "https://placehold.co/400"}
-                  alt="Imagem do post"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="flex-grow p-4 pt-0">
-              <p className="mb-2 line-clamp-2 text-sm text-gray-600" title={post.message}>
-                {post.message || "Post sem texto."}
-              </p>
-              <p className="mb-3 text-xs text-gray-500">
-                Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}
-              </p>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-left">
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <Eye className="h-3.5 w-3.5" />
-                  <span className="font-semibold">{post.insights.reach || 0}</span>
-                  <span className="text-xs text-gray-500">Alcance</span>
+      {filteredPosts.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-xs">
+          <Facebook className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+          <h4 className="text-base font-semibold text-slate-800">Nenhum post no período selecionado</h4>
+          <p className="mt-1 text-xs text-slate-500">
+            Nenhuma publicação foi encontrada na sua página nos últimos {periodDays} dias. Selecione outro período acima para visualizar seus posts.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredPosts.map((post) => (
+            <Card
+              key={post.id}
+              className="flex flex-col border-none shadow-lg transition-shadow hover:shadow-xl"
+            >
+              <CardHeader className="p-4">
+                <div className="relative aspect-video overflow-hidden rounded-t-lg bg-gray-100">
+                  <Image
+                    src={post.full_picture || "https://placehold.co/400"}
+                    alt="Imagem do post"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
                 </div>
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <Heart className="h-3.5 w-3.5" />
-                  <span className="font-semibold">{post.insights.likes || 0}</span>
-                  <span className="text-xs text-gray-500">Reações</span>
+              </CardHeader>
+              <CardContent className="flex-grow p-4 pt-0">
+                <p className="mb-2 line-clamp-2 text-sm text-gray-600" title={post.message}>
+                  {post.message || "Post sem texto."}
+                </p>
+                <p className="mb-3 text-xs text-gray-500">
+                  Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}
+                </p>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-left">
+                  <div className="flex items-center gap-1.5 text-gray-700">
+                    <Eye className="h-3.5 w-3.5" />
+                    <span className="font-semibold">{post.insights.reach && post.insights.reach > 0 ? post.insights.reach : "—"}</span>
+                    <span className="text-xs text-gray-500">Alcance</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-700">
+                    <Heart className="h-3.5 w-3.5" />
+                    <span className="font-semibold">{post.insights.likes || 0}</span>
+                    <span className="text-xs text-gray-500">Reações</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-700">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    <span className="font-semibold">{post.insights.comments || 0}</span>
+                    <span className="text-xs text-gray-500">Comentários</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-700">
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span className="font-semibold">{post.insights.shares || 0}</span>
+                    <span className="text-xs text-gray-500">Compart.</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  <span className="font-semibold">{post.insights.comments || 0}</span>
-                  <span className="text-xs text-gray-500">Comentários</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <Share2 className="h-3.5 w-3.5" />
-                  <span className="font-semibold">{post.insights.shares || 0}</span>
-                  <span className="text-xs text-gray-500">Compart.</span>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-0">
-              <Button variant="outline" className="w-full" onClick={() => handleOpenModal(post)}>
-                <BarChart className="mr-2 h-4 w-4" />
-                Ver mais Insights
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+              <CardFooter className="p-4 pt-0">
+                <Button variant="outline" className="w-full" onClick={() => handleOpenModal(post)}>
+                  <BarChart className="mr-2 h-4 w-4" />
+                  Ver mais Insights
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
       {nextCursor && (
         <div className="mt-8 flex justify-center">
           <Button onClick={() => fetchPosts(nextCursor)} disabled={isFetchingMore}>
@@ -1190,7 +1209,7 @@ export default function Relatorios() {
                   </TabsList>
                   <TabsContent value="instagram" className="mt-6">
                     {instagramConnection ? (
-                      <InstagramMediaViewer connection={instagramConnection} />
+                      <InstagramMediaViewer connection={instagramConnection} periodDays={periodDays} />
                     ) : (
                       <div className="py-10 text-center text-gray-500">
                         <Loader2 className="mb-4 h-8 w-8 animate-spin text-gray-400" />
@@ -1200,7 +1219,7 @@ export default function Relatorios() {
                   </TabsContent>
                   <TabsContent value="facebook" className="mt-6">
                     {metaConnection ? (
-                      <MetaPagePostsViewer connection={metaConnection} />
+                      <MetaPagePostsViewer connection={metaConnection} periodDays={periodDays} />
                     ) : (
                       <div className="py-10 text-center text-gray-500">
                         <Loader2 className="mb-4 h-8 w-8 animate-spin text-gray-400" />
@@ -1209,7 +1228,7 @@ export default function Relatorios() {
                     )}
                   </TabsContent>
                   <TabsContent value="linkedin" className="mt-6">
-                    <LinkedInPostsViewer connection={linkedInConnection} />
+                    <LinkedInPostsViewer connection={linkedInConnection} periodDays={periodDays} />
                   </TabsContent>
                 </Tabs>
               )}

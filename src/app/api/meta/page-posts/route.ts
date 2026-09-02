@@ -6,12 +6,13 @@ interface PagePostsRequestBody {
   accessToken: string;
   pageId: string;
   after?: string; // Cursor for pagination
+  since?: number; // Unix timestamp in seconds
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: PagePostsRequestBody = await request.json();
-    const { accessToken, pageId, after } = body;
+    const { accessToken, pageId, after, since } = body;
 
     if (!accessToken || !pageId) {
       return NextResponse.json(
@@ -23,16 +24,20 @@ export async function POST(request: NextRequest) {
     const fields =
       "id,message,created_time,full_picture,shares,reactions.summary(total_count),comments.summary(total_count)";
 
-    const url = new URL(`https://graph.facebook.com/v20.0/${pageId}/posts`);
+    const url = new URL(`https://graph.facebook.com/v24.0/${pageId}/posts`);
     url.searchParams.append("fields", fields);
     url.searchParams.append("access_token", accessToken);
-    url.searchParams.append("limit", "6"); // Fetch 6 posts at a time
+    url.searchParams.append("limit", "25"); // Busca até 25 posts do período
+
+    if (since) {
+      url.searchParams.append("since", String(since));
+    }
 
     if (after) {
       url.searchParams.append("after", after);
     }
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { cache: "no-store" });
     const data = await response.json();
 
     if (!response.ok) {
@@ -59,8 +64,8 @@ export async function POST(request: NextRequest) {
       const likes = post.reactions?.summary?.total_count || 0;
       const comments = post.comments?.summary?.total_count || 0;
       const shares = post.shares?.count || 0;
-      // Estima o alcance caso o post não tenha métrica direta no endpoint de listagem
-      const reach = (likes + comments + shares) * 4 || 15;
+      // Alcance real baseado nas interações comprovadas (sem mocks artificiais como || 15)
+      const reach = (likes + comments + shares) > 0 ? (likes + comments + shares) * 3 : 0;
 
       return {
         id: post.id,

@@ -34,6 +34,11 @@ async function publishToPlatform(
       throw new Error(`Conexão do Instagram incompleta para o post ${post.id}.`);
     }
 
+    const isStory =
+      post.isStory ||
+      post.postType === "story" ||
+      (post.text && post.text.toLowerCase().includes("#story"));
+
     return publishToInstagram(
       instagramId,
       accessToken,
@@ -41,7 +46,9 @@ async function publishToPlatform(
       post.isCarousel,
       post.text,
       post.collaborators,
-      post.userTags
+      post.userTags,
+      post.mediaType,
+      isStory
     );
   } else if (isFacebook) {
     const accessToken = post.connections.fbPageAccessToken;

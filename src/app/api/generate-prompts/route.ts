@@ -121,13 +121,15 @@ export async function POST(request: Request) {
 
         if (topApproved.length > 0) {
           approvedPromptsExamples = `
-# SUCCESSFUL PROMPTING SAMPLES (FEW-SHOT LEARNING)
-The following are examples of image prompts that the user previously approved, loved, and successfully published/scheduled.
-Analyze their structure, level of detail, and stylistic cues, and use them as reference/inspiration to generate the new concepts:
-${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
+# STRUCTURAL PROMPTING SAMPLES (FEW-SHOT LEARNING - FOR COMPOSITION & CAMERA STYLE ONLY)
+The following are structural reference samples of image prompts previously created in the system.
+CRITICAL MANDATE: Use these samples ONLY to learn the desired level of photographic detail, lighting keywords, camera angles, and composition phrasing.
+ABSOLUTELY FORBIDDEN: NEVER copy, reuse, or adapt any company name, brand name, logo, topic, or title from these examples (e.g. do not copy past brand names or previous titles).
+You MUST generate prompts EXCLUSIVELY for the current brand "${businessProfile?.name || "the brand"}" (Niche: "${businessProfile?.category || "general"}") and the current post title: "${selContent?.titulo || ""}".
+${topApproved.map((p, idx) => `Sample #${idx + 1}: ${p}`).join("\n\n")}
 `;
           console.log(
-            `[GENERATE_PROMPTS] Encontrados ${topApproved.length} prompts de sucesso para few-shot learning.`
+            `[GENERATE_PROMPTS] Encontrados ${topApproved.length} prompts de sucesso para few-shot learning (estritamente estrutural).`
           );
         } else {
           console.log(
@@ -324,8 +326,8 @@ Return the description strictly in YAML format:
 You are generating advertising images for the brand "${name || "a premium brand"}" which operates in the "${category || "general"}" niche.
 CRITICAL ROLE DISTINCTION:
 - The brand "${name || "the brand"}" (Niche: "${category || "general"}") is the SERVICE PROVIDER / ADVERTISER.
-- Any Target Personas listed are the BUYER CLIENTS that the brand wants to attract with its accounting/business solutions.
-- MANDATORY RULE: NEVER create image prompts portraying the brand as if it WERE the persona's business (e.g. if the brand is Accounting and the persona is a Medical Clinic owner, the scene MUST feature Accounting/Financial solutions for medical clinics, NOT medical surgeries or hospital procedures).
+- Any Target Personas listed are the BUYER CLIENTS that the brand wants to attract with its ${category || "professional"} products, services, and solutions.
+- MANDATORY RULE: NEVER create image prompts portraying the brand as if it WERE the persona's business. The scene MUST always feature ${name || "the brand"}'s actual niche ("${category || "general"}"), products, services, and visual identity.
 
 The brand's visual identity is defined by the following palette:
 - Primary Color Hex: ${primaryHex}
@@ -651,8 +653,9 @@ ${brandingInstruction}
 --------------------------------------------------------------------------------
 1. LANGUAGE: Write all visual descriptions in English only.
 ${textRules}
-SPECIAL TEXT RULE FOR GPT-IMAGE-2 (DALL-E 3) COMPATIBILITY: 
-Since the primary engine may be gpt-image-2 (DALL-E 3), you can be slightly more creative with the typography and layout rules requested above, dynamically embedding the exact textual title within the scene as a realistic design element. HOWEVER, you are STRICTLY FORBIDDEN from generating or asking the engine to draw any brand logos, icons, symbols, logomarks, or visual identities that are not explicitly provided. The generated design must solely rely on typographic layout and the photography itself.
+SPECIAL TEXT & BRANDING RULE (CRITICAL MANDATE): 
+Since the primary engine may be gpt-image-2 (DALL-E 3), you can be creative with the typography and layout rules requested above, dynamically embedding the exact textual title within the scene as a realistic design element.
+HOWEVER, you are STRICTLY FORBIDDEN from generating or asking the engine to draw any brand logos, icons, symbols, logomarks, fictional company names, or brand markings on props (such as laptops, coffee mugs, cups, uniforms, signs, walls, or clothing) unless explicitly requested. The generated design must solely rely on typographic layout and the photography itself. NEVER print unrequested brand names (such as previous client names) anywhere in the image.
 
 3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
 4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 2 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.

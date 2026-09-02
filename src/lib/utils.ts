@@ -137,3 +137,22 @@ export function isConnectionError(error: string): boolean {
     errorLower.includes("requires the manage_pages permission")
   );
 }
+
+/**
+ * Detecta se uma URL ou tipo MIME refere-se a um arquivo de vídeo.
+ */
+export function isVideoMedia(url: string, type?: string): boolean {
+  if (type && type.toLowerCase().startsWith("video/")) return true;
+  if (!url) return false;
+  const cleanUrl = url.split("?")[0].toLowerCase();
+  return (
+    cleanUrl.endsWith(".mp4") ||
+    cleanUrl.endsWith(".mov") ||
+    cleanUrl.endsWith(".webm") ||
+    cleanUrl.endsWith(".m4v") ||
+    cleanUrl.endsWith(".avi") ||
+    cleanUrl.endsWith(".mkv") ||
+    url.toLowerCase().includes("video") ||
+    url.toLowerCase().includes(".mp4")
+  );
+}

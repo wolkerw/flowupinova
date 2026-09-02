@@ -47,7 +47,8 @@ async function fetchWithRetry(
 
 export async function POST(request: Request) {
   try {
-    const { prompt, postId, fileName, userId, content, layoutStyle } = await request.json();
+    const { prompt, postId, fileName, userId, content, layoutStyle, businessProfile } =
+      await request.json();
 
     if (!prompt || !postId || !fileName || !userId) {
       return NextResponse.json(
@@ -67,35 +68,43 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Carregar as diretrizes visuais e paleta de cores da marca do Firestore (Brand Kit)
+    // 1. Carregar as diretrizes visuais e paleta de cores da marca (Prioriza o businessProfile recebido do payload)
     let finalPrompt = prompt;
     try {
-      const docSnap = await admin.firestore().doc(`users/${userId}/business/onboarding`).get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        const brandKit = data?.brandKit;
+      let brandKit = businessProfile?.brandKit;
+      let primaryColor = businessProfile?.primaryColor || brandKit?.primaryColor;
+      let secondaryColor = businessProfile?.secondaryColor || brandKit?.secondaryColor;
 
-        let brandEnhancements = "";
-        if (brandKit?.visualGuidelines) {
-          brandEnhancements += ` Siga o estilo visual de: ${brandKit.visualGuidelines.trim()}.`;
+      if (!brandKit) {
+        const docSnap = await admin.firestore().doc(`users/${userId}/business/onboarding`).get();
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          brandKit = data?.brandKit;
+          primaryColor = primaryColor || data?.primaryColor || brandKit?.primaryColor;
+          secondaryColor = secondaryColor || data?.secondaryColor || brandKit?.secondaryColor;
         }
-        if (brandKit?.primaryColor || brandKit?.secondaryColor) {
-          const colors = [];
-          if (brandKit.primaryColor) colors.push(brandKit.primaryColor);
-          if (brandKit.secondaryColor) colors.push(brandKit.secondaryColor);
-          brandEnhancements += ` Integre de forma harmôniosa elementos de cenário ou iluminação sutil que remetam aos tons de: ${colors.join(" e ")}.`;
-        }
+      }
 
-        if (brandEnhancements) {
-          // Remover qualquer ponto final redundante para concatenar de forma limpa
-          const cleanPrompt = prompt.trim().endsWith(".")
-            ? prompt.trim().slice(0, -1)
-            : prompt.trim();
-          finalPrompt = `${cleanPrompt}.${brandEnhancements}`;
-          console.log(
-            `[GENERATE_IMAGES_NATIVE] Prompt estendido com diretrizes do Brand Kit: ${finalPrompt}`
-          );
-        }
+      let brandEnhancements = "";
+      if (brandKit?.visualGuidelines) {
+        brandEnhancements += ` Siga o estilo visual de: ${brandKit.visualGuidelines.trim()}.`;
+      }
+      if (primaryColor || secondaryColor) {
+        const colors = [];
+        if (primaryColor) colors.push(primaryColor);
+        if (secondaryColor) colors.push(secondaryColor);
+        brandEnhancements += ` Integre de forma harmônica elementos de cenário ou iluminação sutil que remetam aos tons da marca (${colors.join(" e ")}).`;
+      }
+
+      if (brandEnhancements) {
+        // Remover qualquer ponto final redundante para concatenar de forma limpa
+        const cleanPrompt = prompt.trim().endsWith(".")
+          ? prompt.trim().slice(0, -1)
+          : prompt.trim();
+        finalPrompt = `${cleanPrompt}.${brandEnhancements}`;
+        console.log(
+          `[GENERATE_IMAGES_NATIVE] Prompt estendido com diretrizes do Brand Kit: ${finalPrompt}`
+        );
       }
     } catch (dbError) {
       console.warn(

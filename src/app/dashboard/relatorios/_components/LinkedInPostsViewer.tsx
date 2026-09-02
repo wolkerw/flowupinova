@@ -38,74 +38,15 @@ import type { LinkedInConnectionData } from "@/lib/services/linkedin-service";
 
 export interface LinkedInPostsViewerProps {
   connection: LinkedInConnectionData | null;
+  periodDays?: string;
 }
-
-const mockLinkedInPosts = [
-  {
-    id: "urn:li:share:718293819201",
-    authorName: "FlowUp Inovação & Tecnologia",
-    authorTitle: "Empresa de Automação & IA",
-    text: "🚀 Como a Inteligência Artificial está transformando a criação de conteúdo para empresas B2B. Confira 3 casos reais de aceleração de resultados!",
-    imageUrl: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&auto=format&fit=crop&q=80",
-    createdTime: "2026-08-01T14:30:00Z",
-    permalink: "https://www.linkedin.com",
-    metrics: {
-      impressions: 4850,
-      likes: 184,
-      comments: 42,
-      shares: 19,
-      clicks: 128,
-      engagementRate: "7.7%",
-    },
-    status: "trending",
-    growth: "+45%",
-  },
-  {
-    id: "urn:li:share:718293819202",
-    authorName: "FlowUp Inovação & Tecnologia",
-    authorTitle: "Empresa de Automação & IA",
-    text: "💡 O segredo para manter consistência de postagens corporativas sem sobrecarregar sua equipe de marketing.",
-    imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
-    createdTime: "2026-07-28T10:15:00Z",
-    permalink: "https://www.linkedin.com",
-    metrics: {
-      impressions: 3210,
-      likes: 112,
-      comments: 26,
-      shares: 8,
-      clicks: 94,
-      engagementRate: "6.2%",
-    },
-    status: "superior",
-    growth: "+18%",
-  },
-  {
-    id: "urn:li:share:718293819203",
-    authorName: "FlowUp Inovação & Tecnologia",
-    authorTitle: "Empresa de Automação & IA",
-    text: "📊 Comunicado: Lançamos novas atualizações na plataforma NumVapt para relatórios avançados de desempenho.",
-    imageUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80",
-    createdTime: "2026-07-20T09:00:00Z",
-    permalink: "https://www.linkedin.com",
-    metrics: {
-      impressions: 1950,
-      likes: 45,
-      comments: 9,
-      shares: 3,
-      clicks: 38,
-      engagementRate: "2.9%",
-    },
-    status: "declining",
-    growth: "-12%",
-  },
-];
 
 const linkedinAiRecommendations = [
   {
     id: "li-rec-1",
     title: "Postar Artigos de Opinião de Líderes (Thought Leadership)",
     description:
-      "Posts com o formato de estória corporativa ou opinião de liderança geraram 45% mais comentários no seu perfil do LinkedIn.",
+      "Posts com o formato de estória corporativa ou opinião de liderança geram maior engajamento no seu perfil do LinkedIn.",
     actionText: "Gerar Post B2B",
     badge: "Alta Relevância B2B",
     badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
@@ -114,14 +55,14 @@ const linkedinAiRecommendations = [
     id: "li-rec-2",
     title: "Melhor Horário para Postar no LinkedIn",
     description:
-      "Seu público no LinkedIn interage com maior frequência entre terças e quintas-feiras, das 09:00 às 11:00.",
+      "Publicações corporativas entre terças e quintas-feiras, das 09:00 às 11:00, tendem a alcançar maior visibilidade profissional.",
     actionText: "Agendar Post",
     badge: "Dica de Engajamento",
     badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
   },
 ];
 
-export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
+export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInPostsViewerProps) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "trending" | "declining">("all");
@@ -152,16 +93,40 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
     );
   }
 
-  const filteredPosts = mockLinkedInPosts.filter((p) => {
-    if (activeTab === "trending") return p.status === "trending";
-    if (activeTab === "declining") return p.status === "declining";
-    return true;
-  });
+  const [posts] = useState<any[]>([]);
 
-  const totalImpressions = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.impressions, 0);
-  const totalLikes = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.likes, 0);
-  const totalComments = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.comments, 0);
-  const totalShares = mockLinkedInPosts.reduce((acc, p) => acc + p.metrics.shares, 0);
+  const cutoffDate = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    return d;
+  }, [periodDays]);
+
+  const filteredPosts = React.useMemo(() => {
+    return posts.filter((p) => {
+      const isWithinDate = new Date(p.createdTime) >= cutoffDate;
+      if (!isWithinDate) return false;
+      if (activeTab === "trending") return p.status === "trending";
+      if (activeTab === "declining") return p.status === "declining";
+      return true;
+    });
+  }, [posts, activeTab, cutoffDate]);
+
+  const totalImpressions = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.impressions || 0), 0),
+    [filteredPosts]
+  );
+  const totalLikes = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.likes || 0), 0),
+    [filteredPosts]
+  );
+  const totalComments = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.comments || 0), 0),
+    [filteredPosts]
+  );
+  const totalShares = React.useMemo(
+    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.shares || 0), 0),
+    [filteredPosts]
+  );
 
   return (
     <div className="space-y-8 font-sans">
@@ -205,9 +170,6 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {totalImpressions.toLocaleString("pt-BR")}
               </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> +24%
-              </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Visualizações no feed corporativo</p>
           </CardContent>
@@ -226,9 +188,6 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {totalLikes.toLocaleString("pt-BR")}
-              </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> +31%
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Curtidas, Parabéns & Apoio</p>
@@ -249,9 +208,6 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {totalComments.toLocaleString("pt-BR")}
               </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> +15%
-              </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Interações de profissionais</p>
           </CardContent>
@@ -270,9 +226,6 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {totalShares.toLocaleString("pt-BR")}
-              </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> +12%
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Reposts em redes profissionais</p>
@@ -311,8 +264,17 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
           </Tabs>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.map((post) => (
+          {filteredPosts.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-xs">
+              <Linkedin className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+              <h4 className="text-base font-semibold text-slate-800">Nenhum post publicado no LinkedIn no período</h4>
+              <p className="mt-1 text-xs text-slate-500">
+                Suas publicações realizadas pelo NumVapt ou pela sua Página Corporativa do LinkedIn aparecerão aqui com métricas em tempo real.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredPosts.map((post) => (
               <Card
                 key={post.id}
                 className="flex flex-col border border-slate-200 shadow-xs transition-shadow hover:shadow-md"
@@ -379,6 +341,7 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
               </Card>
             ))}
           </div>
+        )}
         </CardContent>
       </Card>
 
