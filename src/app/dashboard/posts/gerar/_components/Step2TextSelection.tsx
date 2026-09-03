@@ -129,7 +129,7 @@ export const Step2TextSelection = () => {
             </RadioGroup>
           )}
 
-          {selectedContentId && generatedContent.length > 0 && !isSyncImageMode && (
+          {selectedContentId && generatedContent.length > 0 && !isSyncImageMode && mode !== "concept" && (
             <div className="mt-6 rounded-lg border-2 border-accent/20 bg-accent/5 p-4">
               <h4 className="mb-2 text-sm font-bold text-gray-900">
                 Deseja inserir este texto na imagem gerada?
@@ -172,7 +172,7 @@ export const Step2TextSelection = () => {
             onClick={() => onNext()}
             disabled={
               !selectedContentId ||
-              (!isSyncImageMode && insertTextOnImage === null) ||
+              (!isSyncImageMode && mode !== "concept" && insertTextOnImage === null) ||
               (isSyncImageMode && (!selectedImage || isGeneratingImages))
             }
             className="bg-accent text-white shadow-md hover:bg-accent/90"
