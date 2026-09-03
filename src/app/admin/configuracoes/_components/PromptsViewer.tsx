@@ -133,6 +133,42 @@ export function PromptsViewer() {
           </AccordionContent>
         </AccordionItem>
 
+        {/* Agente: Diretor de Arte - Fluxo Conceito & Infográficos */}
+        <AccordionItem
+          value="conceito_prompts_system"
+          className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900/50 px-4"
+        >
+          <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <PenTool className="h-4 w-4 text-cyan-400" />
+              Agente: Diretor de Arte (Fluxo Conceito & Infográficos)
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-400">
+            <p className="mb-4 text-xs">
+              Instrui a IA a planejar a diagramação infográfica, proibindo repetição de logomarcas em múltiplos elementos e alternando entre Opção 1 (limpa para edição) e Opção 2 (com logo oficial discreta).
+            </p>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[300px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.conceito_prompts_system || ""}
+                onChange={(e) => handleChange("conceito_prompts_system", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("conceito_prompts_system")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Botão Foto de Produto */}
         <AccordionItem
           value="produto"
