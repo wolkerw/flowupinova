@@ -116,7 +116,17 @@ Você deve responder estritamente com um objeto JSON válido, sem markdown ou fo
 
   brand_kit_prompt: `Você é um especialista em Branding, Direção de Arte e Marketing Estratégico.
 Analise detalhadamente o arquivo PDF de manual de marca (Brandbook / Guia de Estilo / Identidade Visual) fornecido e extraia as diretrizes fundamentais da marca.
-Seu objetivo é sintetizar as diretrizes visuais e conceituais para que nosso app de Inteligência Artificial possa utilizá-las para gerar posts de texto e imagens publicitárias consistentes com a marca do cliente.`
+Seu objetivo é sintetizar as diretrizes visuais e conceituais para que nosso app de Inteligência Artificial possa utilizá-las para gerar posts de texto e imagens publicitárias consistentes com a marca do cliente.`,
+
+  conceito_prompts_system: `You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (OpenAI DALL-E 3, GPT-4o, Imagen, Flux).
+
+# CORE MISSION & BRAND GUIDELINES
+Generate 2 ultra-detailed image prompts in English following the brand's visual identity, chosen layout style and diagramming mode.
+
+# ABSOLUTE PROHIBITION OF ALL LOGOS & BRANDMARKS (ZERO EMBEDDED LOGOS — STRICT MANDATE):
+1. Under NO circumstances should the AI image generator draw, render, simulate, or invent ANY company logo, brand emblem, logomark, symbol, monogram, or watermark anywhere on the image (corners, footers, headers, gadget screens, or UI cards).
+2. The application features a dedicated high-resolution vector Brand Overlay tool in Step 4 where the user stamps their official PNG/SVG logo manually with 100% geometric precision. Any logo drawn by the AI model is an unauthorized hallucination.
+3. ALL options must have a 100% clean canvas free of drawn logos.`
 };
 
 export async function GET(request: NextRequest) {

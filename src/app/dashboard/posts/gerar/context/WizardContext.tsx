@@ -908,7 +908,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         let response;
         const contentForPrompt = selContent;
 
-        const shouldInsertText = generateTextSuggestions ? insertTextOnImage !== false : false;
+        const shouldInsertText = insertTextOnImage !== false && textOverlayMode !== "NONE";
 
         if (inspirationFile) {
           const formData = new FormData();
@@ -920,6 +920,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             formData.append("selectedPersona", JSON.stringify(selectedPersona));
           }
           formData.append("insertTextOnImage", String(shouldInsertText));
+          formData.append("textOverlayMode", textOverlayMode);
+          if (productHeadline) {
+            formData.append("productHeadline", productHeadline.trim());
+          }
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
           if (layoutStyle) {
@@ -939,6 +943,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               businessProfile: businessProfile,
               selectedPersona: selectedPersona !== "all" ? selectedPersona : null,
               insertTextOnImage: shouldInsertText,
+              textOverlayMode: textOverlayMode,
+              productHeadline: productHeadline ? productHeadline.trim() : "",
               userId: user.uid,
               layoutStyle: layoutStyle,
             }),
@@ -1361,6 +1367,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               businessProfile: businessProfile,
               userId: user.uid,
               layoutStyle: layoutStyle || "",
+              insertTextOnImage: insertTextOnImage !== false && textOverlayMode !== "NONE",
+              textOverlayMode: textOverlayMode,
+              textHeadline: productHeadline ? productHeadline.trim() : selContent?.titulo || "",
             }),
           });
 

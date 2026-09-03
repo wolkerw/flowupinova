@@ -1359,77 +1359,63 @@ export const Step1Idea = () => {
                 onChange={(e) => onPostSummaryChange(e.target.value)}
               />
 
-              {/* Seção opcional de Print de Inspiração para o modo conceito */}
-              {mode === "concept" && (
-                <div className="mx-auto mt-6 w-full max-w-xl space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-5 w-5 animate-pulse text-accent" />
-                    <Label className="text-base font-bold">
-                      Print de Inspiração / Referência Visual (Opcional)
-                    </Label>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Gostou de alguma postagem nas redes sociais? Envie o print dela e a IA gerará
-                    uma opção de imagem inspirada no mesmo layout, cenário e cores de composição.
-                  </p>
-
-                  {!referenceLink ? (
-                    <div
-                      onClick={() => {
-                        const input = document.createElement("input");
-                        input.type = "file";
-                        input.accept = "image/*";
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) {
-                            onInspirationFileChange?.(file);
-                            onReferenceLinkChange?.(URL.createObjectURL(file));
-                          }
-                        };
-                        input.click();
-                      }}
-                      className="flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
-                    >
-                      <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-center text-xs font-bold text-gray-700">
-                        Clique para carregar ou cole (Ctrl+V) o print de inspiração
-                      </p>
-                      <p className="mt-1 text-[10px] text-gray-400">
-                        PNG, JPG de posts do Instagram, etc. (Opcional)
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative flex h-40 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
-                      <div className="relative h-24 w-24 overflow-hidden rounded border shadow-sm">
-                        <Image
-                          src={referenceLink}
-                          alt="Print de Referência"
-                          layout="fill"
-                          objectFit="cover"
-                          unoptimized
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => {
-                          onInspirationFileChange?.(null);
-                          onReferenceLinkChange?.("");
-                        }}
-                      >
-                        Remover print
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Seletor de Estilo de Layout — apenas no modo conceito */}
+          {/* Modo de Diagramação e Estilos — apenas no modo conceito */}
           {mode === "concept" && (
-            <div className="border-t pt-4">
+            <div className="space-y-6 border-t pt-4">
+              {/* Modo de Diagramação: Com Infográficos vs Sem Infográficos (ACIMA DOS ESTILOS) */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <span>✍️</span> Modo de Diagramação & Textos na Arte
+                    </Label>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Escolha se deseja a arte com infográfico comercial completo ou sem infográficos (fotografia limpa).
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      variant={textOverlayMode === "NONE" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setTextOverlayMode("NONE");
+                        setInsertTextOnImage(false);
+                      }}
+                      className={cn(
+                        "text-xs h-9 px-3 rounded-lg font-medium transition-all",
+                        textOverlayMode === "NONE"
+                          ? "bg-slate-800 hover:bg-slate-900 text-white shadow-xs font-bold"
+                          : "border-slate-200 hover:border-slate-300"
+                      )}
+                    >
+                      🖼️ Sem Infográficos
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "TITLE_ONLY" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setTextOverlayMode("INFOGRAPHIC");
+                        setInsertTextOnImage(true);
+                      }}
+                      className={cn(
+                        "text-xs h-9 px-3.5 rounded-lg font-bold transition-all",
+                        textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "TITLE_ONLY"
+                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                          : "border-slate-200 hover:border-slate-300"
+                      )}
+                    >
+                      📊 Com Infográficos
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seletor de Estilo de Layout (ABAIXO DA DIAGRAMAÇÃO) */}
               <LayoutStyleSelector
                 value={layoutStyle as LayoutStyleId}
                 onChange={(style) => setLayoutStyle(style)}
