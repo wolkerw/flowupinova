@@ -1,10 +1,28 @@
-import { NextResponse } from "next/server";
-import { adminDb, getUidFromCookie } from "@/lib/firebase-admin";
+import { NextResponse, type NextRequest } from "next/server";
+import { adminDb } from "@/lib/firebase-admin";
+import { validateAdminToken } from "@/lib/admin-auth";
 
-export async function GET() {
+async function getAdminFromRequest(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  let token = authHeader?.replace(/^Bearer /i, "") || null;
+
+  if (!token) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const match = cookieHeader.match(/firebase-id-token=([^;]+)/);
+    if (match) {
+      token = decodeURIComponent(match[1]);
+    }
+  }
+
+  return await validateAdminToken(token);
+}
+
+export async function GET(request: Request) {
   try {
-    const uid = await getUidFromCookie();
-    if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const adminUser = await getAdminFromRequest(request);
+    if (!adminUser) {
+      return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+    }
 
     const db = adminDb;
     const snapshot = await db.collection("coupons").orderBy("createdAt", "desc").get();
@@ -19,8 +37,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const uid = await getUidFromCookie();
-    if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const adminUser = await getAdminFromRequest(request);
+    if (!adminUser) {
+      return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+    }
 
     const body = await request.json();
     const { code, discountPercentage, expiresAt } = body;
@@ -63,8 +83,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const uid = await getUidFromCookie();
-    if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const adminUser = await getAdminFromRequest(request);
+    if (!adminUser) {
+      return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");

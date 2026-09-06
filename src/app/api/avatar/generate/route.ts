@@ -7,6 +7,7 @@ import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
 import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 
 export const maxDuration = 300;
 
@@ -26,6 +27,14 @@ export async function POST(request: NextRequest) {
             "X-RateLimit-Reset": reset.toString(),
           },
         }
+      );
+    }
+
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json(
+        { error: "Autenticação necessária para gerar avatares." },
+        { status: 401 }
       );
     }
 
@@ -58,6 +67,13 @@ export async function POST(request: NextRequest) {
             "Campos obrigatórios ausentes: selfie de referência ausente, ou informe uma descrição em texto, ou envie uma foto de estilo profissional.",
         },
         { status: 400 }
+      );
+    }
+
+    if (authUser.uid !== userId && !authUser.isAdmin) {
+      return NextResponse.json(
+        { error: "Operação não autorizada para este usuário." },
+        { status: 403 }
       );
     }
 

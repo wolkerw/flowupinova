@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { Jimp } from "jimp";
 import { safeParseJSON } from "@/lib/utils";
 import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 
 export const maxDuration = 300;
 
@@ -22,6 +23,14 @@ export async function POST(request: Request) {
             "X-RateLimit-Reset": reset.toString(),
           },
         }
+      );
+    }
+
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json(
+        { error: "Autenticação obrigatória para gerar prompts." },
+        { status: 401 }
       );
     }
 
@@ -73,6 +82,13 @@ export async function POST(request: Request) {
 
     if (!selContent) {
       return NextResponse.json({ error: "Conteúdo da publicação não enviado" }, { status: 400 });
+    }
+
+    if (userId && authUser.uid !== userId && !authUser.isAdmin) {
+      return NextResponse.json(
+        { error: "Operação não autorizada para este usuário." },
+        { status: 403 }
+      );
     }
 
     const apiKey = process.env.GEMINI_API_KEY;

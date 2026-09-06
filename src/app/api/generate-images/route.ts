@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { Jimp } from "jimp";
@@ -47,6 +48,14 @@ async function fetchWithRetry(
 
 export async function POST(request: Request) {
   try {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json(
+        { error: "Autenticação obrigatória para gerar imagens." },
+        { status: 401 }
+      );
+    }
+
     const { prompt, postId, fileName, userId, content, layoutStyle, businessProfile } =
       await request.json();
 
@@ -54,6 +63,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Campos obrigatórios ausentes: prompt, postId, fileName, userId" },
         { status: 400 }
+      );
+    }
+
+    if (authUser.uid !== userId && !authUser.isAdmin) {
+      return NextResponse.json(
+        { error: "Operação não autorizada para este usuário." },
+        { status: 403 }
       );
     }
 

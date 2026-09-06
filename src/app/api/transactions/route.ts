@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { admin, adminDb } from "@/lib/firebase-admin";
+import { validateAdminToken } from "@/lib/admin-auth";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 import nodemailer from "nodemailer";
 
 export const maxDuration = 60;
@@ -34,14 +36,29 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
 
-    // Action: Enviar Comprovante de Pagamento (Usuário comum)
+    // Action: Enviar Comprovante de Pagamento (Usuário autenticado)
     if (!action || action === "submit-receipt") {
+      const authUser = await getAuthenticatedUser(request);
+      if (!authUser) {
+        return NextResponse.json(
+          { error: "Autenticação obrigatória para enviar comprovante." },
+          { status: 401 }
+        );
+      }
+
       const { userId, plan, method, receiptUrl } = await request.json();
 
       if (!userId || !plan || !method || !receiptUrl) {
         return NextResponse.json(
           { error: "Campos obrigatórios ausentes: userId, plan, method, receiptUrl." },
           { status: 400 }
+        );
+      }
+
+      if (authUser.uid !== userId && !authUser.isAdmin) {
+        return NextResponse.json(
+          { error: "Não autorizado: o ID de usuário não corresponde ao usuário autenticado." },
+          { status: 403 }
         );
       }
 
@@ -158,6 +175,20 @@ export async function POST(request: NextRequest) {
 
     // Action: Atualizar Status de Transação (Apenas Administradores)
     if (action === "update-status") {
+      const authHeader = request.headers.get("authorization");
+      const token =
+        authHeader?.replace(/^Bearer /i, "") ||
+        request.cookies.get("firebase-id-token")?.value ||
+        null;
+
+      const adminUser = await validateAdminToken(token);
+      if (!adminUser) {
+        return NextResponse.json(
+          { error: "Acesso negado: apenas administradores podem atualizar transações." },
+          { status: 403 }
+        );
+      }
+
       const { transactionId, status } = await request.json();
 
       if (!transactionId || !status || !["approved", "rejected"].includes(status)) {
@@ -286,6 +317,20 @@ export async function GET(request: NextRequest) {
 
     // Action: Listar Transações Pendentes (Apenas Administradores)
     if (action === "list-pending") {
+      const authHeader = request.headers.get("authorization");
+      const token =
+        authHeader?.replace(/^Bearer /i, "") ||
+        request.cookies.get("firebase-id-token")?.value ||
+        null;
+
+      const adminUser = await validateAdminToken(token);
+      if (!adminUser) {
+        return NextResponse.json(
+          { error: "Acesso negado: apenas administradores podem listar transações pendentes." },
+          { status: 403 }
+        );
+      }
+
       console.log("[TRANSACTIONS_ADMIN] Listando transações pendentes de validação...");
       const snapshot = await adminDb
         .collection("transactions")
