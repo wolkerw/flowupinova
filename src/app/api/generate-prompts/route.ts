@@ -40,6 +40,8 @@ export async function POST(request: Request) {
     let inspirationFile: File | null = null;
 
     let insertTextOnImage = true;
+    let textOverlayMode = "INFOGRAPHIC";
+    let productHeadline = "";
     let layoutStyle = "CLEAN_LUXURY";
 
     const contentType = request.headers.get("content-type") || "";
@@ -63,6 +65,12 @@ export async function POST(request: Request) {
       if (formData.has("insertTextOnImage")) {
         insertTextOnImage = formData.get("insertTextOnImage") === "true";
       }
+      if (formData.has("textOverlayMode")) {
+        textOverlayMode = (formData.get("textOverlayMode") as string) || "INFOGRAPHIC";
+      }
+      if (formData.has("productHeadline")) {
+        productHeadline = (formData.get("productHeadline") as string) || "";
+      }
       if (formData.has("layoutStyle")) {
         layoutStyle = (formData.get("layoutStyle") as string) || "CLEAN_LUXURY";
       }
@@ -74,6 +82,12 @@ export async function POST(request: Request) {
       userId = body.userId;
       if (body.insertTextOnImage !== undefined) {
         insertTextOnImage = body.insertTextOnImage;
+      }
+      if (body.textOverlayMode !== undefined) {
+        textOverlayMode = body.textOverlayMode;
+      }
+      if (body.productHeadline !== undefined) {
+        productHeadline = body.productHeadline;
       }
       if (body.layoutStyle !== undefined) {
         layoutStyle = body.layoutStyle;
@@ -504,23 +518,48 @@ BRAND KIT ALIGNMENT (MANDATORY):
 - The text overlay must match the brand's typography.
 `;
     }
-    // 1. Regras condicionais de texto
-    const textRules =
-      selContent?.titulo && insertTextOnImage
-        ? `
-2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt.
-   - Design Guidelines: You MUST integrate the text strictly according to the LAYOUT STYLE assigned to this option (e.g., if the layout is DARK_SPOTLIGHT, the text must be illuminated; if it is GLASSMORPHISM, it must be on a glass card). Do NOT force overlapping text or 3D parallax effects unless the assigned layout style explicitly asks for it. Use typographic contrast (bold/lowercase) to make it look premium.
-   - MANDATORY TEXT BOUNDARY & SAFE INNER MARGINS (ZERO CUTOFF RULE — CRITICAL):
-     All typography, letters, text containers, badges, cards, and titles MUST be placed strictly within the central safe area of the image with generous breathing room (at least 20% margin from left, right, top, and bottom borders). ZERO TEXT TOUCHING CANVAS EDGES. Absolutely no letters or words may extend to, touch, or be cropped by the outer boundaries of the canvas.
-   - MANDATORY TEXT WRAPPING & MULTI-LINE STACKING:
-     NEVER render a title in a single continuous horizontal line that stretches from side to side. Instead, BREAK the title into 2 or 3 short, stacked, balanced lines (e.g. for a title with 4+ words, divide it into 2-3 lines stacked neatly on top of each other). This guarantees that all words fit comfortably inside the frame with massive horizontal margins on the left and right sides.
-   - DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title "${selContent.titulo}", and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" twice.' Instead, write: 'render the title "${selContent.titulo}" once, and style the words in stacked lines'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once. Ensure that no word is repeated twice on the canvas. The text must read exactly '${selContent.titulo}' and nothing else."
-   - PORTUGUESE ACCENTUATION RULE (CRITICAL - ZERO TOLERANCE FOR ACCENT ERRORS): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô, â, ô), you MUST explicitly list and describe each accent mark in the prompt text.
-   - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
-`
-        : `
-2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene and should NOT be written on the image.
+    // 1. Regras condicionais de texto baseadas no textOverlayMode
+    const effectiveTitle = productHeadline ? productHeadline.trim() : selContent?.titulo || "";
+    let textRules = "";
+
+    if (textOverlayMode === "NONE" || !insertTextOnImage) {
+      textRules = `
+2. ABSOLUTE TEXT PROHIBITION (MANDATORY - FOTOGRAFIA PURA): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a 100% clean graphic composition or photograph without any typography. The context/title "${effectiveTitle}" is strictly for thematic inspiration of the scene and MUST NOT be written on the canvas.
 `;
+    } else if (textOverlayMode === "TITLE_ONLY") {
+      textRules = `
+2. TEXT ELEMENT (TITLE ONLY - CLEAN COMMERCIAL TYPOGRAPHY): Embed ONLY the main headline "${effectiveTitle}" in double quotes inside the prompt.
+   - MANDATORY TITLE-ONLY MANDATE: The generated prompt MUST instruct the image generator to render ONLY the main headline "${effectiveTitle}" with clean, prominent commercial typography in Portuguese (pt-BR).
+   - STRICTLY FORBIDDEN: DO NOT render any feature cards, technical spec badges, icon bullet points, floating review stars, or complex footer text. Keep the composition clean and uncluttered, focusing 100% on the visual photo and the primary title.
+   - MANDATORY TEXT BOUNDARY & SAFE INNER MARGINS (ZERO CUTOFF RULE — CRITICAL):
+     All typography, letters, and the title MUST be placed strictly within the central safe area of the image with generous breathing room (at least 20% margin from left, right, top, and bottom borders). ZERO TEXT TOUCHING CANVAS EDGES. Absolutely no letters or words may extend to, touch, or be cropped by the outer boundaries of the canvas.
+   - MANDATORY TEXT WRAPPING & MULTI-LINE STACKING:
+     BREAK the title into 2 or 3 short, stacked, balanced lines with high typographic contrast.
+   - DUPLICATION PREVENTION: Render ONLY the exact words from the title "${effectiveTitle}", and forbid duplicating any words.
+   - PORTUGUESE ACCENTUATION RULE (CRITICAL): Ensure perfect Portuguese (pt_BR) characters (á, é, í, ó, ú, ç, ã, õ, ê, ô).
+`;
+    } else {
+      // INFOGRAPHIC COMPLETO (Padrão)
+      const brandName = businessProfile?.name || businessProfile?.brandKit?.name || "";
+      textRules = `
+2. TEXT & INFOGRAPHIC ELEMENTS (FULL CREATIVE AGENCY POSTER):
+   - Embed the main headline "${effectiveTitle}" literally in double quotes inside the prompt.
+   - Visual Infographic Structure: Structure the composition as a full creative agency commercial advertising poster. Include dynamic feature benefit callouts, clean minimalist floating icon badges, quality warranty seals, and premium graphic design integration matching the brand kit.
+   - MANDATORY TEXT BOUNDARY & SAFE INNER MARGINS (ZERO CUTOFF RULE — CRITICAL):
+     All typography, letters, text containers, badges, cards, and titles MUST be placed strictly within the central safe area of the image with generous breathing room (at least 20% margin from left, right, top, and bottom borders). ZERO TEXT TOUCHING CANVAS EDGES.
+   - MANDATORY TEXT WRAPPING & MULTI-LINE STACKING:
+     BREAK the title into 2 or 3 short, stacked, balanced lines with high typographic contrast.
+   - DUPLICATION PREVENTION (CRITICAL): Render ONLY the exact words from the title "${effectiveTitle}", and forbid duplicating any words.
+   - PORTUGUESE ACCENTUATION RULE (CRITICAL): Ensure perfect Portuguese (pt_BR) characters.
+   - FORBIDDEN: Do NOT include long paragraphs. Keep secondary elements to short, high-impact phrases and icon labels.
+
+3. ABSOLUTE PROHIBITION OF ALL LOGOS & BRANDMARKS (ZERO EMBEDDED LOGOS — STRICT MANDATE):
+   - Under NO circumstances should the AI image generator draw, render, simulate, or invent ANY company logo, brand emblem, logomark, symbol, monogram, or watermark anywhere on the image.
+   - The application features a dedicated high-resolution vector Brand Overlay tool in Step 4 where the user stamps their official PNG/SVG logo manually with 100% geometric precision. Any logo drawn by the AI model is an unauthorized hallucination.
+   - STRICTLY FORBIDDEN: Do NOT write company names (including "${brandName}", or any fictional corporate titles) as logos, signatures, or marks in the corners, footers, headers, gadget screens, or inside floating cards.
+   - Keep corners, headers, and footer areas 100% clean and open for manual logo overlay in the editor.
+`;
+    }
 
     // Mapa: id do layout -> instrução técnica para a IA
     const LAYOUT_TECHNICAL: Record<string, string> = {
@@ -671,7 +710,9 @@ ${brandingInstruction}
 ${textRules}
 SPECIAL TEXT & BRANDING RULE (CRITICAL MANDATE): 
 Since the primary engine may be gpt-image-2 (DALL-E 3), you can be creative with the typography and layout rules requested above, dynamically embedding the exact textual title within the scene as a realistic design element.
-HOWEVER, you are STRICTLY FORBIDDEN from generating or asking the engine to draw any brand logos, icons, symbols, logomarks, fictional company names, or brand markings on props (such as laptops, coffee mugs, cups, uniforms, signs, walls, or clothing) unless explicitly requested. The generated design must solely rely on typographic layout and the photography itself. NEVER print unrequested brand names (such as previous client names) anywhere in the image.
+HOWEVER:
+- ABSOLUTE BAN ON ALL LOGOS AND COMPANY BRANDMARKS (100% CLEAN CANVAS): You are STRICTLY FORBIDDEN from generating or asking the engine to draw ANY brand logo, emblem, corporate logomark, company name, or watermark anywhere in the artwork (corners, footers, headers, gadget screens, or UI cards). ALL prompts must describe a clean canvas free of drawn logos, because the user will manually overlay their official vector logo in Step 4.
+- NEVER invent fictional company names, altered brand logos, or unrequested brand markings anywhere on props or clothing.
 
 3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
 4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 2 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.

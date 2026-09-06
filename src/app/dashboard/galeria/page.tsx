@@ -78,8 +78,9 @@ export default function GaleriaPage() {
     let rawPosts: any[] = [];
 
     const syncItems = () => {
-      // 1. Mapear todas as URLs de posts que foram publicados ou agendados
+      // 1. Mapear todas as URLs e IDs de posts que foram efetivamente publicados ou agendados
       const publishedUrls = new Set<string>();
+      const publishedPostIds = new Set<string>();
       const postMetaByUrl = new Map<
         string,
         { postId: string; platforms: string[]; scheduledAt: any; text?: string }
@@ -92,12 +93,16 @@ export default function GaleriaPage() {
           Boolean(post.publishedMediaId);
 
         if (isPostPublished) {
+          publishedPostIds.add(post.id);
           const urls: string[] = [];
           if (post.videoUrl) urls.push(post.videoUrl);
           if (post.imageUrl) urls.push(post.imageUrl);
           if (Array.isArray(post.imageUrls)) urls.push(...post.imageUrls);
           if (Array.isArray(post.mediaFiles)) {
             urls.push(...post.mediaFiles.map((m: any) => m.url).filter(Boolean));
+          }
+          if (Array.isArray(post.slides)) {
+            urls.push(...post.slides.map((s: any) => s.imageUrl).filter(Boolean));
           }
 
           urls.forEach((u) => {
@@ -107,7 +112,7 @@ export default function GaleriaPage() {
                 postId: post.id,
                 platforms: post.platforms || [],
                 scheduledAt: post.scheduledAt || post.createdAt,
-                text: post.text || "",
+                text: post.text || post.caption || "",
               });
             }
           });
@@ -120,7 +125,10 @@ export default function GaleriaPage() {
         existingUrls.add(item.url);
 
         let isItemPub = Boolean(
-          item.usedInPostId && item.usedInPostId !== "" && item.usedInPostId !== "null"
+          item.usedInPostId &&
+            item.usedInPostId !== "" &&
+            item.usedInPostId !== "null" &&
+            publishedPostIds.has(item.usedInPostId)
         );
         let postMeta = postMetaByUrl.get(item.url);
 
@@ -167,6 +175,9 @@ export default function GaleriaPage() {
           if (Array.isArray(post.imageUrls)) urls.push(...post.imageUrls);
           if (Array.isArray(post.mediaFiles)) {
             urls.push(...post.mediaFiles.map((m: any) => m.url).filter(Boolean));
+          }
+          if (Array.isArray(post.slides)) {
+            urls.push(...post.slides.map((s: any) => s.imageUrl).filter(Boolean));
           }
 
           urls.forEach((u, idx) => {

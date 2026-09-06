@@ -1005,7 +1005,7 @@ const InstagramPreview = ({
       </div>
 
       {/* Image */}
-      <div className="relative aspect-square bg-gray-200">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200">
         {currentMedia ? (
           currentMedia.type === "video" ||
           (currentMedia.file &&
@@ -1337,7 +1337,7 @@ const FacebookPreview = ({
       <div className="px-3 pb-2 text-sm">
         <p className="whitespace-pre-wrap">{text}</p>
       </div>
-      <div className="relative aspect-square bg-gray-200">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200">
         {singleItem ? (
           singleItem.type === "video" ||
           (singleItem.file &&
@@ -1608,7 +1608,7 @@ const LinkedInPreview = ({
       <div className="px-3 pb-2 text-sm text-gray-800">
         <p className="whitespace-pre-wrap">{text}</p>
       </div>
-      <div className="relative aspect-square bg-gray-200">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200">
         {singleItem ? (
           singleItem.type === "video" ||
           (singleItem.file &&

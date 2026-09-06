@@ -56,8 +56,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const { prompt, postId, fileName, userId, content, layoutStyle, businessProfile } =
-      await request.json();
+    const {
+      prompt,
+      postId,
+      fileName,
+      userId,
+      content,
+      layoutStyle,
+      businessProfile,
+      textOverlayMode,
+      textHeadline,
+      insertTextOnImage,
+    } = await request.json();
 
     if (!prompt || !postId || !fileName || !userId) {
       return NextResponse.json(
@@ -195,6 +205,19 @@ export async function POST(request: Request) {
           .trim();
       }
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
+    }
+
+    // Injeção de Diretrizes de Diagramação e Textos na Arte
+    const activeHeadline = textHeadline ? textHeadline.trim() : content?.titulo || "";
+    const brandName = businessProfile?.name || businessProfile?.brandKit?.name || "";
+    const isOption1 = fileName === "1";
+
+    if (textOverlayMode === "NONE" || insertTextOnImage === false) {
+      finalPrompt += " [CRITICAL MANDATE — FOTOGRAFIA PURA (ABSOLUTELY ZERO TEXT): DO NOT render any text, typography, letters, words, slogans, banners, badges, or watermarks on the image. The image must be 100% clean photography.]";
+    } else if (textOverlayMode === "TITLE_ONLY" && activeHeadline) {
+      finalPrompt += ` [DIAGRAMAÇÃO APENAS TÍTULO: Renderize na imagem APENAS a headline comercial principal em destaque em Português (pt-BR): "${activeHeadline}". ESTRITAMENTE PROIBIDO adicionar cartões de benefícios, infográficos secundários, selos ou rodapés textuais complexos. Foto limpa com tipografia elegante e margens seguras de 20%. PROIBIDO desenhar qualquer logotipo ou marca na imagem.]`;
+    } else if (textOverlayMode === "INFOGRAPHIC" && activeHeadline) {
+      finalPrompt += ` [DIAGRAMAÇÃO INFOGRÁFICO COMPLETO: Renderize a arte publicitária completa em Português (pt-BR) com o título: "${activeHeadline}", acompanhado de diagramação infográfica, cartões visuais de benefícios, ícones e selos comerciais elegantes com margens seguras de 20%. PROIBIÇÃO ABSOLUTA DE LOGOMARCAS (ZERO LOGOS): ESTRITAMENTE PROIBIDO desenhar, carimbar, simular ou inventar qualquer logotipo, logomarca, emblema ou nome de empresa na imagem (seja em cantos, rodapés, cabeçalhos, telas de celulares/tablets ou dentro de cards de vidro). A imagem deve ter o espaço de cabeçalho e rodapé 100% limpo e livre de logos desenhadas pela IA, pois a logo oficial é aplicada manualmente pelo usuário no editor de marca.]`;
     }
 
     // 2. Modelo Principal Estrito: gpt-image-2 (OpenAI) é SEMPRE o motor primário absoluto

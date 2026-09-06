@@ -103,12 +103,7 @@ test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo
     await expect(firstOptionRadio).toBeVisible({ timeout: 120000 });
     await firstOptionRadio.click();
 
-    // Seleciona a opção "Não, apenas a imagem"
-    const noTextBtn = page.getByRole("button", { name: /Não, apenas a imagem/i }).first();
-    await expect(noTextBtn).toBeVisible({ timeout: 15000 });
-    await noTextBtn.click();
-
-    // Clica em Avançar na Etapa 2
+    // Clica em Avançar na Etapa 2 diretamente (a opção de infográficos agora é definida na Etapa 1)
     const nextButtonStep2 = page.getByRole("button", { name: /Avançar/i }).first();
     await expect(nextButtonStep2).toBeEnabled({ timeout: 10000 });
     await nextButtonStep2.click();
