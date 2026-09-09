@@ -108,6 +108,10 @@ const defaultOnboardingProfile: OnboardingProfileData = {
     vertical: { url: "", width: 0, height: 0 },
     symbol: { url: "", width: 0, height: 0 },
     avatar: { url: "", width: 0, height: 0 },
+    dark: { url: "", width: 0, height: 0 },
+    light: { url: "", width: 0, height: 0 },
+    secondary: { url: "", width: 0, height: 0 },
+    extraLogos: [],
   },
   brandKit: {
     primaryColor: "#3b82f6",
@@ -158,6 +162,10 @@ export async function getOnboardingProfile(userId: string): Promise<OnboardingPr
           vertical: { ...defaultLogo, ...data?.logos?.vertical },
           symbol: { ...defaultLogo, ...data?.logos?.symbol },
           avatar: { ...defaultLogo, ...data?.logos?.avatar },
+          dark: { ...defaultLogo, ...data?.logos?.dark },
+          light: { ...defaultLogo, ...data?.logos?.light },
+          secondary: { ...defaultLogo, ...data?.logos?.secondary },
+          extraLogos: Array.isArray(data?.logos?.extraLogos) ? data.logos.extraLogos : [],
         },
         brandKit: {
           ...defaultOnboardingProfile.brandKit,

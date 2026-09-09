@@ -54,9 +54,9 @@ describe("Posts Page", () => {
     );
     expect(await screen.findByText("Posts & Conteúdos")).toBeInTheDocument();
     expect(screen.getByText("Criar novo post")).toBeInTheDocument();
-    expect(screen.getByText("Com IA")).toBeInTheDocument();
-    expect(screen.getByText("Enviando Foto de Produto")).toBeInTheDocument();
-    expect(screen.getByText("Enviando Imagem de Pessoa e Produto/Projeto")).toBeInTheDocument();
+    expect(screen.getByText("Conceito")).toBeInTheDocument();
+    expect(screen.getByText("Produto")).toBeInTheDocument();
+    expect(screen.getByText("Pessoa + Cenário")).toBeInTheDocument();
     expect(screen.getByText("Manual")).toBeInTheDocument();
   });
 });

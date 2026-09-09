@@ -8,13 +8,19 @@ import { Bot, PlayCircle, Sparkles, CheckCircle2, X } from "lucide-react";
 import { TypingAnimation } from "./animated-flows";
 
 // URL do vídeo de demonstração — troque pela variável de ambiente NEXT_PUBLIC_DEMO_VIDEO_URL
-// ou substitua o valor abaixo pelo ID do vídeo do YouTube
 const DEMO_VIDEO_URL =
   process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ||
-  "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1";
+  "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2Fapresentacao-numvapt.mp4.mp4?alt=media&token=be12c927-04ba-4387-bac8-4a129f2d9435";
 
 function VideoLightbox({ onClose }: { onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Detecta se a URL é um arquivo de vídeo direto (Firebase Storage, .mp4, etc.)
+  const isVideoDirectFile =
+    DEMO_VIDEO_URL.includes(".mp4") ||
+    DEMO_VIDEO_URL.includes(".webm") ||
+    DEMO_VIDEO_URL.includes("firebasestorage.googleapis.com") ||
+    DEMO_VIDEO_URL.startsWith("/videos/");
 
   // Fechar com ESC
   useEffect(() => {
@@ -38,7 +44,7 @@ function VideoLightbox({ onClose }: { onClose: () => void }) {
     <AnimatePresence>
       <motion.div
         ref={overlayRef}
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md px-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -50,9 +56,9 @@ function VideoLightbox({ onClose }: { onClose: () => void }) {
       >
         <motion.div
           className="relative w-full max-w-4xl"
-          initial={{ scale: 0.9, opacity: 0, y: 30 }}
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 30 }}
+          exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
           {/* Botão fechar */}
@@ -66,18 +72,33 @@ function VideoLightbox({ onClose }: { onClose: () => void }) {
           </button>
 
           {/* Container responsivo 16:9 */}
-          <div className="relative w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10" style={{ paddingBottom: "56.25%" }}>
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={DEMO_VIDEO_URL}
-              title="Demonstração NumVapt"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
+          <div
+            className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10"
+            style={{ paddingBottom: "56.25%" }}
+          >
+            {isVideoDirectFile ? (
+              <video
+                className="absolute inset-0 h-full w-full object-contain bg-black"
+                src={DEMO_VIDEO_URL}
+                controls
+                autoPlay
+                playsInline
+              >
+                Seu navegador não suporta a reprodução deste vídeo.
+              </video>
+            ) : (
+              <iframe
+                className="absolute inset-0 h-full w-full"
+                src={DEMO_VIDEO_URL}
+                title="Demonstração NumVapt"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            )}
           </div>
 
           {/* Texto abaixo do vídeo */}
-          <p className="mt-4 text-center text-sm text-white/60">
+          <p className="mt-4 text-center text-sm text-white/70">
             Veja como é simples criar posts profissionais com IA em minutos.
           </p>
         </motion.div>

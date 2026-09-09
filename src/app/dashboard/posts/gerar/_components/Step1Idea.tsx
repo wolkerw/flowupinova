@@ -20,7 +20,17 @@ import {
   Scale,
   Home,
   User,
+  PlayCircle,
+  Video,
 } from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
 import { useWizard } from "../context/WizardContext";
@@ -850,6 +860,36 @@ export const Step1Idea = () => {
   const isHybridMode = mode === "reference-hybrid";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const secondaryFileInputRef = useRef<HTMLInputElement>(null);
+  const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
+  const tutorialVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Mapeamento de vídeos tutoriais por fluxo (Vídeo oficial somente no fluxo Conceito por enquanto)
+  const tutorialVideoUrl = React.useMemo(() => {
+    if (mode === "concept") {
+      return "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2FComo%20Usar%20-%20Fluxo%20Conceito%20V1%20(final).mp4?alt=media&token=af60de5d-4b8c-4cf9-be93-912da50ce18d";
+    }
+    // Para 'reference-photo' (Produto) e 'reference-hybrid' (Pessoa + Cenário), aguardando novos links
+    return "";
+  }, [mode]);
+
+  // Autoplay imediato ao abrir o tutorial e pause ao fechar (se houver vídeo configurado para o fluxo)
+  React.useEffect(() => {
+    if (isTutorialOpen && tutorialVideoUrl) {
+      const timer = setTimeout(() => {
+        if (tutorialVideoRef.current) {
+          tutorialVideoRef.current.currentTime = 0;
+          tutorialVideoRef.current.play().catch((err) => {
+            console.warn("Autoplay bloqueado pelo navegador:", err);
+          });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      if (tutorialVideoRef.current) {
+        tutorialVideoRef.current.pause();
+      }
+    }
+  }, [isTutorialOpen, tutorialVideoUrl]);
 
   // Preenche a descrição padrão automaticamente se estiver em branco no modo de referência
   React.useEffect(() => {
@@ -968,10 +1008,22 @@ export const Step1Idea = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-6 w-6 text-accent" />
-            Etapa 1: Envie as imagens do post
+            {mode === "concept" ? "Etapa 1: Defina a ideia do seu post" : "Etapa 1: Envie as imagens do post"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Botão de Vídeo Tutorial (Disponível em todos os fluxos) */}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => setIsTutorialOpen(true)}
+              size="sm"
+              className="bg-[#0083C7] hover:bg-[#0072ad] text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs flex items-center gap-2 transition-all"
+            >
+              <PlayCircle className="h-4 w-4" />
+              Assistir Vídeo Tutorial
+            </Button>
+          </div>
           {mode === "reference-photo" && (
             <div className="space-y-6">
               {!productWorkflow && (
@@ -2058,6 +2110,125 @@ export const Step1Idea = () => {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Modal de Vídeo Tutorial para Usuários Iniciantes */}
+      <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl">
+          <DialogHeader className="p-5 pb-4 bg-slate-900 text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0083C7] text-white">
+                <PlayCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-white">
+                  {mode === "reference-photo"
+                    ? "Tutorial: Como Criar Posts com Foto de Produto"
+                    : mode === "reference-hybrid"
+                      ? "Tutorial: Como Criar Posts (Pessoa + Cenário)"
+                      : "Tutorial: Como Criar Posts com IA (Fluxo Conceito)"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-300 mt-0.5">
+                  Aprenda o passo a passo para gerar criativos publicitários completos em segundos.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4 bg-slate-50">
+            {/* Player de Vídeo Responsivo ou Placeholder de Prévia */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-200 shadow-inner flex items-center justify-center">
+              {tutorialVideoUrl ? (
+                <video
+                  ref={tutorialVideoRef}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                  poster="/logo-numvapt.png"
+                >
+                  <source src={tutorialVideoUrl} type="video/mp4" />
+                  Seu navegador não suporta a reprodução deste vídeo.
+                </video>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-6 space-y-3">
+                  <div className="h-12 w-12 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center text-[#0083C7]">
+                    <PlayCircle className="h-7 w-7 text-[#0083C7]" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-semibold text-sm">Vídeo Tutorial em Gravação</h4>
+                    <p className="text-slate-400 text-xs mt-1 max-w-sm">
+                      O tutorial em vídeo deste fluxo estará disponível em breve. Confira o resumo do passo a passo logo abaixo!
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dicas e Passo a Passo Rápido */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-2xs">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#0083C7] mb-2">
+                  1
+                </span>
+                <p className="text-xs font-bold text-slate-800">
+                  {mode === "reference-photo"
+                    ? "Envie a Foto do Produto"
+                    : mode === "reference-hybrid"
+                      ? "Envie Pessoa e Cenário"
+                      : "Descreva sua Ideia"}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {mode === "reference-photo"
+                    ? "Suba a foto do seu produto com boa iluminação."
+                    : mode === "reference-hybrid"
+                      ? "Carregue a foto da pessoa e do produto ou projeto."
+                      : "Digite a oferta, benefício ou tema do post que deseja anunciar."}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-2xs">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-[#FA6305] mb-2">
+                  2
+                </span>
+                <p className="text-xs font-bold text-slate-800">
+                  {mode === "reference-photo"
+                    ? "Escolha o Cenário"
+                    : mode === "reference-hybrid"
+                      ? "Defina o Objetivo"
+                      : "Escolha a Diagramação"}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {mode === "reference-photo"
+                    ? "Selecione presets profissionais ou descreva o cenário."
+                    : mode === "reference-hybrid"
+                      ? "Descreva como deseja compor a pessoa no ambiente."
+                      : "Selecione se deseja infográficos comerciais completos ou fotografia limpa."}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-2xs">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600 mb-2">
+                  3
+                </span>
+                <p className="text-xs font-bold text-slate-800">Gere e Publique</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  A IA gera opções de arte e legenda prontas para publicação.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                type="button"
+                onClick={() => setIsTutorialOpen(false)}
+                className="bg-[#0083C7] hover:bg-[#0072ad] text-white text-xs font-bold h-9 px-5 rounded-lg shadow-xs"
+              >
+                Entendi, Vamos Começar!
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

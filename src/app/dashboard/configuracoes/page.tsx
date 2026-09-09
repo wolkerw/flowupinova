@@ -336,7 +336,10 @@ export default function ConfiguracoesPage() {
       (data.logos?.horizontal?.url && data.logos.horizontal.url.startsWith("data:image")) ||
       (data.logos?.vertical?.url && data.logos.vertical.url.startsWith("data:image")) ||
       (data.logos?.symbol?.url && data.logos.symbol.url.startsWith("data:image")) ||
-      (data.logos?.avatar?.url && data.logos.avatar.url.startsWith("data:image"));
+      (data.logos?.avatar?.url && data.logos.avatar.url.startsWith("data:image")) ||
+      (data.logos?.dark?.url && data.logos.dark.url.startsWith("data:image")) ||
+      (data.logos?.light?.url && data.logos.light.url.startsWith("data:image")) ||
+      (data.logos?.secondary?.url && data.logos.secondary.url.startsWith("data:image"));
 
     if (!hasBase64) return;
 
@@ -368,6 +371,9 @@ export default function ConfiguracoesPage() {
       const finalLogoVertical = { ...(data.logos?.vertical || { url: "", width: 0, height: 0 }) };
       const finalLogoSymbol = { ...(data.logos?.symbol || { url: "", width: 0, height: 0 }) };
       const finalLogoAvatar = { ...(data.logos?.avatar || { url: "", width: 0, height: 0 }) };
+      const finalLogoDark = { ...(data.logos?.dark || { url: "", width: 0, height: 0 }) };
+      const finalLogoLight = { ...(data.logos?.light || { url: "", width: 0, height: 0 }) };
+      const finalLogoSecondary = { ...(data.logos?.secondary || { url: "", width: 0, height: 0 }) };
 
       if (finalLogoHorizontal.url && finalLogoHorizontal.url.startsWith("data:image")) {
         finalLogoHorizontal.url = await uploadBase64ToStorage(
@@ -383,6 +389,15 @@ export default function ConfiguracoesPage() {
       }
       if (finalLogoAvatar.url && finalLogoAvatar.url.startsWith("data:image")) {
         finalLogoAvatar.url = await uploadBase64ToStorage(finalLogoAvatar.url, "avatar");
+      }
+      if (finalLogoDark.url && finalLogoDark.url.startsWith("data:image")) {
+        finalLogoDark.url = await uploadBase64ToStorage(finalLogoDark.url, "dark");
+      }
+      if (finalLogoLight.url && finalLogoLight.url.startsWith("data:image")) {
+        finalLogoLight.url = await uploadBase64ToStorage(finalLogoLight.url, "light");
+      }
+      if (finalLogoSecondary.url && finalLogoSecondary.url.startsWith("data:image")) {
+        finalLogoSecondary.url = await uploadBase64ToStorage(finalLogoSecondary.url, "secondary");
       }
 
       const logoPrincipal = finalLogoVertical.url
@@ -415,6 +430,10 @@ export default function ConfiguracoesPage() {
           vertical: finalLogoVertical,
           symbol: finalLogoSymbol,
           avatar: finalLogoAvatar,
+          dark: finalLogoDark,
+          light: finalLogoLight,
+          secondary: finalLogoSecondary,
+          extraLogos: data.logos?.extraLogos || [],
         },
         brandKit: {
           ...data.brandKit,

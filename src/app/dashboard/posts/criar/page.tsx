@@ -51,6 +51,7 @@ import {
   ChevronDown,
   Paintbrush,
   Play,
+  PlayCircle,
   Pause,
   Volume2,
   VolumeX,
@@ -60,6 +61,7 @@ import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -1794,6 +1796,30 @@ const FinalPreview = ({
 export default function CriarConteudoPage() {
   const [step, setStep] = useState(1);
   const [selectedType, setSelectedType] = useState<ContentType | null>(null);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const tutorialVideoRef = useRef<HTMLVideoElement>(null);
+  // Link do vídeo tutorial do fluxo manual (aguardando envio de novo link)
+  const tutorialVideoUrl = "";
+
+  // Autoplay imediato ao abrir o tutorial e pause ao fechar (se houver vídeo configurado)
+  useEffect(() => {
+    if (isTutorialOpen && tutorialVideoUrl) {
+      const timer = setTimeout(() => {
+        if (tutorialVideoRef.current) {
+          tutorialVideoRef.current.currentTime = 0;
+          tutorialVideoRef.current.play().catch((err) => {
+            console.warn("Autoplay bloqueado pelo navegador:", err);
+          });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      if (tutorialVideoRef.current) {
+        tutorialVideoRef.current.pause();
+      }
+    }
+  }, [isTutorialOpen, tutorialVideoUrl]);
+
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [text, setText] = useState("");
@@ -3016,11 +3042,20 @@ export default function CriarConteudoPage() {
           className="mx-auto max-w-4xl"
         >
           <Card className="border-none shadow-lg">
-            <CardHeader>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="h-6 w-6 text-blue-500" />
                 Etapa 1: Qual tipo de conteúdo você quer criar?
               </CardTitle>
+              <Button
+                type="button"
+                onClick={() => setIsTutorialOpen(true)}
+                size="sm"
+                className="bg-[#0083C7] hover:bg-[#0072ad] text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs flex items-center gap-2 transition-all self-end sm:self-auto shrink-0"
+              >
+                <PlayCircle className="h-4 w-4" />
+                Assistir Vídeo Tutorial
+              </Button>
             </CardHeader>
             <CardContent>
               <RadioGroup
@@ -4348,6 +4383,101 @@ export default function CriarConteudoPage() {
           }}
         />
       )}
+
+      {/* Modal de Vídeo Tutorial para Usuários Iniciantes */}
+      <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl">
+          <DialogHeader className="p-5 pb-4 bg-slate-900 text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0083C7] text-white">
+                <PlayCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-white">
+                  Tutorial: Como Criar Posts Manualmente
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-300 mt-0.5">
+                  Aprenda o passo a passo para criar, personalizar e agendar seus posts em múltiplos canais.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4 bg-slate-50">
+            {/* Player de Vídeo Responsivo ou Placeholder de Prévia */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-200 shadow-inner flex items-center justify-center">
+              {tutorialVideoUrl ? (
+                <video
+                  ref={tutorialVideoRef}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                  poster="/logo-numvapt.png"
+                >
+                  <source src={tutorialVideoUrl} type="video/mp4" />
+                  Seu navegador não suporta a reprodução deste vídeo.
+                </video>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-6 space-y-3">
+                  <div className="h-12 w-12 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center text-[#0083C7]">
+                    <PlayCircle className="h-7 w-7 text-[#0083C7]" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-semibold text-sm">Vídeo Tutorial em Gravação</h4>
+                    <p className="text-slate-400 text-xs mt-1 max-w-sm">
+                      O tutorial em vídeo deste fluxo estará disponível em breve. Confira o resumo do passo a passo logo abaixo!
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dicas e Passo a Passo Rápido */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-2xs">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#0083C7] mb-2">
+                  1
+                </span>
+                <p className="text-xs font-bold text-slate-800">Escolha o Formato</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Selecione entre Post Único no feed, Carrossel ou Story vertical.
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-2xs">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-[#FA6305] mb-2">
+                  2
+                </span>
+                <p className="text-xs font-bold text-slate-800">Mídias e Legenda</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Envie fotos ou vídeos, posicione seu logotipo e escreva o texto.
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white p-3 border border-slate-200/80 shadow-2xs">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600 mb-2">
+                  3
+                </span>
+                <p className="text-xs font-bold text-slate-800">Agende ou Publique</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Selecione suas redes sociais conectadas e publique na hora ou agende.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                type="button"
+                onClick={() => setIsTutorialOpen(false)}
+                className="bg-[#0083C7] hover:bg-[#0072ad] text-white text-xs font-bold h-9 px-5 rounded-lg shadow-xs"
+              >
+                Entendi, Vamos Começar!
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

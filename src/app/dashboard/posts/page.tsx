@@ -1801,7 +1801,7 @@ export default function Conteudo() {
                       <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
                         <Sparkles className="h-6 w-6 text-white" />
                       </div>
-                      <h3 className="text-xl font-black leading-tight">Com IA</h3>
+                      <h3 className="text-xl font-black leading-tight">Conceito</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
                       Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do
@@ -1819,9 +1819,9 @@ export default function Conteudo() {
                     </div>
                     <div className="mb-3 flex items-center gap-3">
                       <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                        <ImageIcon className="h-6 w-6 text-white" />
+                        <Sparkles className="h-6 w-6 text-white" />
                       </div>
-                      <h3 className="text-xl font-black leading-tight">Enviando Foto de Produto</h3>
+                      <h3 className="text-xl font-black leading-tight">Produto</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
                       Mande uma foto do seu produto e a IA gera imagem e texto profissionais para
@@ -1842,12 +1842,11 @@ export default function Conteudo() {
                         <Sparkles className="h-6 w-6 text-white" />
                       </div>
                       <h3 className="text-xl font-black leading-tight">
-                        Enviando Imagem de Pessoa e Produto/Projeto
+                        Pessoa + Cenário
                       </h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Gere uma imagem juntando uma pessoa com um produto ou projeto em cenários de
-                      alta qualidade.
+                      Gere uma imagem combinando uma pessoa com um cenário de sua escolha.
                     </p>
                   </button>
 
