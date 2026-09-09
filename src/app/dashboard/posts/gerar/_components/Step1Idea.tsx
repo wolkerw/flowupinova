@@ -893,6 +893,12 @@ export const Step1Idea = () => {
 
   // Preenche a descrição padrão automaticamente se estiver em branco no modo de referência
   React.useEffect(() => {
+    if (mode === "reference-photo" && productWorkflow !== "text-ambientation") {
+      setProductWorkflow("text-ambientation");
+    }
+  }, [mode, productWorkflow, setProductWorkflow]);
+
+  React.useEffect(() => {
     if (mode === "reference-inspiration" && !referenceDescription.trim()) {
       onReferenceDescriptionChange(
         "Criar um post profissional mantendo fielmente o layout, as cores, o cenário e a estrutura da referência de inspiração, adaptando a arte conceitualmente para as características de negócios da minha marca."
@@ -922,11 +928,7 @@ export const Step1Idea = () => {
 
       if (!imageFile) return;
 
-      // Direcionar inteligentemente com base no modo ativo
-      if (mode === "concept") {
-        onInspirationFileChange?.(imageFile);
-        onReferenceLinkChange?.(URL.createObjectURL(imageFile));
-      } else if (isLinkMode) {
+      if (isLinkMode) {
         if (!referenceLink) {
           onInspirationFileChange?.(imageFile);
           onReferenceLinkChange?.(URL.createObjectURL(imageFile));
@@ -984,13 +986,7 @@ export const Step1Idea = () => {
       : isLinkMode
         ? !referenceLink || !referenceImagePreview
         : mode === "reference-photo"
-          ? !productWorkflow
-            ? true
-            : productWorkflow === "packshot-hybrid"
-              ? !referenceImagePreview ||
-                !secondaryReferenceImagePreview ||
-                !referenceDescription.trim()
-              : !referenceImagePreview || !referenceDescription.trim()
+          ? !referenceImagePreview || !referenceDescription.trim()
           : isHybridMode
             ? !referenceImagePreview ||
               !secondaryReferenceImagePreview ||
@@ -1024,112 +1020,6 @@ export const Step1Idea = () => {
               Assistir Vídeo Tutorial
             </Button>
           </div>
-          {mode === "reference-photo" && (
-            <div className="space-y-6">
-              {!productWorkflow && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="overflow-hidden"
-                >
-                  <PackshotAnimationDemo />
-                </motion.div>
-              )}
-
-              <Label className="text-base font-bold text-gray-800">
-                Selecione como deseja criar a imagem do seu produto:
-              </Label>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setProductWorkflow("text-ambientation")}
-                  className={cn(
-                    "group relative flex flex-col items-start rounded-2xl border-2 p-5 text-left transition-all duration-200",
-                    productWorkflow === "text-ambientation"
-                      ? "border-[#FA6305] bg-orange-50/40 shadow-md ring-2 ring-[#FA6305]/20"
-                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
-                  )}
-                >
-                  <div className="flex w-full items-center justify-between mb-3">
-                    <div
-                      className={cn(
-                        "rounded-xl p-2.5 transition-colors",
-                        productWorkflow === "text-ambientation"
-                          ? "bg-[#FA6305] text-white shadow-sm"
-                          : "bg-orange-100/80 text-[#FA6305]"
-                      )}
-                    >
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <span
-                      className={cn(
-                        "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                        productWorkflow === "text-ambientation"
-                          ? "bg-orange-200/80 text-orange-900"
-                          : "bg-slate-100 text-slate-600"
-                      )}
-                    >
-                      1 Foto + Descrição
-                    </span>
-                  </div>
-                  <span className="text-base font-bold text-slate-900">
-                    Opção A — Produto em Uso
-                  </span>
-                  <span className="mt-1 text-xs leading-relaxed text-slate-600">
-                    Ideal para colocar o seu produto em cenários fotográficos ou sendo usado por uma pessoa.
-                  </span>
-                  <span className="mt-3 w-full rounded-lg bg-white/90 border border-slate-200/70 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                    💡 Ex: Envie a foto da garrafa e escolha um preset ou digite o cenário
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setProductWorkflow("packshot-hybrid")}
-                  className={cn(
-                    "group relative flex flex-col items-start rounded-2xl border-2 p-5 text-left transition-all duration-200",
-                    productWorkflow === "packshot-hybrid"
-                      ? "border-[#0083C7] bg-sky-50/40 shadow-md ring-2 ring-[#0083C7]/20"
-                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
-                  )}
-                >
-                  <div className="flex w-full items-center justify-between mb-3">
-                    <div
-                      className={cn(
-                        "rounded-xl p-2.5 transition-colors",
-                        productWorkflow === "packshot-hybrid"
-                          ? "bg-[#0083C7] text-white shadow-sm"
-                          : "bg-sky-100/80 text-[#0083C7]"
-                      )}
-                    >
-                      <Box className="h-5 w-5" />
-                    </div>
-                    <span
-                      className={cn(
-                        "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                        productWorkflow === "packshot-hybrid"
-                          ? "bg-sky-200/80 text-sky-900"
-                          : "bg-slate-100 text-slate-600"
-                      )}
-                    >
-                      2 Fotos (Fusão Inteligente)
-                    </span>
-                  </div>
-                  <span className="text-base font-bold text-slate-900">
-                    Opção B — Produto com Foto de Referência
-                  </span>
-                  <span className="mt-1 text-xs leading-relaxed text-slate-600">
-                    Clona o layout, iluminação ou estrutura gráfica exata da foto de referência enviada.
-                  </span>
-                  <span className="mt-3 w-full rounded-lg bg-white/90 border border-slate-200/70 px-2.5 py-1.5 text-[11px] font-medium text-sky-800 shadow-2xs">
-                    ✨ Ex: Envie seu produto + foto de anúncio inspirador que deseja replicar
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
 
           {isLinkMode && (
             <div className="space-y-6">
@@ -1578,7 +1468,7 @@ export const Step1Idea = () => {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="space-y-6 border-t pt-6"
+                className={cn("space-y-6", mode !== "reference-photo" && "border-t pt-6")}
               >
                 {productWorkflow === "text-ambientation" ? (
                   // Interface A: Upload Único + Prompt de Texto

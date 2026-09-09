@@ -267,7 +267,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   );
   const [productWorkflow, setProductWorkflow] = useState<
     "text-ambientation" | "packshot-hybrid" | null
-  >(null);
+  >("text-ambientation");
 
   // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
