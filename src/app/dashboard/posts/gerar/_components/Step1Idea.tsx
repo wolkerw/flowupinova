@@ -39,27 +39,13 @@ import { ProductPresetSelector, ProductPresetId } from "./ProductPresetSelector"
 
 
 const PackshotAnimationDemo = () => {
-  const [activeDemoTab, setActiveDemoTab] = React.useState<"text-ambientation" | "packshot-hybrid">(
-    "text-ambientation"
-  );
-
-  // Digitação do prompt para a Opção A
+  // Digitação do prompt para a demonstração da Opção A
   const [typedText, setTypedText] = React.useState("");
   const [loopTrigger, setLoopTrigger] = React.useState(0);
   const fullTextA =
     "Modelo profissional vestindo esta jaqueta em Tóquio à noite, com luzes de neon...";
 
-  // Digitação do prompt para a Opção B
-  const [typedTextB, setTypedTextB] = React.useState("");
-  const [loopTriggerB, setLoopTriggerB] = React.useState(0);
-  const fullTextB =
-    "Substitua o produto da foto de referência pelo meu produto, mantendo o cenário fiel...";
-
   React.useEffect(() => {
-    if (activeDemoTab !== "text-ambientation") {
-      setTypedText("");
-      return;
-    }
     let index = 0;
     setTypedText("");
     const interval = setInterval(() => {
@@ -74,490 +60,204 @@ const PackshotAnimationDemo = () => {
       }
     }, 60);
     return () => clearInterval(interval);
-  }, [activeDemoTab, loopTrigger]);
-
-  React.useEffect(() => {
-    if (activeDemoTab !== "packshot-hybrid") {
-      setTypedTextB("");
-      return;
-    }
-    let index = 0;
-    setTypedTextB("");
-    const interval = setInterval(() => {
-      index++;
-      setTypedTextB(fullTextB.substring(0, index));
-      if (index >= fullTextB.length) {
-        clearInterval(interval);
-        const timeout = setTimeout(() => {
-          setLoopTriggerB((prev) => prev + 1);
-        }, 3000);
-        return () => clearTimeout(timeout);
-      }
-    }, 55);
-    return () => clearInterval(interval);
-  }, [activeDemoTab, loopTriggerB]);
+  }, [loopTrigger]);
 
   return (
     <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm">
-      {/* Abas Superiores para alternar a demonstração */}
-      <div className="mb-5 flex justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => setActiveDemoTab("text-ambientation")}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-            activeDemoTab === "text-ambientation"
-              ? "bg-accent text-white shadow-md shadow-accent/20"
-              : "bg-slate-200/80 text-slate-600 hover:bg-slate-300"
-          }`}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Opção A: Produto em Uso
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveDemoTab("packshot-hybrid")}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-            activeDemoTab === "packshot-hybrid"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-              : "bg-slate-200/80 text-slate-600 hover:bg-slate-300"
-          }`}
-        >
-          <Box className="h-3.5 w-3.5" />
-          Opção B: Produto em Uso com Referência
-        </button>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[#FA6305]" />
+          <span className="text-xs font-bold text-slate-800">
+            Veja como funciona: De foto simples para anúncio profissional
+          </span>
+        </div>
+        <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-[10px] font-bold text-[#FA6305]">
+          Exemplo com IA
+        </span>
       </div>
 
-      <AnimatePresence mode="wait">
-        {activeDemoTab === "text-ambientation" ? (
-          <motion.div
-            key="demo-text-ambientation"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="relative flex h-60 items-center justify-between gap-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-inner"
-          >
-            {/* LADO ESQUERDO: Foto 1 - Sua Roupa */}
-            <div className="z-10 flex flex-col gap-4">
-              <div className="relative flex h-36 w-32 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
-                <span className="absolute left-1.5 top-1.5 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
-                  Foto 1: Sua Roupa
-                </span>
+      <div className="relative flex h-60 items-center justify-between gap-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-inner">
+        {/* LADO ESQUERDO: Foto 1 - Sua Roupa */}
+        <div className="z-10 flex flex-col gap-4">
+          <div className="relative flex h-36 w-32 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
+            <span className="absolute left-1.5 top-1.5 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
+              Foto 1: Seu Produto
+            </span>
 
-                {/* Fundo de estúdio plano cinza */}
-                <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
+            {/* Fundo de estúdio plano cinza */}
+            <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
 
-                {/* Jaqueta puffer que esmaece durante a fusão */}
-                <motion.div
-                  className="z-10 cursor-default"
-                  animate={{
-                    opacity: [1, 0.25, 0.25, 1, 1],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    times: [0, 0.15, 0.85, 0.95, 1],
-                  }}
-                >
-                  <img
-                    src="/demo-clothing-isolated.png"
-                    alt="Roupa Isolada"
-                    className="h-24 w-20 object-contain"
-                  />
-                </motion.div>
-              </div>
-            </div>
-
-            {/* CENTRO: Caixa do Prompt de Texto Animado */}
-            <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
-              <span className="mb-2 animate-pulse text-center text-[7px] font-extrabold uppercase tracking-widest text-accent">
-                Input da Ideia (Texto)
-              </span>
-
-              <div className="relative w-full max-w-[200px] rounded-lg border border-slate-700 bg-slate-950/80 p-2.5 text-left shadow-lg">
-                <div className="mb-1 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-accent" />
-                  <span className="text-[7px] font-bold uppercase text-slate-500">
-                    Prompt de IA
-                  </span>
-                </div>
-                <div className="min-h-[44px] break-words font-mono text-[9px] leading-snug text-slate-300">
-                  {typedText}
-                  <span
-                    className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-accent"
-                    style={{ verticalAlign: "middle" }}
-                  />
-                </div>
-              </div>
-
-              {/* Conector de fluxo */}
-              <div className="relative mt-2 flex h-8 w-16 items-center justify-center">
-                <svg width="64" height="24" viewBox="0 0 64 24" fill="none">
-                  <path
-                    d="M2 12 H 58"
-                    stroke="#6366f1"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M50 8L58 12L50 16"
-                    stroke="#6366f1"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* LADO DIREITO: Foto 3 - Exemplo da Modelo Vestindo a Roupa */}
-            <div className="relative flex h-52 w-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
-              <span className="absolute right-2 top-2 z-20 rounded bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                Foto 3: Imagem Gerada
-              </span>
-
-              {/* Fundo do Cenário Vazio antes da fusão */}
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/60" />
-
-              <motion.div
-                className="z-15 absolute flex flex-col items-center justify-center rounded-lg border border-dashed border-white/50 bg-black/40 p-2 opacity-40"
-                animate={{
-                  opacity: [0.5, 0.5, 0, 0, 0.5],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  times: [0, 0.15, 0.45, 0.85, 1],
-                }}
-              >
-                <Sparkles className="h-5 w-5 animate-spin text-white" />
-                <span className="mt-1 text-[7px] font-bold leading-none text-white">
-                  Vestindo modelo...
-                </span>
-              </motion.div>
-
-              {/* Roupa da Foto 1 que viaja em direção à Foto 3 */}
-              <motion.div
-                className="pointer-events-none absolute z-20 flex flex-col items-center"
-                style={{
-                  top: "15%",
-                }}
-                animate={{
-                  x: [-240, -240, 0, 0, -240],
-                  y: [-12, -12, 10, 10, -12],
-                  scale: [0.6, 0.6, 0.8, 0.8, 0.6],
-                  opacity: [0, 1, 1, 0, 0],
-                  filter: [
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                    "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
-                    "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                  ],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  times: [0, 0.15, 0.45, 0.55, 1],
-                }}
-              >
-                <div className="absolute -top-7 z-30 animate-bounce whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md">
-                  Vestindo Roupa...
-                </div>
-
-                <img
-                  src="/demo-clothing-isolated.png"
-                  alt="Roupa em Viagem"
-                  className="h-24 w-20 object-contain"
-                />
-              </motion.div>
-
-              {/* Imagem real da modelo vestindo a jaqueta puffer vermelha */}
-              <motion.div
-                className="pointer-events-none absolute inset-0 z-30"
-                animate={{
-                  opacity: [0, 0, 0, 1, 1, 0],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  times: [0, 0.2, 0.45, 0.55, 0.93, 1],
-                }}
-              >
-                <img
-                  src="/demo-clothing-model.png"
-                  alt="Modelo de IA no Cenário"
-                  className="h-full w-full object-cover"
-                />
-
-                {/* Banner didático */}
-                <div className="z-45 absolute left-2 top-2 rounded bg-emerald-500/90 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
-                  Modelo Real + Roupa
-                </div>
-
-                {/* Efeito de flash na fusão */}
-                <motion.div
-                  className="absolute inset-0 z-40 skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={{
-                    left: ["-100%", "-100%", "200%", "200%", "-100%"],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    times: [0, 0.55, 0.75, 0.85, 1],
-                    ease: "easeOut",
-                  }}
-                />
-              </motion.div>
-
-              <span className="absolute bottom-2 right-2 z-40 flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white">
-                <span className="h-2 w-2 animate-ping rounded-full bg-white" />
-                Fusão Pronta
-              </span>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="demo-packshot-hybrid"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="relative flex h-60 items-center justify-between gap-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-inner"
-          >
-            {/* Lado Esquerdo: Fotos de Entrada (1 e 2) empilhadas */}
-            <div className="z-10 flex flex-col gap-4">
-              {/* Caixa 1: Foto 1 - Seu Produto */}
-              <div className="relative flex h-24 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
-                <span className="absolute left-1.5 top-1 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
-                  Foto 1: Produto
-                </span>
-
-                <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
-
-                <motion.div
-                  className="z-10 cursor-default"
-                  animate={{
-                    opacity: [1, 0.25, 0.25, 1, 1],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    times: [0, 0.15, 0.85, 0.95, 1],
-                  }}
-                >
-                  <img
-                    src="/demo-product-isolated.png"
-                    alt="Seu Produto"
-                    className="h-20 w-16 scale-[0.9] object-contain"
-                  />
-                </motion.div>
-              </div>
-
-              {/* Caixa 2: Foto 2 - Cenário Referência */}
-              <div className="relative flex h-24 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
-                <span className="absolute left-1.5 top-1 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
-                  Foto 2: Referência
-                </span>
-
-                <div className="absolute inset-0 z-0">
-                  <img
-                    src="/demo-scenario.png"
-                    alt="Cenário Referência"
-                    className="h-full w-full object-cover opacity-80"
-                  />
-                </div>
-
-                <motion.div
-                  className="absolute z-10 h-2 w-2 rounded-full bg-cyan-400 blur-[2px]"
-                  animate={{
-                    opacity: [1, 0.3, 0.3, 1, 1],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    times: [0, 0.15, 0.85, 0.95, 1],
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* CENTRO: Caixa do Prompt de Texto Animado (Opção B) */}
-            <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
-              <span className="mb-2 animate-pulse text-center text-[7px] font-extrabold uppercase tracking-widest text-blue-400">
-                Instrução de Troca
-              </span>
-
-              <div className="relative w-full max-w-[200px] rounded-lg border border-blue-900/60 bg-slate-950/80 p-2.5 text-left shadow-lg">
-                <div className="mb-1 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-blue-500" />
-                  <span className="text-[7px] font-bold uppercase text-slate-500">
-                    Prompt de IA
-                  </span>
-                </div>
-                <div className="min-h-[44px] break-words font-mono text-[9px] leading-snug text-slate-300">
-                  {typedTextB}
-                  <span
-                    className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-blue-500"
-                    style={{ verticalAlign: "middle" }}
-                  />
-                </div>
-              </div>
-
-              {/* Conector de fluxo */}
-              <div className="relative mt-2 flex h-8 w-16 items-center justify-center">
-                <svg width="64" height="24" viewBox="0 0 64 24" fill="none">
-                  <path
-                    d="M2 12 H 58"
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M50 8L58 12L50 16"
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* Lado Direito: Foto 3 - Exemplo Real */}
-            <div className="relative flex h-52 w-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
-              <span className="absolute right-2 top-2 z-20 rounded bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                Foto 3: Imagem Gerada
-              </span>
-
-              <div className="absolute inset-0 z-0">
-                <img
-                  src="/demo-scenario.png"
-                  alt="Cenário de Estúdio"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-
-              <motion.div
-                className="absolute z-10 flex flex-col items-center justify-center rounded-lg border border-dashed border-white/50 bg-black/40 p-2 opacity-40"
-                animate={{
-                  opacity: [0.5, 0.5, 0, 0, 0.5],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  times: [0, 0.15, 0.45, 0.85, 1],
-                }}
-              >
-                <Sparkles className="h-5 w-5 animate-spin text-white" />
-                <span className="mt-1 text-[7px] font-bold leading-none text-white">
-                  Gerando...
-                </span>
-              </motion.div>
-
-              {/* Produto que viaja */}
-              <motion.div
-                className="pointer-events-none absolute z-20 flex flex-col items-center"
-                style={{
-                  mixBlendMode: "screen",
-                  top: "10%",
-                }}
-                animate={{
-                  x: [-240, -240, 0, 0, -240],
-                  y: [-52, -52, 10, 10, -52],
-                  scale: [0.65, 0.65, 0.75, 0.75, 0.65],
-                  opacity: [0, 1, 1, 0, 0],
-                  filter: [
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                    "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
-                    "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                  ],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  times: [0, 0.15, 0.45, 0.55, 1],
-                }}
-              >
-                <div className="absolute -top-7 z-30 animate-bounce whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md">
-                  Copiando Produto...
-                </div>
-
-                <img
-                  src="/demo-product-isolated.png"
-                  alt="Produto em Viagem"
-                  className="h-32 w-24 object-contain"
-                />
-              </motion.div>
-
-              {/* Brilho do Cenário */}
-              <motion.div
-                className="pointer-events-none absolute z-20 h-8 w-8 rounded-full bg-cyan-400/30 blur-md"
-                style={{ bottom: "10%" }}
-                animate={{
-                  x: [-240, -240, 0, 0, -240],
-                  y: [52, 52, -10, -10, 52],
-                  scale: [1, 1.2, 1, 0, 1],
-                  opacity: [0, 0.8, 0.8, 0, 0],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  times: [0, 0.15, 0.45, 0.55, 1],
-                }}
+            {/* Jaqueta puffer que esmaece durante a fusão */}
+            <motion.div
+              className="z-10 cursor-default"
+              animate={{
+                opacity: [1, 0.25, 0.25, 1, 1],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                times: [0, 0.15, 0.85, 0.95, 1],
+              }}
+            >
+              <img
+                src="/demo-clothing-isolated.png"
+                alt="Produto Isolado"
+                className="h-24 w-20 object-contain"
               />
+            </motion.div>
+          </div>
+        </div>
 
-              {/* Foto 3: Imagem Completa Fundida */}
-              <motion.div
-                className="pointer-events-none absolute inset-0 z-30"
-                animate={{
-                  opacity: [0, 0, 0, 1, 1, 0],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  times: [0, 0.2, 0.45, 0.55, 0.93, 1],
-                }}
-              >
-                <img
-                  src="/demo-result.png"
-                  alt="Resultado Final Comercial"
-                  className="h-full w-full object-cover"
-                />
+        {/* CENTRO: Caixa do Prompt de Texto Animado */}
+        <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
+          <span className="mb-2 animate-pulse text-center text-[7px] font-extrabold uppercase tracking-widest text-accent">
+            Input da Ideia (Texto ou Presets)
+          </span>
 
-                <div className="z-45 absolute left-2 top-2 rounded bg-emerald-500/90 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
-                  Cenário Completo + Produto
-                </div>
-
-                <motion.div
-                  className="absolute inset-0 z-40 skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={{
-                    left: ["-100%", "-100%", "200%", "200%", "-100%"],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    times: [0, 0.55, 0.75, 0.85, 1],
-                    ease: "easeOut",
-                  }}
-                />
-              </motion.div>
-
-              <span className="absolute bottom-2 right-2 z-40 flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white">
-                <span className="h-2 w-2 animate-ping rounded-full bg-white" />
-                Fusão Pronta
+          <div className="relative w-full max-w-[200px] rounded-lg border border-slate-700 bg-slate-950/80 p-2.5 text-left shadow-lg">
+            <div className="mb-1 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 animate-ping rounded-full bg-accent" />
+              <span className="text-[7px] font-bold uppercase text-slate-500">
+                Prompt de IA
               </span>
             </div>
+            <div className="min-h-[44px] break-words font-mono text-[9px] leading-snug text-slate-300">
+              {typedText}
+              <span
+                className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-accent"
+                style={{ verticalAlign: "middle" }}
+              />
+            </div>
+          </div>
+
+          {/* Conector de fluxo */}
+          <div className="relative mt-2 flex h-8 w-16 items-center justify-center">
+            <svg width="64" height="24" viewBox="0 0 64 24" fill="none">
+              <path
+                d="M2 12 H 58"
+                stroke="#6366f1"
+                strokeWidth="2"
+                strokeDasharray="4 4"
+                strokeLinecap="round"
+              />
+              <path
+                d="M50 8L58 12L50 16"
+                stroke="#6366f1"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* LADO DIREITO: Foto 3 - Exemplo da Modelo Vestindo a Roupa */}
+        <div className="relative flex h-52 w-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+          <span className="absolute right-2 top-2 z-20 rounded bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+            Foto 3: Imagem Gerada
+          </span>
+
+          {/* Fundo do Cenário Vazio antes da fusão */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/60" />
+
+          <motion.div
+            className="z-15 absolute flex flex-col items-center justify-center rounded-lg border border-dashed border-white/50 bg-black/40 p-2 opacity-40"
+            animate={{
+              opacity: [0.5, 0.5, 0, 0, 0.5],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              times: [0, 0.15, 0.45, 0.85, 1],
+            }}
+          >
+            <Sparkles className="h-5 w-5 animate-spin text-white" />
+            <span className="mt-1 text-[7px] font-bold leading-none text-white">
+              Vestindo modelo...
+            </span>
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          {/* Roupa da Foto 1 que viaja em direção à Foto 3 */}
+          <motion.div
+            className="pointer-events-none absolute z-20 flex flex-col items-center"
+            style={{
+              top: "15%",
+            }}
+            animate={{
+              x: [-240, -240, 0, 0, -240],
+              y: [-12, -12, 10, 10, -12],
+              scale: [0.6, 0.6, 0.8, 0.8, 0.6],
+              opacity: [0, 1, 1, 0, 0],
+              filter: [
+                "drop-shadow(0 0 0px rgba(99,102,241,0))",
+                "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
+                "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
+                "drop-shadow(0 0 0px rgba(99,102,241,0))",
+                "drop-shadow(0 0 0px rgba(99,102,241,0))",
+              ],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              times: [0, 0.15, 0.45, 0.55, 1],
+            }}
+          >
+            <div className="absolute -top-7 z-30 animate-bounce whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md">
+              Vestindo Roupa...
+            </div>
+
+            <img
+              src="/demo-clothing-isolated.png"
+              alt="Roupa em Viagem"
+              className="h-24 w-20 object-contain"
+            />
+          </motion.div>
+
+          {/* Imagem real da modelo vestindo a jaqueta puffer vermelha */}
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-30"
+            animate={{
+              opacity: [0, 0, 0, 1, 1, 0],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              times: [0, 0.2, 0.45, 0.55, 0.93, 1],
+            }}
+          >
+            <img
+              src="/demo-clothing-model.png"
+              alt="Modelo de IA no Cenário"
+              className="h-full w-full object-cover"
+            />
+
+            {/* Banner didático */}
+            <div className="z-45 absolute left-2 top-2 rounded bg-emerald-500/90 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
+              Modelo Real + Roupa
+            </div>
+
+            {/* Efeito de flash na fusão */}
+            <motion.div
+              className="absolute inset-0 z-40 skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              animate={{
+                left: ["-100%", "-100%", "200%", "200%", "-100%"],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                times: [0, 0.55, 0.75, 0.85, 1],
+                ease: "easeOut",
+              }}
+            />
+          </motion.div>
+
+          <span className="absolute bottom-2 right-2 z-40 flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white">
+            <span className="h-2 w-2 animate-ping rounded-full bg-white" />
+            Fusão Pronta
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -1020,6 +720,18 @@ export const Step1Idea = () => {
               Assistir Vídeo Tutorial
             </Button>
           </div>
+
+          {/* Demonstração da Opção A: Foto do Produto para Anúncio com IA */}
+          {mode === "reference-photo" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-2"
+            >
+              <PackshotAnimationDemo />
+            </motion.div>
+          )}
 
           {isLinkMode && (
             <div className="space-y-6">
