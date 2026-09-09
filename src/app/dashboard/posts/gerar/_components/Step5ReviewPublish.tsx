@@ -33,6 +33,7 @@ import { GeneratedContent, Platform } from "../types";
 import { MetaConnectionData } from "@/lib/services/meta-service";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 
+import { useToast } from "@/hooks/use-toast";
 import { useWizard } from "../context/WizardContext";
 
 export const Step5ReviewPublish = () => {
@@ -67,7 +68,12 @@ export const Step5ReviewPublish = () => {
     isGeneratingCaption,
     handleGenerateCaption,
     businessProfile,
+    referenceDescription,
+    postSummary,
   } = useWizard();
+
+  const { toast } = useToast();
+  const [isEnhancingText, setIsEnhancingText] = React.useState(false);
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
@@ -79,6 +85,80 @@ export const Step5ReviewPublish = () => {
 
   const selectedContent =
     selectedContentId !== undefined ? generatedContent[parseInt(selectedContentId, 10)] || fallbackContent : fallbackContent;
+
+  const handleEnhanceWithAI = async () => {
+    const rawSubtitle = selectedContent.subtitulo?.trim() || "";
+    const rawTitle = selectedContent.titulo?.trim() || "";
+    const baseText = rawSubtitle || rawTitle || referenceDescription || postSummary || "";
+
+    if (!baseText) {
+      toast({
+        title: "Texto necessário",
+        description: "Digite um rascunho ou ideia na legenda para que a IA possa aprimorar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsEnhancingText(true);
+      const res = await fetch("/api/conteudo/melhorar-texto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          textoOriginal: baseText,
+          format: "structured",
+          businessProfile: businessProfile || null,
+          contextInfo: referenceDescription || postSummary || rawSubtitle || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro ao aprimorar texto com IA");
+      }
+
+      const data = await res.json();
+
+      const newTitle = data.titulo || selectedContent.titulo;
+      const newSubtitle = data.legenda || data.textoMelhorado || selectedContent.subtitulo;
+      const newHashtags =
+        Array.isArray(data.hashtags) && data.hashtags.length > 0
+          ? data.hashtags
+          : selectedContent.hashtags;
+
+      const updatedItem: GeneratedContent = {
+        ...selectedContent,
+        titulo: newTitle,
+        subtitulo: newSubtitle,
+        hashtags: newHashtags,
+      };
+
+      if (selectedContentId === undefined) {
+        setGeneratedContent([updatedItem]);
+        setSelectedContentId("0");
+      } else {
+        const index = parseInt(selectedContentId, 10);
+        setGeneratedContent((prev) =>
+          prev.map((c, i) => (i === index ? updatedItem : c))
+        );
+      }
+
+      toast({
+        title: "Texto aprimorado com sucesso!",
+        description: "Título, legenda persuasiva e hashtags foram gerados pela IA.",
+      });
+    } catch (err: any) {
+      console.error("Erro ao aprimorar texto com IA:", err);
+      toast({
+        title: "Erro ao aprimorar texto",
+        description: err.message || "Não foi possível aprimorar o texto no momento.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnhancingText(false);
+    }
+  };
 
   const handleEditContent = (field: keyof GeneratedContent, value: any) => {
     if (selectedContentId === undefined) {
@@ -162,11 +242,30 @@ export const Step5ReviewPublish = () => {
             </div>
             <div className="space-y-6">
               <div className="space-y-4 rounded-lg border border-accent/20 bg-accent/5 p-4">
-                <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-accent" />
                     <Label className="text-base font-bold">Editar Conteúdo</Label>
                   </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleEnhanceWithAI}
+                    disabled={isEnhancingText}
+                    className="bg-accent hover:bg-accent/90 text-white font-bold text-xs h-8 px-3 rounded-lg shadow-xs flex items-center gap-1.5 transition-all self-start sm:self-auto shrink-0"
+                  >
+                    {isEnhancingText ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Aprimorando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Melhorar Texto com IA
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 <div className="space-y-3">
