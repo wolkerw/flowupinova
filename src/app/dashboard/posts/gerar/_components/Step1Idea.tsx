@@ -1675,24 +1675,7 @@ export const Step1Idea = () => {
               </motion.div>
             )}
         </CardContent>
-        <CardFooter className="flex items-center justify-between border-t pt-4">
-          <div className="flex items-center space-x-2">
-            {(mode === "reference-photo" || mode === "reference-hybrid") && (
-              <>
-                <Switch
-                  id="generate-text"
-                  checked={generateTextSuggestions}
-                  onCheckedChange={setGenerateTextSuggestions}
-                />
-                <Label
-                  htmlFor="generate-text"
-                  className="cursor-pointer text-sm font-medium text-gray-700"
-                >
-                  Gerar Conteúdo (Opcional)
-                </Label>
-              </>
-            )}
-          </div>
+        <CardFooter className="flex items-center justify-end border-t pt-4">
           <Button
             onClick={() => onGenerate()}
             disabled={isButtonDisabled}
