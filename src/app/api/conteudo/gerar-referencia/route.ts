@@ -1859,7 +1859,7 @@ Cenário desejado e estilo: ${prompt}`;
 
         let agencyDirective = "";
         if (isProductPreset) {
-          if (textOverlayMode === "INFOGRAPHIC") {
+          if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
             agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE MACRO SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
           } else if (textOverlayMode === "TITLE_ONLY") {
             agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR) or the user's custom title, (2) The hero product prominently staged in the center in LARGE MACRO SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the large hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;

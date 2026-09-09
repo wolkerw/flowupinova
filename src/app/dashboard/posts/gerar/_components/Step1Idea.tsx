@@ -572,6 +572,56 @@ export const Step1Idea = () => {
     return "";
   }, [mode]);
 
+  // Estados e Toggles do Modo de Diagramação (permite selecionar Título e Infográfico juntos em Laranja #FA6305)
+  const isTitleSelected = textOverlayMode === "TITLE_ONLY" || textOverlayMode === "BOTH";
+  const isInfographicSelected = textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH";
+  const isPurePhotoSelected = textOverlayMode === "NONE" || (!isTitleSelected && !isInfographicSelected);
+
+  const handleToggleTitle = () => {
+    if (isTitleSelected) {
+      if (isInfographicSelected) {
+        setTextOverlayMode("INFOGRAPHIC");
+        setInsertTextOnImage(true);
+      } else {
+        setTextOverlayMode("NONE");
+        setInsertTextOnImage(false);
+      }
+    } else {
+      if (isInfographicSelected) {
+        setTextOverlayMode("BOTH");
+        setInsertTextOnImage(true);
+      } else {
+        setTextOverlayMode("TITLE_ONLY");
+        setInsertTextOnImage(true);
+      }
+    }
+  };
+
+  const handleToggleInfographic = () => {
+    if (isInfographicSelected) {
+      if (isTitleSelected) {
+        setTextOverlayMode("TITLE_ONLY");
+        setInsertTextOnImage(true);
+      } else {
+        setTextOverlayMode("NONE");
+        setInsertTextOnImage(false);
+      }
+    } else {
+      if (isTitleSelected) {
+        setTextOverlayMode("BOTH");
+        setInsertTextOnImage(true);
+      } else {
+        setTextOverlayMode("INFOGRAPHIC");
+        setInsertTextOnImage(true);
+      }
+    }
+  };
+
+  const handleSelectPurePhoto = () => {
+    setTextOverlayMode("NONE");
+    setInsertTextOnImage(false);
+  };
+
   // Autoplay imediato ao abrir o tutorial e pause ao fechar (se houver vídeo configurado para o fluxo)
   React.useEffect(() => {
     if (isTutorialOpen && tutorialVideoUrl) {
@@ -1033,34 +1083,42 @@ export const Step1Idea = () => {
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Button
                       type="button"
-                      variant={textOverlayMode === "NONE" ? "default" : "outline"}
+                      variant={isPurePhotoSelected ? "default" : "outline"}
                       size="sm"
-                      onClick={() => {
-                        setTextOverlayMode("NONE");
-                        setInsertTextOnImage(false);
-                      }}
+                      onClick={handleSelectPurePhoto}
                       className={cn(
                         "text-xs h-9 px-3 rounded-lg font-medium transition-all",
-                        textOverlayMode === "NONE"
+                        isPurePhotoSelected
                           ? "bg-slate-800 hover:bg-slate-900 text-white shadow-xs font-bold"
-                          : "border-slate-200 hover:border-slate-300"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                       )}
                     >
                       🖼️ Sem Infográficos
                     </Button>
                     <Button
                       type="button"
-                      variant={textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "TITLE_ONLY" ? "default" : "outline"}
+                      variant={isTitleSelected ? "default" : "outline"}
                       size="sm"
-                      onClick={() => {
-                        setTextOverlayMode("INFOGRAPHIC");
-                        setInsertTextOnImage(true);
-                      }}
+                      onClick={handleToggleTitle}
                       className={cn(
                         "text-xs h-9 px-3.5 rounded-lg font-bold transition-all",
-                        textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "TITLE_ONLY"
+                        isTitleSelected
                           ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
-                          : "border-slate-200 hover:border-slate-300"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      )}
+                    >
+                      ✨ Apenas Título
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={isInfographicSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleToggleInfographic}
+                      className={cn(
+                        "text-xs h-9 px-3.5 rounded-lg font-bold transition-all",
+                        isInfographicSelected
+                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                       )}
                     >
                       📊 Com Infográficos
@@ -1275,45 +1333,42 @@ export const Step1Idea = () => {
                               <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                                 <Button
                                   type="button"
-                                  variant={textOverlayMode === "NONE" ? "default" : "outline"}
+                                  variant={isPurePhotoSelected ? "default" : "outline"}
                                   size="sm"
-                                  onClick={() => {
-                                    setTextOverlayMode("NONE");
-                                    setInsertTextOnImage(false);
-                                  }}
+                                  onClick={handleSelectPurePhoto}
                                   className={cn(
                                     "text-xs h-8 px-2.5 rounded-lg font-medium transition-all",
-                                    textOverlayMode === "NONE" && "bg-slate-800 hover:bg-slate-900 text-white"
+                                    isPurePhotoSelected
+                                      ? "bg-slate-800 hover:bg-slate-900 text-white font-bold"
+                                      : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                                   )}
                                 >
                                   🖼️ Fotografia Pura
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant={textOverlayMode === "TITLE_ONLY" ? "default" : "outline"}
+                                  variant={isTitleSelected ? "default" : "outline"}
                                   size="sm"
-                                  onClick={() => {
-                                    setTextOverlayMode("TITLE_ONLY");
-                                    setInsertTextOnImage(true);
-                                  }}
+                                  onClick={handleToggleTitle}
                                   className={cn(
                                     "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
-                                    textOverlayMode === "TITLE_ONLY" && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
+                                    isTitleSelected
+                                      ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                                      : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                                   )}
                                 >
                                   ✨ Apenas Título
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant={textOverlayMode === "INFOGRAPHIC" ? "default" : "outline"}
+                                  variant={isInfographicSelected ? "default" : "outline"}
                                   size="sm"
-                                  onClick={() => {
-                                    setTextOverlayMode("INFOGRAPHIC");
-                                    setInsertTextOnImage(true);
-                                  }}
+                                  onClick={handleToggleInfographic}
                                   className={cn(
                                     "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
-                                    textOverlayMode === "INFOGRAPHIC" && "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                                    isInfographicSelected
+                                      ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                                      : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                                   )}
                                 >
                                   📊 Infográfico Completo
@@ -1321,7 +1376,7 @@ export const Step1Idea = () => {
                               </div>
                             </div>
 
-                            {textOverlayMode !== "NONE" && (
+                            {(isTitleSelected || isInfographicSelected) && (
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
@@ -1336,10 +1391,12 @@ export const Step1Idea = () => {
                                   value={productHeadline}
                                   onChange={(e) => setProductHeadline(e.target.value)}
                                   placeholder="Ex: FEITA PARA CONECTAR ou 30% OFF NO SEGUNDO ITEM"
-                                  className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#0083C7]"
+                                  className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#FA6305]"
                                 />
                                 <p className="text-[11px] text-slate-400">
-                                  {textOverlayMode === "INFOGRAPHIC"
+                                  {isTitleSelected && isInfographicSelected
+                                    ? "A IA renderizará o título comercial em destaque acompanhado do infográfico completo de benefícios e selos comerciais."
+                                    : isInfographicSelected
                                     ? "A IA renderizará este título com o infográfico completo (selo de qualidade, 4 diferenciais técnicos com ícones e rodapé)."
                                     : "A IA renderizará apenas este título com tipografia comercial limpa, sem cards de ícones ou selos no rodapé."}
                                 </p>
@@ -1581,45 +1638,42 @@ export const Step1Idea = () => {
                         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                           <Button
                             type="button"
-                            variant={textOverlayMode === "NONE" ? "default" : "outline"}
+                            variant={isPurePhotoSelected ? "default" : "outline"}
                             size="sm"
-                            onClick={() => {
-                              setTextOverlayMode("NONE");
-                              setInsertTextOnImage(false);
-                            }}
+                            onClick={handleSelectPurePhoto}
                             className={cn(
                               "text-xs h-8 px-2.5 rounded-lg font-medium transition-all",
-                              textOverlayMode === "NONE" && "bg-slate-800 hover:bg-slate-900 text-white"
+                              isPurePhotoSelected
+                                ? "bg-slate-800 hover:bg-slate-900 text-white font-bold"
+                                : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                             )}
                           >
                             🖼️ Fotografia Pura
                           </Button>
                           <Button
                             type="button"
-                            variant={textOverlayMode === "TITLE_ONLY" ? "default" : "outline"}
+                            variant={isTitleSelected ? "default" : "outline"}
                             size="sm"
-                            onClick={() => {
-                              setTextOverlayMode("TITLE_ONLY");
-                              setInsertTextOnImage(true);
-                            }}
+                            onClick={handleToggleTitle}
                             className={cn(
                               "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
-                              textOverlayMode === "TITLE_ONLY" && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
+                              isTitleSelected
+                                ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                                : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                             )}
                           >
                             ✨ Apenas Título
                           </Button>
                           <Button
                             type="button"
-                            variant={textOverlayMode === "INFOGRAPHIC" ? "default" : "outline"}
+                            variant={isInfographicSelected ? "default" : "outline"}
                             size="sm"
-                            onClick={() => {
-                              setTextOverlayMode("INFOGRAPHIC");
-                              setInsertTextOnImage(true);
-                            }}
+                            onClick={handleToggleInfographic}
                             className={cn(
                               "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
-                              textOverlayMode === "INFOGRAPHIC" && "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                              isInfographicSelected
+                                ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                                : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
                             )}
                           >
                             📊 Infográfico Completo
@@ -1627,7 +1681,7 @@ export const Step1Idea = () => {
                         </div>
                       </div>
 
-                      {textOverlayMode !== "NONE" && (
+                      {(isTitleSelected || isInfographicSelected) && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -1642,10 +1696,12 @@ export const Step1Idea = () => {
                             value={productHeadline}
                             onChange={(e) => setProductHeadline(e.target.value)}
                             placeholder="Ex: FEITA PARA CONECTAR ou 30% OFF NO SEGUNDO ITEM"
-                            className="w-full h-10 px-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0083C7] transition-all"
+                            className="w-full h-10 px-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FA6305] transition-all"
                           />
                           <p className="text-[11px] text-slate-500">
-                            {textOverlayMode === "INFOGRAPHIC"
+                            {isTitleSelected && isInfographicSelected
+                              ? "A IA desenhará o título comercial em destaque acompanhado do infográfico completo de benefícios e selos."
+                              : isInfographicSelected
                               ? "A IA desenhará este título acompanhado do infográfico completo de benefícios e selos."
                               : "A IA desenhará apenas este título com tipografia comercial limpa, sem cards de ícones ou selos no rodapé."}
                           </p>

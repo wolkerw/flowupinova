@@ -144,8 +144,8 @@ interface WizardContextType {
   setIsItalic: (italic: boolean) => void;
   insertTextOnImage: boolean | null;
   setInsertTextOnImage: (val: boolean | null) => void;
-  textOverlayMode: "NONE" | "TITLE_ONLY" | "INFOGRAPHIC";
-  setTextOverlayMode: (mode: "NONE" | "TITLE_ONLY" | "INFOGRAPHIC") => void;
+  textOverlayMode: "NONE" | "TITLE_ONLY" | "INFOGRAPHIC" | "BOTH";
+  setTextOverlayMode: (mode: "NONE" | "TITLE_ONLY" | "INFOGRAPHIC" | "BOTH") => void;
   productHeadline: string;
   setProductHeadline: (headline: string) => void;
   referenceReplicationMode: "full" | "scenario_only";
@@ -285,7 +285,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [fontWeight, setFontWeight] = useState("bold");
   const [isItalic, setIsItalic] = useState(false);
   const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(true);
-  const [textOverlayMode, setTextOverlayMode] = useState<"NONE" | "TITLE_ONLY" | "INFOGRAPHIC">("INFOGRAPHIC");
+  const [textOverlayMode, setTextOverlayMode] = useState<
+    "NONE" | "TITLE_ONLY" | "INFOGRAPHIC" | "BOTH"
+  >("INFOGRAPHIC");
   const [productHeadline, setProductHeadline] = useState<string>("");
   const [referenceReplicationMode, setReferenceReplicationMode] = useState<
     "full" | "scenario_only"
