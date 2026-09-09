@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getOnboardingProfile, updateOnboardingProfile } from "../onboarding-service";
 import * as firestore from "firebase/firestore";
 
@@ -62,6 +62,33 @@ describe("Onboarding Service — Variações de Logomarcas", () => {
     expect(firestore.setDoc).toHaveBeenCalledWith(
       expect.objectContaining({ path: "users/user-test-123/business/onboarding" }),
       updatePayload,
+      { merge: true }
+    );
+  });
+
+  it("deve sanitizar campos com undefined antes de chamar setDoc", async () => {
+    vi.mocked(firestore.setDoc).mockResolvedValueOnce(undefined as any);
+
+    const payloadWithUndefined = {
+      name: "Empresa Segura",
+      website: undefined,
+      description: undefined,
+      logos: {
+        horizontal: { url: "https://example.com/h.png", width: 100, height: 50 },
+        vertical: undefined,
+      },
+    };
+
+    await updateOnboardingProfile("user-test-123", payloadWithUndefined as any);
+
+    expect(firestore.setDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "users/user-test-123/business/onboarding" }),
+      {
+        name: "Empresa Segura",
+        logos: {
+          horizontal: { url: "https://example.com/h.png", width: 100, height: 50 },
+        },
+      },
       { merge: true }
     );
   });

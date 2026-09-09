@@ -141,29 +141,29 @@ export function OnboardingWizard({
     if (step < totalSteps) {
       // Salva o progresso parcial no Firestore de forma assíncrona para garantir persistência robusta
       updateOnboardingProfile(userId, {
-        name: formData.name,
-        category: formData.category,
-        phone: formData.phone,
-        address: formData.address,
-        website: formData.website,
-        instagram: formData.instagram,
-        description: formData.description,
-        primaryColor: formData.primaryColor,
-        secondaryColor: formData.secondaryColor,
-        slogan: formData.slogan,
-        targetAudience: formData.targetAudience,
-        toneOfVoice: formData.toneOfVoice,
+        name: formData.name?.trim() || "",
+        category: formData.category?.trim() || "",
+        phone: formData.phone?.trim() || "",
+        address: formData.address?.trim() || "",
+        website: formData.website?.trim() || "",
+        instagram: formData.instagram?.trim() || "",
+        description: formData.description?.trim() || "",
+        primaryColor: formData.primaryColor || "#0083C7",
+        secondaryColor: formData.secondaryColor || "#1E293B",
+        slogan: formData.slogan?.trim() || "",
+        targetAudience: formData.targetAudience?.trim() || "",
+        toneOfVoice: formData.toneOfVoice?.trim() || "",
         cnpj: formData.cnpj.replace(/\D/g, ""),
         logo: {
-          url: formData.logoUrl,
-          width: formData.logoWidth,
-          height: formData.logoHeight,
+          url: formData.logoUrl || "",
+          width: Number(formData.logoWidth) || 0,
+          height: Number(formData.logoHeight) || 0,
         },
         logos: {
           vertical: {
-            url: formData.logoUrl,
-            width: formData.logoWidth,
-            height: formData.logoHeight,
+            url: formData.logoUrl || "",
+            width: Number(formData.logoWidth) || 0,
+            height: Number(formData.logoHeight) || 0,
           },
           horizontal: initialData?.logos?.horizontal || { url: "", width: 0, height: 0 },
           symbol: initialData?.logos?.symbol || { url: "", width: 0, height: 0 },
@@ -353,26 +353,40 @@ export function OnboardingWizard({
     setIsSaving(true);
     try {
       // Normaliza a URL do website antes de salvar
-      let websiteUrl = formData.website;
+      let websiteUrl = formData.website?.trim() || "";
       if (websiteUrl && !/^https?:\/\//i.test(websiteUrl)) {
         websiteUrl = `https://${websiteUrl}`;
       }
 
-      // Helper para converter dataUrl base64 em File/Blob para upload no Storage
-      const uploadBase64ToStorage = async (base64Str: string, type: string) => {
-        const res = await fetch(base64Str);
-        const blob = await res.blob();
-        const currentUser = auth.currentUser;
-        const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
-        const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
-        const uploadResult = await uploadBytes(storageRef, blob);
-        return await getDownloadURL(uploadResult.ref);
+      // Helper robusto para converter dataUrl base64 em File/Blob para upload no Storage
+      const uploadBase64ToStorage = async (base64Str: string, type: string): Promise<string> => {
+        try {
+          const res = await fetch(base64Str);
+          const blob = await res.blob();
+          const currentUser = auth.currentUser;
+          const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
+          const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
+          
+          let contentType = blob.type;
+          if (!contentType || contentType === "application/octet-stream") {
+            if (base64Str.startsWith("data:image/svg+xml")) contentType = "image/svg+xml";
+            else if (base64Str.startsWith("data:image/jpeg") || base64Str.startsWith("data:image/jpg")) contentType = "image/jpeg";
+            else if (base64Str.startsWith("data:image/webp")) contentType = "image/webp";
+            else contentType = "image/png";
+          }
+
+          const uploadResult = await uploadBytes(storageRef, blob, { contentType });
+          return await getDownloadURL(uploadResult.ref);
+        } catch (storageErr) {
+          console.warn(`[ONBOARDING] Falha ao enviar logo ${type} para o Storage, mantendo original:`, storageErr);
+          return base64Str;
+        }
       };
 
-      let finalLogoUrl = formData.logoUrl;
-      if (formData.logoUrl && formData.logoUrl.startsWith("data:image")) {
-        toast({ title: "Migrando logomarca..." });
-        finalLogoUrl = await uploadBase64ToStorage(formData.logoUrl, "vertical");
+      let finalLogoUrl = formData.logoUrl || "";
+      if (finalLogoUrl && finalLogoUrl.startsWith("data:image")) {
+        toast({ title: "Processando logomarca..." });
+        finalLogoUrl = await uploadBase64ToStorage(finalLogoUrl, "vertical");
         setFormData((prev) => ({ ...prev, logoUrl: finalLogoUrl }));
       }
 
@@ -387,41 +401,41 @@ export function OnboardingWizard({
       }
 
       await updateOnboardingProfile(userId, {
-        name: formData.name,
-        category: formData.category,
-        phone: formData.phone,
-        address: formData.address,
+        name: formData.name?.trim() || "",
+        category: formData.category?.trim() || "",
+        phone: formData.phone?.trim() || "",
+        address: formData.address?.trim() || "",
         website: websiteUrl,
-        instagram: formData.instagram,
-        description: formData.description,
-        primaryColor: formData.primaryColor,
-        secondaryColor: formData.secondaryColor,
-        slogan: formData.slogan,
-        targetAudience: formData.targetAudience,
-        toneOfVoice: formData.toneOfVoice,
+        instagram: formData.instagram?.trim() || "",
+        description: formData.description?.trim() || "",
+        primaryColor: formData.primaryColor || "#0083C7",
+        secondaryColor: formData.secondaryColor || "#1E293B",
+        slogan: formData.slogan?.trim() || "",
+        targetAudience: formData.targetAudience?.trim() || "",
+        toneOfVoice: formData.toneOfVoice?.trim() || "",
         cnpj: cleanCnpj,
         cnpjLocked: true, // Travar o CNPJ na conclusão do onboarding
         onboardingCompleted: true,
         logo: {
-          url: finalLogoUrl,
-          width: formData.logoWidth,
-          height: formData.logoHeight,
+          url: finalLogoUrl || "",
+          width: Number(formData.logoWidth) || 0,
+          height: Number(formData.logoHeight) || 0,
         },
         logos: {
           vertical: {
-            url: finalLogoUrl,
-            width: formData.logoWidth,
-            height: formData.logoHeight,
+            url: finalLogoUrl || "",
+            width: Number(formData.logoWidth) || 0,
+            height: Number(formData.logoHeight) || 0,
           },
           horizontal: {
-            url: finalHorizontalUrl,
-            width: initialData?.logos?.horizontal?.width || 0,
-            height: initialData?.logos?.horizontal?.height || 0,
+            url: finalHorizontalUrl || "",
+            width: Number(initialData?.logos?.horizontal?.width) || 0,
+            height: Number(initialData?.logos?.horizontal?.height) || 0,
           },
           symbol: {
-            url: finalSymbolUrl,
-            width: initialData?.logos?.symbol?.width || 0,
-            height: initialData?.logos?.symbol?.height || 0,
+            url: finalSymbolUrl || "",
+            width: Number(initialData?.logos?.symbol?.width) || 0,
+            height: Number(initialData?.logos?.symbol?.height) || 0,
           },
         },
       });
@@ -430,11 +444,11 @@ export function OnboardingWizard({
       setTimeout(() => {
         onComplete();
       }, 2500);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao finalizar onboarding:", error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar suas informações.",
+        description: error?.message || "Não foi possível salvar suas informações.",
         variant: "destructive",
       });
     } finally {
@@ -445,20 +459,34 @@ export function OnboardingWizard({
   const handleSkip = async () => {
     const cleanCnpj = formData.cnpj.replace(/\D/g, "");
     try {
-      // Helper para converter dataUrl base64 em File/Blob para upload no Storage
-      const uploadBase64ToStorage = async (base64Str: string, type: string) => {
-        const res = await fetch(base64Str);
-        const blob = await res.blob();
-        const currentUser = auth.currentUser;
-        const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
-        const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
-        const uploadResult = await uploadBytes(storageRef, blob);
-        return await getDownloadURL(uploadResult.ref);
+      // Helper robusto para converter dataUrl base64 em File/Blob para upload no Storage
+      const uploadBase64ToStorage = async (base64Str: string, type: string): Promise<string> => {
+        try {
+          const res = await fetch(base64Str);
+          const blob = await res.blob();
+          const currentUser = auth.currentUser;
+          const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
+          const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
+          
+          let contentType = blob.type;
+          if (!contentType || contentType === "application/octet-stream") {
+            if (base64Str.startsWith("data:image/svg+xml")) contentType = "image/svg+xml";
+            else if (base64Str.startsWith("data:image/jpeg") || base64Str.startsWith("data:image/jpg")) contentType = "image/jpeg";
+            else if (base64Str.startsWith("data:image/webp")) contentType = "image/webp";
+            else contentType = "image/png";
+          }
+
+          const uploadResult = await uploadBytes(storageRef, blob, { contentType });
+          return await getDownloadURL(uploadResult.ref);
+        } catch (storageErr) {
+          console.warn(`[ONBOARDING] Falha ao enviar logo ${type} para o Storage no Skip:`, storageErr);
+          return base64Str;
+        }
       };
 
-      let finalLogoUrl = formData.logoUrl;
-      if (formData.logoUrl && formData.logoUrl.startsWith("data:image")) {
-        finalLogoUrl = await uploadBase64ToStorage(formData.logoUrl, "vertical");
+      let finalLogoUrl = formData.logoUrl || "";
+      if (finalLogoUrl && finalLogoUrl.startsWith("data:image")) {
+        finalLogoUrl = await uploadBase64ToStorage(finalLogoUrl, "vertical");
         setFormData((prev) => ({ ...prev, logoUrl: finalLogoUrl }));
       }
 
@@ -474,46 +502,47 @@ export function OnboardingWizard({
 
       // Salva o progresso inserido até o momento antes de marcar como completo, impedindo perda de dados
       await updateOnboardingProfile(userId, {
-        name: formData.name,
-        category: formData.category,
-        phone: formData.phone,
-        address: formData.address,
-        website: formData.website,
-        instagram: formData.instagram,
-        description: formData.description,
-        primaryColor: formData.primaryColor,
-        secondaryColor: formData.secondaryColor,
-        slogan: formData.slogan,
-        targetAudience: formData.targetAudience,
-        toneOfVoice: formData.toneOfVoice,
+        name: formData.name?.trim() || "",
+        category: formData.category?.trim() || "",
+        phone: formData.phone?.trim() || "",
+        address: formData.address?.trim() || "",
+        website: formData.website?.trim() || "",
+        instagram: formData.instagram?.trim() || "",
+        description: formData.description?.trim() || "",
+        primaryColor: formData.primaryColor || "#0083C7",
+        secondaryColor: formData.secondaryColor || "#1E293B",
+        slogan: formData.slogan?.trim() || "",
+        targetAudience: formData.targetAudience?.trim() || "",
+        toneOfVoice: formData.toneOfVoice?.trim() || "",
         cnpj: cleanCnpj,
         cnpjLocked: cleanCnpj.length === 14, // Travar se estiver preenchido completamente
         onboardingCompleted: true,
         logo: {
-          url: finalLogoUrl,
-          width: formData.logoWidth,
-          height: formData.logoHeight,
+          url: finalLogoUrl || "",
+          width: Number(formData.logoWidth) || 0,
+          height: Number(formData.logoHeight) || 0,
         },
         logos: {
           vertical: {
-            url: finalLogoUrl,
-            width: formData.logoWidth,
-            height: formData.logoHeight,
+            url: finalLogoUrl || "",
+            width: Number(formData.logoWidth) || 0,
+            height: Number(formData.logoHeight) || 0,
           },
           horizontal: {
-            url: finalHorizontalUrl,
-            width: initialData?.logos?.horizontal?.width || 0,
-            height: initialData?.logos?.horizontal?.height || 0,
+            url: finalHorizontalUrl || "",
+            width: Number(initialData?.logos?.horizontal?.width) || 0,
+            height: Number(initialData?.logos?.horizontal?.height) || 0,
           },
           symbol: {
-            url: finalSymbolUrl,
-            width: initialData?.logos?.symbol?.width || 0,
-            height: initialData?.logos?.symbol?.height || 0,
+            url: finalSymbolUrl || "",
+            width: Number(initialData?.logos?.symbol?.width) || 0,
+            height: Number(initialData?.logos?.symbol?.height) || 0,
           },
         },
       });
       onComplete();
     } catch (error) {
+      console.error("[ONBOARDING] Erro no handleSkip:", error);
       onClose();
     }
   };

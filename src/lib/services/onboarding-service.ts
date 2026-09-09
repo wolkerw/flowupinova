@@ -186,6 +186,26 @@ export async function getOnboardingProfile(userId: string): Promise<OnboardingPr
 }
 
 /**
+ * Remove recursivamente valores undefined para garantir que o Firestore não lance
+ * erro 'Unsupported field value: undefined'.
+ */
+function sanitizeFirestoreData<T>(obj: T): T {
+  if (obj === undefined) return null as any;
+  if (obj === null || typeof obj !== "object") return obj;
+  if (obj instanceof Date) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeFirestoreData).filter((v) => v !== undefined) as any;
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      clean[key] = sanitizeFirestoreData(value);
+    }
+  }
+  return clean as T;
+}
+
+/**
  * Atualiza os campos do perfil de onboarding e Brand Kit no Firestore.
  * @param userId ID do usuário no Firebase Auth
  * @param data Dados parciais a serem salvos
@@ -201,11 +221,12 @@ export async function updateOnboardingProfile(
   try {
     const docRef = getOnboardingDocRef(userId);
     const merge = options?.merge !== false;
-    await setDoc(docRef, data, { merge });
+    const sanitizedData = sanitizeFirestoreData(data);
+    await setDoc(docRef, sanitizedData, { merge });
     console.log(`Perfil de onboarding atualizado com sucesso para o usuário ${userId}.`);
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Erro ao atualizar perfil de onboarding para o usuário ${userId}:`, error);
-    throw new Error("Não foi possível atualizar o perfil de onboarding.");
+    throw new Error(error?.message || "Não foi possível atualizar o perfil de onboarding.");
   }
 }
 
