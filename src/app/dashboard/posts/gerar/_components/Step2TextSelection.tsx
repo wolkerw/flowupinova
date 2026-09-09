@@ -50,6 +50,19 @@ export const Step2TextSelection = () => {
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
+  // Auto-seleciona primeiro conteúdo e primeira imagem no modo síncrono de produto
+  React.useEffect(() => {
+    if (isSyncImageMode && !selectedContentId && generatedContent.length > 0) {
+      onSelectedContentIdChange("0");
+    }
+  }, [isSyncImageMode, selectedContentId, generatedContent, onSelectedContentIdChange]);
+
+  React.useEffect(() => {
+    if (isSyncImageMode && generatedImages.length > 0 && !selectedImage) {
+      onSelectedImageChange(generatedImages[0]);
+    }
+  }, [isSyncImageMode, generatedImages, selectedImage, onSelectedImageChange]);
+
   const onBack = () => setStep(1);
   const onNext = () => {
     if (isSyncImageMode) {
@@ -63,6 +76,113 @@ export const Step2TextSelection = () => {
   const selectedContent = selectedContentId
     ? generatedContent[parseInt(selectedContentId, 10)]
     : null;
+
+  // No fluxo Produto (isSyncImageMode), renderiza APENAS a geração e visualização da imagem
+  if (isSyncImageMode) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mx-auto w-full max-w-2xl"
+      >
+        <Card className="overflow-hidden border-none shadow-lg">
+          <CardHeader className="pb-2 text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-xl font-bold text-gray-900">
+              <Sparkles className="h-6 w-6 text-accent" />
+              Etapa 2: Criação da Imagem com IA
+            </CardTitle>
+            <p className="pt-1 text-sm text-gray-600">
+              {isGeneratingImages
+                ? "Nossa IA está ambientando e criando o criativo do seu produto..."
+                : "Imagem gerada com sucesso! Avance para adicionar sua logomarca."}
+            </p>
+          </CardHeader>
+          <CardContent className="pb-6 pt-4">
+            {isGeneratingImages ? (
+              <div className="relative flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-gray-100 bg-gray-50/80 p-8">
+                <CircularProgressLoader isActive={isGeneratingImages} />
+              </div>
+            ) : generatedImages.length > 0 ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-full max-w-sm">
+                  {generatedImages.map((imgSrc, index) => (
+                    <div
+                      key={`img-${index}`}
+                      onClick={() => onSelectedImageChange(imgSrc)}
+                      className={cn(
+                        "group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl shadow-md transition-all duration-300",
+                        "ring-4 ring-offset-2",
+                        selectedImage === imgSrc
+                          ? "ring-accent"
+                          : "ring-transparent hover:ring-accent/40"
+                      )}
+                    >
+                      <Image
+                        src={imgSrc}
+                        alt={`Imagem gerada ${index + 1}`}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        unoptimized
+                      />
+                      {selectedImage === imgSrc && (
+                        <div className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white shadow-md">
+                          <Check className="h-5 w-5" />
+                        </div>
+                      )}
+                      {onDownload && (
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDownload(imgSrc);
+                          }}
+                          className="absolute left-3 top-3 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-gray-50 p-8 text-gray-400">
+                <Loader2 className="h-10 w-10 animate-spin text-accent" />
+                <p className="mt-3 text-sm font-semibold text-gray-600">
+                  Aguardando geração da imagem...
+                </p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex items-center justify-between border-t p-6">
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+            <Button
+              onClick={onNext}
+              disabled={!selectedImage || isGeneratingImages}
+              className="bg-accent px-6 font-bold text-white shadow-md hover:bg-accent/90"
+            >
+              {isGeneratingImages ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Gerando Imagem...
+                </>
+              ) : (
+                <>
+                  Avançar
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

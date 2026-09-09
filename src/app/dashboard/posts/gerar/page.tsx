@@ -35,7 +35,7 @@ function WizardContent() {
   const wizardSteps = isSyncImageMode
     ? [
         { number: 1, label: "Ideia" },
-        { number: 2, label: "Conteúdo" },
+        { number: 2, label: "Imagem" },
         { number: 3, label: "Marca" },
         { number: 4, label: "Revisão e Publicação" },
       ]
@@ -56,7 +56,7 @@ function WizardContent() {
             "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
           {step === 2 &&
             (isSyncImageMode
-              ? "Etapa 2: Selecione uma opção de legenda e acompanhe a imagem gerada."
+              ? "Etapa 2: Acompanhe a imagem do seu produto sendo gerada pela IA."
               : "Etapa 2: Selecione uma opção de texto para o seu post.")}
           {step === 3 &&
             (isSyncImageMode
