@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, PlayCircle, Sparkles, CheckCircle2, X } from "lucide-react";
 import { TypingAnimation } from "./animated-flows";
+
+const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
 // URL do vídeo de demonstração — troque pela variável de ambiente NEXT_PUBLIC_DEMO_VIDEO_URL
 const DEMO_VIDEO_URL =
@@ -14,13 +17,6 @@ const DEMO_VIDEO_URL =
 
 function VideoLightbox({ onClose }: { onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
-
-  // Detecta se a URL é um arquivo de vídeo direto (Firebase Storage, .mp4, etc.)
-  const isVideoDirectFile =
-    DEMO_VIDEO_URL.includes(".mp4") ||
-    DEMO_VIDEO_URL.includes(".webm") ||
-    DEMO_VIDEO_URL.includes("firebasestorage.googleapis.com") ||
-    DEMO_VIDEO_URL.startsWith("/videos/");
 
   // Fechar com ESC
   useEffect(() => {
@@ -71,30 +67,22 @@ function VideoLightbox({ onClose }: { onClose: () => void }) {
             <span>Fechar (ESC)</span>
           </button>
 
-          {/* Container responsivo 16:9 */}
+          {/* Container responsivo 16:9 com ReactPlayer */}
           <div
             className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10"
             style={{ paddingBottom: "56.25%" }}
           >
-            {isVideoDirectFile ? (
-              <video
-                className="absolute inset-0 h-full w-full object-contain bg-black"
-                src={DEMO_VIDEO_URL}
+            <div className="absolute inset-0 h-full w-full">
+              <ReactPlayer
+                url={DEMO_VIDEO_URL}
+                width="100%"
+                height="100%"
                 controls
-                autoPlay
-                playsInline
-              >
-                Seu navegador não suporta a reprodução deste vídeo.
-              </video>
-            ) : (
-              <iframe
-                className="absolute inset-0 h-full w-full"
-                src={DEMO_VIDEO_URL}
-                title="Demonstração NumVapt"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
+                playing
+                playsinline
+                style={{ position: "absolute", top: 0, left: 0 }}
               />
-            )}
+            </div>
           </div>
 
           {/* Texto abaixo do vídeo */}
