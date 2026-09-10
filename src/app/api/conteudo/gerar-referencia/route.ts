@@ -7,6 +7,7 @@ import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
 import { safeParseJSON } from "@/lib/utils";
+import { correctPortugueseHeadline } from "@/lib/headline-corrector";
 
 export const maxDuration = 300;
 
@@ -871,7 +872,8 @@ ${
         descLower.includes("homem");
 
       let textRenderingInstruction = "";
-      const effectiveHeadline = textHeadline || title || "";
+      const rawHeadline = textHeadline || title || "";
+      const effectiveHeadline = await correctPortugueseHeadline(rawHeadline);
 
       if (textOverlayMode === "NONE") {
         textRenderingInstruction = `
@@ -879,20 +881,23 @@ ${
 `;
       } else if (textOverlayMode === "TITLE_ONLY") {
         textRenderingInstruction = `
-- COMMERCIAL ADVERTISING TYPOGRAPHY (MAIN HEADLINE ONLY):
+- COMMERCIAL ADVERTISING TYPOGRAPHY & PRESET-GRADE POSTER DESIGN (MAIN HEADLINE ONLY):
   - Prominently feature the main headline in Portuguese (pt-BR): "${effectiveHeadline || "O SEU PRODUTO EM DESTAQUE"}".
-  - Instruct the image generator to render clean, high-contrast, modern commercial typography placed safely within the central upper area (at least 20% margin from all borders to prevent clipping).
-  - STRICTLY FORBIDDEN: DO NOT include complex feature cards, bullet icons, spec tables, or multiple footer text badges. Clean photography with an elegant primary headline.
+  - ADVERTISING DESIGN & TYPOGRAPHY: Render clean, high-impact, modern commercial display typography (bold sans-serif or refined editorial serif in balanced uppercase or title-case).
+  - CONTRAST & LEGIBILITY (AGENCY FINISH): Apply professional graphic treatment such as subtle soft drop-shadow, dimensional depth, or an elegant semi-transparent / frosted glass pill container backdrop to guarantee 100% legibility over any background or texture.
+  - COMPOSITION: Positioned safely within the central upper-third area with at least 20% breathing room/margins from all borders to prevent clipping.
+  - STRICT CLEAN LAYOUT: STRICTLY FORBIDDEN to include complex feature cards, bullet icons, spec tables, or multiple footer text badges. Clean advertising photography with an elegant primary headline.
 `;
       } else {
         // INFOGRAPHIC ou BOTH
         textRenderingInstruction = `
 - COMPLETE COMMERCIAL ADVERTISING AGENCY POSTER & INFOGRAPHIC LAYOUT:
-  - HEADLINE: Render an impactful, bold commercial headline at the top in Portuguese (pt-BR): "${effectiveHeadline || "QUALIDADE & PERFORMANCE EM CADA DETALHE"}".
+  - HEADLINE (AGENCY PRESET-GRADE): Render an impactful, bold commercial headline at the top in Portuguese (pt-BR): "${effectiveHeadline || "QUALIDADE & PERFORMANCE EM CADA DETALHE"}". Styled with premium advertising typography in uppercase, featuring subtle drop-shadow or a sleek semi-transparent frosted glass pill backdrop for razor-sharp legibility.
   - QUALITY/GUARANTEE SEAL: Include a sleek floating circular quality badge or guarantee seal (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL").
   - 3-4 BENEFIT CALLOUT CARDS: Integrate an elegant row or stack of 3 to 4 distinct feature cards with minimalist line icons and short, crisp descriptors in Portuguese (pt-BR) tailored specifically to the real physical attributes of the product (e.g., "Tecido Respirável", "Toque Ultra Macio", "Costura Reforçada", "Alta Durabilidade").
   - SLOGAN / CTA FOOTER: A subtle, refined slogan bar or call-to-action in Portuguese at the lower margin.
   - COMPOSITION: All text elements, containers, and badges MUST adhere strictly to the 20% inner safe boundary margin from canvas borders to prevent any text cutoff.
+  - ZERO LOGOS: Absolutely do not render, stamp or invent any company logo or watermark.
 `;
       }
 
@@ -960,9 +965,10 @@ ${dynamicPrompts.ugc_prompt || `# UGC PHOTOGRAPHY & ESTHETIC COMMERCIAL STAGING
 - Emphasize natural tangible textures: "crisp product reflections, droplets, physical shadows, and pristine material details".`}
 
 # OUTPUT FORMAT (Strict JSON)
-You must return exclusively a valid JSON object with the following key. Do not include any explanations, introductory or concluding text:
+You must return exclusively a valid JSON object with the following keys. Do not include any explanations, introductory or concluding text:
 {
-  "imagePrompt": "The highly detailed descriptive prompt in English for the Flux Kontext model. It must be completely photographic, natural, and focus on the product and scene realism with absolutely no texts, logos, or overlay graphics except for the requested styled text title."
+  "imagePrompt": "The highly detailed descriptive prompt in English for the Flux Kontext model. It must be completely photographic, natural, and focus on the product and scene realism with absolutely no texts, logos, or overlay graphics except for the requested styled text title.",
+  "correctedHeadline": "The pristine, grammatically corrected headline in Portuguese (pt-BR) with proper accents, flawless spelling, and commercial polish (or empty string if none requested)."
 }
 `;
 
@@ -1145,7 +1151,11 @@ ${yamlAnalysis}`;
         }
       }
 
-      return NextResponse.json({ success: true, imagePrompt: parsedPrompt.imagePrompt });
+      return NextResponse.json({
+        success: true,
+        imagePrompt: parsedPrompt.imagePrompt,
+        correctedHeadline: parsedPrompt.correctedHeadline || effectiveHeadline || "",
+      });
     }
 
     if (action === "submit-kontext") {
@@ -1952,20 +1962,21 @@ Cenário desejado e estilo: ${prompt}`;
           ? "FASHION & APPAREL EDITORIAL FRAMING: The clothing/apparel from the input image is worn naturally by a professional fashion model in a stylish pose, showcasing the outfit with realistic fabric textures and studio fashion lighting."
           : "";
 
-        const headlineToUse =
+        const rawHeadline =
           textHeadline ||
           (caption && caption.trim().length > 0 && caption.trim().length < 80 ? caption.trim() : "") ||
           "";
+        const headlineToUse = await correctPortugueseHeadline(rawHeadline);
 
         let agencyDirective = "";
         if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
           const headlineText = headlineToUse
             ? `com o título em destaque: "${headlineToUse}"`
             : "com headline de destaque e selo de qualidade";
-          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful headline at the top in Portuguese (pt-BR) ${headlineText} with decorative badge/icon, (2) A floating quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The hero product prominently staged in high fidelity with thematic lighting and atmospheric depth, (4) At the bottom or side, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful headline at the top in Portuguese (pt-BR) ${headlineText} styled with modern bold uppercase advertising display typography, subtle soft drop-shadow or a sleek semi-transparent frosted glass pill backdrop for high-contrast legibility, (2) A floating circular quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The hero product prominently staged in high fidelity with thematic lighting and atmospheric depth, (4) At the bottom or side, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping. ZERO LOGOS: Do not draw any company logo or watermark.`;
         } else if (textOverlayMode === "TITLE_ONLY") {
           const headlineText = headlineToUse ? `"${headlineToUse}"` : '"O SEU PRODUTO EM DESTAQUE"';
-          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText}, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText} styled with bold advertising typography in uppercase with high contrast (soft drop-shadow or elegant frosted glass pill container), (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping. ZERO LOGOS: Do not draw any company logo or watermark.`;
         } else if (isProductPreset) {
           agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
         } else {
@@ -1974,7 +1985,7 @@ Cenário desejado e estilo: ${prompt}`;
 
         let typographyPrompt = "";
         if (insertTextOnImage && headlineToUse) {
-          typographyPrompt = `CUSTOM HEADLINE: Use the exact headline text "${headlineToUse}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Place all text within the central safe area with at least 20% breathing room from borders. If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling in Portuguese, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
+          typographyPrompt = `PRESET-GRADE COMMERCIAL ADVERTISING TYPOGRAPHY: Use the exact headline text "${headlineToUse}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast uppercase typography"}. Apply professional advertising art direction: subtle soft drop-shadow, dimensional depth, or a sleek frosted glass / semi-transparent pill container backdrop to guarantee 100% legibility against the background. Place all text strictly within the central safe upper area with at least 20% breathing room from all borders. If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling in Portuguese with accurate accents, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
         } else if (!insertTextOnImage && textOverlayMode === "NONE") {
           typographyPrompt =
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";

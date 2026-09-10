@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from "@/lib/api-auth";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { Jimp } from "jimp";
+import { correctPortugueseHeadline } from "@/lib/headline-corrector";
 
 export const maxDuration = 300;
 
@@ -207,17 +208,18 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
-    // Injeção de Diretrizes de Diagramação e Textos na Arte
-    const activeHeadline = textHeadline ? textHeadline.trim() : content?.titulo || "";
+    // Injeção de Diretrizes de Diagramação e Textos na Arte com Correção Ortográfica e Layout de Agência
+    const rawHeadline = textHeadline ? textHeadline.trim() : content?.titulo || "";
+    const activeHeadline = await correctPortugueseHeadline(rawHeadline);
     const brandName = businessProfile?.name || businessProfile?.brandKit?.name || "";
     const isOption1 = fileName === "1";
 
     if (textOverlayMode === "NONE" || insertTextOnImage === false) {
       finalPrompt += " [CRITICAL MANDATE — FOTOGRAFIA PURA (ABSOLUTELY ZERO TEXT): DO NOT render any text, typography, letters, words, slogans, banners, badges, or watermarks on the image. The image must be 100% clean photography.]";
     } else if (textOverlayMode === "TITLE_ONLY" && activeHeadline) {
-      finalPrompt += ` [DIAGRAMAÇÃO APENAS TÍTULO: Renderize na imagem APENAS a headline comercial principal em destaque em Português (pt-BR): "${activeHeadline}". ESTRITAMENTE PROIBIDO adicionar cartões de benefícios, infográficos secundários, selos ou rodapés textuais complexos. Foto limpa com tipografia elegante e margens seguras de 20%. PROIBIDO desenhar qualquer logotipo ou marca na imagem.]`;
+      finalPrompt += ` [DIAGRAMAÇÃO PUBLICITÁRIA APENAS TÍTULO (DESIGN DE AGÊNCIA): Renderize na imagem APENAS a headline comercial principal em destaque em Português (pt-BR): "${activeHeadline}". ESTILO DE DESIGN: Tipografia moderna, encorpada e publicitária em caixa alta, com acabamento gráfico de alto contraste (sombra suave de profundidade, relevo 3D sutil ou container translúcido elegante estilo frosted glass para máxima legibilidade contra o fundo). Posicionamento no terço superior com margens seguras de 20% das bordas. ESTRITAMENTE PROIBIDO adicionar cartões de benefícios, infográficos secundários, selos ou rodapés textuais complexos. Foto limpa com tipografia elegante e sem corte. PROIBIDO desenhar qualquer logotipo ou marca na imagem.]`;
     } else if ((textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") && activeHeadline) {
-      finalPrompt += ` [DIAGRAMAÇÃO INFOGRÁFICO COMPLETO COM TÍTULO EM DESTAQUE: Renderize a arte publicitária completa em Português (pt-BR) com o título principal: "${activeHeadline}", acompanhado de diagramação infográfica, cartões visuais de benefícios, ícones e selos comerciais elegantes com margens seguras de 20%. PROIBIÇÃO ABSOLUTA DE LOGOMARCAS (ZERO LOGOS): ESTRITAMENTE PROIBIDO desenhar, carimbar, simular ou inventar qualquer logotipo, logomarca, emblema ou nome de empresa na imagem (seja em cantos, rodapés, cabeçalhos, telas de celulares/tablets ou dentro de cards de vidro). A imagem deve ter o espaço de cabeçalho e rodapé 100% limpo e livre de logos desenhadas pela IA, pois a logo oficial é aplicada manualmente pelo usuário no editor de marca.]`;
+      finalPrompt += ` [DIAGRAMAÇÃO PUBLICITÁRIA INFOGRÁFICO COMPLETO (DESIGN DE AGÊNCIA COM TÍTULO EM DESTAQUE): Renderize a arte publicitária completa em Português (pt-BR) com o título principal: "${activeHeadline}". ESTILO DE DESIGN DA HEADLINE: Tipografia moderna, encorpada e publicitária em caixa alta, com acabamento gráfico de alto contraste (sombra suave de profundidade, relevo sutil ou container translúcido elegante para máxima legibilidade). Acompanhado de diagramação infográfica, cartões visuais de benefícios com ícones minimalistas, selo de qualidade flutuante e rodapé comercial elegante, todos com margens seguras de 20% das bordas. PROIBIÇÃO ABSOLUTA DE LOGOMARCAS (ZERO LOGOS): ESTRITAMENTE PROIBIDO desenhar, carimbar, simular ou inventar qualquer logotipo, logomarca, emblema ou nome de empresa na imagem (seja em cantos, rodapés, cabeçalhos, telas de celulares/tablets ou dentro de cards de vidro). A imagem deve ter o espaço de cabeçalho e rodapé 100% limpo e livre de logos desenhadas pela IA, pois a logo oficial é aplicada manualmente pelo usuário no editor de marca.]`;
     }
 
     // 2. Modelo Principal Estrito: gpt-image-2 (OpenAI) é SEMPRE o motor primário absoluto
