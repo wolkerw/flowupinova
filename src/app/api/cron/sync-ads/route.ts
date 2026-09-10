@@ -4,11 +4,32 @@ import { Timestamp } from "firebase-admin/firestore";
 
 export const dynamic = "force-dynamic";
 
+function validateCronAuthorization(request: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return true;
+  }
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader === `Bearer ${cronSecret}`) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function GET(request: NextRequest) {
   return POST(request);
 }
 
 export async function POST(request: NextRequest) {
+  if (!validateCronAuthorization(request)) {
+    return NextResponse.json(
+      { error: "Acesso não autorizado ao CRON." },
+      { status: 401 }
+    );
+  }
+
   console.log("==============================================");
   console.log("[CRON_SYNC_ADS] Iniciando tarefa agendada global...");
   console.log("==============================================");

@@ -44,6 +44,23 @@ vi.mock("@/lib/services/meta-service", () => ({
   updateMetaConnection: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
+vi.mock("@/lib/services/google-service", () => ({
+  getGoogleConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
+vi.mock("@/lib/services/linkedin-service", () => ({
+  getLinkedInConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+  updateLinkedInConnection: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/services/tiktok-service", () => ({
+  getTikTokConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
 describe("Posts Page", () => {
   it("renders the main title and section header", async () => {
     render(

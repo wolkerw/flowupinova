@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { safeParseJSON } from "@/lib/utils";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json(
+        { error: "Autenticação obrigatória para gerar conteúdo." },
+        { status: 401 }
+      );
+    }
+
     const { summary, businessProfile, selectedPersona: explicitPersona } = await request.json();
 
     if (!summary) {

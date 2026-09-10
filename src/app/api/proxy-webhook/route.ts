@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getGlobalSettings } from "@/lib/services/settings-service-admin";
-import { admin, adminDb, getUidFromCookie } from "@/lib/firebase-admin";
+import { admin, adminDb } from "@/lib/firebase-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 import crypto from "crypto";
 
 export const maxDuration = 300;
@@ -10,6 +11,15 @@ export async function POST(request: NextRequest) {
   if (process.env.NODE_ENV === "development") {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   }
+
+  const authUser = await getAuthenticatedUser(request);
+  if (!authUser) {
+    return NextResponse.json(
+      { error: "Autenticação obrigatória para acessar esta funcionalidade." },
+      { status: 401 }
+    );
+  }
+  const userId = authUser.uid;
   const target = request.nextUrl.searchParams.get("target");
   let webhookUrl = "";
 
@@ -73,7 +83,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Arquivo de imagem ausente." }, { status: 400 });
       }
 
-      const userId = await getUidFromCookie().catch(() => "anonymous");
       const buffer = Buffer.from(await file.arrayBuffer());
 
       const userStoragePath = await getUserStoragePathAdmin(userId);
@@ -168,8 +177,6 @@ export async function POST(request: NextRequest) {
       const arrayBuffer = await webhookResponse.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const userId = await getUidFromCookie().catch(() => "anonymous");
-
       const userStoragePath = await getUserStoragePathAdmin(userId);
       const dateStr = new Date()
         .toISOString()
@@ -218,7 +225,7 @@ export async function POST(request: NextRequest) {
         `[PROXY_WEBHOOK] Conexão com webhook falhou (${error.message}). Ativando fallback resiliente direto no Firebase...`
       );
       try {
-        return await fallbackSaveDirectToStorage(formData);
+        return await fallbackSaveDirectToStorage(formData, userId);
       } catch (fallbackErr: any) {
         console.error("[PROXY_WEBHOOK] Falha também no fallback direto do Firebase:", fallbackErr);
       }
@@ -261,7 +268,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function fallbackSaveDirectToStorage(formData: FormData) {
+async function fallbackSaveDirectToStorage(formData: FormData, userId: string) {
   const mainFile = (formData.get("file") as File) || null;
   const logoFile = (formData.get("logo") as File) || null;
 
@@ -270,7 +277,6 @@ async function fallbackSaveDirectToStorage(formData: FormData) {
     throw new Error("Nenhum arquivo de imagem encontrado no formulário.");
   }
 
-  const userId = await getUidFromCookie().catch(() => "anonymous");
   let buffer = Buffer.from(await targetFile.arrayBuffer());
 
   // Se houver arquivo principal e logomarca, realiza a composição usando Jimp

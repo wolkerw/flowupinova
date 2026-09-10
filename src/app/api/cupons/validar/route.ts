@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { publicApiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   try {
+    const ip = getIpFromRequest(request);
+    const { success, limit, reset, remaining } = await publicApiRateLimit.limit(`coupon_val_${ip}`);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Muitas tentativas de validação. Tente novamente mais tarde." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
 
