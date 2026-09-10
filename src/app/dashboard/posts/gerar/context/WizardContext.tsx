@@ -862,11 +862,21 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           : `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""}`;
 
         promptFormData.append("description", combinedDescription);
-        // Se o usuário optou por não gerar texto (generateTextSuggestions === false), não inserimos texto na imagem.
-        const shouldInsertText = generateTextSuggestions ? insertTextOnImage !== false : false;
+        // Determinar headline efetiva com fallback inteligente
+        const effectiveHeadline =
+          productHeadline.trim() ||
+          selContent?.titulo ||
+          (postSummary.trim() ? postSummary.trim().slice(0, 70) : "");
 
-        if (selContent?.titulo && shouldInsertText) {
-          promptFormData.append("title", selContent.titulo);
+        promptFormData.append("textOverlayMode", textOverlayMode);
+        promptFormData.append(
+          "insertTextOnImage",
+          String(insertTextOnImage !== false && textOverlayMode !== "NONE")
+        );
+
+        if (effectiveHeadline && textOverlayMode !== "NONE") {
+          promptFormData.append("title", effectiveHeadline);
+          promptFormData.append("textHeadline", effectiveHeadline);
         }
         if (businessProfile) {
           promptFormData.append("businessProfile", JSON.stringify(businessProfile));
@@ -1088,8 +1098,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("insertTextOnImage", String(insertTextOnImage !== false && textOverlayMode !== "NONE"));
             nanobananaFormData.append("textOverlayMode", textOverlayMode);
             nanobananaFormData.append("referenceReplicationMode", referenceReplicationMode);
-            if (productHeadline) {
-              nanobananaFormData.append("textHeadline", productHeadline.trim());
+            const effectiveNanobananaHeadline =
+              productHeadline.trim() ||
+              selContent?.titulo ||
+              (postSummary.trim() ? postSummary.trim().slice(0, 70) : "");
+            if (effectiveNanobananaHeadline && textOverlayMode !== "NONE") {
+              nanobananaFormData.append("textHeadline", effectiveNanobananaHeadline);
             }
             if (businessProfile) {
               nanobananaFormData.append("businessProfile", JSON.stringify(businessProfile));

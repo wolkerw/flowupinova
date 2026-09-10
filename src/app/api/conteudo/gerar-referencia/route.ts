@@ -705,6 +705,8 @@ If the image depicts a CHARACTER:
       let inspirationFile: File | null = null;
       let isRetailStyle = false;
       let hybridPriority = "balanced";
+      let textOverlayMode = "INFOGRAPHIC";
+      let textHeadline = "";
 
       const contentType = request.headers.get("content-type") || "";
       if (contentType.includes("multipart/form-data")) {
@@ -714,6 +716,10 @@ If the image depicts a CHARACTER:
         title = (formData.get("title") as string) || "";
         isRetailStyle = formData.get("isRetailStyle") === "true";
         hybridPriority = (formData.get("hybridPriority") as string) || "balanced";
+        textOverlayMode =
+          (formData.get("textOverlayMode") as string) ||
+          (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
+        textHeadline = (formData.get("textHeadline") as string) || title || "";
         const profileStr = formData.get("businessProfile") as string;
         if (profileStr) {
           try {
@@ -728,6 +734,9 @@ If the image depicts a CHARACTER:
         title = body.title || "";
         isRetailStyle = body.isRetailStyle === true || body.isRetailStyle === "true";
         hybridPriority = body.hybridPriority || "balanced";
+        textOverlayMode =
+          body.textOverlayMode || (body.insertTextOnImage === false ? "NONE" : "INFOGRAPHIC");
+        textHeadline = body.textHeadline || body.title || title || "";
         businessProfile = body.businessProfile || null;
       }
 
@@ -824,9 +833,68 @@ ${
         }
       }
 
-      const textRenderingInstruction = `
-- The prompt MUST describe the visual scene and subjects, but it MUST contain ABSOLUTELY NO text, letters, slogans, prices, or graphical UI elements written on the canvas. Under no circumstances should any typography, text, or character be printed on the generated image.
+      const descLower = (description || "").toLowerCase();
+      const yamlLower = (yamlAnalysis || "").toLowerCase();
+      const isApparelOrFashion =
+        yamlLower.includes("clothing") ||
+        yamlLower.includes("apparel") ||
+        yamlLower.includes("dress") ||
+        yamlLower.includes("shirt") ||
+        yamlLower.includes("pants") ||
+        yamlLower.includes("suit") ||
+        yamlLower.includes("t-shirt") ||
+        yamlLower.includes("jacket") ||
+        yamlLower.includes("hoodie") ||
+        yamlLower.includes("garment") ||
+        yamlLower.includes("roupa") ||
+        yamlLower.includes("vestido") ||
+        yamlLower.includes("calça") ||
+        yamlLower.includes("camisa") ||
+        yamlLower.includes("conjunto") ||
+        descLower.includes("roupa") ||
+        descLower.includes("conjunto") ||
+        descLower.includes("vestido") ||
+        descLower.includes("camisa") ||
+        descLower.includes("look") ||
+        descLower.includes("moda") ||
+        descLower.includes("fashion");
+
+      const userWantsModel =
+        descLower.includes("modelo") ||
+        descLower.includes("model") ||
+        descLower.includes("vestir") ||
+        descLower.includes("vestida") ||
+        descLower.includes("vestido") ||
+        descLower.includes("no corpo") ||
+        descLower.includes("pessoa") ||
+        descLower.includes("mulher") ||
+        descLower.includes("homem");
+
+      let textRenderingInstruction = "";
+      const effectiveHeadline = textHeadline || title || "";
+
+      if (textOverlayMode === "NONE") {
+        textRenderingInstruction = `
+- FOTOGRAFIA PURA (ABSOLUTELY ZERO TEXT): The prompt MUST describe purely the physical photograph and scene without ANY written text, typography, letters, words, slogans, banners, badges, cards, or watermarks on the canvas. Under no circumstances should any typography, text, or character be printed on the generated image.
 `;
+      } else if (textOverlayMode === "TITLE_ONLY") {
+        textRenderingInstruction = `
+- COMMERCIAL ADVERTISING TYPOGRAPHY (MAIN HEADLINE ONLY):
+  - Prominently feature the main headline in Portuguese (pt-BR): "${effectiveHeadline || "O SEU PRODUTO EM DESTAQUE"}".
+  - Instruct the image generator to render clean, high-contrast, modern commercial typography placed safely within the central upper area (at least 20% margin from all borders to prevent clipping).
+  - STRICTLY FORBIDDEN: DO NOT include complex feature cards, bullet icons, spec tables, or multiple footer text badges. Clean photography with an elegant primary headline.
+`;
+      } else {
+        // INFOGRAPHIC ou BOTH
+        textRenderingInstruction = `
+- COMPLETE COMMERCIAL ADVERTISING AGENCY POSTER & INFOGRAPHIC LAYOUT:
+  - HEADLINE: Render an impactful, bold commercial headline at the top in Portuguese (pt-BR): "${effectiveHeadline || "QUALIDADE & PERFORMANCE EM CADA DETALHE"}".
+  - QUALITY/GUARANTEE SEAL: Include a sleek floating circular quality badge or guarantee seal (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL").
+  - 3-4 BENEFIT CALLOUT CARDS: Integrate an elegant row or stack of 3 to 4 distinct feature cards with minimalist line icons and short, crisp descriptors in Portuguese (pt-BR) tailored specifically to the real physical attributes of the product (e.g., "Tecido Respirável", "Toque Ultra Macio", "Costura Reforçada", "Alta Durabilidade").
+  - SLOGAN / CTA FOOTER: A subtle, refined slogan bar or call-to-action in Portuguese at the lower margin.
+  - COMPOSITION: All text elements, containers, and badges MUST adhere strictly to the 20% inner safe boundary margin from canvas borders to prevent any text cutoff.
+`;
+      }
 
       let priorityInstruction = "";
       if (hybridPriority === "scenario") {
@@ -872,10 +940,13 @@ This prompt MUST describe a realistic photorealistic scene, detailing the produc
    - Never write phrases that cause the generator to draw two separate products (e.g. "a model holding a laptop while another laptop is on the table"). 
    - Always integrate "the product in the input image" seamlessly into the pose, scene, and hands of the model (if there is a model).
 3. PRODUCT PROTAGONIST & HUMAN FRAMING RULES (ULTRA-CRITICAL):
-   - **PRODUCT HERO MANDATE**: When the reference image is a physical product (supplements, cosmetics, bottles, jars, electronics, watches, food, beverages, jewelry, gadgets, accessories, etc.) OR when a product layout/preset is chosen, the PHYSICAL PRODUCT ITSELF MUST ALWAYS BE THE ABSOLUTE CENTRAL HERO (occupying 55% to 80% of the entire canvas in sharp macro or close-up commercial photography).
-   - **FORBIDDEN FOR PRODUCTS**: DO NOT describe full-body human figures, standing models, or wide room shots where the product appears small or secondary.
-   - **PRODUCT IN USE / LIFESTYLE**: If a human interaction is depicted, describe ONLY tight macro close-up hands interacting directly with the product (e.g., "tight macro close-up of a hand holding the bottle, with the background softly blurred in shallow depth of field").
-   - **FULL BODY RULE (APPAREL ONLY)**: ONLY when the reference product is specifically clothing (e.g. dresses, full fashion suits, pants, jackets), frame the model in a full body shot to show the garment top to bottom. For all other products, macro close-up staging is strictly mandatory.
+${
+  isApparelOrFashion || userWantsModel
+    ? `   - **FASHION & APPAREL MODEL MANDATE**: The clothing/apparel item from the input image MUST be worn naturally by an attractive, professional fashion model. Frame the model in a stylish full-body or medium-shot editorial fashion photography pose that beautifully showcases the fabric, cut, fit, and style of the garment. The outfit is the hero of the image, sharply rendered with realistic fabric textures.`
+    : `   - **PRODUCT HERO MANDATE**: When the reference image is a physical product (supplements, cosmetics, bottles, jars, electronics, watches, food, beverages, jewelry, gadgets, accessories, etc.) OR when a product layout/preset is chosen, the PHYSICAL PRODUCT ITSELF MUST ALWAYS BE THE ABSOLUTE CENTRAL HERO (occupying 55% to 80% of the entire canvas in sharp macro or close-up commercial photography).
+   - **FORBIDDEN FOR HARDWARE/OBJECT PRODUCTS**: DO NOT describe full-body human figures, standing models, or wide room shots where the product appears small or secondary.
+   - **PRODUCT IN USE / LIFESTYLE**: If a human interaction is depicted, describe ONLY tight macro close-up hands interacting directly with the product (e.g., "tight macro close-up of a hand holding the bottle, with the background softly blurred in shallow depth of field").`
+}
 4. TEXT RENDERING CONTROL (CRITICAL):
    ${textRenderingInstruction}
 5. FORMAT: Always end the prompt with the instruction: "framed vertically in 3:4 portrait format (1080x1440 pixels), optimized for Instagram portrait post".
@@ -1842,7 +1913,27 @@ Cenário desejado e estilo: ${prompt}`;
           .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|testimonialad|ugcproductphoto|productpackaging|costumerphoto\+quote|customerphoto|quote|unboxingimagead|productmockup|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto|unboxing|mockup|packaging)/gi, "")
           .trim();
 
-        if (isProductPreset) {
+        const combinedContextLower = `${prompt} ${caption} ${textHeadline}`.toLowerCase();
+        const isApparelOrModelRequested =
+          combinedContextLower.includes("vestir") ||
+          combinedContextLower.includes("vestida") ||
+          combinedContextLower.includes("vestido") ||
+          combinedContextLower.includes("modelo") ||
+          combinedContextLower.includes("model") ||
+          combinedContextLower.includes("roupa") ||
+          combinedContextLower.includes("conjunto") ||
+          combinedContextLower.includes("clothing") ||
+          combinedContextLower.includes("apparel") ||
+          combinedContextLower.includes("fashion") ||
+          combinedContextLower.includes("look") ||
+          combinedContextLower.includes("t-shirt") ||
+          combinedContextLower.includes("shirt") ||
+          combinedContextLower.includes("pants") ||
+          combinedContextLower.includes("calça") ||
+          combinedContextLower.includes("camisa") ||
+          combinedContextLower.includes("suit");
+
+        if (isProductPreset && !isApparelOrModelRequested) {
           cleanPrompt = cleanPrompt
             .replace(/full[- ]body (shot|portrait|fashion|photo)[^\.]*\.?/gi, "")
             .replace(/entire person visible from head to feet[^\.]*\.?/gi, "")
@@ -1854,26 +1945,37 @@ Cenário desejado e estilo: ${prompt}`;
         }
 
         const heroProductRule = isProductPreset
-          ? "CRITICAL FRAMING MANDATE — HERO PRODUCT MACRO CLOSE-UP (ABSOLUTE PROTAGONIST): The physical product from the input image MUST ALWAYS BE THE MASSIVE CENTRAL HERO occupying 55% to 80% of the entire image canvas in high-detail macro or close-up studio photography. STRICTLY FORBIDDEN: DO NOT generate full-body human models, standing people, or wide environmental room shots where the product appears small. If human interaction is depicted (e.g. wearing a watch or holding a bottle), the camera MUST BE A TIGHT MACRO CLOSE-UP focused solely on the product on the wrist/hand, with the human person completely out of focus or cropped out of frame. The product itself must dominate the visual hierarchy."
+          ? isApparelOrModelRequested
+            ? "FASHION & APPAREL EDITORIAL FRAMING: The clothing/apparel from the input image is worn naturally by a professional fashion model in a stylish pose, perfectly showcasing the fit, silhouette, drape, and design of the outfit in a high-end commercial fashion advertisement. The outfit is the hero of the image, sharply rendered with realistic fabric textures."
+            : "CRITICAL FRAMING MANDATE — HERO PRODUCT MACRO CLOSE-UP (ABSOLUTE PROTAGONIST): The physical product from the input image MUST ALWAYS BE THE MASSIVE CENTRAL HERO occupying 55% to 80% of the entire image canvas in high-detail macro or close-up studio photography. STRICTLY FORBIDDEN: DO NOT generate full-body human models, standing people, or wide environmental room shots where the product appears small. If human interaction is depicted (e.g. wearing a watch or holding a bottle), the camera MUST BE A TIGHT MACRO CLOSE-UP focused solely on the product on the wrist/hand, with the human person completely out of focus or cropped out of frame. The product itself must dominate the visual hierarchy."
+          : isApparelOrModelRequested
+          ? "FASHION & APPAREL EDITORIAL FRAMING: The clothing/apparel from the input image is worn naturally by a professional fashion model in a stylish pose, showcasing the outfit with realistic fabric textures and studio fashion lighting."
           : "";
 
+        const headlineToUse =
+          textHeadline ||
+          (caption && caption.trim().length > 0 && caption.trim().length < 80 ? caption.trim() : "") ||
+          "";
+
         let agencyDirective = "";
-        if (isProductPreset) {
-          if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
-            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE MACRO SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
-          } else if (textOverlayMode === "TITLE_ONLY") {
-            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR) or the user's custom title, (2) The hero product prominently staged in the center in LARGE MACRO SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the large hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
-          } else {
-            agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
-          }
+        if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
+          const headlineText = headlineToUse
+            ? `com o título em destaque: "${headlineToUse}"`
+            : "com headline de destaque e selo de qualidade";
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful headline at the top in Portuguese (pt-BR) ${headlineText} with decorative badge/icon, (2) A floating quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The hero product prominently staged in high fidelity with thematic lighting and atmospheric depth, (4) At the bottom or side, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+        } else if (textOverlayMode === "TITLE_ONLY") {
+          const headlineText = headlineToUse ? `"${headlineToUse}"` : '"O SEU PRODUTO EM DESTAQUE"';
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText}, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+        } else if (isProductPreset) {
+          agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
         } else {
           agencyDirective = "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
         }
 
         let typographyPrompt = "";
-        if (insertTextOnImage && textHeadline) {
-          typographyPrompt = `CUSTOM HEADLINE: Use the exact headline text "${textHeadline}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Place all text within the central safe area with at least 20% breathing room from borders. If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling in Portuguese, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
-        } else if (!insertTextOnImage && !isProductPreset) {
+        if (insertTextOnImage && headlineToUse) {
+          typographyPrompt = `CUSTOM HEADLINE: Use the exact headline text "${headlineToUse}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Place all text within the central safe area with at least 20% breathing room from borders. If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling in Portuguese, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
+        } else if (!insertTextOnImage && textOverlayMode === "NONE") {
           typographyPrompt =
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
         }
