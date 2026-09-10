@@ -8,6 +8,7 @@ import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
 import { safeParseJSON } from "@/lib/utils";
 import { correctPortugueseHeadline } from "@/lib/headline-corrector";
+import { applyHeadlineOverlay } from "@/lib/image-text-overlay";
 
 export const maxDuration = 300;
 
@@ -1860,6 +1861,9 @@ Cenário desejado e estilo: ${prompt}`;
 
       let brandTypographyDirective = "";
       let brandIdentityDirective = "";
+      // headlineToUse declarado no escopo externo para acesso no overlay pós-geração
+      let headlineToUse = "";
+
       if (businessProfileRaw) {
         try {
           const bp = JSON.parse(businessProfileRaw);
@@ -1966,7 +1970,7 @@ Cenário desejado e estilo: ${prompt}`;
           textHeadline ||
           (caption && caption.trim().length > 0 && caption.trim().length < 80 ? caption.trim() : "") ||
           "";
-        const headlineToUse = await correctPortugueseHeadline(rawHeadline);
+        headlineToUse = await correctPortugueseHeadline(rawHeadline);
 
         if (headlineToUse) {
           cleanPrompt = cleanPrompt
@@ -1977,14 +1981,28 @@ Cenário desejado e estilo: ${prompt}`;
         }
 
         let agencyDirective = "";
+        // Quando insertTextOnImage=true, o overlay de texto é aplicado PROGRAMATICAMENTE após a geração.
+        // Portanto, instruímos a IA a reservar uma área limpa no topo em vez de tentar escrever texto.
+        const usesProgrammaticOverlay = insertTextOnImage && !!headlineToUse;
+
         if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
-          const headlineText = headlineToUse
-            ? `com o título obrigatório em destaque: "${headlineToUse}"`
-            : "com headline de destaque e selo de qualidade";
-          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful headline at the top in Portuguese (pt-BR) ${headlineText} styled with modern bold uppercase advertising display typography, subtle soft drop-shadow or a sleek semi-transparent frosted glass pill backdrop for high-contrast legibility, (2) A floating circular quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The hero product prominently staged in high fidelity with thematic lighting and atmospheric depth, (4) At the bottom or side, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping. ZERO LOGOS: Do not draw any company logo or watermark.`;
+          if (usesProgrammaticOverlay) {
+            // Modo infographic com overlay programático: manter elementos visuais (badges, cards) mas SEM headline de IA
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete commercial advertising poster / infographic card. Include: (1) A RESERVED BLANK CLEAN STRIP at the top (approx. 18% of image height) — leave this area completely empty, no text, no decorations, for text overlay post-processing, (2) A floating circular quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL"), (3) The hero product prominently staged with thematic lighting and atmospheric depth, (4) At the bottom, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders. ZERO LOGOS: Do not draw any company logo or watermark.`;
+          } else {
+            const headlineText = headlineToUse
+              ? `com o título obrigatório em destaque: "${headlineToUse}"`
+              : "com headline de destaque e selo de qualidade";
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful headline at the top in Portuguese (pt-BR) ${headlineText} styled with modern bold uppercase advertising display typography, subtle soft drop-shadow or a sleek semi-transparent frosted glass pill backdrop for high-contrast legibility, (2) A floating circular quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The hero product prominently staged in high fidelity with thematic lighting and atmospheric depth, (4) At the bottom or side, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping. ZERO LOGOS: Do not draw any company logo or watermark.`;
+          }
         } else if (textOverlayMode === "TITLE_ONLY") {
-          const headlineText = headlineToUse ? `"${headlineToUse}"` : '"O SEU PRODUTO EM DESTAQUE"';
-          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText} styled with bold advertising typography in uppercase with high contrast (soft drop-shadow or elegant frosted glass pill container), (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping. ZERO LOGOS: Do not draw any company logo or watermark.`;
+          if (usesProgrammaticOverlay) {
+            // Modo title-only com overlay programático: imagem limpa, área reservada no topo
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. The hero product must be prominently staged in the center in LARGE SCALE with thematic lighting. CRITICAL: Leave the TOP STRIP (approx. 18% of image height) completely clean and free of any text, logos, or decorations — this area is reserved for programmatic text overlay post-processing. Keep the entire composition clean and uncluttered. ZERO LOGOS: Do not draw any company logo or watermark.`;
+          } else {
+            const headlineText = headlineToUse ? `"${headlineToUse}"` : '"O SEU PRODUTO EM DESTAQUE"';
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText} styled with bold advertising typography in uppercase with high contrast (soft drop-shadow or elegant frosted glass pill container), (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping. ZERO LOGOS: Do not draw any company logo or watermark.`;
+          }
         } else if (isProductPreset) {
           agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
         } else {
@@ -1992,7 +2010,10 @@ Cenário desejado e estilo: ${prompt}`;
         }
 
         let typographyPrompt = "";
-        if (insertTextOnImage && headlineToUse) {
+        if (usesProgrammaticOverlay) {
+          // Overlay programático ativo: instrui IA a NÃO gerar texto no topo
+          typographyPrompt = `CRITICAL TEXT RENDERING RULE: Do NOT render any headline text, title, or typographic overlay at the top of the image. The top strip is reserved and must remain completely blank and clean. The headline text will be added programmatically in post-processing. Focus entirely on stunning product photography and visual composition.`;
+        } else if (insertTextOnImage && headlineToUse) {
           typographyPrompt = `[MANDATORY COMMERCIAL HEADLINE — NO SUBSTITUTIONS, ZERO TYPOS, NO CUTOFF]: The main advertising headline printed on the image MUST BE EXACTLY "${headlineToUse}" in Portuguese (pt-BR). Under NO circumstances should you change, invent, or substitute this text.
 TYPOGRAPHY & DESIGN: Render this headline with agency-grade advertising graphic design in bold modern uppercase typography.
 CONTRAST & LEGIBILITY: Place the text inside a subtle frosted glass or semi-transparent pill container badge, or apply a soft drop-shadow to guarantee 100% legibility against the background.
@@ -2006,9 +2027,11 @@ NO-CLIPPING MANDATE: Format the text across 1 or 2 stacked lines within the top 
           ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
           : "";
 
-        const headlineHeader = headlineToUse && insertTextOnImage
+        // Quando usando overlay programático, NÃO incluir headline no prompt da IA
+        const headlineHeader = headlineToUse && insertTextOnImage && !usesProgrammaticOverlay
           ? `[EXACT HEADLINE TO PRINT: "${headlineToUse}"] `
           : "";
+
 
         const openaiPrompt = `${headlineHeader}${heroProductRule} ${styleHeader}${displaySystemHeader} Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} The product must be sharply in focus, large-scale, with tactile textures and authentic material details. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
@@ -2168,7 +2191,34 @@ NO-CLIPPING MANDATE: Format the text across 1 or 2 stacked lines within the top 
         console.warn("[NANOBANANA_REF] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
       }
 
-      // 6. Gravar a imagem gerada no Firebase Storage
+      // Overlay de texto programático: aplica o headline exato do usuário sobre a imagem
+      // Esta etapa é 100% confiável e substitui a dependência do modelo de IA para renderizar texto
+      if (insertTextOnImage && headlineToUse) {
+        try {
+          const overlayMode =
+            textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH"
+              ? "INFOGRAPHIC"
+              : "TITLE_ONLY";
+          const overlayResult = await applyHeadlineOverlay({
+            headline: headlineToUse,
+            mode: overlayMode,
+            imageBase64: imageBytes,
+          });
+          if (overlayResult.applied) {
+            imageBytes = overlayResult.imageBase64;
+            console.log(
+              `[NANOBANANA_REF] ✅ Overlay de título programático aplicado com sucesso: "${headlineToUse}"`
+            );
+          } else {
+            console.warn("[NANOBANANA_REF] Overlay de título não aplicado (headline vazio ou erro).");
+          }
+        } catch (overlayErr: any) {
+          console.warn("[NANOBANANA_REF] Falha no overlay de título programático:", overlayErr?.message);
+          // Continua com a imagem sem overlay (não bloqueia o fluxo)
+        }
+      }
+
+
       const bucket = admin
         .storage()
         .bucket(
