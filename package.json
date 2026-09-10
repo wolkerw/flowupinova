@@ -49,7 +49,7 @@
     "fabric": "^7.4.0",
     "firebase": "^11.9.1",
     "firebase-admin": "^12.2.0",
-    "framer-motion": "^11.2.12",
+    "framer-motion": "^13.1.1",
     "googleapis": "^140.0.1",
     "jimp": "^1.6.1",
     "leaflet": "^1.9.4",
