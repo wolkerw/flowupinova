@@ -904,9 +904,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         const resData = await promptResponse.json();
         const fluxPrompt = resData.imagePrompt;
-        if (resData.correctedHeadline && !productHeadline.trim()) {
-          setProductHeadline(resData.correctedHeadline);
-        }
         console.log("[WIZARD] Prompt UGC criado:", fluxPrompt);
 
         setCustomPrompt(fluxPrompt);
