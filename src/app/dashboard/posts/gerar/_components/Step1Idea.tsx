@@ -563,12 +563,15 @@ export const Step1Idea = () => {
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
   const tutorialVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Mapeamento de vídeos tutoriais por fluxo (Vídeo oficial somente no fluxo Conceito por enquanto)
+  // Mapeamento de vídeos tutoriais por fluxo (Vídeo oficial nos fluxos Conceito e Produto)
   const tutorialVideoUrl = React.useMemo(() => {
     if (mode === "concept") {
       return "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2FComo%20Usar%20-%20Fluxo%20Conceito%20V1%20(final).mp4?alt=media&token=af60de5d-4b8c-4cf9-be93-912da50ce18d";
     }
-    // Para 'reference-photo' (Produto) e 'reference-hybrid' (Pessoa + Cenário), aguardando novos links
+    if (mode === "reference-photo") {
+      return "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2FComo%20Usar%20-%20Fluxo%20Produto%20V1%20(final).mp4?alt=media&token=31bfd5b2-2424-43b8-9e67-023cd6bcd335";
+    }
+    // Para 'reference-hybrid' (Pessoa + Cenário), aguardando novos links
     return "";
   }, [mode]);
 
