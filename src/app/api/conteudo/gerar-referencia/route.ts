@@ -2193,6 +2193,7 @@ NO-CLIPPING MANDATE: Format the text across 1 or 2 stacked lines within the top 
 
       // Overlay de texto programático: aplica o headline exato do usuário sobre a imagem
       // Esta etapa é 100% confiável e substitui a dependência do modelo de IA para renderizar texto
+      console.log(`[NANOBANANA_REF] Overlay check — insertTextOnImage: ${insertTextOnImage}, headlineToUse: "${headlineToUse}", textOverlayMode: "${textOverlayMode}"`);
       if (insertTextOnImage && headlineToUse) {
         try {
           const overlayMode =

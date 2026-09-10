@@ -17,10 +17,12 @@ import { Jimp, loadFont, measureText, measureTextHeight } from "jimp";
 import path from "path";
 
 // Caminho absoluto para as fontes bitmap do @jimp/plugin-print
+// Usa process.cwd() pois require.resolve() falha no contexto Next.js RSC/server
 const FONT_DIR = path.join(
-  path.dirname(require.resolve("@jimp/plugin-print")),
-  "..",
-  "..",
+  process.cwd(),
+  "node_modules",
+  "@jimp",
+  "plugin-print",
   "fonts",
   "open-sans"
 );
@@ -191,7 +193,9 @@ export async function applyHeadlineOverlay(
     };
   } catch (err: any) {
     console.warn("[IMAGE_TEXT_OVERLAY] Falha ao aplicar overlay de texto:", err?.message || err);
+    console.warn("[IMAGE_TEXT_OVERLAY] FONT_DIR usado:", FONT_DIR);
     return { imageBase64, applied: false };
   }
+
 }
 
