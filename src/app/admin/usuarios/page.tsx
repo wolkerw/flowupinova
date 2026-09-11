@@ -25,6 +25,9 @@ import {
   Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { DigitalContractViewer } from "@/components/dashboard/DigitalContractViewer";
+import type { UserContractDoc } from "@/lib/types/contract";
 
 interface UserSummary {
   uid: string;
@@ -42,6 +45,14 @@ interface UserSummary {
   lastSignIn?: string;
   subscriptionPlan?: "mensal" | "anual" | null;
   subscriptionExpiresAt?: string | null;
+  hasSignedContract?: boolean;
+  activeContract?: {
+    id: string;
+    modalidade: string;
+    valorTotalCiclo: number;
+    signedAtFormatted: string;
+    status: string;
+  } | null;
 }
 
 type PlanFilter = "all" | "trial" | "standard" | "blocked" | "expired";
@@ -76,10 +87,12 @@ function UserSheet({
   user,
   onClose,
   onUpdate,
+  onViewContract,
 }: {
   user: UserSummary;
   onClose: () => void;
   onUpdate: () => void;
+  onViewContract?: (user: UserSummary) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -98,10 +111,8 @@ function UserSheet({
         window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;
       }
-      if (res.ok) {
-        onUpdate();
-        onClose();
-      }
+      if (!res.ok) throw new Error("Ação falhou");
+      onUpdate();
     } catch (err) {
       console.error(err);
     } finally {
@@ -123,60 +134,90 @@ function UserSheet({
         window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;
       }
-      if (res.ok) {
-        onUpdate();
-        onClose();
-      }
+      if (!res.ok) throw new Error("Exclusão falhou");
+      onClose();
+      onUpdate();
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setAction("");
     }
   };
 
   const createdAt = new Date(user.createdAt);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md overflow-y-auto bg-slate-900 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-700/50 p-5">
-          <div className="flex items-center gap-3">
-            <Avatar name={user.displayName} email={user.email} />
-            <div>
-              <p className="font-semibold text-white">{user.displayName}</p>
-              <p className="text-xs text-slate-400">{user.email}</p>
-            </div>
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-slate-900 border-l border-slate-700/60 shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-700/60 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Avatar name={user.displayName} email={user.email} />
+          <div>
+            <h2 className="font-semibold text-white">{user.displayName}</h2>
+            <p className="text-xs text-slate-400">{user.email}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Conteúdo rolável */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Status badges */}
+        <div className="flex flex-wrap gap-2">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+              user.paymentStatus === "blocked"
+                ? PLAN_COLORS.blocked
+                : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
+            )}
           >
-            <X className="h-5 w-5" />
-          </button>
+            {user.paymentStatus === "blocked"
+              ? "Bloqueado"
+              : user.plan === "standard"
+                ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
+                : (PLAN_LABELS[user.plan] ?? user.plan)}
+          </span>
+          {user.plan === "trial" && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
+                user.trialExpired
+                  ? "border-red-500/20 bg-red-500/10 text-red-400"
+                  : "border-blue-500/20 bg-blue-500/10 text-blue-400"
+              )}
+            >
+              <Clock className="h-3 w-3" />
+              {user.trialExpired ? "Trial Expirado" : `${user.trialDaysLeft} dias restantes`}
+            </span>
+          )}
+          {user.hasSignedContract && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400">
+              <CheckCircle className="h-3 w-3" /> Contrato Assinado
+            </span>
+          )}
         </div>
 
-        <div className="space-y-5 p-5">
-          {/* Info Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {((): { label: string; value: string; icon: React.ComponentType<any> }[] => {
+        {/* Informações detalhadas */}
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Detalhes da Conta
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {(() => {
               const cards = [
-                {
-                  label: "Plano Atual",
-                  value:
-                    user.plan === "standard"
-                      ? `Standard (${user.subscriptionPlan === "anual" ? "Anual" : "Mensal"})`
-                      : (PLAN_LABELS[user.plan] ?? user.plan),
-                  icon: Tag,
-                },
-                { label: "Posts", value: `${user.postsCount}`, icon: FileText },
-                { label: "Imagens", value: `${user.imagesCount}`, icon: ImageIcon },
+                { label: "Posts Criados", value: user.postsCount, icon: FileText },
+                { label: "Imagens Geradas", value: user.imagesCount, icon: ImageIcon },
               ];
-
               if (user.plan === "trial") {
                 cards.push({
-                  label: "Trial",
+                  label: "Expiração Trial",
                   value: user.trialExpired ? "Expirado" : `${user.trialDaysLeft}d restantes`,
                   icon: Clock,
                 });
@@ -213,6 +254,52 @@ function UserSheet({
           )}
           <div className="rounded-lg bg-slate-800/60 p-3 text-xs text-slate-400">
             Cadastrado em: {createdAt.toLocaleDateString("pt-BR")}
+          </div>
+
+          {/* Card de Contrato de Assinatura */}
+          <div className="rounded-lg border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <FileText className="h-4 w-4 text-[#0083C7]" />
+                Contrato Digital NumVapt
+              </div>
+              {user.hasSignedContract ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-400 border border-green-500/20">
+                  <CheckCircle className="h-3 w-3" /> Assinado
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-0.5 text-[11px] font-medium text-slate-400">
+                  Pendente
+                </span>
+              )}
+            </div>
+
+            {user.hasSignedContract && user.activeContract && (
+              <div className="text-xs text-slate-400 space-y-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                <p>
+                  Modalidade: <span className="font-medium text-slate-200 uppercase">{user.activeContract.modalidade}</span>
+                </p>
+                {user.activeContract.signedAtFormatted && (
+                  <p>
+                    Data: <span className="text-slate-300">{user.activeContract.signedAtFormatted}</span>
+                  </p>
+                )}
+                {user.activeContract.id && (
+                  <p className="font-mono text-[10px] text-slate-500 truncate">
+                    Protocolo: {user.activeContract.id}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onViewContract?.(user)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#0083C7]/40 bg-[#0083C7]/10 py-2.5 text-xs font-medium text-[#0083C7] transition-colors hover:bg-[#0083C7]/20"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {user.hasSignedContract ? "Visualizar Contrato Assinado" : "Consultar Minuta Padrão"}
+            </button>
           </div>
 
           {/* Ações */}
@@ -367,6 +454,12 @@ export default function AdminUsuariosPage() {
   const [planFilter, setPlanFilter] = useState<PlanFilter>("all");
   const [selectedUser, setSelectedUser] = useState<UserSummary | null>(null);
 
+  // Estados para o visualizador do contrato
+  const [contractUser, setContractUser] = useState<UserSummary | null>(null);
+  const [contractData, setContractData] = useState<UserContractDoc | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [isContractOpen, setIsContractOpen] = useState(false);
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -388,6 +481,26 @@ export default function AdminUsuariosPage() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const handleOpenContract = async (user: UserSummary) => {
+    setContractUser(user);
+    setContractLoading(true);
+    setIsContractOpen(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.uid}/contract`);
+      if (res.ok) {
+        const data = await res.json();
+        setContractData(data.contract ?? null);
+      } else {
+        setContractData(null);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar contrato do usuário:", err);
+      setContractData(null);
+    } finally {
+      setContractLoading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
@@ -448,58 +561,61 @@ export default function AdminUsuariosPage() {
 
       {/* Filtros e Busca */}
       <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Buscar por nome ou e-mail..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-9 pr-4 text-sm text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setPlanFilter(opt.value)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
-                planFilter === opt.value
-                  ? "border-violet-500 bg-violet-600 text-white"
-                  : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
-              )}
-            >
-              {opt.label}
-              <span
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Busca */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou e-mail..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-9 pr-4 text-sm text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Filtros rápidos por plano */}
+          <div className="flex flex-wrap gap-1.5">
+            {filterOptions.map(({ value, label, count }) => (
+              <button
+                key={value}
+                onClick={() => setPlanFilter(value)}
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-xs",
-                  planFilter === opt.value ? "bg-violet-500/50" : "bg-slate-700"
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  planFilter === value
+                    ? "bg-violet-600 text-white"
+                    : "border border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white"
                 )}
               >
-                {opt.count}
-              </span>
-            </button>
-          ))}
+                {label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.2 text-[10px]",
+                    planFilter === value ? "bg-violet-700 text-white" : "bg-slate-700 text-slate-400"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Tabela */}
+      {/* Tabela de Usuários */}
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-violet-500" />
-            <p className="text-sm text-slate-400">Carregando usuários...</p>
-          </div>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-700/50">
+        <div className="overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-800/80">
-                <tr className="text-left text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <thead>
+                <tr className="text-left text-xs font-semibold uppercase tracking-widest text-slate-500 border-b border-slate-700/60">
                   <th className="px-4 py-3">Usuário</th>
                   <th className="px-4 py-3">Plano</th>
+                  <th className="px-4 py-3 text-center">Contrato</th>
                   <th className="px-4 py-3">Trial</th>
                   <th className="px-4 py-3 text-center">Posts</th>
                   <th className="px-4 py-3 text-center">Imagens</th>
@@ -510,7 +626,7 @@ export default function AdminUsuariosPage() {
               <tbody className="divide-y divide-slate-700/40 bg-slate-900">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                       Nenhum usuário encontrado
                     </td>
                   </tr>
@@ -541,6 +657,21 @@ export default function AdminUsuariosPage() {
                               ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
                               : (PLAN_LABELS[user.plan] ?? user.plan)}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {user.hasSignedContract ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenContract(user)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400 transition-colors hover:bg-green-500/20"
+                            title="Visualizar Contrato Assinado"
+                          >
+                            <FileText className="h-3.5 w-3.5 text-green-400" />
+                            Assinado
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-600">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {user.plan === "trial" ? (
@@ -588,7 +719,7 @@ export default function AdminUsuariosPage() {
         </div>
       )}
 
-      {/* Panel lateral */}
+      {/* Painel lateral de detalhes */}
       {selectedUser && (
         <UserSheet
           user={selectedUser}
@@ -596,8 +727,37 @@ export default function AdminUsuariosPage() {
             setSelectedUser(null);
           }}
           onUpdate={fetchUsers}
+          onViewContract={handleOpenContract}
         />
       )}
+
+      {/* Modal de Visualização Integral do Contrato */}
+      <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
+        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto rounded-3xl p-6 sm:p-8 bg-white text-slate-900 border-slate-200">
+          {contractLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-500 space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin text-[#0083C7]" />
+              <p className="text-sm">Carregando contrato digital do usuário...</p>
+            </div>
+          ) : (
+            <DigitalContractViewer
+              modalidade={contractData?.modalidade || contractUser?.subscriptionPlan || "anual"}
+              formaPagamento={contractData?.formaPagamento || "pix"}
+              readOnly={true}
+              signedContract={contractData}
+              initialAssinante={{
+                nomeOuRazaoSocial:
+                  contractData?.assinante?.nomeOuRazaoSocial ||
+                  contractUser?.displayName ||
+                  contractUser?.email ||
+                  "",
+                cpfOuCnpj: contractData?.assinante?.cpfOuCnpj || "",
+                email: contractUser?.email || "",
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -27,6 +27,14 @@ export interface UserSummary {
   lastSignIn?: string;
   subscriptionPlan?: "mensal" | "anual" | null;
   subscriptionExpiresAt?: string | null;
+  hasSignedContract?: boolean;
+  activeContract?: {
+    id: string;
+    modalidade: string;
+    valorTotalCiclo: number;
+    signedAtFormatted: string;
+    status: string;
+  } | null;
 }
 
 export interface OpenAIPlatformStats {
@@ -312,6 +320,8 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         lastSignIn: authUsers[uid] ?? "",
         subscriptionPlan: subscriptionPlan ?? null,
         subscriptionExpiresAt,
+        hasSignedContract: !!data.hasSignedContract || !!data.activeContract,
+        activeContract: data.activeContract ?? null,
       });
     })
   );
