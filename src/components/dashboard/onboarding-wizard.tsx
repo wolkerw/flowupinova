@@ -148,8 +148,8 @@ export function OnboardingWizard({
         website: formData.website?.trim() || "",
         instagram: formData.instagram?.trim() || "",
         description: formData.description?.trim() || "",
-        primaryColor: formData.primaryColor || "#0083C7",
-        secondaryColor: formData.secondaryColor || "#1E293B",
+        primaryColor: isValidHexColor(formData.primaryColor) ? formData.primaryColor : (initialData?.primaryColor || "#0083C7"),
+        secondaryColor: isValidHexColor(formData.secondaryColor) ? formData.secondaryColor : (initialData?.secondaryColor || "#1E293B"),
         slogan: formData.slogan?.trim() || "",
         targetAudience: formData.targetAudience?.trim() || "",
         toneOfVoice: formData.toneOfVoice?.trim() || "",
@@ -408,8 +408,8 @@ export function OnboardingWizard({
         website: websiteUrl,
         instagram: formData.instagram?.trim() || "",
         description: formData.description?.trim() || "",
-        primaryColor: formData.primaryColor || "#0083C7",
-        secondaryColor: formData.secondaryColor || "#1E293B",
+        primaryColor: isValidHexColor(formData.primaryColor) ? formData.primaryColor : (initialData?.primaryColor || "#0083C7"),
+        secondaryColor: isValidHexColor(formData.secondaryColor) ? formData.secondaryColor : (initialData?.secondaryColor || "#1E293B"),
         slogan: formData.slogan?.trim() || "",
         targetAudience: formData.targetAudience?.trim() || "",
         toneOfVoice: formData.toneOfVoice?.trim() || "",
@@ -509,8 +509,8 @@ export function OnboardingWizard({
         website: formData.website?.trim() || "",
         instagram: formData.instagram?.trim() || "",
         description: formData.description?.trim() || "",
-        primaryColor: formData.primaryColor || "#0083C7",
-        secondaryColor: formData.secondaryColor || "#1E293B",
+        primaryColor: isValidHexColor(formData.primaryColor) ? formData.primaryColor : (initialData?.primaryColor || "#0083C7"),
+        secondaryColor: isValidHexColor(formData.secondaryColor) ? formData.secondaryColor : (initialData?.secondaryColor || "#1E293B"),
         slogan: formData.slogan?.trim() || "",
         targetAudience: formData.targetAudience?.trim() || "",
         toneOfVoice: formData.toneOfVoice?.trim() || "",
@@ -599,6 +599,41 @@ export function OnboardingWizard({
       if (e.target) {
         e.target.value = "";
       }
+    }
+  };
+
+  const isValidHexColor = (color: string) => /^#[0-9A-Fa-f]{6}$/.test(color);
+
+  const handleHexChange = (key: "primaryColor" | "secondaryColor", value: string) => {
+    let clean = value.trim();
+    if (clean.length > 0 && !clean.startsWith("#")) {
+      clean = `#${clean}`;
+    }
+    const raw = clean.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6);
+    const formatted = raw ? `#${raw}` : clean.startsWith("#") ? "#" : "";
+    setFormData((prev) => ({
+      ...prev,
+      [key]: formatted.toUpperCase(),
+    }));
+  };
+
+  const handleHexBlur = (
+    key: "primaryColor" | "secondaryColor",
+    defaultColor: string,
+    currentValue?: string
+  ) => {
+    const current = (currentValue !== undefined ? currentValue : formData[key]).trim();
+    if (!isValidHexColor(current)) {
+      if (/^#[0-9A-Fa-f]{3}$/.test(current)) {
+        const r = current[1];
+        const g = current[2];
+        const b = current[3];
+        setFormData((prev) => ({ ...prev, [key]: `#${r}${r}${g}${g}${b}${b}`.toUpperCase() }));
+        return;
+      }
+      setFormData((prev) => ({ ...prev, [key]: defaultColor.toUpperCase() }));
+    } else {
+      setFormData((prev) => ({ ...prev, [key]: current.toUpperCase() }));
     }
   };
 
@@ -1130,37 +1165,65 @@ export function OnboardingWizard({
                           <div className="flex items-center gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                             <input
                               type="color"
-                              value={formData.primaryColor}
+                              value={isValidHexColor(formData.primaryColor) ? formData.primaryColor : "#3B82F6"}
                               onChange={(e) =>
-                                setFormData({ ...formData, primaryColor: e.target.value })
+                                setFormData({ ...formData, primaryColor: e.target.value.toUpperCase() })
                               }
-                              className="h-16 w-16 cursor-pointer rounded-2xl border-4 border-slate-50 bg-transparent p-0 shadow-lg"
+                              className="h-16 w-16 cursor-pointer rounded-2xl border-4 border-slate-50 bg-transparent p-0 shadow-lg shrink-0"
+                              aria-label="Seletor de cor principal"
                             />
-                            <div className="flex flex-col">
+                            <div className="flex flex-1 flex-col min-w-0">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                 Cor Principal
                               </span>
-                              <span className="font-mono text-base font-black text-slate-900">
-                                {formData.primaryColor.toUpperCase()}
-                              </span>
+                              <Input
+                                type="text"
+                                value={formData.primaryColor.toUpperCase()}
+                                onChange={(e) => handleHexChange("primaryColor", e.target.value)}
+                                onBlur={(e) =>
+                                  handleHexBlur(
+                                    "primaryColor",
+                                    initialData?.primaryColor || "#3B82F6",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="#3B82F6"
+                                maxLength={7}
+                                aria-label="Hexadecimal da cor principal"
+                                className="mt-1 h-10 w-full max-w-[130px] rounded-xl border border-slate-200 bg-slate-50/70 px-3 font-mono text-base font-black text-slate-900 uppercase transition-all focus:bg-white focus-visible:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-500/20"
+                              />
                             </div>
                           </div>
                           <div className="flex items-center gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                             <input
                               type="color"
-                              value={formData.secondaryColor}
+                              value={isValidHexColor(formData.secondaryColor) ? formData.secondaryColor : "#1E293B"}
                               onChange={(e) =>
-                                setFormData({ ...formData, secondaryColor: e.target.value })
+                                setFormData({ ...formData, secondaryColor: e.target.value.toUpperCase() })
                               }
-                              className="h-16 w-16 cursor-pointer rounded-2xl border-4 border-slate-50 bg-transparent p-0 shadow-lg"
+                              className="h-16 w-16 cursor-pointer rounded-2xl border-4 border-slate-50 bg-transparent p-0 shadow-lg shrink-0"
+                              aria-label="Seletor de cor secundária"
                             />
-                            <div className="flex flex-col">
+                            <div className="flex flex-1 flex-col min-w-0">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                 Cor Secundária
                               </span>
-                              <span className="font-mono text-base font-black text-slate-900">
-                                {formData.secondaryColor.toUpperCase()}
-                              </span>
+                              <Input
+                                type="text"
+                                value={formData.secondaryColor.toUpperCase()}
+                                onChange={(e) => handleHexChange("secondaryColor", e.target.value)}
+                                onBlur={(e) =>
+                                  handleHexBlur(
+                                    "secondaryColor",
+                                    initialData?.secondaryColor || "#1E293B",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="#1E293B"
+                                maxLength={7}
+                                aria-label="Hexadecimal da cor secundária"
+                                className="mt-1 h-10 w-full max-w-[130px] rounded-xl border border-slate-200 bg-slate-50/70 px-3 font-mono text-base font-black text-slate-900 uppercase transition-all focus:bg-white focus-visible:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-500/20"
+                              />
                             </div>
                           </div>
                         </div>

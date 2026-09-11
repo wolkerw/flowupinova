@@ -1181,24 +1181,24 @@ export default function ConfiguracoesPage() {
               </div>
 
               {/* Color Pickers Customizados */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="primaryColor" className="text-sm font-medium">
                     Cor Primária
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Input
                       type="color"
                       id="primaryColor"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
+                      className="h-9 w-9 shrink-0 cursor-pointer p-0.5 rounded-md border border-input bg-background"
                     />
                     <Input
                       type="text"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-9 flex-1 font-mono text-xs uppercase"
+                      className="h-9 flex-1 min-w-0 font-mono text-xs uppercase px-1.5 text-center tracking-tight"
                       maxLength={7}
                     />
                   </div>
@@ -1207,19 +1207,19 @@ export default function ConfiguracoesPage() {
                   <Label htmlFor="secondaryColor" className="text-sm font-medium">
                     Cor Secundária
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Input
                       type="color"
                       id="secondaryColor"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
+                      className="h-9 w-9 shrink-0 cursor-pointer p-0.5 rounded-md border border-input bg-background"
                     />
                     <Input
                       type="text"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-9 flex-1 font-mono text-xs uppercase"
+                      className="h-9 flex-1 min-w-0 font-mono text-xs uppercase px-1.5 text-center tracking-tight"
                       maxLength={7}
                     />
                   </div>
@@ -1227,25 +1227,25 @@ export default function ConfiguracoesPage() {
               </div>
 
               {/* Cores Estendidas */}
-              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+              <div className="grid grid-cols-2 gap-3 border-t pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="complementaryColor" className="text-sm font-medium">
                     Cor de Apoio
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Input
                       type="color"
                       id="complementaryColor"
                       value={complementaryColor || "#ffffff"}
                       onChange={(e) => setComplementaryColor(e.target.value)}
-                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
+                      className="h-9 w-9 shrink-0 cursor-pointer p-0.5 rounded-md border border-input bg-background"
                     />
                     <Input
                       type="text"
                       value={complementaryColor}
                       onChange={(e) => setComplementaryColor(e.target.value)}
                       placeholder="#HEX"
-                      className="h-9 flex-1 font-mono text-xs uppercase"
+                      className="h-9 flex-1 min-w-0 font-mono text-xs uppercase px-1.5 text-center tracking-tight"
                       maxLength={7}
                     />
                   </div>
@@ -1254,20 +1254,20 @@ export default function ConfiguracoesPage() {
                   <Label htmlFor="backgroundColor" className="text-sm font-medium">
                     Cenário / Fundo
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Input
                       type="color"
                       id="backgroundColor"
                       value={backgroundColor || "#ffffff"}
                       onChange={(e) => setBackgroundColor(e.target.value)}
-                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
+                      className="h-9 w-9 shrink-0 cursor-pointer p-0.5 rounded-md border border-input bg-background"
                     />
                     <Input
                       type="text"
                       value={backgroundColor}
                       onChange={(e) => setBackgroundColor(e.target.value)}
                       placeholder="#HEX"
-                      className="h-9 flex-1 font-mono text-xs uppercase"
+                      className="h-9 flex-1 min-w-0 font-mono text-xs uppercase px-1.5 text-center tracking-tight"
                       maxLength={7}
                     />
                   </div>
