@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  MessageSquare,
   Image as ImageIcon,
   Settings,
   FileWarning,
@@ -34,6 +35,11 @@ const navItems = [
     title: "Usuários",
     href: "/admin/usuarios",
     icon: Users,
+  },
+  {
+    title: "Atendimento WhatsApp",
+    href: "/admin/whatsapp",
+    icon: MessageSquare,
   },
   {
     title: "Solicitações CNPJ",

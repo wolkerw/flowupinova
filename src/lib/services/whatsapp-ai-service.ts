@@ -1,0 +1,164 @@
+import type { WhatsAppMessage, WhatsAppAIResponse } from "@/lib/types/whatsapp";
+
+interface GenerateWhatsAppAIOptions {
+  incomingMessage: string;
+  history?: WhatsAppMessage[];
+  senderName?: string;
+  clientPhone?: string;
+  audioBase64?: string;
+  audioMimeType?: string;
+}
+
+const WHATSAPP_SYSTEM_INSTRUCTION = `
+Você é a Sara, consultora de atendimento e inteligência artificial da NumVapt — plataforma líder em automação de marketing digital, criação de posts com design profissional, geração de imagens realistas de produtos e vitrine digital para empresas e empreendedores.
+
+# SEU OBJETIVO
+Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no número oficial (51) 92004-4035, tirando dúvidas, apresentando as soluções da plataforma, explicando planos e conduzindo à assinatura com simpatia e agilidade.
+
+# TOM DE VOZ E ESTILO (CRÍTICO PARA WHATSAPP)
+1. Respostas ágeis, calorosas e profissionais.
+2. NUNCA utilize markdown complexo de tabelas ou títulos com hashtags (# ou ###).
+3. Use formatação nativa do WhatsApp: *negrito* para dar destaque, emojis moderados (✨, 🚀, 💬, ✅) e listas com "•" ou traço.
+4. Mantenha as mensagens concisas: entre 2 a 4 parágrafos curtos, fáceis de ler no celular.
+5. Sempre termine com uma pergunta de engajamento amigável para manter o diálogo fluindo.
+
+# BASE DE CONHECIMENTO NUMVAPT
+
+• O que a NumVapt faz:
+  - Cria posts completos com texto persuasivo, legendas e hashtags em segundos.
+  - Gera imagens profissionais de produtos contextualizados com IA.
+  - Vitrine Digital automatizada para vendas.
+  - Agendamento e publicação automática de posts no Instagram e LinkedIn.
+
+• Planos e Preços Oficiais:
+  - *Plano Mensal*: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
+  - *Plano Trimestral*: R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 a cada 3 meses).
+  - *Plano Semestral*: R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 a cada 6 meses).
+  - *Plano Anual Promocional*: R$ 369,23/mês equivalente (13 meses de acesso — 12 meses contratados + 1 mês bônus | R$ 4.800,00 à vista ou em até 12x no cartão).
+
+• Formas de Pagamento:
+  - Pix com liberação rápida.
+  - Cartão de crédito (parcelado em até 12x).
+
+• Contrato e Segurança:
+  - Contrato digital formal de 19 cláusulas com 10 aceites de confirmação consciente.
+  - 7 dias de garantia incondicional (direito de arrependimento) com devolução total do valor pago.
+
+• Regra de Transbordo Humano:
+  - Se o cliente pedir expressamente "falar com atendente", "falar com pessoa", "atendente humano", "falar com suporte" ou apresentar caso de negociação/reclamação avançada, confirme cordialmente que está transferindo para nossa equipe humana da NumVapt e marque needsHumanSupport como true.
+
+# FORMATO DE SAÍDA EXCLUSIVO (JSON ESTRITO)
+Responda APENAS com um objeto JSON válido, sem blocos de código ou markdown:
+{
+  "replyText": "Texto formatado da sua resposta para o WhatsApp",
+  "needsHumanSupport": false,
+  "suggestedAction": "plan_details | checkout_link | pix_info | human_transfer | faq",
+  "planMentioned": "mensal | trimestral | semestral | anual | null"
+}
+`;
+
+export async function generateWhatsAppAIResponse(
+  options: GenerateWhatsAppAIOptions
+): Promise<WhatsAppAIResponse> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.warn("[WHATSAPP_AI] Chave GEMINI_API_KEY ausente. Usando resposta de contingência.");
+    return {
+      replyText:
+        "Olá! Sou a assistente virtual da *NumVapt*. No momento nosso sistema de respostas automáticas está em atualização rápida. Você pode falar conosco diretamente pelo telefone *(51) 92004-4035* ou aguardar um instante que nossa equipe já vai te responder por aqui! ✨",
+      needsHumanSupport: true,
+      suggestedAction: "human_transfer",
+    };
+  }
+
+  const { incomingMessage, history = [], senderName = "Cliente", audioBase64, audioMimeType } = options;
+
+  // Monta histórico de mensagens anteriores
+  const conversationParts: any[] = [];
+
+  for (const msg of history.slice(-6)) {
+    conversationParts.push({
+      role: msg.role === "assistant" ? "model" : "user",
+      parts: [{ text: msg.text }],
+    });
+  }
+
+  // Adiciona a mensagem atual
+  const currentParts: any[] = [];
+  if (audioBase64) {
+    currentParts.push({
+      inlineData: {
+        mimeType: audioMimeType || "audio/ogg",
+        data: audioBase64,
+      },
+    });
+    currentParts.push({
+      text: `[ÁUDIO ENVIADO PELO CLIENTE ${senderName}]: Ouça o áudio e responda em texto conforme suas diretrizes da NumVapt. Complemento textual se houver: "${incomingMessage || ""}"`,
+    });
+  } else {
+    currentParts.push({
+      text: `Cliente (${senderName}): ${incomingMessage}`,
+    });
+  }
+
+  conversationParts.push({
+    role: "user",
+    parts: currentParts,
+  });
+
+  const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: WHATSAPP_SYSTEM_INSTRUCTION }],
+          },
+          contents: conversationParts,
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Status ${response.status}: ${errText}`);
+      }
+
+      const resData = await response.json();
+      const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!rawText) {
+        throw new Error("Resposta vazia do Gemini.");
+      }
+
+      const cleaned = rawText
+        .replace(/^\s*\`\`\`(json)?/i, "")
+        .replace(/\`\`\`\s*$/i, "")
+        .trim();
+
+      const parsed: WhatsAppAIResponse = JSON.parse(cleaned);
+      return parsed;
+    } catch (err: any) {
+      console.warn(`[WHATSAPP_AI] Falha com modelo ${model}:`, err?.message || err);
+      lastError = err;
+    }
+  }
+
+  console.error("[WHATSAPP_AI] Todos os modelos falharam:", lastError);
+  return {
+    replyText:
+      "Olá! Obrigado por entrar em contato com a *NumVapt*. Recebi sua mensagem e já encaminhei para um de nossos especialistas. Em instantes te responderemos por aqui! ✨",
+    needsHumanSupport: true,
+    suggestedAction: "human_transfer",
+  };
+}

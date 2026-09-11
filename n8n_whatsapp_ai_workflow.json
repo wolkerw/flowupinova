@@ -1,0 +1,159 @@
+{
+  "name": "NumVapt — Atendimento WhatsApp com IA (51 92004-4035)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-inbound",
+        "options": {}
+      },
+      "id": "node-webhook-inbound",
+      "name": "Webhook Inbound WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "numvapt-whatsapp-ai-inbound"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.body.fromMe || $json.body.data?.key?.fromMe }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-filter-from-me",
+      "name": "Ignorar Mensagens Próprias?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://flowupinova.com.br/api/whatsapp/webhook",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-http-ai-agent",
+      "name": "Chamar Agente IA NumVapt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.replyText }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-has-reply",
+      "name": "Possui Resposta da IA?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        940,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WHATSAPP_API_URL || 'https://api.evolution.com/message/sendText' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.WHATSAPP_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\\n  \\\"number\\\": \\\"{{ $json.phone }}\\\",\\n  \\\"text\\\": \\\"{{ $json.replyText }}\\\"\\n}",
+        "options": {}
+      },
+      "id": "node-send-whatsapp",
+      "name": "Enviar Resposta no WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Inbound WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Ignorar Mensagens Próprias?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignorar Mensagens Próprias?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Chamar Agente IA NumVapt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamar Agente IA NumVapt": {
+      "main": [
+        [
+          {
+            "node": "Possui Resposta da IA?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Possui Resposta da IA?": {
+      "main": [
+        [
+          {
+            "node": "Enviar Resposta no WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
