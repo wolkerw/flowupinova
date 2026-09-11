@@ -1,14 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, PlayCircle, Sparkles, CheckCircle2, X } from "lucide-react";
 import { TypingAnimation } from "./animated-flows";
-
-const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
 // URL do vídeo de demonstração — troque pela variável de ambiente NEXT_PUBLIC_DEMO_VIDEO_URL
 const DEMO_VIDEO_URL =
@@ -17,14 +14,21 @@ const DEMO_VIDEO_URL =
 
 function VideoLightbox({ onClose }: { onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Fechar com ESC
+  // Detecta se a URL é um arquivo de vídeo direto (Firebase Storage, .mp4, etc.)
+  const isVideoDirectFile =
+    DEMO_VIDEO_URL.includes(".mp4") ||
+    DEMO_VIDEO_URL.includes(".webm") ||
+    DEMO_VIDEO_URL.includes("firebasestorage.googleapis.com") ||
+    DEMO_VIDEO_URL.startsWith("/videos/");
+
+  // Fechar com ESC e bloquear scroll do body ao abrir
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKey);
-    // Bloquear scroll do body ao abrir
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", handleKey);
@@ -32,66 +36,95 @@ function VideoLightbox({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
+  // Autoplay seguro após montagem completa do componente no DOM
+  useEffect(() => {
+    if (!isVideoDirectFile) return;
+
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch((err) => {
+          console.warn("[DEMO_VIDEO] Autoplay tratado com segurança:", err);
+        });
+      }
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    };
+  }, [isVideoDirectFile]);
+
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === overlayRef.current) onClose();
   };
 
   return (
-    <AnimatePresence>
+    <motion.div
+      ref={overlayRef}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md px-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Vídeo de demonstração"
+    >
       <motion.div
-        ref={overlayRef}
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md px-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        onClick={handleOverlayClick}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Vídeo de demonstração"
+        className="relative w-full max-w-4xl"
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <motion.div
-          className="relative w-full max-w-4xl"
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+        {/* Botão fechar */}
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 flex items-center gap-2 text-sm text-white/80 transition-colors hover:text-white focus:outline-none"
+          aria-label="Fechar vídeo"
         >
-          {/* Botão fechar */}
-          <button
-            onClick={onClose}
-            className="absolute -top-12 right-0 flex items-center gap-2 text-sm text-white/80 transition-colors hover:text-white focus:outline-none"
-            aria-label="Fechar vídeo"
-          >
-            <X className="h-5 w-5" />
-            <span>Fechar (ESC)</span>
-          </button>
+          <X className="h-5 w-5" />
+          <span>Fechar (ESC)</span>
+        </button>
 
-          {/* Container responsivo 16:9 com ReactPlayer */}
-          <div
-            className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10"
-            style={{ paddingBottom: "56.25%" }}
-          >
-            <div className="absolute inset-0 h-full w-full">
-              <ReactPlayer
-                url={DEMO_VIDEO_URL}
-                width="100%"
-                height="100%"
-                controls
-                playing
-                playsinline
-                style={{ position: "absolute", top: 0, left: 0 }}
-              />
-            </div>
-          </div>
+        {/* Container responsivo 16:9 */}
+        <div
+          className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10"
+          style={{ paddingBottom: "56.25%" }}
+        >
+          {isVideoDirectFile ? (
+            <video
+              ref={videoRef}
+              className="absolute inset-0 h-full w-full object-contain bg-black"
+              src={DEMO_VIDEO_URL}
+              controls
+              playsInline
+              preload="metadata"
+              poster="/logo-numvapt.png"
+            >
+              Seu navegador não suporta a reprodução deste vídeo.
+            </video>
+          ) : (
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src={DEMO_VIDEO_URL}
+              title="Demonstração NumVapt"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          )}
+        </div>
 
-          {/* Texto abaixo do vídeo */}
-          <p className="mt-4 text-center text-sm text-white/70">
-            Veja como é simples criar posts profissionais com IA em minutos.
-          </p>
-        </motion.div>
+        {/* Texto abaixo do vídeo */}
+        <p className="mt-4 text-center text-sm text-white/70">
+          Veja como é simples criar posts profissionais com IA em minutos.
+        </p>
       </motion.div>
-    </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -193,8 +226,10 @@ export const HeroSection = () => {
         </div>
       </section>
 
-      {/* Lightbox de Vídeo */}
-      {showVideo && <VideoLightbox onClose={() => setShowVideo(false)} />}
+      {/* Lightbox de Vídeo com ciclo de desmontagem suave */}
+      <AnimatePresence>
+        {showVideo && <VideoLightbox onClose={() => setShowVideo(false)} />}
+      </AnimatePresence>
     </>
   );
 };
