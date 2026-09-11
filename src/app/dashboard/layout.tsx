@@ -521,7 +521,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </SidebarProvider>
 
       <a
-        href="https://wa.me/555199922177?text=Olá!%20Eu%20gostaria%20de%20tirar%20uma%20dúvida%20na%20NumVapt."
+        href="https://wa.me/5551920044035?text=Olá!%20Eu%20gostaria%20de%20tirar%20uma%20dúvida%20na%20NumVapt."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50"

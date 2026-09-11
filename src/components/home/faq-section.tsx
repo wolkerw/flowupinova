@@ -50,7 +50,7 @@ export const FAQSection = () => {
           <p className="text-lg text-slate-600">
             Ainda em dúvida? Fale com nosso especialista humano — direto no{" "}
             <Link
-              href="https://wa.me/555199922177"
+              href="https://wa.me/5551920044035"
               target="_blank"
               className="underline hover:text-[#0B1426]"
             >

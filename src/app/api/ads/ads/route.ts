@@ -94,13 +94,13 @@ export async function POST(request: NextRequest) {
       page_id: pageId,
       link_data: {
         image_hash: imageHash,
-        link: ctaLink || "https://wa.me/555199922177",
+        link: ctaLink || "https://wa.me/5551920044035",
         message: bodyText,
         name: headline,
         call_to_action: {
           type: metaCtaType,
           value: {
-            link: ctaLink || "https://wa.me/555199922177",
+            link: ctaLink || "https://wa.me/5551920044035",
           },
         },
       },

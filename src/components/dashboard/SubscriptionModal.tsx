@@ -191,7 +191,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
         textMsg += ` Meu e-mail de cadastro: ${userData.email}.`;
       }
 
-      const whatsappUrl = `https://wa.me/555199922177?text=${encodeURIComponent(textMsg)}`;
+      const whatsappUrl = `https://wa.me/5551920044035?text=${encodeURIComponent(textMsg)}`;
       window.open(whatsappUrl, "_blank");
 
       toast({
@@ -304,7 +304,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
               className="w-full rounded-xl bg-[#25D366] py-6 font-bold text-white hover:bg-[#20bd5a]"
             >
               <a
-                href={`https://wa.me/555199922177?text=Olá!%20Acabei%20de%20confirmar%20meu%20pagamento%20PIX%20de%20assinatura%20PRO%20no%20painel%20da%20NumVapt%20para%20o%20email%20${encodeURIComponent(userData.email)}.%20Poderiam%20validar?`}
+                href={`https://wa.me/5551920044035?text=Olá!%20Acabei%20de%20confirmar%20meu%20pagamento%20PIX%20de%20assinatura%20PRO%20no%20painel%20da%20NumVapt%20para%20o%20email%20${encodeURIComponent(userData.email)}.%20Poderiam%20validar?`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -699,7 +699,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
             <div className="space-y-3 pt-3">
               <a
-                href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20tirar%20dúvidas%20sobre%20os%20planos%20da%20NumVapt."
+                href="https://wa.me/5551920044035?text=Olá!%20Gostaria%20de%20tirar%20dúvidas%20sobre%20os%20planos%20da%20NumVapt."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center text-[13px] font-semibold text-slate-500 transition-colors hover:text-slate-800"

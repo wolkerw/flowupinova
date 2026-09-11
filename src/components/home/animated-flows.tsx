@@ -42,7 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const WHATSAPP_LINK =
-  "https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt.";
+  "https://wa.me/5551920044035?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt.";
 
 export const TypingAnimation = ({ text, theme = "blue" }: { text: string; theme?: string }) => {
   const [displayedText, setDisplayedText] = React.useState("");
