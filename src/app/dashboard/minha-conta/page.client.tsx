@@ -5,12 +5,15 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle2, Shield, User, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Shield, User, Loader2, FileText, Printer, Eye } from "lucide-react";
+import { DigitalContractViewer } from "@/components/dashboard/DigitalContractViewer";
+import type { UserContractDoc } from "@/lib/types/contract";
 
 export function MinhaContaPageClient() {
   const { user } = useAuth();
@@ -22,6 +25,10 @@ export function MinhaContaPageClient() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [contract, setContract] = useState<UserContractDoc | null>(null);
+  const [loadingContract, setLoadingContract] = useState(true);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     const userDocRef = doc(db, `users/${user.uid}`);
@@ -31,6 +38,23 @@ export function MinhaContaPageClient() {
         setUserPlan(plan.toUpperCase());
       }
     });
+
+    // Buscar contrato de assinatura do cliente
+    const fetchContract = async () => {
+      try {
+        setLoadingContract(true);
+        const res = await fetch("/api/contracts");
+        if (res.ok) {
+          const data = await res.json();
+          setContract(data.contract || null);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar contrato do usuário:", err);
+      } finally {
+        setLoadingContract(false);
+      }
+    };
+    fetchContract();
 
     return () => unsubscribe();
   }, [user]);
@@ -60,11 +84,8 @@ export function MinhaContaPageClient() {
 
     setLoading(true);
     try {
-      // Re-autenticar o usuário
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
-
-      // Atualizar a senha
       await updatePassword(user, newPassword);
 
       toast({
@@ -72,7 +93,6 @@ export function MinhaContaPageClient() {
         description: "Sua senha foi atualizada. Use-a no seu próximo login.",
       });
 
-      // Limpar formulário
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -107,17 +127,17 @@ export function MinhaContaPageClient() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Minha Conta</h1>
         <p className="mt-2 text-muted-foreground">
-          Gerencie os detalhes do seu plano e suas configurações de segurança.
+          Gerencie os detalhes do seu plano, seu contrato de assinatura e suas configurações de segurança.
         </p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
-        {/* Coluna 1: Informações do Plano e E-mail */}
+        {/* Coluna 1: Informações do Plano e Contrato */}
         <div className="space-y-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
+                <Shield className="h-5 w-5 text-[#0083C7]" />
                 Assinatura
               </CardTitle>
               <CardDescription>Informações sobre seu plano atual na NumVapt.</CardDescription>
@@ -130,6 +150,76 @@ export function MinhaContaPageClient() {
                   {userPlan === "PRO" && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Card: Contrato de Assinatura */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#0083C7]" />
+                Contrato de Assinatura
+              </CardTitle>
+              <CardDescription>
+                Consulte o contrato digital de adesão e os termos de contratação conscious.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loadingContract ? (
+                <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#0083C7]" />
+                  Carregando informações do contrato...
+                </div>
+              ) : contract ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                      Assinado Digitalmente
+                    </span>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5 space-y-1.5 text-xs text-slate-700">
+                    <p>
+                      <strong>Modalidade:</strong> Plano {contract.modalidade?.toUpperCase()}
+                    </p>
+                    <p>
+                      <strong>Valor do Ciclo:</strong> R$ {contract.valorTotalCiclo?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                    <p>
+                      <strong>Data da Assinatura:</strong> {contract.signedAtFormatted || "Confirmada"}
+                    </p>
+                    <p className="truncate text-slate-400 font-mono text-[11px]">
+                      <strong>Autenticação:</strong> {contract.id}
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsContractModalOpen(true)}
+                    className="w-full gap-2 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50"
+                  >
+                    <Eye className="h-4 w-4 text-[#0083C7]" />
+                    Visualizar Contrato Completo
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Você ainda não possui um contrato de assinatura assinado. Ao contratar ou renovar um plano PRO, seu contrato digital assinado com valor legal ficará armazenado aqui para consulta e download.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsContractModalOpen(true)}
+                    className="w-full text-xs text-[#0083C7] hover:text-[#006ca3] hover:bg-blue-50"
+                  >
+                    <FileText className="mr-1.5 h-4 w-4" />
+                    Consultar Minuta Padrão de Contrato
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -219,6 +309,23 @@ export function MinhaContaPageClient() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Visualização Completa do Contrato */}
+      <Dialog open={isContractModalOpen} onOpenChange={setIsContractModalOpen}>
+        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto rounded-3xl p-6 sm:p-8">
+          <DigitalContractViewer
+            modalidade={contract?.modalidade || "anual"}
+            formaPagamento={contract?.formaPagamento || "pix"}
+            readOnly={true}
+            signedContract={contract}
+            initialAssinante={{
+              nomeOuRazaoSocial: contract?.assinante?.nomeOuRazaoSocial || user.displayName || "",
+              cpfOuCnpj: contract?.assinante?.cpfOuCnpj || "",
+              email: user.email || "",
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
