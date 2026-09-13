@@ -27,9 +27,24 @@ export const PricingSection = () => {
             <h2 className="mb-6 text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
               O que falta para você acelerar?
             </h2>
-            <p className="text-xl text-slate-600">
-              Escolha o plano ideal para o seu negócio. Teste de graça por 7 dias.
-            </p>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-xl text-slate-600">
+                <strong className="rounded-md bg-orange-100 px-2.5 py-1 font-extrabold uppercase text-orange-600 shadow-sm ring-1 ring-orange-200">
+                  Garantia Risco Zero de 7 Dias
+                </strong>
+                !
+              </p>
+              <div className="flex max-w-xl items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 shadow-sm">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 shrink-0">
+                  <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span>
+                  Teste à vontade! Se não gostar, cancele na hora com 1 e-mail, <strong>sem burocracia</strong>, e receba o seu dinheiro de volta.
+                </span>
+              </div>
+            </div>
           </div>
         </FadeInView>
 
@@ -221,11 +236,16 @@ export const PricingSection = () => {
                 size="lg"
                 className="h-14 rounded-full bg-slate-900 px-10 text-lg text-white shadow-xl transition-transform hover:scale-105 hover:bg-slate-800"
               >
-                <Link href="/acesso/cadastro">Criar Conta Gratuita</Link>
+                <Link href="/acesso/cadastro">Criar Conta e Ganhar 1 Post</Link>
               </Button>
-              <p className="mt-4 text-sm text-orange-100/80">
-                7 dias de teste grátis. Não pedimos cartão.
-              </p>
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <p className="text-sm font-medium text-orange-100">
+                  Garantia Incondicional de 7 Dias: se não gostar, devolvemos seu dinheiro sem burocracia.
+                </p>
+                <p className="text-xs text-orange-100/80">
+                  Basta enviar um único e-mail solicitando o cancelamento. É simples e rápido.
+                </p>
+              </div>
             </div>
           </div>
         </FadeInView>

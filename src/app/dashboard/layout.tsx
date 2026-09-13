@@ -251,6 +251,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
+  useEffect(() => {
+    const handleOpenSubscription = () => setShowSubscriptionModal(true);
+    window.addEventListener("open-subscription-modal", handleOpenSubscription);
+    return () => window.removeEventListener("open-subscription-modal", handleOpenSubscription);
+  }, []);
+
   if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -380,7 +386,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
-                {userPlan === "trial" && (
+                {(userPlan === "trial" || userPlan === "free") && (
                   <Button
                     onClick={() => setShowSubscriptionModal(true)}
                     className="hidden h-9 gap-2 rounded-xl border-0 bg-gradient-to-r from-orange-500 to-orange-400 px-4 font-bold text-white shadow-sm transition-opacity hover:opacity-90 sm:flex"

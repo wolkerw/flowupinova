@@ -14,6 +14,7 @@ vi.mock("@/components/auth/auth-provider", () => ({
     loading: false,
     loginWithEmail: vi.fn().mockResolvedValue(undefined),
     signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+    loginWithGoogle: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
   }),
 }));
@@ -36,6 +37,7 @@ describe("CadastroPage", () => {
       </AuthProvider>
     );
 
+    expect(screen.getByRole("heading", { name: "Cadastro", level: 1 })).toBeInTheDocument();
     expect(screen.getByLabelText(/Nome da Empresa/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Telefone/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/E-mail/i)).toBeInTheDocument();

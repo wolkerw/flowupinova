@@ -42,6 +42,7 @@
     "@types/leaflet": "^1.9.22",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.2",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -68,7 +69,8 @@
     "remark-gfm": "^4.0.0",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^4.4.3"
+    "yup": "^1.7.1",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
