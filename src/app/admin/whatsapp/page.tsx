@@ -290,7 +290,7 @@ export default function AdminWhatsAppPage() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400 border border-green-500/20">
-                            <Sparkles className="h-2.5 w-2.5" /> IA Sara Ativa
+                            <Sparkles className="h-2.5 w-2.5" /> IA Maia Ativa
                           </span>
                         )}
                       </div>
@@ -376,7 +376,7 @@ export default function AdminWhatsAppPage() {
                       >
                         <div className="flex items-center gap-1.5 mb-1 px-1">
                           <span className="text-[10px] font-semibold text-slate-400">
-                            {isUser ? msg.senderName || "Cliente" : isAi ? "Sara (NumVapt IA)" : "Atendente Humano"}
+                            {isUser ? msg.senderName || "Cliente" : isAi ? "Maia (NumVapt IA)" : "Atendente Humano"}
                           </span>
                           <span className="text-[9px] text-slate-500">
                             {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {

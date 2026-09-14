@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       role: "assistant",
       text: aiResult.replyText,
       timestamp: new Date().toISOString(),
-      senderName: "Sara (NumVapt IA)",
+      senderName: "Maia (NumVapt IA)",
     };
 
     await chatRef.collection("messages").doc(assistantMessageId).set(assistantMessage);

@@ -39,7 +39,7 @@ const mockMessages = [
     role: "assistant",
     text: "Olá! O plano anual da *NumVapt* é o mais vantajoso! ✨",
     timestamp: "2026-09-11T18:00:05Z",
-    senderName: "Sara (NumVapt IA)",
+    senderName: "Maia (NumVapt IA)",
   },
 ];
 
@@ -74,7 +74,7 @@ describe("AdminWhatsAppPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Cliente Teste")).toBeInTheDocument();
       expect(screen.getByText("Mariana Silva")).toBeInTheDocument();
-      expect(screen.getByText("IA Sara Ativa")).toBeInTheDocument();
+      expect(screen.getByText("IA Maia Ativa")).toBeInTheDocument();
       expect(screen.getByText("Aguardando Atendente")).toBeInTheDocument();
     });
   });
@@ -91,7 +91,7 @@ describe("AdminWhatsAppPage", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Qual o valor do plano?").length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/O plano anual da/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /IA Ativa/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^IA Ativa$/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Atendimento Humano/i })).toBeInTheDocument();
     });
   });
