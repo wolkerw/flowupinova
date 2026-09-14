@@ -46,7 +46,7 @@ interface PaymentSettings {
 
 export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModalProps) {
   const { toast } = useToast();
-  const { logout } = useAuth();
+  const { logout, getIdToken, user } = useAuth();
 
   const [userData, setUserData] = useState<UserSubscriptionDoc | null>(null);
   const [loading, setLoading] = useState(false);
@@ -165,13 +165,24 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const handleOpenCreditLink = async () => {
     setIsGeneratingCheckout(true);
     try {
+      let token: string | null = null;
+      try {
+        token = await getIdToken();
+      } catch (tErr) {
+        console.warn("Aviso ao obter getIdToken:", tErr);
+      }
+
       // 1. Tentar gerar checkout dinâmico integrado no Asaas vinculado ao usuário
       const res = await fetch("/api/asaas/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           plan: selectedPlan,
           coupon: discount ? discount.code : undefined,
+          userId: userId || user?.uid,
         }),
       });
 
@@ -360,10 +371,23 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
             onSignContract={async (contractData) => {
               setIsSigningContract(true);
               try {
+                let token: string | null = null;
+                try {
+                  token = await getIdToken();
+                } catch (tErr) {
+                  console.warn("Aviso ao obter getIdToken:", tErr);
+                }
+
                 const res = await fetch("/api/contracts/sign", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(contractData),
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({
+                    ...contractData,
+                    userId: userId || user?.uid,
+                  }),
                 });
                 const data = await res.json();
                 if (!res.ok) {
