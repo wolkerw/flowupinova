@@ -4,7 +4,10 @@ import { NextRequest } from "next/server";
 
 const mockUserSet = vi.fn().mockResolvedValue({});
 const mockTransSet = vi.fn().mockResolvedValue({});
-const mockUserDoc = { set: mockUserSet };
+const mockUserDoc = {
+  set: mockUserSet,
+  get: vi.fn().mockResolvedValue({ exists: true, data: () => ({}) }),
+};
 const mockTransDoc = { set: mockTransSet };
 
 vi.mock("@/lib/firebase-admin", () => ({
@@ -132,6 +135,43 @@ describe("Asaas Webhook Route", () => {
       expect.objectContaining({
         role: "free",
         subscriptionStatus: "inactive",
+      }),
+      { merge: true }
+    );
+  });
+
+  it("processa PAYMENT_RECEIVED para plano anual_recorrente e define billingCycle monthly_recurrent", async () => {
+    const payload = {
+      event: "PAYMENT_RECEIVED",
+      payment: {
+        id: "pay_rec_400",
+        customer: "cus_12345",
+        value: 400,
+        netValue: 390,
+        billingType: "CREDIT_CARD",
+        status: "RECEIVED",
+        externalReference: "user_test_abc:anual_recorrente:1700000000000",
+      },
+    };
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/asaas", {
+      method: "POST",
+      headers: {
+        "asaas-access-token": "test_webhook_token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    expect(mockUserSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: "pro",
+        subscriptionStatus: "active",
+        subscriptionPlan: "anual",
+        billingCycle: "monthly_recurrent",
       }),
       { merge: true }
     );

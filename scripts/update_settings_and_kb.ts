@@ -22,6 +22,7 @@ async function updateData() {
     creditLinkTrimestral: "https://www.asaas.com/c/1o32ken4bfjqrbo0",
     creditLinkSemestral: "https://www.asaas.com/c/lopf5rrhwt7dkr4e",
     creditLinkYearly: "https://www.asaas.com/c/nei7jpqtx5n8wtuj",
+    creditLinkYearlyRecurrent: "https://www.asaas.com/c/2unkh9p3t6apkcvm",
     pixKey: "d696cfdb-a875-4219-ae41-494a619a9e00",
     gateway: "asaas",
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -49,15 +50,19 @@ A NumVapt oferece planos flexíveis com pagamento 100% seguro via Cartão de Cr�
    - Parcele em até **6x de R$ 416,50 sem juros** no Cartão de Crédito.
    - Link de Pagamento: https://www.asaas.com/c/lopf5rrhwt7dkr4e
 
-4. **Plano Anual Especial (13 Meses - Melhor Custo-Benefício)**: Total de R$ 4.800,00
+4. **Plano Anual Especial (13 Meses - Parcelado em 12x)**: Total de R$ 4.800,00
    - Parcele em até **12x de R$ 400,00 sem juros** no Cartão de Crédito.
    - Você ganha 1 mês bônus (13 meses de acesso completo pelo valor de 12).
    - Link de Pagamento: https://www.asaas.com/c/nei7jpqtx5n8wtuj
 
+5. **Plano Anual com Cobrança Mensal no Cartão (NOVO - Sem Travar Limite)**: R$ 400,00/mês
+   - **Vantagem exclusiva**: O valor de R$ 400 é debitado mensalmente e **NÃO compromete o limite total de R$ 4.800** do cartão do cliente!
+   - O cliente tem todos os benefícios do plano anual pagando R$ 400 por mês.
+   - Link de Pagamento Recorrente: https://www.asaas.com/c/2unkh9p3t6apkcvm
+
 ### Instruções para a Maia ao atender clientes:
 - Quando o cliente demonstrar interesse em assinar ou perguntar sobre valores e formas de pagamento, apresente os planos com clareza e cordialidade.
-- Destaque que todos os planos podem ser parcelados no cartão de crédito sem juros (até 12x no plano anual).
-- Envie o link de pagamento correspondente ao plano que o cliente desejar.
+- Se o cliente quiser o preço promocional do anual (R$ 400/mês) mas comentar que não tem limite de R$ 4.800 no cartão para parcelar, ofereça a **Cobrança Mensal Recorrente no Cartão** (R$ 400/mês sem comprometer o limite total) enviando o link: https://www.asaas.com/c/2unkh9p3t6apkcvm.
 - A liberação da conta na plataforma é imediata e automática assim que o pagamento for aprovado pelo Asaas!
 `.trim();
 

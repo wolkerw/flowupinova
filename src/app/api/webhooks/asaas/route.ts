@@ -79,16 +79,30 @@ export async function POST(request: NextRequest) {
         if (plan === "trimestral") durationDays = 90;
         else if (plan === "semestral") durationDays = 180;
         else if (plan === "anual") durationDays = 395;
-
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + durationDays);
+        else if (plan === "anual_recorrente") durationDays = 30;
 
         const userDocRef = adminDb.collection("users").doc(userId);
+        const userDocSnap = await userDocRef.get();
+        const currentData = userDocSnap.exists ? userDocSnap.data() : null;
+
+        // Se já tiver uma expiração válida no futuro, soma os dias a partir dela (renovação contínua)
+        let baseDate = new Date();
+        if (currentData?.subscriptionExpiresAt) {
+          const currentExp = currentData.subscriptionExpiresAt.toDate ? currentData.subscriptionExpiresAt.toDate() : new Date(currentData.subscriptionExpiresAt);
+          if (currentExp > baseDate) {
+            baseDate = currentExp;
+          }
+        }
+
+        const expirationDate = new Date(baseDate);
+        expirationDate.setDate(expirationDate.getDate() + durationDays);
+
         await userDocRef.set(
           {
             role: "pro",
             subscriptionStatus: "active",
-            subscriptionPlan: plan,
+            subscriptionPlan: plan === "anual_recorrente" ? "anual" : plan,
+            billingCycle: plan === "anual_recorrente" ? "monthly_recurrent" : "standard",
             subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
             asaasCustomerId: payment.customer || null,
             lastPaymentId: payment.id,
@@ -98,7 +112,7 @@ export async function POST(request: NextRequest) {
           { merge: true }
         );
 
-        console.log(`[ASAAS_WEBHOOK] Usuário ${userId} ativado como PRO com sucesso até ${expirationDate.toISOString()}.`);
+        console.log(`[ASAAS_WEBHOOK] Usuário ${userId} ativado/renovado como PRO com sucesso até ${expirationDate.toISOString()}.`);
       }
 
       // 2. Registrar ou Atualizar Transação

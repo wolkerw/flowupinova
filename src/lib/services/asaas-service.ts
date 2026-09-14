@@ -20,6 +20,7 @@ export interface CreatePaymentLinkParams {
   value: number;
   billingType?: "CREDIT_CARD" | "PIX" | "BOLETO" | "UNDEFINED";
   chargeType?: "DETACHED" | "INSTALLMENT" | "RECURRENT";
+  subscriptionCycle?: "MONTHLY" | "WEEKLY" | "BIWEEKLY" | "QUARTERLY" | "SEMIANNUALLY" | "YEARLY";
   maxInstallmentCount?: number;
   dueDateLimitDays?: number;
   externalReference?: string;
@@ -217,7 +218,7 @@ export class AsaasService {
    * Cria um link de pagamento (PaymentLink) com suporte a cartão de crédito e parcelamento
    */
   static async createPaymentLink(params: CreatePaymentLinkParams): Promise<AsaasPaymentLinkResponse> {
-    const payload = {
+    const payload: any = {
       name: params.name,
       description: params.description,
       value: params.value,
@@ -228,6 +229,10 @@ export class AsaasService {
       externalReference: params.externalReference,
       notificationEnabled: params.notificationEnabled ?? true,
     };
+
+    if (params.subscriptionCycle) {
+      payload.subscriptionCycle = params.subscriptionCycle;
+    }
 
     const res = await this.request<AsaasPaymentLinkResponse>("/paymentLinks", {
       method: "POST",
@@ -256,7 +261,7 @@ export class AsaasService {
   /**
    * Configuração de valores e parcelas oficiais para cada plano
    */
-  static getPlanConfig(plan: "mensal" | "trimestral" | "semestral" | "anual") {
+  static getPlanConfig(plan: "mensal" | "trimestral" | "semestral" | "anual" | "anual_recorrente") {
     switch (plan) {
       case "mensal":
         return {
@@ -293,6 +298,16 @@ export class AsaasService {
           installmentCount: 12,
           chargeType: "INSTALLMENT" as const,
           durationDays: 395, // 13 meses (~395 dias)
+        };
+      case "anual_recorrente":
+        return {
+          name: "NumVapt Pro - Anual (Cobrança Mensal)",
+          description: "Benefícios do plano anual cobrado R$ 400,00 por mês no cartão de crédito, sem comprometer seu limite total!",
+          totalValue: 400.0,
+          installmentCount: 1,
+          chargeType: "RECURRENT" as const,
+          subscriptionCycle: "MONTHLY" as const,
+          durationDays: 30, // Renovado a cada mensalidade de R$ 400
         };
     }
   }

@@ -49,6 +49,16 @@ describe("AsaasService", () => {
       expect(config.chargeType).toBe("INSTALLMENT");
       expect(config.durationDays).toBe(395);
     });
+
+    it("retorna as configurações corretas para o plano Anual Recorrente Mensal (sem travar limite)", () => {
+      const config = AsaasService.getPlanConfig("anual_recorrente");
+      expect(config.name).toContain("Anual");
+      expect(config.totalValue).toBe(400.0);
+      expect(config.installmentCount).toBe(1);
+      expect(config.chargeType).toBe("RECURRENT");
+      expect(config.subscriptionCycle).toBe("MONTHLY");
+      expect(config.durationDays).toBe(30);
+    });
   });
 
   describe("createPaymentLink", () => {

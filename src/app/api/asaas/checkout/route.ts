@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { plan, coupon } = body as {
-      plan?: "mensal" | "trimestral" | "semestral" | "anual";
+      plan?: "mensal" | "trimestral" | "semestral" | "anual" | "anual_recorrente";
       coupon?: string;
     };
 
-    if (!plan || !["mensal", "trimestral", "semestral", "anual"].includes(plan)) {
+    if (!plan || !["mensal", "trimestral", "semestral", "anual", "anual_recorrente"].includes(plan)) {
       return NextResponse.json(
-        { error: "Plano inválido. Selecione mensal, trimestral, semestral ou anual." },
+        { error: "Plano inválido. Selecione mensal, trimestral, semestral, anual ou anual_recorrente." },
         { status: 400 }
       );
     }
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       value: finalValue,
       billingType: "CREDIT_CARD",
       chargeType: planConfig.chargeType,
+      subscriptionCycle: (planConfig as any).subscriptionCycle,
       maxInstallmentCount: planConfig.installmentCount,
       dueDateLimitDays: 3,
       externalReference: externalReference,

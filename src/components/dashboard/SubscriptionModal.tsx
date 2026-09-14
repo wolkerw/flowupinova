@@ -41,6 +41,7 @@ interface PaymentSettings {
   creditLinkTrimestral: string;
   creditLinkSemestral: string;
   creditLinkYearly: string;
+  creditLinkYearlyRecurrent?: string;
 }
 
 export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModalProps) {
@@ -58,6 +59,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanModalidade>("mensal");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("pix");
+  const [annualPaymentType, setAnnualPaymentType] = useState<"recurrent" | "installment">("recurrent");
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [discount, setDiscount] = useState<{ code: string; percentage: number } | null>(null);
@@ -69,6 +71,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     creditLinkTrimestral: "",
     creditLinkSemestral: "",
     creditLinkYearly: "",
+    creditLinkYearlyRecurrent: "https://www.asaas.com/c/2unkh9p3t6apkcvm",
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
@@ -163,12 +166,17 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const handleOpenCreditLink = async () => {
     setIsGeneratingCheckout(true);
     try {
+      const planToSubmit =
+        selectedPlan === "anual" && annualPaymentType === "recurrent"
+          ? "anual_recorrente"
+          : selectedPlan;
+
       // 1. Tentar gerar checkout dinâmico integrado no Asaas vinculado ao usuário
       const res = await fetch("/api/asaas/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan: selectedPlan,
+          plan: planToSubmit,
           coupon: discount ? discount.code : undefined,
         }),
       });
@@ -190,7 +198,12 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
       if (selectedPlan === "mensal") targetLink = settings.creditLinkMonthly;
       else if (selectedPlan === "trimestral") targetLink = settings.creditLinkTrimestral;
       else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
-      else if (selectedPlan === "anual") targetLink = settings.creditLinkYearly;
+      else if (selectedPlan === "anual") {
+        targetLink =
+          annualPaymentType === "recurrent"
+            ? settings.creditLinkYearlyRecurrent || "https://www.asaas.com/c/2unkh9p3t6apkcvm"
+            : settings.creditLinkYearly;
+      }
 
       if (targetLink) {
         window.open(targetLink, "_blank");
@@ -457,20 +470,76 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   Pague com segurança máxima através do gateway oficial Asaas. Liberação automática da sua conta!
                 </p>
 
-                <div className="rounded-xl border border-blue-200/60 bg-white p-4 shadow-sm">
-                  <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Condição de Pagamento
-                  </span>
-                  <p className="mt-1 text-base font-extrabold text-slate-900">
-                    {selectedPlan === "mensal" && "R$ 490,00 à vista no cartão"}
-                    {selectedPlan === "trimestral" && "Até 3x de R$ 441,00 sem juros"}
-                    {selectedPlan === "semestral" && "Até 6x de R$ 416,50 sem juros"}
-                    {selectedPlan === "anual" && "Até 12x de R$ 400,00 sem juros (13 Meses)"}
-                  </p>
-                  <p className="mt-1 text-[11px] font-medium text-emerald-600">
-                    Total: R$ {totalToPay.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
+                {selectedPlan === "anual" ? (
+                  <div className="space-y-3 text-left">
+                    <span className="block text-center text-xs font-bold text-slate-700">
+                      Como você prefere pagar no Cartão?
+                    </span>
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setAnnualPaymentType("recurrent")}
+                        className={cn(
+                          "relative flex flex-col rounded-xl border p-3.5 text-left transition-all",
+                          annualPaymentType === "recurrent"
+                            ? "border-[#0083C7] bg-white ring-2 ring-[#0083C7] shadow-sm"
+                            : "border-slate-200 bg-white/70 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900">Mensal no Cartão</span>
+                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-800">
+                            Sem travar limite
+                          </span>
+                        </div>
+                        <span className="mt-1 text-base font-black text-[#0083C7]">
+                          R$ 400,00 <span className="text-xs font-medium text-slate-400">/mês</span>
+                        </span>
+                        <p className="mt-1 text-[10px] leading-tight text-slate-500">
+                          Entra apenas R$ 400 por mês no seu cartão. Não compromete R$ 4.800 de limite!
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAnnualPaymentType("installment")}
+                        className={cn(
+                          "relative flex flex-col rounded-xl border p-3.5 text-left transition-all",
+                          annualPaymentType === "installment"
+                            ? "border-[#FA6305] bg-white ring-2 ring-[#FA6305] shadow-sm"
+                            : "border-slate-200 bg-white/70 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900">Parcelar em 12x</span>
+                          <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-extrabold text-[#FA6305]">
+                            +1 Mês Grátis
+                          </span>
+                        </div>
+                        <span className="mt-1 text-base font-black text-slate-900">
+                          12x de R$ 400,00
+                        </span>
+                        <p className="mt-1 text-[10px] leading-tight text-slate-500">
+                          Total R$ 4.800 parcelado no cartão. Você ganha o 13º mês de bônus!
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-blue-200/60 bg-white p-4 shadow-sm">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Condição de Pagamento
+                    </span>
+                    <p className="mt-1 text-base font-extrabold text-slate-900">
+                      {selectedPlan === "mensal" && "R$ 490,00 à vista no cartão"}
+                      {selectedPlan === "trimestral" && "Até 3x de R$ 441,00 sem juros"}
+                      {selectedPlan === "semestral" && "Até 6x de R$ 416,50 sem juros"}
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium text-emerald-600">
+                      Total: R$ {totalToPay.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
