@@ -9,22 +9,27 @@ const faqs = [
   {
     question: "Se eu não entender de internet, eu consigo usar?",
     answer:
-      "Sim, a NumVapt foi desenhada para ser extremamente fácil e intuitiva. Com alguns cliques, a Inteligência Artificial cuida de toda a parte técnica para você.",
+    "Sim, a NumVapt foi desenhada para ser extremamente fácil e intuitiva. Com alguns cliques, a Inteligência Artificial cuida de toda a parte técnica para você.",
   },
   {
     question: "Tem limite de imagens que eu posso gerar?",
     answer:
-      "Não! Nosso plano PRO oferece geração ilimitada de imagens para você nunca mais se preocupar com banco de imagens.",
+    "Não! Nosso plano PRO oferece geração ilimitada de imagens para você nunca mais se preocupar com banco de imagens.",
   },
   {
     question: "Como funciona a conexão com meu Instagram e Google?",
     answer:
-      "O processo é rápido e seguro. Você faz o login nas suas contas e a NumVapt se encarrega de agendar e publicar as postagens automaticamente nas suas redes.",
+    "O processo é rápido e seguro. Você faz o login nas suas contas e a NumVapt se encarrega de agendar e publicar as postagens automaticamente nas suas redes.",
   },
   {
     question: "Por que a IA aprende sobre o meu negócio?",
     answer:
-      "Ao se cadastrar, você nos conta um pouco sobre sua empresa. A IA analisa essas informações para gerar textos, hashtags e abordagens que tenham a voz exata da sua marca.",
+    "Ao se cadastrar, você nos conta um pouco sobre sua empresa. A IA analisa essas informações para gerar textos, hashtags e abordagens que tenham a voz exata da sua marca.",
+  },
+  {
+    question: "Como funciona a Garantia Risco Zero de 7 dias?",
+    answer:
+      "Se dentro dos primeiros 7 dias de uso você achar que a NumVapt não é para você, basta nos envia 1 e-mail solicitando o cancelamento. Devolvemos o seu dinheiro na hora, sem burocracia e sem letras miúdas.",
   },
 ];
 

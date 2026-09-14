@@ -8,9 +8,14 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +33,8 @@ interface AuthContextType {
     segment?: string
   ) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  resetPassword?: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -41,6 +48,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
+    // Processa retorno de autenticação via redirect (ex: em navegadores onde popup foi bloqueado)
+    getRedirectResult(auth)
+      .then(async (userCredential) => {
+        if (userCredential?.user) {
+          const user = userCredential.user;
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (!userDoc.exists()) {
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || "Usuário",
+              phone: user.phoneNumber || "",
+              segment: null,
+              createdAt: new Date(),
+              plan: "trial",
+              paymentStatus: "active",
+            });
+            fetch("/api/email/welcome", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: user.displayName, email: user.email }),
+            }).catch(() => {});
+          }
+          const token = await user.getIdToken(true);
+          setCookie("firebase-id-token", token, 1);
+          setUser(user);
+          router.push("/dashboard");
+        }
+      })
+      .catch((err) => {
+        console.warn("Erro ao obter resultado de redirect:", err);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       setLoading(false);
@@ -53,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     // Não executa a lógica de redirecionamento se ainda estiver carregando
@@ -125,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(auth.currentUser);
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
-      console.error("Erro ao criar conta:", error.code);
+      console.warn("Erro ao criar conta:", error.code);
       let errorMessage = "Ocorreu um erro desconhecido ao criar a conta.";
       switch (error.code) {
         case "auth/email-already-in-use":
@@ -175,6 +216,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    try {
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || "Usuário",
+          phone: user.phoneNumber || "",
+          segment: null,
+          createdAt: new Date(),
+          plan: "trial",
+          paymentStatus: "active",
+        });
+        fetch("/api/email/welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: user.displayName, email: user.email }),
+        }).catch(() => {});
+      }
+
+      const token = await user.getIdToken();
+      setCookie("firebase-id-token", token, 1);
+      setUser(user);
+      router.push("/dashboard");
+    } catch (error: any) {
+      if (
+        error?.code === "auth/popup-closed-by-user" ||
+        error?.code === "auth/cancelled-popup-request"
+      ) {
+        // Usuário apenas fechou o popup
+        return;
+      }
+
+      if (error?.code === "auth/popup-blocked") {
+        console.warn("Popup bloqueado pelo navegador. Tentando redirecionamento...");
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          console.error("Erro ao redirecionar para Google:", redirectError);
+        }
+      }
+
+      console.warn("Erro ao fazer login com Google:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao autenticar",
+        description: "Ocorreu um erro ao conectar com o Google. Tente novamente.",
+      });
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "E-mail enviado",
+        description: "Enviamos instruções de redefinição para o seu e-mail.",
+      });
+    } catch (error: any) {
+      console.error("Erro ao enviar email de redefinição:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível enviar o e-mail de recuperação. Verifique o endereço digitado.",
+      });
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -190,7 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value = { user, loading, getIdToken, signUpWithEmail, loginWithEmail, logout };
+  const value = { user, loading, getIdToken, signUpWithEmail, loginWithEmail, loginWithGoogle, resetPassword, logout };
 
   const isPublicPage =
     pathname === "/" ||

@@ -70,6 +70,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { ImageInpaintModal, type EditorLayer } from "../gerar/_components/ImageInpaintModal";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   schedulePost,
@@ -4214,11 +4215,10 @@ export default function CriarConteudoPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-4"
                   >
-                    <input
+                    <Input
                       type="datetime-local"
                       value={scheduleDate}
                       onChange={(e) => setScheduleDate(e.target.value)}
-                      className="w-full rounded-md border p-2"
                     />
                   </motion.div>
                 )}
@@ -4251,14 +4251,13 @@ export default function CriarConteudoPage() {
                         </div>
                       ))}
                     </div>
-                    <input
+                    <Input
                       type="text"
                       value={collaboratorsInput}
                       onChange={(e) => setCollaboratorsInput(e.target.value)}
                       onKeyDown={handleAddCollaborator}
                       placeholder="@usuario"
                       disabled={collaborators.length >= 3}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
                     />
                   </div>
 
@@ -4284,13 +4283,12 @@ export default function CriarConteudoPage() {
                         </div>
                       ))}
                     </div>
-                    <input
+                    <Input
                       type="text"
                       value={userTagsInput}
                       onChange={(e) => setUserTagsInput(e.target.value)}
                       onKeyDown={handleAddUserTag}
                       placeholder="@usuario"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
                     />
                   </div>
                 </div>

@@ -27,22 +27,28 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("LoginPage", () => {
-  it("renders email and password fields", () => {
+  it("renders login fields, google button and forgot password link", () => {
     render(
       <AuthProvider>
-        <Tabs value="login">
-          <LoginPage />
-        </Tabs>
+        <LoginPage />
       </AuthProvider>
     );
 
-    // Check for email input
-    expect(screen.getByLabelText(/E-mail/i)).toBeInTheDocument();
+    // Check heading and subtitle
+    expect(screen.getByRole("heading", { name: /Acesse sua conta/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(/Preencha seus dados para continuar/i)).toBeInTheDocument();
 
-    // Check for password input
+    // Check email and password inputs
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
 
-    // Check for login button
-    expect(screen.getByRole("button", { name: /Entrar na Plataforma/i })).toBeInTheDocument();
+    // Check forgot password button
+    expect(screen.getByRole("button", { name: /Esqueci minha senha/i })).toBeInTheDocument();
+
+    // Check submit button
+    expect(screen.getByRole("button", { name: /^Entrar$/i })).toBeInTheDocument();
+
+    // Check link to signup
+    expect(screen.getByRole("link", { name: /Criar conta grátis/i })).toBeInTheDocument();
   });
 });

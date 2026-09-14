@@ -77,6 +77,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userDocRef = adminDb.collection("users").doc(userId);
+    const userDoc = await userDocRef.get();
+    let isFreePlan = false;
+    
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      const plan = userData?.plan || "trial";
+      if (plan === "trial" || plan === "free") {
+        isFreePlan = true;
+        const freePostsCount = userData?.freePostsCount || 0;
+        if (freePostsCount >= 1 && !authUser.isAdmin) {
+          return NextResponse.json(
+            { error: "Cota gratuita atingida. Faça o upgrade para o plano PRO para criar mais conteúdos." },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const userStoragePath = await getUserStoragePathAdmin(userId);
 
     // 3. Fazer o upload da selfie de referência para o Firebase Storage
@@ -479,6 +498,13 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
     console.log(
       `[AVATAR_GENERATE] Avatar catalogado com sucesso na subcoleção mediaGallery: ${galleryDocId}`
     );
+
+    if (isFreePlan && !authUser.isAdmin) {
+      await userDocRef.update({
+        freePostsCount: admin.firestore.FieldValue.increment(1)
+      });
+      console.log(`[AVATAR_GENERATE] Cota gratuita incrementada para o usuário ${userId}`);
+    }
 
     return NextResponse.json({
       success: true,

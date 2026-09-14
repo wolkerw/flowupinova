@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeParseJSON } from "@/lib/utils";
 import { getAuthenticatedUser } from "@/lib/api-auth";
-
+import { admin, adminDb } from "@/lib/firebase-admin";
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
@@ -12,6 +12,26 @@ export async function POST(request: Request) {
         { error: "Autenticação obrigatória para gerar conteúdo." },
         { status: 401 }
       );
+    }
+    const userId = authUser.uid;
+
+    if (userId) {
+      const userDocRef = adminDb.collection("users").doc(userId);
+      const userDoc = await userDocRef.get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const plan = userData?.plan || "trial";
+        if (plan === "trial" || plan === "free") {
+          const freePostsCount = userData?.freePostsCount || 0;
+          if (freePostsCount >= 1) {
+            return NextResponse.json(
+              { error: "Cota gratuita atingida. Faça o upgrade para o plano PRO para criar mais conteúdos." },
+              { status: 403 }
+            );
+          }
+          // Incrementará depois no sucesso
+        }
+      }
     }
 
     const { summary, businessProfile, selectedPersona: explicitPersona } = await request.json();
@@ -296,6 +316,25 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
     });
 
     console.log(`[GENERATE_TEXT] Sucesso ao gerar ${processedData.length} publicações.`);
+
+    if (userId) {
+      try {
+        const userDocRef = adminDb.collection("users").doc(userId);
+        const userDoc = await userDocRef.get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const plan = userData?.plan || "trial";
+          if (plan === "trial" || plan === "free") {
+            await userDocRef.update({
+              freePostsCount: admin.firestore.FieldValue.increment(1)
+            });
+          }
+        }
+      } catch (incError) {
+        console.error("Erro ao incrementar cota em generate-text:", incError);
+      }
+    }
+
     return NextResponse.json(processedData);
   } catch (error: any) {
     console.error("[GENERATE_TEXT_ERROR] Erro interno do servidor:", error);

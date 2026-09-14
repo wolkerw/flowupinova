@@ -142,6 +142,24 @@ export async function POST(request: NextRequest) {
       const inspirationFile = formData.get("inspiration_file") as File;
       const description = (formData.get("description") as string) || "";
       const businessProfileJson = formData.get("business_profile_json") as string;
+      const userId = formData.get("userId") as string;
+
+      if (userId) {
+        const userDoc = await adminDb.collection("users").doc(userId).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const plan = userData?.plan || "trial";
+          if (plan === "trial" || plan === "free") {
+            const freePostsCount = userData?.freePostsCount || 0;
+            if (freePostsCount >= 1) {
+              return NextResponse.json(
+                { error: "Cota gratuita atingida. Faça o upgrade para o plano PRO para criar mais conteúdos." },
+                { status: 403 }
+              );
+            }
+          }
+        }
+      }
       
       let businessProfile = null;
       if (businessProfileJson) {
@@ -545,6 +563,24 @@ NÃO inclua crases, NENHUM bloco markdown \`\`\`json, nem qualquer texto antes o
             const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
             parsed = safeJsonParse(rawJson);
           }
+      }
+
+      if (parsed && userId) {
+        try {
+          const userDocRef = adminDb.collection("users").doc(userId);
+          const userDoc = await userDocRef.get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            const plan = userData?.plan || "trial";
+            if (plan === "trial" || plan === "free") {
+              await userDocRef.update({
+                freePostsCount: admin.firestore.FieldValue.increment(1)
+              });
+            }
+          }
+        } catch (incrementError) {
+          console.error("Erro ao incrementar freePostsCount:", incrementError);
+        }
       }
 
       return NextResponse.json(parsed);

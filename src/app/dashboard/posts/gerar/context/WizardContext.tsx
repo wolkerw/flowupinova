@@ -604,7 +604,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.details || "Erro ao processar link de referência.");
+        if (response.status === 403) {
+          window.dispatchEvent(new CustomEvent("open-subscription-modal"));
+          throw new Error("cota_excedida");
+        }
+        if (!response.ok) throw new Error(data.details || data.error || "Erro ao processar link de referência.");
 
         const publicacoes = Array.isArray(data)
           ? data[0]?.publicacoes || data
@@ -625,11 +629,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         }
         throw new Error("Formato de resposta inválido do webhook.");
       } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Erro no Link",
-          description: getFriendlyErrorMessage(error.message),
-        });
+        if (error.message !== "cota_excedida") {
+          toast({
+            variant: "destructive",
+            title: "Erro no Link",
+            description: getFriendlyErrorMessage(error.message),
+          });
+        }
         return null;
       } finally {
         setIsLoading(false);
@@ -659,6 +665,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       const data = await response.json();
+      if (response.status === 403) {
+        window.dispatchEvent(new CustomEvent("open-subscription-modal"));
+        throw new Error("cota_excedida");
+      }
       if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
 
       const publicacoes = Array.isArray(data)
@@ -689,11 +699,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error("O formato da resposta da IA é inesperado.");
       }
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao gerar texto",
-        description: getFriendlyErrorMessage(error.message),
-      });
+      if (error.message !== "cota_excedida") {
+        toast({
+          variant: "destructive",
+          title: "Erro ao gerar texto",
+          description: getFriendlyErrorMessage(error.message),
+        });
+      }
       return null;
     } finally {
       setIsLoading(false);
