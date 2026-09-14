@@ -291,18 +291,10 @@ export class AsaasService {
           durationDays: 180,
         };
       case "anual":
-        return {
-          name: "NumVapt Pro - Plano Anual (13 Meses)",
-          description: "Assinatura Anual NumVapt (13 meses pelo preço promocional). Parcele em até 12x de R$ 400,00 sem juros.",
-          totalValue: 4800.0,
-          installmentCount: 12,
-          chargeType: "INSTALLMENT" as const,
-          durationDays: 395, // 13 meses (~395 dias)
-        };
       case "anual_recorrente":
         return {
-          name: "NumVapt Pro - Anual (Cobrança Mensal)",
-          description: "Benefícios do plano anual cobrado R$ 400,00 por mês no cartão de crédito, sem comprometer seu limite total!",
+          name: "NumVapt Pro - Plano Anual (Cobrança Mensal + 1 Mês Grátis)",
+          description: "Benefícios completos do plano anual com cobrança de apenas R$ 400,00 por mês no cartão, sem comprometer o limite total (+ 1 mês grátis)!",
           totalValue: 400.0,
           installmentCount: 1,
           chargeType: "RECURRENT" as const,

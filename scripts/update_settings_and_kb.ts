@@ -21,7 +21,7 @@ async function updateData() {
     creditLinkMonthly: "https://www.asaas.com/c/53kbnhb6f1hvcmfa",
     creditLinkTrimestral: "https://www.asaas.com/c/1o32ken4bfjqrbo0",
     creditLinkSemestral: "https://www.asaas.com/c/lopf5rrhwt7dkr4e",
-    creditLinkYearly: "https://www.asaas.com/c/nei7jpqtx5n8wtuj",
+    creditLinkYearly: "https://www.asaas.com/c/2unkh9p3t6apkcvm",
     creditLinkYearlyRecurrent: "https://www.asaas.com/c/2unkh9p3t6apkcvm",
     pixKey: "d696cfdb-a875-4219-ae41-494a619a9e00",
     gateway: "asaas",
@@ -50,19 +50,20 @@ A NumVapt oferece planos flexíveis com pagamento 100% seguro via Cartão de Cr�
    - Parcele em até **6x de R$ 416,50 sem juros** no Cartão de Crédito.
    - Link de Pagamento: https://www.asaas.com/c/lopf5rrhwt7dkr4e
 
-4. **Plano Anual Especial (13 Meses - Parcelado em 12x)**: Total de R$ 4.800,00
-   - Parcele em até **12x de R$ 400,00 sem juros** no Cartão de Crédito.
-   - Você ganha 1 mês bônus (13 meses de acesso completo pelo valor de 12).
-   - Link de Pagamento: https://www.asaas.com/c/nei7jpqtx5n8wtuj
-
-5. **Plano Anual com Cobrança Mensal no Cartão (NOVO - Sem Travar Limite)**: R$ 400,00/mês
-   - **Vantagem exclusiva**: O valor de R$ 400 é debitado mensalmente e **NÃO compromete o limite total de R$ 4.800** do cartão do cliente!
-   - O cliente tem todos os benefícios do plano anual pagando R$ 400 por mês.
-   - Link de Pagamento Recorrente: https://www.asaas.com/c/2unkh9p3t6apkcvm
+4. **Plano Anual com Cobrança Mensal no Cartão (+ 1 Mês Grátis)**: R$ 400,00/mês
+   - **Vantagem exclusiva**: O valor de R$ 400 é debitado mensalmente no cartão e **NÃO compromete o limite total de R$ 4.800** do cliente!
+   - O cliente tem todos os benefícios do plano anual pagando apenas R$ 400 por mês no cartão.
+   - **Bônus especial**: Ganha o **13º mês grátis** (+ 1 mês grátis na assinatura).
+   - Link de Pagamento Oficial: https://www.asaas.com/c/2unkh9p3t6apkcvm
 
 ### Instruções para a Maia ao atender clientes:
 - Quando o cliente demonstrar interesse em assinar ou perguntar sobre valores e formas de pagamento, apresente os planos com clareza e cordialidade.
-- Se o cliente quiser o preço promocional do anual (R$ 400/mês) mas comentar que não tem limite de R$ 4.800 no cartão para parcelar, ofereça a **Cobrança Mensal Recorrente no Cartão** (R$ 400/mês sem comprometer o limite total) enviando o link: https://www.asaas.com/c/2unkh9p3t6apkcvm.
+- Para o plano Anual, ofereça **exclusivamente** a modalidade de **Mensal no Cartão por R$ 400,00/mês** (+ 1 mês grátis). Enfatize que o cliente não precisa comprometer o limite total do cartão, pois é cobrado mês a mês!
+- Envie o link de pagamento correspondente ao plano que o cliente desejar:
+  - Mensal: https://www.asaas.com/c/53kbnhb6f1hvcmfa
+  - Trimestral: https://www.asaas.com/c/1o32ken4bfjqrbo0
+  - Semestral: https://www.asaas.com/c/lopf5rrhwt7dkr4e
+  - Anual (Mensal no Cartão + 1 Mês Grátis): https://www.asaas.com/c/2unkh9p3t6apkcvm
 - A liberação da conta na plataforma é imediata e automática assim que o pagamento for aprovado pelo Asaas!
 `.trim();
 

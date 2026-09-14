@@ -41,23 +41,22 @@ describe("AsaasService", () => {
       expect(config.durationDays).toBe(180);
     });
 
-    it("retorna as configurações corretas para o plano Anual com até 12 parcelas e 13 meses", () => {
+    it("retorna as configurações corretas para o plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis)", () => {
       const config = AsaasService.getPlanConfig("anual");
-      expect(config.name).toContain("Anual");
-      expect(config.totalValue).toBe(4800.0);
-      expect(config.installmentCount).toBe(12);
-      expect(config.chargeType).toBe("INSTALLMENT");
-      expect(config.durationDays).toBe(395);
-    });
-
-    it("retorna as configurações corretas para o plano Anual Recorrente Mensal (sem travar limite)", () => {
-      const config = AsaasService.getPlanConfig("anual_recorrente");
       expect(config.name).toContain("Anual");
       expect(config.totalValue).toBe(400.0);
       expect(config.installmentCount).toBe(1);
       expect(config.chargeType).toBe("RECURRENT");
       expect(config.subscriptionCycle).toBe("MONTHLY");
       expect(config.durationDays).toBe(30);
+    });
+
+    it("retorna as configurações corretas para o alias anual_recorrente", () => {
+      const config = AsaasService.getPlanConfig("anual_recorrente");
+      expect(config.name).toContain("Anual");
+      expect(config.totalValue).toBe(400.0);
+      expect(config.chargeType).toBe("RECURRENT");
+      expect(config.subscriptionCycle).toBe("MONTHLY");
     });
   });
 

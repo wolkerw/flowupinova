@@ -59,7 +59,6 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanModalidade>("mensal");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("pix");
-  const [annualPaymentType, setAnnualPaymentType] = useState<"recurrent" | "installment">("recurrent");
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [discount, setDiscount] = useState<{ code: string; percentage: number } | null>(null);
@@ -82,7 +81,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     mensal: 490,
     trimestral: 441, // 10% off
     semestral: 416.5, // 15% off
-    anual: 4800 / 13, // 13 months
+    anual: 400, // 400/mês cobrado mensalmente no cartão (+ 1 mês grátis)
   };
 
   useEffect(() => {
@@ -166,17 +165,12 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const handleOpenCreditLink = async () => {
     setIsGeneratingCheckout(true);
     try {
-      const planToSubmit =
-        selectedPlan === "anual" && annualPaymentType === "recurrent"
-          ? "anual_recorrente"
-          : selectedPlan;
-
       // 1. Tentar gerar checkout dinâmico integrado no Asaas vinculado ao usuário
       const res = await fetch("/api/asaas/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan: planToSubmit,
+          plan: selectedPlan,
           coupon: discount ? discount.code : undefined,
         }),
       });
@@ -199,10 +193,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
       else if (selectedPlan === "trimestral") targetLink = settings.creditLinkTrimestral;
       else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
       else if (selectedPlan === "anual") {
-        targetLink =
-          annualPaymentType === "recurrent"
-            ? settings.creditLinkYearlyRecurrent || "https://www.asaas.com/c/2unkh9p3t6apkcvm"
-            : settings.creditLinkYearly;
+        targetLink = settings.creditLinkYearlyRecurrent || "https://www.asaas.com/c/2unkh9p3t6apkcvm";
       }
 
       if (targetLink) {
@@ -302,7 +293,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const getTotalToPay = (plan: SubscriptionPlanModalidade, monthlyPrice: number) => {
     if (plan === "trimestral") return monthlyPrice * 3;
     if (plan === "semestral") return monthlyPrice * 6;
-    if (plan === "anual") return 4800; // Total fixo de 4800 por 13 meses
+    if (plan === "anual") return monthlyPrice; // R$ 400/mês debitado mensalmente no cartão (+1 mês grátis)
     return monthlyPrice;
   };
 
@@ -471,59 +462,24 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                 </p>
 
                 {selectedPlan === "anual" ? (
-                  <div className="space-y-3 text-left">
-                    <span className="block text-center text-xs font-bold text-slate-700">
-                      Como você prefere pagar no Cartão?
-                    </span>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => setAnnualPaymentType("recurrent")}
-                        className={cn(
-                          "relative flex flex-col rounded-xl border p-3.5 text-left transition-all",
-                          annualPaymentType === "recurrent"
-                            ? "border-[#0083C7] bg-white ring-2 ring-[#0083C7] shadow-sm"
-                            : "border-slate-200 bg-white/70 hover:border-slate-300"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900">Mensal no Cartão</span>
-                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-800">
-                            Sem travar limite
-                          </span>
-                        </div>
-                        <span className="mt-1 text-base font-black text-[#0083C7]">
-                          R$ 400,00 <span className="text-xs font-medium text-slate-400">/mês</span>
-                        </span>
-                        <p className="mt-1 text-[10px] leading-tight text-slate-500">
-                          Entra apenas R$ 400 por mês no seu cartão. Não compromete R$ 4.800 de limite!
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setAnnualPaymentType("installment")}
-                        className={cn(
-                          "relative flex flex-col rounded-xl border p-3.5 text-left transition-all",
-                          annualPaymentType === "installment"
-                            ? "border-[#FA6305] bg-white ring-2 ring-[#FA6305] shadow-sm"
-                            : "border-slate-200 bg-white/70 hover:border-slate-300"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900">Parcelar em 12x</span>
-                          <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-extrabold text-[#FA6305]">
-                            +1 Mês Grátis
-                          </span>
-                        </div>
-                        <span className="mt-1 text-base font-black text-slate-900">
-                          12x de R$ 400,00
-                        </span>
-                        <p className="mt-1 text-[10px] leading-tight text-slate-500">
-                          Total R$ 4.800 parcelado no cartão. Você ganha o 13º mês de bônus!
-                        </p>
-                      </button>
+                  <div className="rounded-xl border border-blue-200/80 bg-white p-4 text-center shadow-sm">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800">
+                        Sem travar limite
+                      </span>
+                      <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[#FA6305]">
+                        +1 Mês Grátis
+                      </span>
                     </div>
+                    <span className="mt-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Mensalidade no Cartão de Crédito
+                    </span>
+                    <p className="mt-1 text-2xl font-black text-[#0083C7]">
+                      R$ 400,00 <span className="text-sm font-bold text-slate-400">/mês</span>
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                      Entra apenas <strong>R$ 400 por mês</strong> no seu cartão. Você aproveita todos os benefícios do plano anual com <strong>13 meses liberados</strong> sem comprometer o limite total!
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-blue-200/60 bg-white p-4 shadow-sm">
@@ -698,7 +654,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                       Ganhe o 13º Mês Grátis!
                     </p>
                     <p className="text-[11px] font-bold text-[#FA6305]">
-                      Plano de 13 meses por apenas R$ 4.800
+                      Benefícios do anual por apenas R$ 400/mês no cartão
                     </p>
                   </div>
                 </div>
@@ -709,7 +665,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
             <div className="pb-2 text-center">
               <div className="flex items-end justify-center gap-1">
                 <span className="text-4xl font-black text-[#1da051]">
-                  R 
+                  R$ 
                   {finalPrice % 1 === 0
                     ? finalPrice
                     : finalPrice.toLocaleString("pt-BR", {
@@ -736,7 +692,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
               )}
               {selectedPlan === "anual" && !discount && (
                 <p className="mt-1 text-[11px] font-medium text-slate-400">
-                  cobrado R$ 4.800 pelo período de 13 meses
+                  cobrado R$ 400 por mês no cartão (com 13º mês grátis)
                 </p>
               )}
             </div>
