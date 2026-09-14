@@ -158,47 +158,69 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     }
   };
 
-  const handleOpenCreditLink = () => {
-    let targetLink = "";
-    if (selectedPlan === "mensal") targetLink = settings.creditLinkMonthly;
-    else if (selectedPlan === "trimestral") targetLink = settings.creditLinkTrimestral;
-    else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
-    else if (selectedPlan === "anual") targetLink = settings.creditLinkYearly;
+  const [isGeneratingCheckout, setIsGeneratingCheckout] = useState(false);
 
-    if (targetLink) {
-      window.open(targetLink, "_blank");
-    } else {
+  const handleOpenCreditLink = async () => {
+    setIsGeneratingCheckout(true);
+    try {
+      // 1. Tentar gerar checkout dinâmico integrado no Asaas vinculado ao usuário
+      const res = await fetch("/api/asaas/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          coupon: discount ? discount.code : undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.checkoutUrl) {
+        window.open(data.checkoutUrl, "_blank");
+        toast({
+          title: "Checkout Seguro Asaas Aberto! 💳",
+          description: "Conclua o pagamento no cartão na nova aba. Sua assinatura será liberada automaticamente.",
+          variant: "success",
+        });
+        return;
+      }
+
+      // 2. Fallback caso a API falhe: usar os links oficiais pré-configurados do Asaas
+      let targetLink = "";
+      if (selectedPlan === "mensal") targetLink = settings.creditLinkMonthly;
+      else if (selectedPlan === "trimestral") targetLink = settings.creditLinkTrimestral;
+      else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
+      else if (selectedPlan === "anual") targetLink = settings.creditLinkYearly;
+
+      if (targetLink) {
+        window.open(targetLink, "_blank");
+        toast({
+          title: "Link Asaas Aberto! 💳",
+          description: "Conclua o pagamento na aba aberta. O Asaas confirmará seu plano automaticamente.",
+          variant: "success",
+        });
+      } else {
+        throw new Error(data.error || "Não foi possível carregar o checkout.");
+      }
+    } catch (err: any) {
+      console.warn("Falha ao gerar checkout Asaas, usando fallback:", err);
+      // Se não tiver nenhum link, encaminhar para WhatsApp
       const planNames: Record<string, string> = {
         mensal: "Mensal",
         trimestral: "Trimestral",
         semestral: "Semestral",
         anual: "Anual",
       };
-
       const planName = planNames[selectedPlan] || selectedPlan;
       const formattedTotal = totalToPay.toLocaleString("pt-BR", {
         style: "currency",
         currency: "BRL",
       });
-
-      let textMsg = `Olá! Gostaria de solicitar o link de pagamento no Cartão de Crédito para o plano ${planName} (Valor Total: ${formattedTotal}).`;
-
-      if (discount) {
-        textMsg += ` Cupom aplicado: ${discount.code} (${discount.percentage}% OFF).`;
-      }
-
-      if (userData?.email) {
-        textMsg += ` Meu e-mail de cadastro: ${userData.email}.`;
-      }
-
-      const whatsappUrl = `https://wa.me/5551920044035?text=${encodeURIComponent(textMsg)}`;
-      window.open(whatsappUrl, "_blank");
-
-      toast({
-        variant: "success",
-        title: "Solicitação Enviada! 💬",
-        description: "Abrindo o WhatsApp para envio da sua solicitação de link de pagamento.",
-      });
+      let textMsg = `Olá! Gostaria de pagar com Cartão de Crédito o plano ${planName} (Total: ${formattedTotal}).`;
+      if (userData?.email) textMsg += ` Email: ${userData.email}.`;
+      window.open(`https://wa.me/5551920044035?text=${encodeURIComponent(textMsg)}`, "_blank");
+    } finally {
+      setIsGeneratingCheckout(false);
     }
   };
 
@@ -426,19 +448,33 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-8 text-center">
-                <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-                  <CreditCard className="h-7 w-7 text-blue-600" />
+              <div className="space-y-4 rounded-2xl border border-blue-100 bg-[#F8FAFC] p-6 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+                  <CreditCard className="h-7 w-7 text-[#0083C7]" />
                 </div>
-                <h4 className="text-lg font-bold text-slate-900">Pagamento Seguro via Cartão</h4>
-                <p className="text-sm text-slate-500">
-                  Você pode pagar no cartão de crédito via link seguro.
+                <h4 className="text-lg font-bold text-slate-900">Checkout Cartão de Crédito Asaas</h4>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Pague com segurança máxima através do gateway oficial Asaas. Liberação automática da sua conta!
                 </p>
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <span className="text-sm text-slate-500">Total do plano {selectedPlan}:</span>
-                  <span className="text-xl font-bold text-blue-600">
-                    R$ {totalToPay.toLocaleString("pt-BR")}
+
+                <div className="rounded-xl border border-blue-200/60 bg-white p-4 shadow-sm">
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Condição de Pagamento
                   </span>
+                  <p className="mt-1 text-base font-extrabold text-slate-900">
+                    {selectedPlan === "mensal" && "R$ 490,00 à vista no cartão"}
+                    {selectedPlan === "trimestral" && "Até 3x de R$ 441,00 sem juros"}
+                    {selectedPlan === "semestral" && "Até 6x de R$ 416,50 sem juros"}
+                    {selectedPlan === "anual" && "Até 12x de R$ 400,00 sem juros (13 Meses)"}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium text-emerald-600">
+                    Total: R$ {totalToPay.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  Ambiente criptografado com Antifraude ativo
                 </div>
               </div>
             )}
@@ -462,15 +498,20 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
               ) : (
                 <Button
                   onClick={handleOpenCreditLink}
-                  disabled={isLoadingSettings}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-b-4 border-[#1e40af] bg-[#2563EB] py-7 text-[15px] font-bold text-white shadow-md transition-all hover:-translate-y-px hover:bg-[#1d4ed8] active:translate-y-px active:border-b-0"
+                  disabled={isGeneratingCheckout || isLoadingSettings}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-b-4 border-[#006ca3] bg-[#0083C7] py-7 text-[15px] font-bold text-white shadow-md transition-all hover:-translate-y-px hover:bg-[#006ca3] active:translate-y-px active:border-b-0"
                 >
-                  {isLoadingSettings ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                  {isGeneratingCheckout ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Abrindo Checkout Seguro...
+                    </>
                   ) : (
-                    <CreditCard className="h-5 w-5" />
+                    <>
+                      <CreditCard className="h-5 w-5" />
+                      Pagar com Cartão de Crédito (Asaas)
+                    </>
                   )}
-                  Solicitar Link de Pagamento
                 </Button>
               )}
             </div>
