@@ -1,4 +1,5 @@
 import type { WhatsAppMessage, WhatsAppAIResponse } from "@/lib/types/whatsapp";
+import { adminDb } from "@/lib/firebase-admin";
 
 interface GenerateWhatsAppAIOptions {
   incomingMessage: string;
@@ -37,13 +38,13 @@ Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no númer
 
 • Planos e Preços Oficiais:
   - *Plano Mensal*: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
-  - *Plano Trimestral*: R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 a cada 3 meses).
-  - *Plano Semestral*: R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 a cada 6 meses).
-  - *Plano Anual Promocional*: R$ 369,23/mês equivalente (13 meses de acesso — 12 meses contratados + 1 mês bônus | R$ 4.800,00 à vista ou em até 12x no cartão).
+  - *Plano Trimestral*: R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
+  - *Plano Semestral*: R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
+  - *Plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis)*: R$ 400,00/mês (13 meses de acesso — 12 meses pagos + 1 mês bônus gratuito!). Cobrança mensal de R$ 400,00 debitada mês a mês sem travar o limite total de R$ 4.800 no cartão do cliente. Link Oficial: https://www.asaas.com/c/2unkh9p3t6apkcvm
 
 • Formas de Pagamento:
-  - Pix com liberação rápida.
-  - Cartão de crédito (parcelado em até 12x).
+  - Cartão de crédito (modalidade mensal recorrente sem bloquear o limite total).
+  - Pix com liberação imediata.
 
 • Contrato e Segurança:
   - Contrato digital formal de 19 cláusulas com 10 aceites de confirmação consciente.
@@ -112,6 +113,25 @@ export async function generateWhatsAppAIResponse(
     parts: currentParts,
   });
 
+  // Busca dinamicamente a Central de Conhecimento configurada no Admin
+  let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION;
+  try {
+    const snap = await adminDb
+      .collection("whatsapp_knowledge_base")
+      .where("isActive", "==", true)
+      .orderBy("order", "asc")
+      .get();
+
+    if (!snap.empty) {
+      const dynamicContent = snap.docs
+        .map((d) => `### ${d.data().title?.toUpperCase()}\n${d.data().content}`)
+        .join("\n\n");
+      dynamicInstruction += "\n\n# INFORMAÇÕES ATUALIZADAS EM TEMPO REAL PELO ADMIN:\n" + dynamicContent;
+    }
+  } catch (kbErr) {
+    console.warn("[WHATSAPP_AI] Falha ao carregar conhecimento dinâmico, usando instrução base:", kbErr);
+  }
+
   const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
   let lastError: any = null;
 
@@ -124,11 +144,15 @@ export async function generateWhatsAppAIResponse(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: WHATSAPP_SYSTEM_INSTRUCTION }],
+            parts: [{ text: dynamicInstruction }],
           },
           contents: conversationParts,
           generationConfig: {
             temperature: 0.7,
+            maxOutputTokens: 2500,
+            thinkingConfig: {
+              thinkingBudget: 150,
+            },
             responseMimeType: "application/json",
           },
         }),
