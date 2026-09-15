@@ -100,12 +100,13 @@ function VideoLightbox({ onClose }: { onClose: () => void }) {
             <video
               ref={videoRef}
               className="absolute inset-0 h-full w-full object-contain bg-black"
-              src={DEMO_VIDEO_URL}
               controls
               playsInline
-              preload="metadata"
+              autoPlay
+              preload="auto"
               poster="/logo-numvapt.png"
             >
+              <source src={DEMO_VIDEO_URL} type="video/mp4" />
               Seu navegador não suporta a reprodução deste vídeo.
             </video>
           ) : (
