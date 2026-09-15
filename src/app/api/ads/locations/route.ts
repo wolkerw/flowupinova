@@ -228,6 +228,47 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const KNOWN_COUNTRIES: Record<string, { key: string; name: string; countryCode: string }> = {
+      brasil: { key: "meta_country_BR", name: "Brasil", countryCode: "BR" },
+      brazil: { key: "meta_country_BR", name: "Brasil", countryCode: "BR" },
+      portugal: { key: "meta_country_PT", name: "Portugal", countryCode: "PT" },
+      "estados unidos": { key: "meta_country_US", name: "Estados Unidos", countryCode: "US" },
+      "united states": { key: "meta_country_US", name: "Estados Unidos", countryCode: "US" },
+      eua: { key: "meta_country_US", name: "Estados Unidos", countryCode: "US" },
+      usa: { key: "meta_country_US", name: "Estados Unidos", countryCode: "US" },
+      argentina: { key: "meta_country_AR", name: "Argentina", countryCode: "AR" },
+      uruguai: { key: "meta_country_UY", name: "Uruguai", countryCode: "UY" },
+      paraguai: { key: "meta_country_PY", name: "Paraguai", countryCode: "PY" },
+      chile: { key: "meta_country_CL", name: "Chile", countryCode: "CL" },
+      colombia: { key: "meta_country_CO", name: "Colômbia", countryCode: "CO" },
+      colômbia: { key: "meta_country_CO", name: "Colômbia", countryCode: "CO" },
+      mexico: { key: "meta_country_MX", name: "México", countryCode: "MX" },
+      méxico: { key: "meta_country_MX", name: "México", countryCode: "MX" },
+      espanha: { key: "meta_country_ES", name: "Espanha", countryCode: "ES" },
+      frança: { key: "meta_country_FR", name: "França", countryCode: "FR" },
+      franca: { key: "meta_country_FR", name: "França", countryCode: "FR" },
+      itália: { key: "meta_country_IT", name: "Itália", countryCode: "IT" },
+      italia: { key: "meta_country_IT", name: "Itália", countryCode: "IT" },
+      alemanha: { key: "meta_country_DE", name: "Alemanha", countryCode: "DE" },
+      "reino unido": { key: "meta_country_GB", name: "Reino Unido", countryCode: "GB" },
+      canada: { key: "meta_country_CA", name: "Canadá", countryCode: "CA" },
+      canadá: { key: "meta_country_CA", name: "Canadá", countryCode: "CA" },
+      angola: { key: "meta_country_AO", name: "Angola", countryCode: "AO" },
+      moçambique: { key: "meta_country_MZ", name: "Moçambique", countryCode: "MZ" },
+    };
+
+    const normQuery = q.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (KNOWN_COUNTRIES[normQuery] || KNOWN_COUNTRIES[q.toLowerCase().trim()]) {
+      const c = KNOWN_COUNTRIES[normQuery] || KNOWN_COUNTRIES[q.toLowerCase().trim()];
+      locations.push({
+        key: c.key,
+        name: c.name,
+        type: "País",
+        region: "País",
+        countryCode: c.countryCode,
+      });
+    }
+
     // Deduplicação inteligente final por nome e tipo
     const uniqueLocations: any[] = [];
     const seenNames = new Set<string>();
@@ -247,6 +288,25 @@ export async function GET(request: NextRequest) {
         uniqueLocations.push(loc);
       }
     }
+
+    // Ordenação inteligente por relevância (País > Estado > Cidade > Bairro > Rua)
+    const getTypeScore = (loc: any) => {
+      const normLocName = loc.name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(" (estado)", "");
+      const isExact = normLocName === normQuery;
+
+      if (loc.type === "País") return isExact ? 1 : 10;
+      if (loc.type === "Estado") return isExact ? 2 : 20;
+      if (loc.type === "Cidade") return isExact ? 3 : 30;
+      if (loc.type === "Bairro") return isExact ? 4 : 40;
+      return 50;
+    };
+
+    uniqueLocations.sort((a, b) => getTypeScore(a) - getTypeScore(b));
 
     return NextResponse.json({ success: true, locations: uniqueLocations.slice(0, 10) });
   } catch (error: any) {

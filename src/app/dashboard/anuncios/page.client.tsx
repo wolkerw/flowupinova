@@ -1661,15 +1661,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   ]);
 
   const addInterest = (interest: { id: string; name: string; type?: string }) => {
-    if (selectedInterests.length >= 5) {
-      toast({
-        variant: "destructive",
-        title: "Limite de interesses atingido",
-        description:
-          "Você pode selecionar no máximo 5 interesses para manter o público qualificado.",
-      });
-      return;
-    }
     if (selectedInterests.some((i) => i.id === interest.id)) {
       return;
     }
