@@ -568,12 +568,42 @@ export async function POST(request: NextRequest) {
 
     const adSetParams = new URLSearchParams(adSetParamsObj);
 
-    const adSetResponse = await fetch(adSetUrl, {
+    let adSetResponse = await fetch(adSetUrl, {
       method: "POST",
       body: adSetParams,
     });
 
-    const adSetData = await adSetResponse.json();
+    let adSetData = await adSetResponse.json();
+
+    // Se falhar devido a interesse descontinuado/inválido na Meta, filtra o ID problemático e tenta novamente
+    if (!adSetResponse.ok && adSetData.error) {
+      const errMsg = String(adSetData.error?.error_user_msg || adSetData.error?.message || "");
+      const match = errMsg.match(/interesse com ID (\d+) é inválido|interest with ID (\d+) is invalid/i);
+
+      if (match) {
+        const invalidId = match[1] || match[2];
+        console.warn(`[ORQUESTRADOR] Interesse descontinuado detectado na Meta (ID ${invalidId}). Removendo e reenviando AdSet...`);
+
+        if (metaTargeting.flexible_spec?.[0]?.interests) {
+          metaTargeting.flexible_spec[0].interests = metaTargeting.flexible_spec[0].interests.filter(
+            (i: any) => String(i.id) !== String(invalidId)
+          );
+          if (metaTargeting.flexible_spec[0].interests.length === 0) {
+            delete metaTargeting.flexible_spec;
+          }
+        }
+
+        adSetParamsObj.targeting = JSON.stringify(metaTargeting);
+        const retryParams = new URLSearchParams(adSetParamsObj);
+
+        adSetResponse = await fetch(adSetUrl, {
+          method: "POST",
+          body: retryParams,
+        });
+        adSetData = await adSetResponse.json();
+      }
+    }
+
     if (!adSetResponse.ok) {
       console.error("[ORQUESTRADOR] Erro no Ad Set:", adSetData.error);
       throw new Error(
@@ -695,14 +725,31 @@ export async function POST(request: NextRequest) {
         },
       };
       creativeLink = mapUrl;
-    } else if (ctaType && ctaType !== "NONE") {
-      // Regra padrão de links (LEARN_MORE / SHOP_NOW etc.)
-      callToAction = {
-        type: ctaType || "LEARN_MORE",
-        value: {
-          link: creativeLink,
-        },
-      };
+    } else {
+      let effectiveCtaType = ctaType;
+      if (isTraffic && (effectiveCtaType === "NONE" || !effectiveCtaType)) {
+        effectiveCtaType = "LEARN_MORE";
+      }
+
+      if (isTraffic && (!ctaLink || creativeLink === `https://facebook.com/${pageId}`)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Para criar um anúncio com objetivo de Tráfego (Mais cliques no link), é obrigatório fornecer a URL de destino do seu site.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (effectiveCtaType && effectiveCtaType !== "NONE") {
+        callToAction = {
+          type: effectiveCtaType,
+          value: {
+            link: creativeLink,
+          },
+        };
+      }
     }
 
     // Estrutura do post com base na existência de CTA / Link de destino
@@ -715,9 +762,11 @@ export async function POST(request: NextRequest) {
       objectStorySpec.instagram_actor_id = instagramActorId;
     }
 
-    if (ctaType === "NONE" && !isWhatsApp) {
+    const effectiveCtaType = isTraffic && (!ctaType || ctaType === "NONE") ? "LEARN_MORE" : ctaType;
+
+    if (effectiveCtaType === "NONE" && !isWhatsApp && !isTraffic) {
       // Post de Imagem puro (Sem botão, sem link de destino na Meta)
-      // WhatsApp NUNCA entra aqui — sempre precisa de link_data com CTA
+      // WhatsApp e Tráfego NUNCA entram aqui — sempre precisam de link_data com CTA
       objectStorySpec.photo_data = {
         image_hash: imageHash,
         caption: bodyText || "",

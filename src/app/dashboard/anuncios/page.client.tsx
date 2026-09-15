@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { parseMetaError, getAccountStatusInfo, type AccountStatusInfo } from "@/lib/utils/meta-error-mapper";
+import { MetaConnectionGuideModal } from "@/components/modals/MetaConnectionGuideModal";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,7 @@ import "leaflet/dist/leaflet.css";
 import type { BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getScheduledPosts } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection } from "@/lib/services/meta-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import {
   getGoogleAdsConnection,
   updateGoogleAdsConnection,
@@ -279,6 +281,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   // Conexão Meta Ads Pago
   const [metaConnection, setMetaConnection] = useState<any>({ isConnected: false });
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
   const [isConnectingMeta, setIsConnectingMeta] = useState(false);
   const [metaPages, setMetaPages] = useState<any[]>([]);
   const [metaAdAccounts, setMetaAdAccounts] = useState<any[]>([]);
@@ -287,6 +290,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
   const [isProfileSwitchTutorialOpen, setIsProfileSwitchTutorialOpen] = useState(false);
+  const [isMetaGuideOpen, setIsMetaGuideOpen] = useState(false);
   const [tutorialRedirectUrl, setTutorialRedirectUrl] = useState("");
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
@@ -371,6 +375,23 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [interestsSearchQuery, setInterestsSearchQuery] = useState("");
   const [searchedInterests, setSearchedInterests] = useState<any[]>([]);
   const [isLoadingInterests, setIsLoadingInterests] = useState(false);
+  const [dynamicSuggestions, setDynamicSuggestions] = useState<
+    Array<{ id: string; name: string; type?: string }>
+  >([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const [realEstimate, setRealEstimate] = useState<{
+    minReach: number;
+    maxReach: number;
+    minClicks: number;
+    maxClicks: number;
+    isLoading: boolean;
+  }>({
+    minReach: 0,
+    maxReach: 0,
+    minClicks: 0,
+    maxClicks: 0,
+    isLoading: false,
+  });
 
   const addLocation = (newLoc: any) => {
     setSelectedLocations((prev) => {
@@ -422,22 +443,44 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   let displayName = item.display_name
                     .replace(", Brasil", "")
                     .replace(", Brazil", "");
-                  let ptType = "Endereço";
-                  if (
-                    address.country &&
-                    !address.state &&
-                    !address.city &&
-                    !address.suburb &&
-                    !address.road
-                  )
+
+                  const brazilianStates = new Set([
+                    "acre", "alagoas", "amapá", "amapa", "amazonas", "bahia", "ceará", "ceara",
+                    "distrito federal", "espírito santo", "espirito santo", "goiás", "goias",
+                    "maranhão", "maranhao", "mato grosso", "mato grosso do sul", "minas gerais",
+                    "pará", "para", "paraíba", "paraiba", "paraná", "parana", "pernambuco",
+                    "piauí", "piaui", "rio de janeiro", "rio grande do norte", "rio grande do sul",
+                    "rondônia", "rondonia", "roraima", "santa catarina", "são paulo", "sao paulo",
+                    "sergipe", "tocantins"
+                  ]);
+
+                  const firstName = displayName.split(",")[0].toLowerCase().trim();
+                  const isActualState = brazilianStates.has(firstName);
+
+                  let ptType = "Cidade";
+                  const addrType = item.addresstype || "";
+
+                  if (addrType === "country") {
                     ptType = "País";
-                  else if (address.state && !address.city && !address.suburb && !address.road)
-                    ptType = "Estado";
-                  else if (address.city || address.town || address.village) {
-                    if (!address.suburb && !address.road) ptType = "Cidade";
-                    else if (address.suburb && !address.road) ptType = "Bairro";
-                  } else if (address.suburb) ptType = "Bairro";
-                  else if (address.road) ptType = "Rua/Avenida";
+                  } else if (addrType === "state" || isActualState) {
+                    ptType = isActualState ? "Estado" : "Cidade";
+                  } else if (["city", "municipality", "town", "village"].includes(addrType)) {
+                    ptType = "Cidade";
+                  } else if (["suburb", "neighbourhood", "quarter"].includes(addrType)) {
+                    ptType = "Bairro";
+                  } else if (["road", "street"].includes(addrType)) {
+                    ptType = "Rua/Avenida";
+                  } else {
+                    if (isActualState) {
+                      ptType = "Estado";
+                    } else if (address.suburb) {
+                      ptType = "Bairro";
+                    } else if (address.road) {
+                      ptType = "Rua/Avenida";
+                    } else {
+                      ptType = "Cidade";
+                    }
+                  }
 
                   return {
                     key: `nom_client_${index}_${item.osm_id}`,
@@ -474,14 +517,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   useEffect(() => {
     if (businessProfile) {
-      if (!customDestination) {
-        setCustomDestination(businessProfile.website || businessProfile.instagram || "");
-      }
       if (!googleWebsiteUrl) {
         setGoogleWebsiteUrl(businessProfile.website || businessProfile.instagram || "");
       }
     }
-  }, [businessProfile, customDestination, googleWebsiteUrl]);
+  }, [businessProfile, googleWebsiteUrl]);
 
   const checkWhatsAppConnection = async () => {
     setIsCheckingWhatsApp(true);
@@ -753,14 +793,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setLoadingPosts(true);
     try {
       // 1. Buscar conexões e posts em paralelo de forma ultra rápida
-      const [postsResult, metaConn, googleAdsConn] = await Promise.all([
+      const [postsResult, metaConn, googleAdsConn, instaConn] = await Promise.all([
         getScheduledPosts(userId),
         getMetaConnection(userId),
         getGoogleAdsConnection(userId),
+        getInstagramConnection(userId),
       ]);
 
       // Atualizar conexões imediatamente para a UI não dar flash
       setMetaConnection(metaConn);
+      setInstagramConnection(instaConn);
       if (metaConn.userAccessToken) {
         setExchangeToken(metaConn.userAccessToken);
       }
@@ -836,7 +878,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   }, [fetchData]);
 
   // Fluxo de conexão autônomo Meta Ads (Vendas/Pago)
-  const handleConnectMetaAds = () => {
+  const startMetaAuth = () => {
+    setIsMetaGuideOpen(false);
     const clientId = process.env.NEXT_PUBLIC_META_APP_ID || "826418333144156";
     const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
     const origin = window.location.origin;
@@ -862,6 +905,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
 
     window.location.href = authUrl;
+  };
+
+  const handleConnectMetaAds = () => {
+    setIsMetaGuideOpen(true);
   };
 
   const runMetaAdsConnectionFlow = async (code: string) => {
@@ -1521,6 +1568,98 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [isChoosePostModalOpen]);
 
+  const fetchDynamicSuggestions = useCallback(
+    async (selectedList: Array<{ id: string; name: string }>) => {
+      setIsFetchingSuggestions(true);
+      try {
+        const cat = businessProfile?.category || initialProfile?.category || "";
+        const selectedNames = selectedList.map((i) => i.name).join(",");
+        const res = await fetch(
+          `/api/ads/interests/suggestions?category=${encodeURIComponent(cat)}&selected=${encodeURIComponent(selectedNames)}`
+        );
+        const data = await res.json();
+        if (data.success && Array.isArray(data.suggestions)) {
+          setDynamicSuggestions(data.suggestions);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar sugestões dinâmicas de interesses:", err);
+      } finally {
+        setIsFetchingSuggestions(false);
+      }
+    },
+    [businessProfile?.category, initialProfile?.category]
+  );
+
+  useEffect(() => {
+    if (currentStep === 2 && isCreating) {
+      fetchDynamicSuggestions(selectedInterests);
+    }
+  }, [currentStep, isCreating, selectedInterests, fetchDynamicSuggestions]);
+
+  const fetchMetaEstimate = useCallback(async () => {
+    if (!metaConnection?.isConnected) return;
+    setRealEstimate((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const selectedLoc = selectedLocations[0];
+      const payload = {
+        latitude: selectedLoc?.latitude,
+        longitude: selectedLoc?.longitude,
+        radiusKm: radius,
+        ageMin: ageRange[0],
+        ageMax: ageRange[1],
+        gender,
+        interests: selectedInterests.map((i) => ({ id: i.id, name: i.name })),
+        dailyBudget,
+        objective: campaignObjective,
+      };
+
+      const res = await fetch("/api/ads/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRealEstimate({
+          minReach: data.minReach || 0,
+          maxReach: data.maxReach || 0,
+          minClicks: data.minClicks || 0,
+          maxClicks: data.maxClicks || 0,
+          isLoading: false,
+        });
+      } else {
+        setRealEstimate((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch (err) {
+      console.warn("Erro ao buscar estimativa real da Meta:", err);
+      setRealEstimate((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [
+    metaConnection?.isConnected,
+    selectedLocations,
+    radius,
+    ageRange,
+    gender,
+    selectedInterests,
+    dailyBudget,
+    campaignObjective,
+  ]);
+
+  useEffect(() => {
+    if (isCreating && (currentStep === 2 || currentStep === 3 || currentStep === 4) && metaConnection?.isConnected) {
+      const timer = setTimeout(() => {
+        fetchMetaEstimate();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isCreating,
+    currentStep,
+    metaConnection?.isConnected,
+    fetchMetaEstimate,
+  ]);
+
   const addInterest = (interest: { id: string; name: string; type?: string }) => {
     if (selectedInterests.length >= 5) {
       toast({
@@ -1642,12 +1781,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       let backendCtaType = "NONE";
       let backendCtaLink = "";
 
-      if (hasDestination) {
+      if (campaignObjective === "TRAFFIC" || hasDestination) {
         backendCtaType = "LEARN_MORE"; // Padronizado em Saiba Mais
-        backendCtaLink = customDestination;
+        backendCtaLink = customDestination ? customDestination.trim() : "";
         if (backendCtaLink && !/^https?:\/\//i.test(backendCtaLink)) {
           backendCtaLink = `https://${backendCtaLink}`;
         }
+      }
+
+      // Validação prévia de URL obrigatória para campanhas de Tráfego
+      if (campaignObjective === "TRAFFIC" && !backendCtaLink) {
+        toast({
+          variant: "destructive",
+          title: "URL do site necessária",
+          description:
+            "Para campanhas de Tráfego (Mais cliques no link), informe a URL do seu site.",
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       // WhatsApp: sobrescreve CTA independente do estado de hasDestination
@@ -1843,7 +1994,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   };
 
   // Cálculos dinâmicos da estimativa
-  const reach = estimateReach(dailyBudget, duration, radius);
+  const reach = estimateReach(
+    dailyBudget,
+    duration,
+    radius,
+    ageRange[0],
+    ageRange[1],
+    gender,
+    selectedInterests.length
+  );
 
   // Tradução simples de status para leigos
   const getStatusBadge = (status: AdCampaignData["status"]) => {
@@ -1861,7 +2020,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   // Nome abreviado do avatar fallback
   const getAvatarFallback = () => {
-    if (businessProfile?.name) return businessProfile.name.substring(0, 2).toUpperCase();
+    const displayName =
+      instagramConnection?.instagramUsername ||
+      metaConnection?.pageName ||
+      businessProfile?.name ||
+      "";
+    if (displayName) return displayName.replace(/^@/, "").substring(0, 2).toUpperCase();
     return "NV";
   };
 
@@ -1942,53 +2106,55 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </p>
 
           {/* Status compactos de conexões */}
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {isMetaActive ? (
-              <div className="shadow-2xs inline-flex items-center gap-2 rounded-xl border border-blue-100/50 bg-blue-50/50 px-3 py-1.5 text-xs font-bold text-[#1877F2]">
-                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
-                <span>Meta Ads Conectado: </span>
-                <span className="font-inter font-semibold text-slate-600">{adAccountName}</span>
+          {(isMetaActive || isGoogleActive) && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {isMetaActive ? (
+                <div className="shadow-2xs inline-flex items-center gap-2 rounded-xl border border-blue-100/50 bg-blue-50/50 px-3 py-1.5 text-xs font-bold text-[#1877F2]">
+                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
+                  <span>Meta Ads Conectado: </span>
+                  <span className="font-inter font-semibold text-slate-600">{adAccountName}</span>
+                  <button
+                    onClick={handleDisconnectMetaAds}
+                    className="font-inter ml-1.5 text-[10px] font-semibold text-slate-400 underline decoration-dotted transition-colors hover:text-red-500"
+                    title="Desconectar conta da Meta"
+                  >
+                    (desconectar)
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={handleDisconnectMetaAds}
-                  className="font-inter ml-1.5 text-[10px] font-semibold text-slate-400 underline decoration-dotted transition-colors hover:text-red-500"
-                  title="Desconectar conta da Meta"
+                  onClick={handleConnectMetaAds}
+                  className="shadow-2xs inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
                 >
-                  (desconectar)
+                  🔌 Conectar Meta Ads
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleConnectMetaAds}
-                className="shadow-2xs inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
-              >
-                🔌 Conectar Meta Ads
-              </button>
-            )}
+              )}
 
-            {isGoogleActive ? (
-              <div className="shadow-2xs inline-flex items-center gap-2 rounded-xl border border-blue-100/50 bg-blue-50/50 px-3 py-1.5 text-xs font-bold text-[#4285F4]">
-                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
-                <span>Google Ads Conectado: </span>
-                <span className="font-inter font-semibold text-slate-600">
-                  {googleAdsConnection.adAccountName || "Conta Local"}
-                </span>
+              {isGoogleActive ? (
+                <div className="shadow-2xs inline-flex items-center gap-2 rounded-xl border border-blue-100/50 bg-blue-50/50 px-3 py-1.5 text-xs font-bold text-[#4285F4]">
+                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
+                  <span>Google Ads Conectado: </span>
+                  <span className="font-inter font-semibold text-slate-600">
+                    {googleAdsConnection.adAccountName || "Conta Local"}
+                  </span>
+                  <button
+                    onClick={handleDisconnectGoogleAds}
+                    className="font-inter ml-1.5 text-[10px] font-semibold text-slate-400 underline decoration-dotted transition-colors hover:text-red-500"
+                    title="Desconectar conta do Google"
+                  >
+                    (desconectar)
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={handleDisconnectGoogleAds}
-                  className="font-inter ml-1.5 text-[10px] font-semibold text-slate-400 underline decoration-dotted transition-colors hover:text-red-500"
-                  title="Desconectar conta do Google"
+                  onClick={handleConnectGoogleAds}
+                  className="shadow-2xs inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
                 >
-                  (desconectar)
+                  🔌 Conectar Google Ads
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleConnectGoogleAds}
-                className="shadow-2xs inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
-              >
-                🔌 Conectar Google Ads
-              </button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -2118,7 +2284,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
-                    Conectar Facebook e Instagram
+                    Conectar Meta Ads
                   </Button>
                 </div>
               </div>
@@ -3317,7 +3483,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   {/* Nome Interno */}
                   <div className="space-y-2">
                     <Label htmlFor="ad-name" className="text-sm font-bold text-slate-700">
-                      Nome da Campanha (Apenas para seu controle)
+                      Nome da Campanha (Apenas para seu controle) <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="ad-name"
@@ -3336,7 +3502,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   {/* Legenda (Texto Principal) */}
                   <div className="space-y-2">
                     <Label htmlFor="ad-body" className="text-sm font-bold text-slate-700">
-                      Texto Principal do Anúncio (Legenda)
+                      Texto Principal do Anúncio (Legenda) <span className="text-red-500">*</span>
                     </Label>
                     <Textarea
                       id="ad-body"
@@ -3414,7 +3580,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             htmlFor="destination-url"
                             className="text-xs font-bold text-slate-800"
                           >
-                            Link do seu site
+                            Link do seu site <span className="text-red-500">*</span>
                           </Label>
                           <Input
                             id="destination-url"
@@ -3436,7 +3602,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     <div className="space-y-2 duration-200 animate-in fade-in slide-in-from-top-1">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="ad-headline" className="text-sm font-bold text-slate-700">
-                          Título do Anúncio (Fica abaixo da imagem)
+                          Título do Anúncio (Fica abaixo da imagem) <span className="text-red-500">*</span>
                         </Label>
                         <span className="text-[10px] text-slate-400">
                           {headline.length}/40 caracteres
@@ -3664,17 +3830,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                     }
                                   }
                                 }}
-                                className="flex w-full items-center justify-between border-b border-slate-50 px-3.5 py-2.5 text-left text-xs transition-colors last:border-b-0 hover:bg-slate-50"
+                                className="flex w-full items-center justify-between border-b border-slate-100/70 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50/80"
                               >
-                                <div className="flex flex-col truncate pr-2">
-                                  <span className="truncate font-bold text-slate-700">
+                                <div className="flex items-center gap-2.5 truncate pr-2">
+                                  <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                                  <span className="truncate text-xs font-bold text-slate-800">
                                     {loc.name}
                                   </span>
-                                  <span className="mt-0.5 text-[10px] font-normal capitalize text-slate-400">
-                                    Tipo: {loc.type} • {loc.region || "Brasil"}
-                                  </span>
                                 </div>
-                                <Badge className="ml-1 shrink-0 scale-90 border-none bg-slate-100 text-[9px] font-semibold capitalize text-slate-500 hover:bg-slate-100">
+                                <Badge className="ml-2 shrink-0 rounded-md border border-slate-200/80 bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold capitalize text-slate-600 shadow-none hover:bg-slate-100">
                                   {loc.type}
                                 </Badge>
                               </button>
@@ -3982,14 +4146,26 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         </div>
                       )}
 
-                      {/* Chips de Sugestão Estática Baseada na Categoria do Perfil */}
+                      {/* Chips de Sugestão Dinâmica Baseada no Negócio e Interesses */}
                       <div className="mt-3 space-y-1.5">
-                        <span className="font-poppins block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Sugestões Rápidas:
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-poppins block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Sugestões Rápidas:
+                          </span>
+                          {isFetchingSuggestions && (
+                            <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {getCategoryPresets(initialProfile?.category).map((preset) => {
-                            const isSelected = selectedInterests.some((i) => i.id === preset.id);
+                          {(dynamicSuggestions.length > 0
+                            ? dynamicSuggestions
+                            : getCategoryPresets(initialProfile?.category)
+                          ).map((preset) => {
+                            const isSelected = selectedInterests.some(
+                              (i) =>
+                                i.id === preset.id ||
+                                i.name.toLowerCase() === preset.name.toLowerCase()
+                            );
                             return (
                               <button
                                 key={preset.id}
@@ -4123,41 +4299,49 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       />
                     </div>
 
-                    {/* WIDGET DE RESULTADO DITÁDICO (WOW FACTOR) */}
-                    <div className="relative overflow-hidden rounded-xl border-2 border-orange-500/20 bg-gradient-to-br from-amber-500/10 to-orange-500/10 p-5">
-                      <div className="pointer-events-none absolute right-0 top-0 -translate-y-4 translate-x-4 opacity-5">
-                        <Megaphone className="h-32 w-32" />
-                      </div>
-                      <h5 className="font-poppins flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-orange-600">
-                        <TrendingUp className="h-4 w-4" /> Resultados Estimados na Sua Região
-                      </h5>
-
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="rounded-lg border border-orange-500/10 bg-white p-3 shadow-sm">
-                          <span className="block text-[10px] font-medium text-slate-400">
-                            Pessoas que verão o anúncio:
-                          </span>
-                          <span className="font-poppins mt-0.5 block text-lg font-extrabold text-orange-600">
-                            {reach.minReach.toLocaleString("pt-BR")} a{" "}
-                            {reach.maxReach.toLocaleString("pt-BR")}
-                          </span>
+                    {/* WIDGET DE RESULTADO DITÁDICO (WOW FACTOR - APENAS QUANDO META CONECTADA) */}
+                    {metaConnection?.isConnected && (
+                      <div className="relative overflow-hidden rounded-xl border-2 border-orange-500/20 bg-gradient-to-br from-amber-500/10 to-orange-500/10 p-5">
+                        <div className="pointer-events-none absolute right-0 top-0 -translate-y-4 translate-x-4 opacity-5">
+                          <Megaphone className="h-32 w-32" />
                         </div>
-                        <div className="rounded-lg border border-orange-500/10 bg-white p-3 shadow-sm">
-                          <span className="block text-[10px] font-medium text-slate-400">
-                            Cliques de interesse gerados:
+                        <h5 className="font-poppins flex items-center justify-between gap-1 text-xs font-bold uppercase tracking-wide text-orange-600">
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4" /> Resultados Estimados na Sua Região
                           </span>
-                          <span className="font-poppins mt-0.5 block text-lg font-extrabold text-orange-600">
-                            {reach.minClicks.toLocaleString("pt-BR")} a{" "}
-                            {reach.maxClicks.toLocaleString("pt-BR")}
-                          </span>
-                        </div>
-                      </div>
+                          {realEstimate.isLoading && (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-600" />
+                          )}
+                        </h5>
 
-                      <p className="mt-4 text-[11px] italic leading-relaxed text-slate-500">
-                        Essas estimativas são baseadas em históricos de anúncios na Meta e podem
-                        variar
-                      </p>
-                    </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div className="rounded-lg border border-orange-500/10 bg-white p-3 shadow-sm">
+                            <span className="block text-[10px] font-medium text-slate-400">
+                              Pessoas que verão o anúncio:
+                            </span>
+                            <span className="font-poppins mt-0.5 block text-lg font-extrabold text-orange-600">
+                              {realEstimate.minReach > 0
+                                ? `${realEstimate.minReach.toLocaleString("pt-BR")} a ${realEstimate.maxReach.toLocaleString("pt-BR")}`
+                                : `${reach.minReach.toLocaleString("pt-BR")} a ${reach.maxReach.toLocaleString("pt-BR")}`}
+                            </span>
+                          </div>
+                          <div className="rounded-lg border border-orange-500/10 bg-white p-3 shadow-sm">
+                            <span className="block text-[10px] font-medium text-slate-400">
+                              Cliques de interesse gerados:
+                            </span>
+                            <span className="font-poppins mt-0.5 block text-lg font-extrabold text-orange-600">
+                              {realEstimate.minClicks > 0
+                                ? `${realEstimate.minClicks.toLocaleString("pt-BR")} a ${realEstimate.maxClicks.toLocaleString("pt-BR")}`
+                                : `${reach.minClicks.toLocaleString("pt-BR")} a ${reach.maxClicks.toLocaleString("pt-BR")}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="mt-4 text-[11px] italic leading-relaxed text-slate-500">
+                          Estimativa calculada pela Meta Ads em tempo real com base no raio, idade, gênero e interesses selecionados.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -4192,6 +4376,52 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
                         });
                         return;
+                      }
+                      if (currentStep === 2) {
+                        if (!adName.trim()) {
+                          toast({
+                            variant: "destructive",
+                            title: "Nome da campanha obrigatório",
+                            description:
+                              "Por favor, informe o nome da campanha antes de avançar.",
+                          });
+                          return;
+                        }
+                        if (!bodyText.trim()) {
+                          toast({
+                            variant: "destructive",
+                            title: "Legenda obrigatória",
+                            description:
+                              "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
+                          });
+                          return;
+                        }
+                        if (
+                          (campaignObjective === "TRAFFIC" || hasDestination) &&
+                          !customDestination.trim()
+                        ) {
+                          toast({
+                            variant: "destructive",
+                            title: "Link do site obrigatório",
+                            description:
+                              "Informe o link do seu site para esta campanha antes de avançar.",
+                          });
+                          return;
+                        }
+                        if (
+                          (campaignObjective === "TRAFFIC" ||
+                            campaignObjective === "WHATSAPP" ||
+                            hasDestination) &&
+                          !headline.trim()
+                        ) {
+                          toast({
+                            variant: "destructive",
+                            title: "Título do anúncio obrigatório",
+                            description:
+                              "Por favor, informe o título do anúncio antes de avançar.",
+                          });
+                          return;
+                        }
                       }
                       if (currentStep === 3 && selectedLocations.length === 0) {
                         toast({
@@ -4287,7 +4517,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         </Avatar>
                         <div>
                           <span className="block text-xs font-bold leading-tight text-slate-900">
-                            {businessProfile?.name || "Meu Negócio"}
+                            {instagramConnection?.instagramUsername
+                              ? `@${instagramConnection.instagramUsername}`
+                              : metaConnection?.pageName || businessProfile?.name || "Meu Negócio"}
                           </span>
                           <span className="mt-0.5 block text-[10px] font-semibold leading-tight text-primary">
                             Patrocinado
@@ -4368,7 +4600,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       )}
                       <p className="font-inter line-clamp-4 text-xs leading-relaxed text-slate-700">
                         <span className="mr-1.5 font-bold text-slate-900">
-                          {businessProfile?.name || "Meu Negócio"}
+                          {instagramConnection?.instagramUsername
+                            ? `@${instagramConnection.instagramUsername}`
+                            : metaConnection?.pageName || businessProfile?.name || "Meu Negócio"}
                         </span>
                         {bodyText || selectedPost.text}
                       </p>
@@ -5835,6 +6069,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MetaConnectionGuideModal
+        open={isMetaGuideOpen}
+        onOpenChange={setIsMetaGuideOpen}
+        onProceed={startMetaAuth}
+      />
     </div>
   );
 }

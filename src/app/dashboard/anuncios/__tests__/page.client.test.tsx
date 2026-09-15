@@ -61,6 +61,14 @@ vi.mock("@/lib/services/meta-service", () => ({
   updateMetaConnection: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock instagram service
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: vi.fn().mockResolvedValue({
+    isConnected: true,
+    instagramUsername: "minha_empresa",
+  }),
+}));
+
 // Mock google ads service
 vi.mock("@/lib/services/google-ads-service", () => ({
   getGoogleAdsConnection: vi.fn().mockResolvedValue({
