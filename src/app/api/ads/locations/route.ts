@@ -48,6 +48,16 @@ export async function GET(request: NextRequest) {
         const metaData = await metaRes.json();
 
         if (metaRes.ok && metaData.data) {
+          const brazilianStates = new Set([
+            "acre", "alagoas", "amapá", "amapa", "amazonas", "bahia", "ceará", "ceara",
+            "distrito federal", "espírito santo", "espirito santo", "goiás", "goias",
+            "maranhão", "maranhao", "mato grosso", "mato grosso do sul", "minas gerais",
+            "pará", "para", "paraíba", "paraiba", "paraná", "parana", "pernambuco",
+            "piauí", "piaui", "rio de janeiro", "rio grande do norte", "rio grande do sul",
+            "rondônia", "rondonia", "roraima", "santa catarina", "são paulo", "sao paulo",
+            "sergipe", "tocantins"
+          ]);
+
           const typeMapping: Record<string, string> = {
             country: "País",
             region: "Estado",
@@ -60,7 +70,14 @@ export async function GET(request: NextRequest) {
           const metaResults = metaData.data
             .filter((loc: any) => loc.type !== "postal_code" && loc.type !== "zip")
             .map((loc: any, index: number) => {
-              let finalType = typeMapping[loc.type] || "Região";
+              let finalType = typeMapping[loc.type] || "Cidade";
+              const firstName = (loc.name || "").split(",")[0].toLowerCase().trim();
+              
+              // Se a Meta retornou "region", valida se o nome principal é um Estado brasileiro genuíno
+              if (loc.type === "region") {
+                finalType = brazilianStates.has(firstName) ? "Estado" : "Cidade";
+              }
+
               let displayRegion = loc.region || "";
 
               // Correção da UX do Bairro: Se for bairro, e o usuário digitou a cidade no input,
@@ -123,13 +140,16 @@ export async function GET(request: NextRequest) {
               let displayName = item.display_name;
               displayName = displayName.replace(", Brasil", "").replace(", Brazil", "");
 
-              let ptType = "Endereço";
+              const firstName = displayName.split(",")[0].toLowerCase().trim();
+              const isActualState = brazilianStates.has(firstName);
+
+              let ptType = "Cidade";
               const addrType = item.addresstype || "";
 
               if (addrType === "country") {
                 ptType = "País";
-              } else if (addrType === "state") {
-                ptType = "Estado";
+              } else if (addrType === "state" || isActualState) {
+                ptType = isActualState ? "Estado" : "Cidade";
               } else if (["city", "municipality", "town", "village"].includes(addrType)) {
                 ptType = "Cidade";
               } else if (["suburb", "neighbourhood", "quarter"].includes(addrType)) {
@@ -145,26 +165,20 @@ export async function GET(request: NextRequest) {
                   !address.road
                 ) {
                   ptType = "País";
-                } else if (address.state && !address.city && !address.suburb && !address.road) {
+                } else if (isActualState) {
                   ptType = "Estado";
-                } else if (
-                  address.city ||
-                  address.town ||
-                  address.village ||
-                  address.municipality
-                ) {
-                  if (!address.suburb && !address.road) {
-                    ptType = "Cidade";
-                  } else if (address.suburb && !address.road) {
-                    ptType = "Bairro";
-                  } else {
-                    ptType = "Endereço";
-                  }
                 } else if (address.suburb) {
                   ptType = "Bairro";
                 } else if (address.road) {
                   ptType = "Rua/Avenida";
+                } else {
+                  ptType = "Cidade";
                 }
+              }
+
+              // Se por algum caso caiu em Estado sem o nome ser um Estado real
+              if (ptType === "Estado" && !isActualState) {
+                ptType = "Cidade";
               }
 
               // Enriquecer visualmente o nome de estados para evitar confusão com cidades homônimas

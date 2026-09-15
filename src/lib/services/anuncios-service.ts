@@ -194,29 +194,59 @@ export async function deleteAdCampaign(userId: string, campaignId: string): Prom
  * - Um raio menor concentra o público (menor dispersão, maior densidade local).
  * - Um raio maior dispersa a verba (cobre mais pessoas, mas precisa de frequência).
  */
-export function estimateReach(budgetPerDay: number, durationDays: number, radiusKm: number) {
+export function estimateReach(
+  budgetPerDay: number,
+  durationDays: number,
+  radiusKm: number,
+  ageMin: number = 18,
+  ageMax: number = 65,
+  gender: string = "all",
+  interestsCount: number = 0
+) {
   const totalBudget = budgetPerDay * durationDays;
 
   // Base de ~120 visualizações por Real gasto (alinhado com um CPM realista do Meta Ads local no Brasil entre R$ 6 e R$ 10)
   const reachBase = totalBudget * 120;
 
   // Fator de ajuste por raio (raio menor = mais densidade local, raio maior = mais dispersão)
-  // Raio ideal é em torno de 5km para marketing local
   let radiusFactor = 1.0;
   if (radiusKm <= 3) {
-    radiusFactor = 1.15; // Ganho de densidade local
+    radiusFactor = 1.15;
   } else if (radiusKm > 5 && radiusKm <= 10) {
     radiusFactor = 0.95;
   } else if (radiusKm > 10) {
-    radiusFactor = 0.85; // Dispersão alta
+    radiusFactor = 0.85;
   }
 
-  const minReach = Math.round(reachBase * 0.7 * radiusFactor);
-  const maxReach = Math.round(reachBase * 2.1 * radiusFactor);
+  // Fator de Idade (Faixa etária mais estreita reduz o público total elegível)
+  const ageSpan = Math.max(5, Math.min(47, ageMax - ageMin + 1));
+  const ageFactor = Math.max(0.25, Math.min(1.0, ageSpan / 47));
 
-  // Cliques estimados (1.2% a 3.5% de CTR médio local)
-  const minClicks = Math.round(minReach * 0.012);
-  const maxClicks = Math.round(maxReach * 0.035);
+  // Fator de Gênero (Todos = 1.0, Apenas Homens ou Apenas Mulheres = ~0.52)
+  const genderFactor = gender === "male" || gender === "female" ? 0.52 : 1.0;
+
+  // Fator de Interesses (Quanto mais interesses selecionados, maior a hipersegmentação: o alcance diminui mas a taxa de cliques aumenta)
+  let interestFactor = 1.0;
+  let ctrBoost = 1.0;
+  if (interestsCount === 1) {
+    interestFactor = 0.72;
+    ctrBoost = 1.45;
+  } else if (interestsCount === 2) {
+    interestFactor = 0.55;
+    ctrBoost = 1.85;
+  } else if (interestsCount >= 3) {
+    interestFactor = 0.42;
+    ctrBoost = 2.3;
+  }
+
+  const combinedFactor = radiusFactor * ageFactor * genderFactor * interestFactor;
+
+  const minReach = Math.max(150, Math.round(reachBase * 0.7 * combinedFactor));
+  const maxReach = Math.max(400, Math.round(reachBase * 2.1 * combinedFactor));
+
+  // Cliques estimados (1.2% a 3.5% de CTR médio local, ajustado com o boost de engajamento do público segmentado)
+  const minClicks = Math.max(3, Math.round(minReach * 0.012 * ctrBoost));
+  const maxClicks = Math.max(10, Math.round(maxReach * 0.035 * ctrBoost));
 
   return {
     minReach,
