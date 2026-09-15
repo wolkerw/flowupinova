@@ -518,12 +518,13 @@ export async function POST(request: NextRequest) {
         }
 
         flexibleGroup[key].push({
-          id: item.id,
-          name: item.name,
+          id: String(item.id),
         });
       });
 
-      metaTargeting.flexible_spec = [flexibleGroup];
+      if (Object.keys(flexibleGroup).some((k) => flexibleGroup[k].length > 0)) {
+        metaTargeting.flexible_spec = [flexibleGroup];
+      }
     }
 
     const adSetUrl = `https://graph.facebook.com/v24.0/${cleanAdAccountId}/adsets`;
@@ -575,20 +576,41 @@ export async function POST(request: NextRequest) {
 
     let adSetData = await adSetResponse.json();
 
-    // Se falhar devido a interesse descontinuado/inválido na Meta, filtra o ID problemático e tenta novamente
-    if (!adSetResponse.ok && adSetData.error) {
-      const errMsg = String(adSetData.error?.error_user_msg || adSetData.error?.message || "");
-      const match = errMsg.match(/interesse com ID (\d+) é inválido|interest with ID (\d+) is invalid/i);
+    // Se falhar devido a interesse/segmentação descontinuado ou inválido na Meta, filtra o ID problemático e tenta novamente em loop
+    let retryCount = 0;
+    while (!adSetResponse.ok && adSetData.error && retryCount < 5) {
+      retryCount++;
+      const errMsg = String(
+        adSetData.error?.error_user_msg || adSetData.error?.message || ""
+      );
+      const match = errMsg.match(
+        /ID (\d+) é inválido|ID (\d+) is invalid|interesse com ID (\d+)|interest with ID (\d+)|ID (\d+)/i
+      );
 
       if (match) {
-        const invalidId = match[1] || match[2];
-        console.warn(`[ORQUESTRADOR] Interesse descontinuado detectado na Meta (ID ${invalidId}). Removendo e reenviando AdSet...`);
+        const invalidId = match[1] || match[2] || match[3] || match[4] || match[5];
+        console.warn(
+          `[ORQUESTRADOR] ID de direcionamento inválido/descontinuado na Meta (ID ${invalidId}). Removendo e reenviando AdSet... (Tentativa ${retryCount})`
+        );
 
-        if (metaTargeting.flexible_spec?.[0]?.interests) {
-          metaTargeting.flexible_spec[0].interests = metaTargeting.flexible_spec[0].interests.filter(
-            (i: any) => String(i.id) !== String(invalidId)
-          );
-          if (metaTargeting.flexible_spec[0].interests.length === 0) {
+        if (metaTargeting.flexible_spec && metaTargeting.flexible_spec.length > 0) {
+          const group = metaTargeting.flexible_spec[0];
+          let totalRemaining = 0;
+
+          Object.keys(group).forEach((k) => {
+            if (Array.isArray(group[k])) {
+              group[k] = group[k].filter(
+                (i: any) => String(i.id) !== String(invalidId)
+              );
+              if (group[k].length === 0) {
+                delete group[k];
+              } else {
+                totalRemaining += group[k].length;
+              }
+            }
+          });
+
+          if (totalRemaining === 0 || Object.keys(group).length === 0) {
             delete metaTargeting.flexible_spec;
           }
         }
@@ -601,6 +623,8 @@ export async function POST(request: NextRequest) {
           body: retryParams,
         });
         adSetData = await adSetResponse.json();
+      } else {
+        break;
       }
     }
 
