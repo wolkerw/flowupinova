@@ -99,4 +99,42 @@ describe("Step1Idea Component", () => {
     expect(titleBtn.className).toContain("bg-[#FA6305]");
     expect(infographicBtn.className).toContain("bg-[#FA6305]");
   });
+
+  it("renderiza o Modo de Diagramação & Textos na Arte logo abaixo da Prioridade de Foco no fluxo híbrido (pessoa + cenário)", () => {
+    mockSearchParamsMode = "reference-hybrid";
+
+    render(
+      <WizardProvider>
+        <Step1Idea />
+      </WizardProvider>
+    );
+
+    // 1. Verifica se a Prioridade de Foco está presente
+    expect(screen.getByText(/Prioridade de Foco da Geração/i)).toBeInTheDocument();
+    expect(screen.getByText(/Foco em Ambos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Priorizar Cenário/i)).toBeInTheDocument();
+    expect(screen.getByText(/Priorizar Pessoa/i)).toBeInTheDocument();
+
+    // 2. Verifica se o Modo de Diagramação & Textos na Arte está presente
+    const diagramLabels = screen.getAllByText(/Modo de Diagramação & Textos na Arte/i);
+    expect(diagramLabels.length).toBeGreaterThanOrEqual(1);
+
+    const purePhotoBtn = screen.getByRole("button", { name: /🖼️ Fotografia Pura/i });
+    const titleBtn = screen.getByRole("button", { name: /✨ Apenas Título/i });
+    const infographicBtn = screen.getByRole("button", { name: /📊 Infográfico Completo/i });
+
+    expect(purePhotoBtn).toBeInTheDocument();
+    expect(titleBtn).toBeInTheDocument();
+    expect(infographicBtn).toBeInTheDocument();
+
+    // 3. Verifica o campo de título/slogan opcional
+    const headlineInput = screen.getByPlaceholderText(/Ex: FEITA PARA CONECTAR ou 30% OFF NO SEGUNDO ITEM/i);
+    expect(headlineInput).toBeInTheDocument();
+
+    fireEvent.change(headlineInput, { target: { value: "LANÇAMENTO RESIDENCIAL EXCLUSIVO" } });
+    expect(headlineInput).toHaveValue("LANÇAMENTO RESIDENCIAL EXCLUSIVO");
+
+    // Restaura o modo padrão para não interferir em outros testes
+    mockSearchParamsMode = "concept";
+  });
 });

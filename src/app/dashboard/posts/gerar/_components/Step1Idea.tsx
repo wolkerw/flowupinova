@@ -1213,6 +1213,91 @@ export const Step1Idea = () => {
                 </div>
               </div>
 
+              {/* Modo de Diagramação & Textos na Arte (Híbrido: Pessoa + Cenário) */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                  <div>
+                    <Label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>✍️</span> Modo de Diagramação & Textos na Arte
+                    </Label>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Escolha o nível de elementos gráficos e textos que deseja na arte.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <Button
+                      type="button"
+                      variant={isPurePhotoSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleSelectPurePhoto}
+                      className={cn(
+                        "text-xs h-8 px-2.5 rounded-lg font-medium transition-all",
+                        isPurePhotoSelected
+                          ? "bg-slate-800 hover:bg-slate-900 text-white font-bold"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      )}
+                    >
+                      🖼️ Fotografia Pura
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={isTitleSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleToggleTitle}
+                      className={cn(
+                        "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                        isTitleSelected
+                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      )}
+                    >
+                      ✨ Apenas Título
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={isInfographicSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleToggleInfographic}
+                      className={cn(
+                        "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                        isInfographicSelected
+                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      )}
+                    >
+                      📊 Infográfico Completo
+                    </Button>
+                  </div>
+                </div>
+
+                {(isTitleSelected || isInfographicSelected) && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 pl-1"
+                  >
+                    <Label className="text-xs font-bold text-slate-700">
+                      Título, Slogan ou Frase Principal do Anúncio (Opcional)
+                    </Label>
+                    <input
+                      type="text"
+                      value={productHeadline}
+                      onChange={(e) => setProductHeadline(e.target.value)}
+                      placeholder="Ex: FEITA PARA CONECTAR ou 30% OFF NO SEGUNDO ITEM"
+                      className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#FA6305]"
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      {isTitleSelected && isInfographicSelected
+                        ? "A IA renderizará o título comercial em destaque acompanhado do infográfico completo de benefícios e selos comerciais."
+                        : isInfographicSelected
+                        ? "A IA renderizará este título com o infográfico completo (selo de qualidade, 4 diferenciais técnicos com ícones e rodapé)."
+                        : "A IA renderizará apenas este título com tipografia comercial limpa, sem cards de ícones ou selos no rodapé."}
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+
               <div className="space-y-2 pt-2">
                 <Label className="text-base font-semibold">
                   Descrição do Cenário e Ideias Promocionais
