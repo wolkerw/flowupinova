@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import { parseMetaError, getAccountStatusInfo, type AccountStatusInfo } from "@/lib/utils/meta-error-mapper";
 import {
   Dialog,
   DialogContent,
@@ -80,7 +81,7 @@ import Image from "next/image";
 import { Timestamp } from "firebase/firestore";
 
 interface SearchableSelectProps {
-  options: { id: string; name: string }[];
+  options: { id: string; name: string; statusInfo?: AccountStatusInfo }[];
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
@@ -128,9 +129,16 @@ function SearchableSelect({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-800 shadow-sm transition-all duration-200 hover:bg-slate-50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       >
-        <span className="truncate font-medium text-slate-700">
-          {selectedOption ? selectedOption.name : placeholder}
-        </span>
+        <div className="flex items-center gap-2 truncate font-medium text-slate-700">
+          <span className="truncate">{selectedOption ? selectedOption.name : placeholder}</span>
+          {selectedOption?.statusInfo && (
+            <span
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9.5px] font-bold ${selectedOption.statusInfo.badgeClass}`}
+            >
+              {selectedOption.statusInfo.statusText}
+            </span>
+          )}
+        </div>
         <ChevronDown
           className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
@@ -172,7 +180,16 @@ function SearchableSelect({
                     }`}
                   >
                     <div className="flex flex-col truncate pr-2">
-                      <span className="truncate">{opt.name}</span>
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="truncate">{opt.name}</span>
+                        {opt.statusInfo && (
+                          <span
+                            className={`inline-flex items-center rounded-full border px-1.5 py-0.2 text-[9px] font-bold ${opt.statusInfo.badgeClass}`}
+                          >
+                            {opt.statusInfo.statusText}
+                          </span>
+                        )}
+                      </div>
                       <span className="mt-0.5 text-[10px] font-normal text-slate-400">
                         ID: {opt.id}
                       </span>
@@ -885,7 +902,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         body: JSON.stringify({ userAccessToken }),
       });
       const pagesResult = await pagesResponse.json();
-      if (!pagesResult.success) throw new Error(pagesResult.error);
+      if (!pagesResult.success) {
+        const mapped = pagesResult.metaError || parseMetaError(pagesResult.error);
+        const err = new Error(mapped.description);
+        (err as any).metaError = mapped;
+        throw err;
+      }
       const pages = pagesResult.pages || [];
       setMetaPages(pages);
       if (pages.length > 0) setSelectedPageId(pages[0].id);
@@ -893,7 +915,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       // 4. Buscar Contas de Anúncios (usa o userAccessToken salvo no pending)
       const accountsResponse = await fetch("/api/ads/accounts");
       const accountsResult = await accountsResponse.json();
-      if (!accountsResult.success) throw new Error(accountsResult.error);
+      if (!accountsResult.success) {
+        const mapped = accountsResult.metaError || parseMetaError(accountsResult.error);
+        const err = new Error(mapped.description);
+        (err as any).metaError = mapped;
+        throw err;
+      }
       const accounts = accountsResult.accounts || [];
       setMetaAdAccounts(accounts);
       if (accounts.length > 0) setSelectedAdAccountIdState(accounts[0].id);
@@ -905,10 +932,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       setIsSetupModalOpen(true);
     } catch (err: any) {
       console.error("Erro na conexão Meta Ads:", err);
+      const mapped = err.metaError || parseMetaError(err);
       toast({
         variant: "destructive",
-        title: "Erro na Conexão Meta Ads",
-        description: err.message || "Tente novamente mais tarde.",
+        title: mapped.title,
+        description: mapped.description,
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     } finally {
@@ -987,14 +1015,20 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           });
         }
       } else {
-        throw new Error(result.error);
+        const mapped = result.metaError || parseMetaError(result.error);
+        toast({
+          variant: "destructive",
+          title: mapped.title,
+          description: mapped.description,
+        });
       }
     } catch (err: any) {
       console.error("Erro ao atualizar contas de anúncios:", err);
+      const mapped = parseMetaError(err);
       toast({
         variant: "destructive",
-        title: "Erro ao atualizar contas",
-        description: err.message || "Não foi possível carregar as contas de anúncios atualizadas.",
+        title: mapped.title,
+        description: mapped.description,
       });
     } finally {
       setIsRefreshingAccounts(false);
@@ -2226,14 +2260,36 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   </div>
                 </div>
               ) : (
-                <SearchableSelect
-                  options={metaAdAccounts}
-                  value={selectedAdAccountIdState}
-                  onChange={setSelectedAdAccountIdState}
-                  placeholder="Selecione uma Conta..."
-                  searchPlaceholder="🔍 Buscar conta por nome ou ID..."
-                  emptyMessage="Nenhuma conta encontrada"
-                />
+                <div className="space-y-2">
+                  <SearchableSelect
+                    options={metaAdAccounts}
+                    value={selectedAdAccountIdState}
+                    onChange={setSelectedAdAccountIdState}
+                    placeholder="Selecione uma Conta..."
+                    searchPlaceholder="🔍 Buscar conta por nome ou ID..."
+                    emptyMessage="Nenhuma conta encontrada"
+                  />
+                  {(() => {
+                    const selectedAcc = metaAdAccounts.find((a) => a.id === selectedAdAccountIdState);
+                    if (selectedAcc?.statusInfo && !selectedAcc.statusInfo.isUsable) {
+                      return (
+                        <div
+                          className={`flex items-start gap-2.5 rounded-xl border p-3 text-xs shadow-sm ${selectedAcc.statusInfo.colorClass}`}
+                        >
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                          <div className="space-y-0.5">
+                            <p className="font-bold">{selectedAcc.statusInfo.statusText}</p>
+                            <p className="text-[11px] leading-relaxed">
+                              {selectedAcc.statusInfo.warningMessage ||
+                                "Esta conta possui restrições na Meta. Recomendamos selecionar uma conta ativa."}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               )}
             </div>
           </div>

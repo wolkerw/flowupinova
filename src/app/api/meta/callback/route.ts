@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { config } from "@/lib/config";
+import { parseMetaError } from "@/lib/utils/meta-error-mapper";
 
 type PageData = {
   id: string;
@@ -219,8 +220,13 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error("[META_CALLBACK_API] Erro no fluxo:", error);
+    const mappedError = parseMetaError(error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ocorreu um erro desconhecido." },
+      {
+        success: false,
+        error: mappedError.description,
+        metaError: mappedError,
+      },
       { status: 500 }
     );
   }
