@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
 import { getMetaConnectionAdmin } from "@/lib/services/meta-service-admin";
+import { translateInterestsBatch } from "@/lib/services/translator-service";
 
 const CATEGORY_KEYWORDS_MAP: Record<string, string[]> = {
   alimentacao: ["Gastronomia", "Restaurante", "Comida", "Hamburguer", "Pizza"],
@@ -188,9 +189,11 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 8);
 
+    const translatedSuggestions = await translateInterestsBatch(filteredSuggestions);
+
     return NextResponse.json({
       success: true,
-      suggestions: filteredSuggestions,
+      suggestions: translatedSuggestions,
     });
   } catch (error: any) {
     console.error("[API_INTERESTS_SUGGESTIONS] Erro ao buscar sugestões:", error);

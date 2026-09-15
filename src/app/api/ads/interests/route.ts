@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
 import { getMetaConnectionAdmin } from "@/lib/services/meta-service-admin";
+import { translateInterestsBatch } from "@/lib/services/translator-service";
 
 const TYPE_TRANSLATIONS: Record<string, string> = {
   interests: "Interesse",
@@ -111,9 +112,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const translatedInterests = await translateInterestsBatch(interests);
+
     return NextResponse.json({
       success: true,
-      interests,
+      interests: translatedInterests,
     });
   } catch (error: any) {
     console.error("[API_INTERESTS] Erro interno no endpoint de interesses:", error);
