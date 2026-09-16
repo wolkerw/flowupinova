@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
           `[PROXY_WEBHOOK] Webhook externo para ${target} falhou (HTTP ${webhookResponse.status}). Ativando fallback resiliente direto no Firebase...`
         );
         try {
-          return await fallbackSaveDirectToStorage(formData);
+          return await fallbackSaveDirectToStorage(formData, userId);
         } catch (fallbackErr: any) {
           console.error("[PROXY_WEBHOOK] Falha também no fallback direto do Firebase:", fallbackErr);
         }
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function fallbackSaveDirectToStorage(formData: FormData, userId: string) {
+async function fallbackSaveDirectToStorage(formData: FormData, userId?: string) {
   const mainFile = (formData.get("file") as File) || null;
   const logoFile = (formData.get("logo") as File) || null;
 
@@ -325,7 +325,8 @@ async function fallbackSaveDirectToStorage(formData: FormData, userId: string) {
     }
   }
 
-  const userStoragePath = await getUserStoragePathAdmin(userId);
+  const effectiveUserId = userId || (formData.get("userId") as string) || "anonymous";
+  const userStoragePath = await getUserStoragePathAdmin(effectiveUserId);
   const dateStr = new Date()
     .toISOString()
     .replace(/T/, "_")

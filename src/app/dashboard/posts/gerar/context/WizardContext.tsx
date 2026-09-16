@@ -33,6 +33,7 @@ import {
 import {
   getOnboardingProfile,
   type OnboardingProfileData,
+  type OnboardingPersona,
 } from "@/lib/services/onboarding-service";
 import {
   getUnusedImages,
@@ -487,7 +488,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         handleGeneratePrompts().catch((err) => {
           console.error("Erro na geração de prompt de imagem em paralelo:", err);
         });
-        setStep(3);
+        setStep(2);
         return null;
       }
 
@@ -507,9 +508,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       try {
+        const token = user ? await user.getIdToken().catch(() => null) : null;
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const response = await fetch("/api/generate-text", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             summary: textToGenerate,
             businessProfile,
@@ -518,35 +523,48 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
+        if (response.ok) {
+          const publicacoes = Array.isArray(data)
+            ? data[0]?.publicacoes || data
+            : data.publicacoes || data;
 
-        const publicacoes = Array.isArray(data)
-          ? data[0]?.publicacoes || data
-          : data.publicacoes || data;
+          if (Array.isArray(publicacoes) && publicacoes.length > 0) {
+            const mappedContent = publicacoes.map((item: any) => ({
+              titulo: item.titulo || item.título || "",
+              subtitulo: item.subtitulo || "",
+              hashtags: item.hashtags || [],
+              url_da_imagem: item.url_da_imagem,
+            }));
 
-        if (Array.isArray(publicacoes)) {
-          const mappedContent = publicacoes.map((item: any) => ({
-            titulo: item.titulo || item.título || "",
-            subtitulo: item.subtitulo || "",
-            hashtags: item.hashtags || [],
-            url_da_imagem: item.url_da_imagem,
-          }));
-
-          setGeneratedContent(mappedContent);
-          setSelectedContentId("0");
-          await saveContentHistory(user.uid, mappedContent);
-          await fetchContentHistory();
-          return mappedContent;
-        } else {
-          throw new Error("O formato da resposta da IA é inesperado.");
+            setGeneratedContent(mappedContent);
+            setSelectedContentId("0");
+            await saveContentHistory(user.uid, mappedContent);
+            await fetchContentHistory();
+            return mappedContent;
+          }
         }
+        // Fallback gracioso se a IA de texto não responder no tempo
+        const fallbackItem = {
+          titulo: productHeadline?.trim() || "Nova publicação",
+          subtitulo: referenceDescription?.trim() || "",
+          hashtags: ["#novidade", "#destaque"],
+        };
+        setGeneratedContent([fallbackItem]);
+        setSelectedContentId("0");
+        return [fallbackItem];
       } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Erro ao gerar textos sugeridos",
-          description: getFriendlyErrorMessage(error.message),
-        });
-        return null;
+        console.warn(
+          "[WIZARD] Sugestão de texto em segundo plano falhou, aplicando texto inicial de fallback:",
+          error?.message
+        );
+        const fallbackItem = {
+          titulo: productHeadline?.trim() || "Nova publicação",
+          subtitulo: referenceDescription?.trim() || "",
+          hashtags: ["#novidade", "#destaque"],
+        };
+        setGeneratedContent([fallbackItem]);
+        setSelectedContentId("0");
+        return [fallbackItem];
       } finally {
         setIsLoading(false);
         setStep(2);
@@ -1730,25 +1748,45 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       if (activeLogoFile) {
         try {
           const formData = new FormData();
-          const imageUrlToFetch = targetImg.startsWith("http")
-            ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
-            : targetImg;
-          const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
-          formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
-          formData.append("logo", activeLogoFile);
-          formData.append("logoScale", logoScale.toString());
-          formData.append("logoOpacity", logoOpacity.toString());
-          formData.append("positionX", Math.round(positionX).toString());
-          formData.append("positionY", Math.round(positionY).toString());
+          let imageBlob: Blob | null = null;
 
-          const response = await fetch("/api/proxy-webhook?target=post_manual", {
-            method: "POST",
-            body: formData,
-          });
-          if (response.ok) {
-            const result = await response.json();
-            if (result?.[0]?.url_post) {
-              finalLogoUrl = result[0].url_post;
+          if (targetImg.startsWith("blob:") || targetImg.startsWith("data:")) {
+            imageBlob = await fetch(targetImg).then((r) => r.blob()).catch(() => null);
+          } else {
+            try {
+              const rDirect = await fetch(targetImg, { signal: AbortSignal.timeout(6000) });
+              if (rDirect.ok) imageBlob = await rDirect.blob();
+            } catch {}
+            if (!imageBlob && targetImg.startsWith("http")) {
+              const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`;
+              const rProxy = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
+              if (rProxy.ok) imageBlob = await rProxy.blob();
+            }
+          }
+
+          if (imageBlob) {
+            formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type || "image/jpeg" }));
+            formData.append("logo", activeLogoFile);
+            formData.append("logoScale", logoScale.toString());
+            formData.append("logoOpacity", logoOpacity.toString());
+            formData.append("positionX", Math.round(positionX).toString());
+            formData.append("positionY", Math.round(positionY).toString());
+            if (user?.uid) formData.append("userId", user.uid);
+
+            const token = user ? await user.getIdToken().catch(() => null) : null;
+            const headers: Record<string, string> = {};
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const response = await fetch("/api/proxy-webhook?target=post_manual", {
+              method: "POST",
+              headers,
+              body: formData,
+            });
+            if (response.ok) {
+              const result = await response.json();
+              if (result?.[0]?.url_post) {
+                finalLogoUrl = result[0].url_post;
+              }
             }
           }
         } catch (webhookErr) {
@@ -1759,33 +1797,71 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       // 2. Fallback de composição resiliente via Canvas no navegador se o webhook não retornar
       if (!finalLogoUrl && typeof window !== "undefined") {
         try {
-          finalLogoUrl = await new Promise<string>((resolve, reject) => {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return reject(new Error("Canvas context indisponível"));
+          finalLogoUrl = await new Promise<string>(async (resolve, reject) => {
+            try {
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              if (!ctx) return reject(new Error("Canvas context indisponível"));
 
-            const baseImg = new window.Image();
-            baseImg.crossOrigin = "anonymous";
-            baseImg.onload = () => {
+              // Carrega imagem base de forma resiliente
+              const loadImg = async (srcUrl: string): Promise<HTMLImageElement> => {
+                if (srcUrl.startsWith("http")) {
+                  try {
+                    let b: Blob | null = null;
+                    try {
+                      const res = await fetch(srcUrl, { mode: "cors", signal: AbortSignal.timeout(6000) });
+                      if (res.ok) b = await res.blob();
+                    } catch {}
+                    if (!b) {
+                      const pUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(srcUrl)}`;
+                      const resProxy = await fetch(pUrl, { signal: AbortSignal.timeout(12000) });
+                      if (resProxy.ok) b = await resProxy.blob();
+                    }
+                    if (b) {
+                      const objUrl = URL.createObjectURL(b);
+                      return await new Promise<HTMLImageElement>((resImg, rejImg) => {
+                        const img = new window.Image();
+                        img.onload = () => resImg(img);
+                        img.onerror = rejImg;
+                        img.src = objUrl;
+                      });
+                    }
+                  } catch {}
+                }
+
+                return await new Promise<HTMLImageElement>((resImg, rejImg) => {
+                  const img = new window.Image();
+                  img.crossOrigin = "anonymous";
+                  img.onload = () => resImg(img);
+                  img.onerror = () => {
+                    const imgDirect = new window.Image();
+                    imgDirect.onload = () => resImg(imgDirect);
+                    imgDirect.onerror = rejImg;
+                    imgDirect.src = srcUrl;
+                  };
+                  img.src = srcUrl.startsWith("http")
+                    ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(srcUrl)}`
+                    : srcUrl;
+                });
+              };
+
+              const baseImg = await loadImg(targetImg);
               canvas.width = baseImg.naturalWidth || baseImg.width || 1024;
               canvas.height = baseImg.naturalHeight || baseImg.height || 1024;
               ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
 
-              const overlayLogo = new window.Image();
-              overlayLogo.crossOrigin = "anonymous";
-              overlayLogo.onload = () => {
+              const logoSource = logoPreviewUrl || (activeLogoFile ? URL.createObjectURL(activeLogoFile) : "");
+              if (logoSource) {
+                const overlayLogo = await loadImg(logoSource);
                 ctx.globalAlpha = Math.max(0.1, Math.min(1, logoOpacity / 100));
                 ctx.drawImage(overlayLogo, positionX, positionY, logoPixelWidth, logoPixelHeight);
                 ctx.globalAlpha = 1.0;
-                resolve(canvas.toDataURL("image/jpeg", 0.95));
-              };
-              overlayLogo.onerror = (e) => reject(e);
-              overlayLogo.src = logoPreviewUrl || (activeLogoFile ? URL.createObjectURL(activeLogoFile) : "");
-            };
-            baseImg.onerror = (e) => reject(e);
-            baseImg.src = targetImg.startsWith("http")
-              ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
-              : targetImg;
+              }
+
+              resolve(canvas.toDataURL("image/jpeg", 0.95));
+            } catch (innerCanvasErr) {
+              reject(innerCanvasErr);
+            }
           });
         } catch (canvasErr) {
           console.error("[WIZARD] Falha na composição de canvas:", canvasErr);
@@ -1793,7 +1869,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (!finalLogoUrl) {
-        throw new Error("Falha ao aplicar logomarca na imagem.");
+        console.warn("[WIZARD] Não foi possível compor a logo na imagem. Mantendo arte original.");
+        finalLogoUrl = targetImg;
       }
 
       setProcessedImageUrl(finalLogoUrl);

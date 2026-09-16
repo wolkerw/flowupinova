@@ -676,35 +676,55 @@ If the image depicts a CHARACTER:
   visual_description: (A full sentence summarizing face, hair, expression, and overall styling)
   background_and_setting: (Detailed description of the environment, location, props, and background scenery)`;
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+      const VISION_MODELS = [
+        "gemini-2.5-flash",
+        "gemini-3.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+      ];
 
       const callGeminiVision = async (base64: string, mime: string, specificPrompt: string) => {
-        const response = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: specificPrompt },
+        let lastErrorText = "";
+        for (const modelName of VISION_MODELS) {
+          try {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const response = await fetch(geminiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
                   {
-                    inlineData: {
-                      mimeType: mime,
-                      data: base64,
-                    },
+                    parts: [
+                      { text: specificPrompt },
+                      {
+                        inlineData: {
+                          mimeType: mime,
+                          data: base64,
+                        },
+                      },
+                    ],
                   },
                 ],
-              },
-            ],
-          }),
-        });
+              }),
+            });
 
-        if (!response.ok) {
-          throw new Error(await response.text());
+            if (response.ok) {
+              const resData = await response.json();
+              const resultText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (resultText) return resultText;
+            } else {
+              lastErrorText = await response.text();
+              console.warn(
+                `[GERAR_REFERENCIA] Modelo de visão ${modelName} falhou (${response.status}):`,
+                lastErrorText.substring(0, 150)
+              );
+            }
+          } catch (modelErr: any) {
+            lastErrorText = modelErr.message || String(modelErr);
+            console.warn(`[GERAR_REFERENCIA] Exceção no modelo ${modelName}:`, lastErrorText);
+          }
         }
-
-        const resData = await response.json();
-        return resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        throw new Error(`Todos os modelos de visão falharam. Último erro: ${lastErrorText}`);
       };
 
       let yamlAnalysis = "";
@@ -2679,7 +2699,7 @@ export async function GET(request: NextRequest) {
       }
 
       console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
-      const imgRes = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      const imgRes = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!imgRes.ok) {
         return NextResponse.json(
           { error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` },
