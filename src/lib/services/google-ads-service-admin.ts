@@ -359,14 +359,21 @@ export async function getGoogleAdsCampaigns(
 
     const cleanCustomerId = customerId.replace(/-/g, "");
 
-    let dateClause = "DURING LAST_30_DAYS";
-    if (periodDays === "7") {
-      dateClause = "DURING LAST_7_DAYS";
-    } else if (periodDays === "14") {
-      dateClause = "DURING LAST_14_DAYS";
-    } else if (periodDays === "90") {
-      dateClause = "DURING LAST_30_DAYS"; // Google Ads API core standard range
-    }
+    const now = new Date();
+    const formatDate = (date: Date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+
+    const days = parseInt(periodDays || "30", 10) || 30;
+    const untilStr = formatDate(now);
+    const sinceDate = new Date(now);
+    sinceDate.setDate(sinceDate.getDate() - (days - 1));
+    const sinceStr = formatDate(sinceDate);
+
+    const dateClause = `DURING BETWEEN '${sinceStr}' AND '${untilStr}'`;
 
     const campaignQuery = `
       SELECT 

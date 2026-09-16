@@ -575,7 +575,8 @@ const InstagramMediaViewer = ({
 
   const cutoffDate = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (parseInt(periodDays || "30", 10) - 1));
     return d;
   }, [periodDays]);
 
@@ -769,9 +770,10 @@ const MetaPagePostsViewer = ({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   const cutoffTimestamp = useMemo(() => {
-    return Math.floor(
-      (Date.now() - parseInt(periodDays || "30", 10) * 86400 * 1000) / 1000
-    );
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (parseInt(periodDays || "30", 10) - 1));
+    return Math.floor(d.getTime() / 1000);
   }, [periodDays]);
 
   const fetchPosts = useCallback(
@@ -831,7 +833,8 @@ const MetaPagePostsViewer = ({
 
   const cutoffDate = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (parseInt(periodDays || "30", 10) - 1));
     return d;
   }, [periodDays]);
 

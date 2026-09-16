@@ -97,7 +97,8 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
 
   const cutoffDate = React.useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() - parseInt(periodDays || "30", 10));
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (parseInt(periodDays || "30", 10) - 1));
     return d;
   }, [periodDays]);
 

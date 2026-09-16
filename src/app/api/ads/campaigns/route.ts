@@ -53,18 +53,31 @@ export async function GET(request: NextRequest) {
     const rawMetaCampaigns = campaignsData.data || [];
 
     const period = request.nextUrl.searchParams.get("period") || "30";
-    let datePreset = "last_30d";
-    if (period === "7") datePreset = "last_7d";
-    if (period === "14") datePreset = "last_14d";
-    if (period === "90") datePreset = "last_90d";
+    const days = parseInt(period, 10) || 30;
 
-    // 2. Buscar insights agregados por campanha, detalhamentos e anúncios individuais
-    const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions,reach,frequency,cpc,cpm,ctr&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
-    const platformsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform&fields=impressions,clicks,spend&date_preset=${datePreset}&access_token=${accessToken}`;
-    const ageGenderUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=age,gender&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
-    const placementsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform,platform_position&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=50&access_token=${accessToken}`;
-    const regionsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=region&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=10&access_token=${accessToken}`;
-    const adsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/ads?fields=id,name,status,campaign_id,creative{id,name,image_url,thumbnail_url,body,title,call_to_action_type,effective_object_story_id,instagram_permalink_url,object_story_spec,asset_feed_spec,video_id},insights.date_preset(${datePreset}){impressions,clicks,spend,actions,reach,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
+    const now = new Date();
+    const formatDate = (date: Date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+
+    const untilStr = formatDate(now);
+    const sinceDate = new Date(now);
+    sinceDate.setDate(sinceDate.getDate() - (days - 1));
+    const sinceStr = formatDate(sinceDate);
+
+    const timeRangeObj = { since: sinceStr, until: untilStr };
+    const timeRangeParam = encodeURIComponent(JSON.stringify(timeRangeObj));
+
+    // 2. Buscar insights agregados por campanha, detalhamentos e anúncios individuais (incluindo HOJE)
+    const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions,reach,frequency,cpc,cpm,ctr&time_range=${timeRangeParam}&limit=100&access_token=${accessToken}`;
+    const platformsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform&fields=impressions,clicks,spend&time_range=${timeRangeParam}&access_token=${accessToken}`;
+    const ageGenderUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=age,gender&fields=impressions,clicks,spend&time_range=${timeRangeParam}&limit=100&access_token=${accessToken}`;
+    const placementsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform,platform_position&fields=impressions,clicks,spend&time_range=${timeRangeParam}&limit=50&access_token=${accessToken}`;
+    const regionsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=region&fields=impressions,clicks,spend&time_range=${timeRangeParam}&limit=10&access_token=${accessToken}`;
+    const adsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/ads?fields=id,name,status,campaign_id,creative{id,name,image_url,thumbnail_url,body,title,call_to_action_type,effective_object_story_id,instagram_permalink_url,object_story_spec,asset_feed_spec,video_id},insights.time_range(${JSON.stringify(timeRangeObj)}){impressions,clicks,spend,actions,reach,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
 
     const [insightsRes, platformsRes, ageGenderRes, placementsRes, regionsRes, adsRes] = await Promise.allSettled([
       fetch(insightsUrl).then((r) => r.json()),
