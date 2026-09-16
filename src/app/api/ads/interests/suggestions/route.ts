@@ -25,7 +25,10 @@ function getCategoryKeywords(category?: string): string[] {
   if (cat.includes("saude") || cat.includes("fit") || cat.includes("acad") || cat.includes("nutri")) {
     return CATEGORY_KEYWORDS_MAP.saude;
   }
-  return ["Compras online", "Gastronomia", "Entretenimento", "Viagens", "Negócios"];
+  if (cat.includes("servico") || cat.includes("negocio") || cat.includes("empresa") || cat.includes("empreend")) {
+    return CATEGORY_KEYWORDS_MAP.servicos;
+  }
+  return ["Empreendedorismo", "Negócios", "Marketing digital", "Compras online", "Gastronomia"];
 }
 
 export async function GET(request: NextRequest) {
@@ -142,6 +145,8 @@ export async function GET(request: NextRequest) {
           inferredCategory = "alimentacao";
         } else if (selLower.includes("beleza") || selLower.includes("cosmetico") || selLower.includes("estetica") || selLower.includes("cabelo") || selLower.includes("beauty")) {
           inferredCategory = "beleza";
+        } else if (selLower.includes("empres") || selLower.includes("negoci") || selLower.includes("socio") || selLower.includes("soci") || selLower.includes("empreend")) {
+          inferredCategory = "servicos";
         }
       }
 
@@ -176,24 +181,28 @@ export async function GET(request: NextRequest) {
       suggestions = Array.from(mergedMap.values());
     }
 
-    // Filtrar interesses que já foram selecionados (por ID ou nome limpo)
-    const selectedLower = selectedList.map((s) => cleanInterestName(s).toLowerCase());
-    const filteredSuggestions = suggestions
+    // 1. Traduz TODAS as sugestões candidatas PRIMEIRO em lote
+    const translatedSuggestions = await translateInterestsBatch(suggestions);
+
+    // 2. Normaliza e filtra os já selecionados (por ID, nome original e nome traduzido)
+    const selectedNormalized = new Set(
+      selectedList.flatMap((s) => [
+        s.toLowerCase().trim(),
+        cleanInterestName(s).toLowerCase().trim(),
+      ])
+    );
+
+    const filteredSuggestions = translatedSuggestions
       .filter((s) => {
-        const sClean = cleanInterestName(s.name).toLowerCase();
-        return (
-          !selectedLower.includes(sClean) &&
-          !selectedList.includes(s.id) &&
-          !selectedList.includes(s.name)
-        );
+        const nameClean = cleanInterestName(s.name).toLowerCase().trim();
+        const idStr = String(s.id);
+        return !selectedNormalized.has(nameClean) && !selectedNormalized.has(idStr);
       })
       .slice(0, 8);
 
-    const translatedSuggestions = await translateInterestsBatch(filteredSuggestions);
-
     return NextResponse.json({
       success: true,
-      suggestions: translatedSuggestions,
+      suggestions: filteredSuggestions,
     });
   } catch (error: any) {
     console.error("[API_INTERESTS_SUGGESTIONS] Erro ao buscar sugestões:", error);

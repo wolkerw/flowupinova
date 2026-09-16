@@ -4177,7 +4177,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       </div>
 
                       {/* Alerta de Público Muito Restrito */}
-                      {selectedInterests.length > 0 && radius <= 5 && (
+                      {selectedInterests.length > 0 &&
+                        radius <= 5 &&
+                        !selectedLocations.some(
+                          (loc) => loc.type === "País" || loc.type === "Estado"
+                        ) && (
                         <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 text-left animate-in slide-in-from-top-1">
                           <AlertCircle className="h-4.5 w-4.5 mt-0.5 shrink-0 text-amber-500" />
                           <p className="text-slate-650 text-[11px] leading-relaxed">

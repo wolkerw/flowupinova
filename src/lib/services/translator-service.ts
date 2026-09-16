@@ -34,7 +34,7 @@ export async function translateTextToPt(text: string): Promise<string> {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
       },
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(3000),
     });
 
     if (res.ok) {
@@ -46,7 +46,6 @@ export async function translateTextToPt(text: string): Promise<string> {
           .trim();
 
         if (translated) {
-          // Capitaliza a primeira letra para manter padrão estético
           const formatted = translated.charAt(0).toUpperCase() + translated.slice(1);
           translationCache.set(cacheKey, formatted);
           return formatted;
@@ -63,22 +62,70 @@ export async function translateTextToPt(text: string): Promise<string> {
 }
 
 /**
- * Traduz uma lista de objetos contendo a propriedade `name` em lote.
+ * Traduz uma lista de objetos contendo a propriedade `name` em lote em uma única requisição HTTP.
  */
 export async function translateInterestsBatch<T extends { name: string }>(
   items: T[]
 ): Promise<T[]> {
   if (!Array.isArray(items) || items.length === 0) return items;
 
-  const translatedItems = await Promise.all(
-    items.map(async (item) => {
-      const newName = await translateTextToPt(item.name);
-      return {
-        ...item,
-        name: newName,
-      };
-    })
+  // 1. Identifica nomes limpos não traduzidos
+  const cleanNames = items.map((item) =>
+    (item.name || "").replace(/\s*\([^)]*\)/g, "").trim()
   );
 
-  return translatedItems;
+  const pendingIndices: number[] = [];
+  const pendingNames: string[] = [];
+
+  cleanNames.forEach((name, idx) => {
+    if (name && !translationCache.has(name.toLowerCase())) {
+      pendingIndices.push(idx);
+      pendingNames.push(name);
+    }
+  });
+
+  // 2. Se houver itens pendentes, traduz em 1 chamada batch via Google Translate
+  if (pendingNames.length > 0) {
+    try {
+      const batchPayload = pendingNames.join("\n");
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=pt&dt=t&q=${encodeURIComponent(batchPayload)}`;
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        },
+        signal: AbortSignal.timeout(3000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && Array.isArray(data[0])) {
+          const fullStr = data[0]
+            .map((part: any) => (Array.isArray(part) && part[0] ? part[0] : ""))
+            .join("");
+          const lines = fullStr.split("\n");
+
+          pendingNames.forEach((originalName, i) => {
+            const rawTrans = lines[i] ? lines[i].trim() : originalName;
+            const formatted = rawTrans
+              ? rawTrans.charAt(0).toUpperCase() + rawTrans.slice(1)
+              : originalName;
+            translationCache.set(originalName.toLowerCase(), formatted);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[TRANSLATOR] Falha no batch translation, usando fallback limpo:", err);
+    }
+  }
+
+  // 3. Mapeia o resultado final com cache pré-povoado
+  return items.map((item, idx) => {
+    const clean = cleanNames[idx];
+    const cacheKey = clean.toLowerCase();
+    const translatedName = translationCache.get(cacheKey) || clean || item.name;
+    return {
+      ...item,
+      name: translatedName,
+    };
+  });
 }
