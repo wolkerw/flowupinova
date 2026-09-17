@@ -62,42 +62,35 @@ describe("Step1Idea Component", () => {
     expect(button).toBeDisabled();
   });
 
-  it("allows selecting both 'Apenas Título' and 'Com Infográficos' together in orange (#FA6305)", () => {
+  it("renderiza apenas 'Sem Infográficos' e 'Com Infográficos' no modo conceito, sem a opção 'Apenas Título'", () => {
     render(
       <WizardProvider>
         <Step1Idea />
       </WizardProvider>
     );
 
-    // No modo padrão (concept), os botões são: "🖼️ Sem Infográficos", "✨ Apenas Título", "📊 Com Infográficos"
-    const titleBtn = screen.getByRole("button", { name: /✨ Apenas Título/i });
+    // No modo conceito, apenas "🖼️ Sem Infográficos" e "📊 Com Infográficos" devem existir
     const infographicBtn = screen.getByRole("button", { name: /📊 Com Infográficos/i });
     const purePhotoBtn = screen.getByRole("button", { name: /🖼️ Sem Infográficos/i });
+    const titleBtn = screen.queryByRole("button", { name: /✨ Apenas Título/i });
 
-    // Estado inicial padrão do WizardContext é "INFOGRAPHIC" (apenas infográfico ativo)
+    expect(infographicBtn).toBeInTheDocument();
+    expect(purePhotoBtn).toBeInTheDocument();
+    expect(titleBtn).not.toBeInTheDocument();
+
+    // Estado inicial padrão do WizardContext é "INFOGRAPHIC" (ativo em laranja)
     expect(infographicBtn.className).toContain("bg-[#FA6305]");
-    expect(titleBtn.className).not.toContain("bg-[#FA6305]");
+    expect(purePhotoBtn.className).not.toContain("bg-slate-800");
 
-    // Clica em "✨ Apenas Título" -> agora AMBOS devem estar ativos em LARANJA (#FA6305)
-    fireEvent.click(titleBtn);
-    expect(titleBtn.className).toContain("bg-[#FA6305]");
-    expect(infographicBtn.className).toContain("bg-[#FA6305]");
-
-    // Clica em "Sem Infográficos" -> limpa ambos
+    // Clica em "Sem Infográficos" -> ativa modo sem infográficos
     fireEvent.click(purePhotoBtn);
     expect(purePhotoBtn.className).toContain("bg-slate-800");
-    expect(titleBtn.className).not.toContain("bg-[#FA6305]");
     expect(infographicBtn.className).not.toContain("bg-[#FA6305]");
 
-    // Clica em "✨ Apenas Título" -> apenas título fica em laranja
-    fireEvent.click(titleBtn);
-    expect(titleBtn.className).toContain("bg-[#FA6305]");
-    expect(infographicBtn.className).not.toContain("bg-[#FA6305]");
-
-    // Clica em "📊 Com Infográficos" -> ambos ficam em laranja juntos
+    // Clica em "Com Infográficos" -> reativa infográfico em laranja
     fireEvent.click(infographicBtn);
-    expect(titleBtn.className).toContain("bg-[#FA6305]");
     expect(infographicBtn.className).toContain("bg-[#FA6305]");
+    expect(purePhotoBtn.className).not.toContain("bg-slate-800");
   });
 
   it("renderiza o Modo de Diagramação & Textos na Arte logo abaixo da Prioridade de Foco no fluxo híbrido (pessoa + cenário)", () => {

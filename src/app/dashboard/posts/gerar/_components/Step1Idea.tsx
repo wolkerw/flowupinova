@@ -1100,20 +1100,6 @@ export const Step1Idea = () => {
                     </Button>
                     <Button
                       type="button"
-                      variant={isTitleSelected ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleToggleTitle}
-                      className={cn(
-                        "text-xs h-9 px-3.5 rounded-lg font-bold transition-all",
-                        isTitleSelected
-                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
-                      )}
-                    >
-                      ✨ Apenas Título
-                    </Button>
-                    <Button
-                      type="button"
                       variant={isInfographicSelected ? "default" : "outline"}
                       size="sm"
                       onClick={handleToggleInfographic}
