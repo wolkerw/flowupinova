@@ -176,8 +176,8 @@ export function DigitalContractViewer({
     anual: {
       nome: "Anual",
       ciclo: "Ciclo promocional de 13 meses (12 contratados + 1 mês adicional incluído)",
-      precoMensal: "R$ 369,23/mês de acesso",
-      total: "R$ 4.800,00 por 13 meses",
+      precoMensal: "R$ 308,30/mês de acesso",
+      total: "R$ 4.788,00 por 13 meses",
       condicao: "Plano promocional com 12 meses contratados e 1 mês adicional incluído",
     },
   };
@@ -354,8 +354,8 @@ export function DigitalContractViewer({
                     <td className="p-3">
                       Anual <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold">13 meses</span>
                     </td>
-                    <td className="p-3">R$ 369,23/mês de acesso</td>
-                    <td className="p-3">R$ 4.800,00 por 13 meses</td>
+                    <td className="p-3">R$ 308,30/mês de acesso</td>
+                    <td className="p-3">R$ 4.788,00 por 13 meses</td>
                     <td className="p-3">Plano promocional com 12 meses contratados e 1 mês adicional incluído</td>
                   </tr>
                 </tbody>

@@ -81,7 +81,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     mensal: 490,
     trimestral: 441, // 10% off
     semestral: 416.5, // 15% off
-    anual: 400, // 400/mês cobrado mensalmente no cartão (+ 1 mês grátis)
+    anual: 399, // 12x R$ 399/mês (+ 1 mês grátis, equivalente a R$ 308,30/mês)
   };
 
   useEffect(() => {
@@ -678,7 +678,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                       Ganhe o 13º Mês Grátis!
                     </p>
                     <p className="text-[11px] font-bold text-[#FA6305]">
-                      Benefícios do anual por apenas R$ 400/mês no cartão
+                      Benefícios do anual por apenas 12x de R$ 399/mês
                     </p>
                   </div>
                 </div>
@@ -716,7 +716,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
               )}
               {selectedPlan === "anual" && !discount && (
                 <p className="mt-1 text-[11px] font-medium text-slate-400">
-                  cobrado R$ 400 por mês no cartão (com 13º mês grátis)
+                  12x de R$ 399 (equivalente a R$ 308,30/mês com 13º mês bônus — R$ 4.788 total)
                 </p>
               )}
             </div>

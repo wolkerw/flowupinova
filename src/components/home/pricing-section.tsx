@@ -179,11 +179,13 @@ export const PricingSection = () => {
 
               <div className="mb-2 flex items-baseline">
                 <span className="text-4xl font-extrabold text-white">
-                  R$ 369<span className="text-xl">,23</span>
+                  12x R$ 399<span className="text-xl">,00</span>
                 </span>
                 <span className="ml-1 text-sm text-slate-400">/mês</span>
               </div>
-              <p className="mb-8 text-xs text-slate-400">Cobrado R$ 4.800 por 13 meses</p>
+              <p className="mb-8 text-xs text-slate-400">
+                Nesta modalidade de contratação o valor mensal fica R$ 308,30 considerando o mês bônus, ou seja, 4.788/13 meses
+              </p>
 
               <ul className="mb-8 flex-1 space-y-3 text-sm">
                 <li className="flex items-start gap-2 text-slate-300">
@@ -198,11 +200,11 @@ export const PricingSection = () => {
                 </li>
                 <li className="flex items-start gap-2 text-slate-300">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-500" />
-                  <span>Geração de Imagens Prioritária</span>
+                  <span>Geração de Imagens Ilimitada</span>
                 </li>
                 <li className="flex items-start gap-2 text-slate-300">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-500" />
-                  <span>Suporte VIP WhatsApp</span>
+                  <span>Suporte para Integração e Implementação gratuitos</span>
                 </li>
               </ul>
 
