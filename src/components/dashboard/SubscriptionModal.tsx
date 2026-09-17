@@ -716,7 +716,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
               )}
               {selectedPlan === "anual" && !discount && (
                 <p className="mt-1 text-[11px] font-medium text-slate-400">
-                  12x de R$ 399 (equivalente a R$ 308,30/mês com 13º mês bônus — R$ 4.788 total)
+                  12x de R$ 399 (equivalente a R$ 368,30/mês com 13º mês bônus — R$ 4.788 total)
                 </p>
               )}
             </div>

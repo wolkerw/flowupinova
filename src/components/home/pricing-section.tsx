@@ -61,7 +61,10 @@ export const PricingSection = () => {
                 <span className="text-4xl font-extrabold text-slate-900">R$ 490</span>
                 <span className="ml-1 text-sm text-slate-500">/mês</span>
               </div>
-              <p className="mb-8 text-xs text-slate-400 opacity-0">Espaçamento</p>
+              <p className="mb-2 text-xs text-slate-400">Cobrança mensal</p>
+              <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-snug text-slate-600">
+                Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
+              </div>
 
               <ul className="mb-8 flex-1 space-y-3 text-sm">
                 <li className="flex items-start gap-2 text-slate-700">
@@ -107,7 +110,10 @@ export const PricingSection = () => {
                 <span className="text-4xl font-extrabold text-slate-900">R$ 441</span>
                 <span className="ml-1 text-sm text-slate-500">/mês</span>
               </div>
-              <p className="mb-8 text-xs text-slate-400">Cobrado R$ 1.323 a cada 3 meses</p>
+              <p className="mb-2 text-xs text-slate-400">Cobrado R$ 1.323 a cada 3 meses</p>
+              <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-snug text-slate-600">
+                Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
+              </div>
 
               <ul className="mb-8 flex-1 space-y-3 text-sm">
                 <li className="flex items-start gap-2 text-slate-700">
@@ -143,7 +149,10 @@ export const PricingSection = () => {
                 </span>
                 <span className="ml-1 text-sm text-slate-500">/mês</span>
               </div>
-              <p className="mb-8 text-xs text-slate-400">Cobrado R$ 2.499 a cada 6 meses</p>
+              <p className="mb-2 text-xs text-slate-400">Cobrado R$ 2.499 a cada 6 meses</p>
+              <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-snug text-slate-600">
+                Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
+              </div>
 
               <ul className="mb-8 flex-1 space-y-3 text-sm">
                 <li className="flex items-start gap-2 text-slate-700">
@@ -179,13 +188,17 @@ export const PricingSection = () => {
 
               <div className="mb-2 flex items-baseline">
                 <span className="text-4xl font-extrabold text-white">
-                  12x R$ 399<span className="text-xl">,00</span>
+                  R$ 399<span className="text-xl">,00</span>
                 </span>
                 <span className="ml-1 text-sm text-slate-400">/mês</span>
               </div>
-              <p className="mb-8 text-xs text-slate-400">
-                Nesta modalidade de contratação o valor mensal fica R$ 308,30 considerando o mês bônus, ou seja, 4.788/13 meses
+              <p className="text-xs text-slate-400">Cobrado 12 x de R$ 399,00</p>
+              <p className="mt-1 mb-2 text-xs font-medium text-orange-400">
+                Nesta modalidade o valor mensal fica R$ 368,30 considerando o bônus.
               </p>
+              <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800/90 p-2.5 text-[11px] leading-snug text-slate-300">
+                Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
+              </div>
 
               <ul className="mb-8 flex-1 space-y-3 text-sm">
                 <li className="flex items-start gap-2 text-slate-300">
