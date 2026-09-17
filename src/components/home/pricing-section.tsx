@@ -259,7 +259,7 @@ export const PricingSection = () => {
                 size="lg"
                 className="h-14 rounded-full bg-slate-900 px-10 text-lg text-white shadow-xl transition-transform hover:scale-105 hover:bg-slate-800"
               >
-                <Link href="/acesso/cadastro">Criar Conta e Ganhar 1 Post</Link>
+                <Link href="/acesso/cadastro">Criar Conta</Link>
               </Button>
               <div className="mt-6 flex flex-col items-center gap-2">
                 <p className="text-sm font-medium text-orange-100">
