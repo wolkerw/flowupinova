@@ -69,19 +69,27 @@ export const PricingSection = () => {
               <ul className="mb-8 flex-1 space-y-3 text-sm">
                 <li className="flex items-start gap-2 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-                  <span>Posts ilimitados com IA</span>
+                  <span>Gerenciador de Anúncios</span>
                 </li>
                 <li className="flex items-start gap-2 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-                  <span>Editor de Textos Avançado</span>
+                  <span>Relatórios de Alcance dos posts</span>
                 </li>
                 <li className="flex items-start gap-2 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-                  <span>Agendamento automático</span>
+                  <span>Galeria de Publicações</span>
                 </li>
                 <li className="flex items-start gap-2 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-                  <span>Integração Google Meu Negócio</span>
+                  <span>Foto Profissional com IA</span>
+                </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Onboarding Inteligente com IA</span>
+                </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Publicações num clique em Instagram, Facebook e Google Meu Negócio</span>
                 </li>
               </ul>
 
