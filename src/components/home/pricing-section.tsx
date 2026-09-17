@@ -126,7 +126,7 @@ export const PricingSection = () => {
                 <span className="text-4xl font-extrabold text-slate-900">R$ 441</span>
                 <span className="ml-1 text-sm text-slate-500">/mês</span>
               </div>
-              <p className="mb-2 text-xs text-slate-400">Cobrado R$ 1.323 a cada 3 meses</p>
+              <p className="mb-2 text-xs text-slate-400">Cobrado 3 x de R$ 441,00</p>
               <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-snug text-slate-600">
                 Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
               </div>
@@ -165,7 +165,7 @@ export const PricingSection = () => {
                 </span>
                 <span className="ml-1 text-sm text-slate-500">/mês</span>
               </div>
-              <p className="mb-2 text-xs text-slate-400">Cobrado R$ 2.499 a cada 6 meses</p>
+              <p className="mb-2 text-xs text-slate-400">Cobrado 6 x de R$ 416,50</p>
               <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-snug text-slate-600">
                 Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
               </div>
