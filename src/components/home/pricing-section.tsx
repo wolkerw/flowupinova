@@ -91,6 +91,14 @@ export const PricingSection = () => {
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
                   <span>Publicações num clique em Instagram, Facebook e Google Meu Negócio</span>
                 </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Geração de Imagens Ilimitada</span>
+                </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Suporte para Integração e Implementação gratuitos</span>
+                </li>
               </ul>
 
               <Button
@@ -218,14 +226,6 @@ export const PricingSection = () => {
                 <li className="flex items-start gap-2 text-slate-300">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-500" />
                   <span>1 Mês Grátis embutido</span>
-                </li>
-                <li className="flex items-start gap-2 text-slate-300">
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-500" />
-                  <span>Geração de Imagens Ilimitada</span>
-                </li>
-                <li className="flex items-start gap-2 text-slate-300">
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-500" />
-                  <span>Suporte para Integração e Implementação gratuitos</span>
                 </li>
               </ul>
 
