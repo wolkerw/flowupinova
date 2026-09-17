@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import { trackCompleteRegistration } from "@/lib/meta-pixel";
 
 const signupSchema = z.object({
   name: z.string().min(2, "O nome da empresa deve ter pelo menos 2 caracteres."),
@@ -82,6 +83,11 @@ export default function CadastroPage() {
     setIsLoading(true);
     const finalSegment = data.segment === "outro" ? data.customSegment : data.segment;
     await signUpWithEmail(data.name, data.email, data.password, data.phone, finalSegment || "");
+    try {
+      trackCompleteRegistration({ method: "Email" });
+    } catch {
+      // Ignore client analytics errors
+    }
     setIsLoading(false);
   };
 

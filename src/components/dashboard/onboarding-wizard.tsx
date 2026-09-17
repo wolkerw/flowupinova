@@ -1241,7 +1241,7 @@ export function OnboardingWizard({
                 onClick={step === 1 ? handleSkip : handleBack}
                 className="h-14 rounded-2xl px-6 font-bold text-slate-400 transition-colors hover:text-slate-900"
               >
-                {step === 1 ? "Pular agora" : "Voltar"}
+                {step === 1 ? "Pular por agora" : "Voltar"}
               </Button>
 
               <Button

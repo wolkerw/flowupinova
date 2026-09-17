@@ -62,32 +62,30 @@ describe("Step1Idea Component", () => {
     expect(button).toBeDisabled();
   });
 
-  it("renderiza apenas 'Sem Infográficos' e 'Com Infográficos' no modo conceito, sem a opção 'Apenas Título'", () => {
+  it("permite alternar entre 'Fotografia Pura' e 'Infográfico Completo' no fluxo conceito", () => {
     render(
       <WizardProvider>
         <Step1Idea />
       </WizardProvider>
     );
 
-    // No modo conceito, apenas "🖼️ Sem Infográficos" e "📊 Com Infográficos" devem existir
-    const infographicBtn = screen.getByRole("button", { name: /📊 Com Infográficos/i });
-    const purePhotoBtn = screen.getByRole("button", { name: /🖼️ Sem Infográficos/i });
-    const titleBtn = screen.queryByRole("button", { name: /✨ Apenas Título/i });
+    // No modo conceito padronizado, os botões são: "🖼️ Fotografia Pura" e "📊 Infográfico Completo"
+    const infographicBtn = screen.getByRole("button", { name: /📊 Infográfico Completo/i });
+    const purePhotoBtn = screen.getByRole("button", { name: /🖼️ Fotografia Pura/i });
 
-    expect(infographicBtn).toBeInTheDocument();
-    expect(purePhotoBtn).toBeInTheDocument();
-    expect(titleBtn).not.toBeInTheDocument();
+    // "✨ Apenas Título" não deve estar presente no modo conceito
+    expect(screen.queryByRole("button", { name: /✨ Apenas Título/i })).not.toBeInTheDocument();
 
-    // Estado inicial padrão do WizardContext é "INFOGRAPHIC" (ativo em laranja)
+    // Estado inicial padrão do WizardContext é "INFOGRAPHIC" (apenas infográfico ativo em #FA6305)
     expect(infographicBtn.className).toContain("bg-[#FA6305]");
     expect(purePhotoBtn.className).not.toContain("bg-slate-800");
 
-    // Clica em "Sem Infográficos" -> ativa modo sem infográficos
+    // Clica em "🖼️ Fotografia Pura" -> ativa fotografia pura e desativa infográfico
     fireEvent.click(purePhotoBtn);
     expect(purePhotoBtn.className).toContain("bg-slate-800");
     expect(infographicBtn.className).not.toContain("bg-[#FA6305]");
 
-    // Clica em "Com Infográficos" -> reativa infográfico em laranja
+    // Clica em "📊 Infográfico Completo" -> volta a ativar infográfico
     fireEvent.click(infographicBtn);
     expect(infographicBtn.className).toContain("bg-[#FA6305]");
     expect(purePhotoBtn.className).not.toContain("bg-slate-800");
