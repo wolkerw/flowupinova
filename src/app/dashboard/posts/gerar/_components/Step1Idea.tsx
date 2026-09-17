@@ -1072,61 +1072,45 @@ export const Step1Idea = () => {
           {/* Modo de Diagramação e Estilos — apenas no modo conceito */}
           {mode === "concept" && (
             <div className="space-y-6 border-t pt-4">
-              {/* Modo de Diagramação: Com Infográficos vs Sem Infográficos (ACIMA DOS ESTILOS) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                  <div>
-                    <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <span>✍️</span> Modo de Diagramação & Textos na Arte
-                    </Label>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Escolha se deseja a arte com infográfico comercial completo ou sem infográficos (fotografia limpa).
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <Button
-                      type="button"
-                      variant={isPurePhotoSelected ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleSelectPurePhoto}
-                      className={cn(
-                        "text-xs h-9 px-3 rounded-lg font-medium transition-all",
-                        isPurePhotoSelected
-                          ? "bg-slate-800 hover:bg-slate-900 text-white shadow-xs font-bold"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
-                      )}
-                    >
-                      🖼️ Sem Infográficos
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={isTitleSelected ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleToggleTitle}
-                      className={cn(
-                        "text-xs h-9 px-3.5 rounded-lg font-bold transition-all",
-                        isTitleSelected
-                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
-                      )}
-                    >
-                      ✨ Apenas Título
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={isInfographicSelected ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleToggleInfographic}
-                      className={cn(
-                        "text-xs h-9 px-3.5 rounded-lg font-bold transition-all",
-                        isInfographicSelected
-                          ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
-                          : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
-                      )}
-                    >
-                      📊 Com Infográficos
-                    </Button>
-                  </div>
+              {/* Modo de Diagramação & Textos na Arte (Conceito) */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                <div>
+                  <Label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <span>✍️</span> Modo de Diagramação & Textos na Arte
+                  </Label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Escolha o nível de elementos gráficos e textos que deseja na arte. O infográfico adiciona textos explicativos e elementos gráficos comerciais.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    variant={isPurePhotoSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleSelectPurePhoto}
+                    className={cn(
+                      "text-xs h-8 px-2.5 rounded-lg font-medium transition-all",
+                      isPurePhotoSelected
+                        ? "bg-slate-800 hover:bg-slate-900 text-white font-bold"
+                        : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                    )}
+                  >
+                    🖼️ Fotografia Pura
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={isInfographicSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleToggleInfographic}
+                    className={cn(
+                      "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                      isInfographicSelected
+                        ? "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                        : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                    )}
+                  >
+                    📊 Infográfico Completo
+                  </Button>
                 </div>
               </div>
 
@@ -1221,7 +1205,7 @@ export const Step1Idea = () => {
                       <span>✍️</span> Modo de Diagramação & Textos na Arte
                     </Label>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Escolha o nível de elementos gráficos e textos que deseja na arte.
+                      Escolha o nível de elementos gráficos e textos que deseja na arte. O infográfico adiciona textos explicativos e elementos gráficos comerciais.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 shrink-0">
@@ -1415,7 +1399,7 @@ export const Step1Idea = () => {
                                   <span>✍️</span> Modo de Diagramação & Textos na Arte
                                 </Label>
                                 <p className="text-xs text-slate-500 mt-0.5">
-                                  Escolha o nível de elementos gráficos e textos que deseja na arte.
+                                  Escolha o nível de elementos gráficos e textos que deseja na arte. O infográfico adiciona textos explicativos e elementos gráficos comerciais.
                                 </p>
                               </div>
                               <div className="flex flex-wrap items-center gap-1.5 shrink-0">
@@ -1720,7 +1704,7 @@ export const Step1Idea = () => {
                             <span>✍️</span> Modo de Diagramação & Textos na Arte
                           </Label>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Escolha o nível de elementos gráficos e textos que deseja na arte.
+                            Escolha o nível de elementos gráficos e textos que deseja na arte. O infográfico adiciona textos explicativos e elementos gráficos comerciais.
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
