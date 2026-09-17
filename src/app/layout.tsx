@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/auth/providers";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 import Script from "next/script";
 
 const inter = Inter({
@@ -113,7 +114,10 @@ export default function RootLayout({
           ></iframe>
         </noscript>
         {/* End Google Tag Manager (noscript) */}
-        <Providers>{children}</Providers>
+        <Providers>
+          <MetaPixel />
+          {children}
+        </Providers>
       </body>
     </html>
   );
