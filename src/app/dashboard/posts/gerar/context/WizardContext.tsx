@@ -316,8 +316,39 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const userRef = useRef<any>(null);
 
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const { toast } = useToast();
+
+  const getAuthHeaders = useCallback(
+    async (customHeaders: Record<string, string> = {}) => {
+      let token: string | null = null;
+      try {
+        token = getIdToken ? await getIdToken() : user ? await user.getIdToken() : null;
+      } catch (err) {
+        console.warn("Aviso ao obter token de autenticação:", err);
+      }
+      const headers: Record<string, string> = { ...customHeaders };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      return headers;
+    },
+    [getIdToken, user]
+  );
+
+  const getAuthHeadersForFormData = useCallback(async () => {
+    let token: string | null = null;
+    try {
+      token = getIdToken ? await getIdToken() : user ? await user.getIdToken() : null;
+    } catch (err) {
+      console.warn("Aviso ao obter token de autenticação:", err);
+    }
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+  }, [getIdToken, user]);
 
   const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
   const selectedContent = selectedContentId
@@ -616,8 +647,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           formData.append("product_file", referenceImageFile);
         }
 
+        const authHeaders = await getAuthHeadersForFormData();
         const response = await fetch("/api/proxy-webhook?target=gerador_link_referencia", {
           method: "POST",
+          headers: authHeaders,
           body: formData,
         });
 
@@ -672,9 +705,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
 
     try {
+      const authHeaders = await getAuthHeaders({ "Content-Type": "application/json" });
       const response = await fetch("/api/generate-text", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           summary: textToGenerate,
           businessProfile,
@@ -742,8 +776,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       formData.append("postId", currentPostId || "");
       formData.append("userId", user.uid);
 
+      const authHeaders = await getAuthHeadersForFormData();
       const response = await fetch("/api/conteudo/gerar-ideias", {
         method: "POST",
+        headers: authHeaders,
         body: formData,
       });
 
@@ -972,14 +1008,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             formData.append("layoutStyle", layoutStyle);
           }
 
+          const authHeaders = await getAuthHeadersForFormData();
           response = await fetch("/api/generate-prompts", {
             method: "POST",
+            headers: authHeaders,
             body: formData,
           });
         } else {
+          const authHeaders = await getAuthHeaders({ "Content-Type": "application/json" });
           response = await fetch("/api/generate-prompts", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders,
             body: JSON.stringify({
               content: contentForPrompt,
               businessProfile: businessProfile,
@@ -1079,10 +1118,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           img4FormData.append("userId", user.uid);
           img4FormData.append("caption", fullCaption);
 
+          const authHeaders = await getAuthHeadersForFormData();
           const img4Response = await fetch(
             "/api/conteudo/gerar-referencia?action=submit-imagen4-ref",
             {
               method: "POST",
+              headers: authHeaders,
               body: img4FormData,
             }
           );
@@ -1145,10 +1186,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                 : hybridPriority
             );
 
+            const authHeaders = await getAuthHeadersForFormData();
             const nanobananaResponse = await fetch(
               "/api/conteudo/gerar-referencia?action=submit-nanobanana-ref",
               {
                 method: "POST",
+                headers: authHeaders,
                 body: nanobananaFormData,
               }
             );
@@ -1402,9 +1445,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           console.log(
             `[WIZARD] Disparando geração simultânea da imagem ${fname} com o prompt: "${singlePrompt.substring(0, 60)}..."`
           );
+          const authHeaders = await getAuthHeaders({ "Content-Type": "application/json" });
           const imgResponse = await fetch("/api/generate-images", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders,
             body: JSON.stringify({
               prompt: singlePrompt,
               postId: activePostId,
@@ -1589,8 +1633,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "raw-image.jpg", { type: imageBlob.type }));
+        const authHeaders = await getAuthHeadersForFormData();
         const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
           method: "POST",
+          headers: authHeaders,
           body: formData,
         });
         const result = await response.json();
@@ -1936,8 +1982,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const imageBlob = await fetch(finalImageUrl).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "post-image.jpg", { type: imageBlob.type }));
+        const authHeaders = await getAuthHeadersForFormData();
         const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
           method: "POST",
+          headers: authHeaders,
           body: formData,
         });
         const result = await response.json();
@@ -2057,9 +2105,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
     setIsGeneratingCaption(true);
     try {
+      const authHeaders = await getAuthHeaders({ "Content-Type": "application/json" });
       const response = await fetch("/api/generate-text", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ summary: referenceDescription, businessProfile }),
       });
       const data = await response.json();

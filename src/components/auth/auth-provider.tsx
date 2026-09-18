@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   onAuthStateChanged,
+  onIdTokenChanged,
   User,
   signOut,
   createUserWithEmailAndPassword,
@@ -82,18 +83,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn("Erro ao obter resultado de redirect:", err);
       });
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
       setLoading(false);
-      if (user) {
-        const token = await user.getIdToken(true); // Force refresh
-        setCookie("firebase-id-token", token, 1); // Store token in cookie for Server Components
+      if (currentUser) {
+        try {
+          const token = await currentUser.getIdToken();
+          setCookie("firebase-id-token", token, 1); // Store token in cookie for Server Components
+        } catch (err) {
+          console.warn("Aviso ao obter token no onAuthStateChanged:", err);
+        }
       } else {
         eraseCookie("firebase-id-token");
       }
     });
 
-    return () => unsubscribe();
+    const unsubscribeToken = onIdTokenChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        try {
+          const token = await currentUser.getIdToken();
+          setCookie("firebase-id-token", token, 1);
+        } catch (err) {
+          console.warn("Aviso ao atualizar token no onIdTokenChanged:", err);
+        }
+      } else {
+        eraseCookie("firebase-id-token");
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeToken();
+    };
   }, [router]);
 
   useEffect(() => {
@@ -120,7 +141,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getIdToken = async (): Promise<string | null> => {
     if (!auth.currentUser) return null;
-    return auth.currentUser.getIdToken();
+    try {
+      const token = await auth.currentUser.getIdToken();
+      if (token) {
+        setCookie("firebase-id-token", token, 1);
+      }
+      return token;
+    } catch (err) {
+      console.warn("Aviso ao executar getIdToken:", err);
+      return null;
+    }
   };
 
   const signUpWithEmail = async (
