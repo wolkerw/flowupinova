@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import type { InstagramMessage, InstagramChatSession } from "@/lib/types/instagram";
+import { generateInstagramAIResponse } from "@/lib/services/instagram-ai-service";
 
 const INSTAGRAM_VERIFY_TOKEN = process.env.INSTAGRAM_VERIFY_TOKEN || "numvapt_instagram_verify_token";
 const INSTAGRAM_PAGE_ACCESS_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN || "";
@@ -38,51 +39,6 @@ async function sendInstagramDirectMessage(recipientId: string, text: string): Pr
     console.error("[INSTAGRAM_SEND_ERROR]", error);
     return false;
   }
-}
-
-/**
- * Resposta inteligente pré-configurada da IA Maia NumVapt para o Instagram Direct
- */
-function generateMaiaResponse(userText: string, contactName: string): string {
-  const text = userText.toLowerCase();
-
-  // Dúvidas de Preços / Planos
-  if (text.includes("preço") || text.includes("plano") || text.includes("valor") || text.includes("custa") || text.includes("quanto")) {
-    return (
-      `Olá! Que ótimo te ver por aqui no direct da NumVapt! ✨\n\n` +
-      `Nossos planos são cobrados como assinatura mensal recorrente (sem travar o limite total do cartão):\n\n` +
-      `🔹 Mensal: R$ 490,00/mês\n` +
-      `🔹 Trimestral: 3x de R$ 441,00/mês (10% OFF)\n` +
-      `🔹 Semestral: 6x de R$ 416,50/mês (15% OFF)\n` +
-      `🔹 Anual: 12x de R$ 399,00/mês (+ 1 mês grátis, saindo por R$ 308,30/mês)!\n\n` +
-      `Todos incluem criação de posts com IA, geração ilimitada de imagens e agendamento automático.\n\n` +
-      `Você pode criar sua conta para experimentar agora mesmo: https://numvapt.com.br/acesso/cadastro\n\n` +
-      `Se preferir falar com um especialista no WhatsApp, me avise ou clique no link da nossa bio!`
-    );
-  }
-
-  // Falar com Humano / Atendente
-  if (text.includes("humano") || text.includes("atendente") || text.includes("pessoa") || text.includes("falar com alguém")) {
-    return (
-      `Com certeza! Já avisei nossa equipe de atendimento aqui pelo direct. 🙋‍♂️\n\n` +
-      `Se você tiver pressa, nosso especialista também atende direto no WhatsApp oficial: (51) 92004-4035 ou https://wa.me/5551920044035`
-    );
-  }
-
-  // Como funciona / Teste
-  if (text.includes("como funciona") || text.includes("o que é") || text.includes("teste") || text.includes("grátis")) {
-    return (
-      `A NumVapt é uma plataforma de Inteligência Artificial feita sob medida para autônomos e empresas! 🚀\n\n` +
-      `Você conta um pouco sobre o seu negócio e nossa IA aprende o tom da sua marca, gera imagens exclusivas e textos persuasivos, e publica com um clique no seu Instagram, Facebook e Google Meu Negócio.\n\n` +
-      `Crie sua conta em segundos: https://numvapt.com.br/acesso/cadastro`
-    );
-  }
-
-  // Resposta Padrão de Boas-Vindas
-  return (
-    `Olá! Sou a Maia, assistente de Inteligência Artificial da NumVapt. 🤖💙\n\n` +
-    `Como posso te ajudar hoje? Você gostaria de conhecer nossos planos, saber como a IA cria e publica seus posts no Instagram ou falar com nosso suporte?`
-  );
 }
 
 /**
@@ -173,8 +129,26 @@ export async function POST(request: NextRequest) {
 
         // 4. Se a IA estiver ativa e não houver intervenção humana, gera e envia resposta
         if (aiEnabled && !humanTakeover) {
-          const aiReplyText = generateMaiaResponse(text, contactName);
-          const aiSent = await sendInstagramDirectMessage(senderId, aiReplyText);
+          // Busca últimas mensagens para contexto de conversa
+          const historySnap = await chatDocRef
+            .collection("messages")
+            .orderBy("timestamp", "desc")
+            .limit(6)
+            .get();
+
+          const history: InstagramMessage[] = historySnap.docs
+            .map((d) => d.data() as InstagramMessage)
+            .reverse();
+
+          const aiResponse = await generateInstagramAIResponse({
+            incomingMessage: text,
+            history,
+            senderName: contactName,
+            senderId,
+          });
+
+          const aiReplyText = aiResponse.replyText;
+          await sendInstagramDirectMessage(senderId, aiReplyText);
 
           const aiMsgId = `ig_ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
           const aiNow = new Date().toISOString();
@@ -192,6 +166,8 @@ export async function POST(request: NextRequest) {
             {
               lastMessageText: aiReplyText,
               lastMessageAt: aiNow,
+              humanTakeover: Boolean(aiResponse.needsHumanSupport),
+              status: aiResponse.needsHumanSupport ? "waiting_human" : "active",
               updatedAt: aiNow,
             },
             { merge: true }

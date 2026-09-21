@@ -25,6 +25,22 @@ vi.mock("@/lib/firebase-admin", () => {
     adminDb: {
       collection: vi.fn().mockReturnValue({
         doc: vi.fn().mockReturnValue(mockDocRef),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            get: vi.fn().mockResolvedValue({
+              empty: false,
+              docs: [
+                {
+                  data: () => ({
+                    title: "Planos e Preços",
+                    content: "• Mensal: R$ 490,00\n• Anual: R$ 399,00",
+                    isActive: true,
+                  }),
+                },
+              ],
+            }),
+          }),
+        }),
       }),
     },
   };

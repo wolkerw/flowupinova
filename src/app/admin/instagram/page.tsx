@@ -19,12 +19,20 @@ import {
   HelpCircle,
   ExternalLink,
   MessageCircle,
+  BookOpen,
+  Plus,
+  Trash2,
+  Edit2,
+  Save,
+  X,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InstagramMessage, InstagramChatSession } from "@/lib/types/instagram";
+import type { WhatsAppKnowledgeTopic } from "@/lib/types/whatsapp-knowledge";
 
 export default function AdminInstagramPage() {
-  const [activeTab, setActiveTab] = useState<"conversas" | "configuracoes">("conversas");
+  const [activeTab, setActiveTab] = useState<"conversas" | "conhecimento" | "configuracoes">("conversas");
 
   // Estado das Conversas
   const [chats, setChats] = useState<InstagramChatSession[]>([]);
@@ -37,6 +45,19 @@ export default function AdminInstagramPage() {
   const [updatingAiToggle, setUpdatingAiToggle] = useState(false);
   const [filter, setFilter] = useState<"all" | "ai" | "human">("all");
   const [search, setSearch] = useState("");
+
+  // Estado da Central de Conhecimento
+  const [topics, setTopics] = useState<WhatsAppKnowledgeTopic[]>([]);
+  const [loadingTopics, setLoadingTopics] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<WhatsAppKnowledgeTopic | null>(null);
+  const [isCreatingTopic, setIsCreatingTopic] = useState(false);
+  const [savingTopic, setSavingTopic] = useState(false);
+  const [topicForm, setTopicForm] = useState({
+    title: "",
+    category: "planos" as WhatsAppKnowledgeTopic["category"],
+    content: "",
+    isActive: true,
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +81,22 @@ export default function AdminInstagramPage() {
     }
   }, []);
 
+  // Busca tópicos da Central de Conhecimento
+  const fetchKnowledge = useCallback(async () => {
+    setLoadingTopics(true);
+    try {
+      const res = await fetch("/api/admin/whatsapp/knowledge");
+      if (res.ok) {
+        const data = await res.json();
+        setTopics(data.topics || []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar central de conhecimento:", err);
+    } finally {
+      setLoadingTopics(false);
+    }
+  }, []);
+
   // Busca mensagens de uma conversa específica
   const loadMessages = useCallback(async (chat: InstagramChatSession) => {
     setSelectedChat(chat);
@@ -77,9 +114,56 @@ export default function AdminInstagramPage() {
     }
   }, []);
 
+  const handleSaveTopic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topicForm.title.trim() || !topicForm.content.trim() || savingTopic) return;
+
+    setSavingTopic(true);
+    try {
+      const payload = {
+        id: editingTopic?.id,
+        category: topicForm.category,
+        title: topicForm.title.trim(),
+        content: topicForm.content.trim(),
+        isActive: topicForm.isActive,
+      };
+
+      const res = await fetch("/api/admin/whatsapp/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setIsCreatingTopic(false);
+        setEditingTopic(null);
+        setTopicForm({ title: "", category: "planos", content: "", isActive: true });
+        fetchKnowledge();
+      }
+    } catch (err) {
+      console.error("Erro ao salvar tópico:", err);
+    } finally {
+      setSavingTopic(false);
+    }
+  };
+
+  const handleDeleteTopic = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta informação da base de conhecimento da Maia?")) return;
+
+    try {
+      const res = await fetch(`/api/admin/whatsapp/knowledge?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchKnowledge();
+      }
+    } catch (err) {
+      console.error("Erro ao excluir tópico:", err);
+    }
+  };
+
   useEffect(() => {
     fetchChats();
-  }, [fetchChats]);
+    fetchKnowledge();
+  }, [fetchChats, fetchKnowledge]);
 
   // Scroll automático para a última mensagem
   useEffect(() => {
@@ -217,6 +301,24 @@ export default function AdminInstagramPage() {
                 {chats.length > 0 && (
                   <span className="ml-1 rounded-full bg-slate-200 px-1.5 py-0.2 text-[10px] text-slate-700">
                     {chats.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab("conhecimento")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all",
+                  activeTab === "conhecimento"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                )}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Central de Conhecimento
+                {topics.length > 0 && (
+                  <span className="ml-1 rounded-full bg-pink-100 px-1.5 py-0.2 text-[10px] text-pink-700 font-bold">
+                    {topics.length}
                   </span>
                 )}
               </button>
@@ -550,6 +652,197 @@ export default function AdminInstagramPage() {
                   Clique em qualquer conversa na coluna à esquerda para ler o histórico, enviar mensagens manuais ou alternar o modo da IA.
                 </p>
               </div>
+            )}
+          </div>
+        </div>
+      ) : activeTab === "conhecimento" ? (
+        /* Aba da Central de Conhecimento Compartilhada */
+        <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+          {/* Header da Central */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-pink-500" />
+                Base de Conhecimento Compartilhada (WhatsApp &amp; Instagram)
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                Alimente aqui todas as informações, tabelas de preços, regras e promoções. A IA Maia consulta esta mesma base no Firestore em tempo real para responder seguidores no Instagram Direct e clientes no WhatsApp.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingTopic(null);
+                setTopicForm({ title: "", category: "planos", content: "", isActive: true });
+                setIsCreatingTopic(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:from-pink-500 hover:to-purple-500 transition shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar Novo Tópico
+            </button>
+          </div>
+
+          {/* Modal / Formulário de Criação ou Edição */}
+          {isCreatingTopic && (
+            <div className="p-6 rounded-2xl border border-pink-200 bg-white shadow-lg space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Edit2 className="h-4 w-4 text-pink-600" />
+                  {editingTopic ? "Editar Tópico de Conhecimento" : "Novo Tópico de Informação"}
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsCreatingTopic(false);
+                    setEditingTopic(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveTopic} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Título do Tópico</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Tabela de Preços, Regras de Pagamento, etc."
+                      value={topicForm.title}
+                      onChange={(e) => setTopicForm({ ...topicForm, title: e.target.value })}
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Categoria</label>
+                    <select
+                      value={topicForm.category}
+                      onChange={(e) => setTopicForm({ ...topicForm, category: e.target.value as any })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    >
+                      <option value="planos">Planos &amp; Preços</option>
+                      <option value="contrato">Contrato &amp; Garantia</option>
+                      <option value="empresa">Sobre a NumVapt</option>
+                      <option value="promocoes">Promoções</option>
+                      <option value="duvidas">Dúvidas Frequentes</option>
+                      <option value="outros">Outros Assuntos</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Conteúdo Explicativo para a IA</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Descreva detalhadamente a regra ou informação para a IA consultar..."
+                    value={topicForm.content}
+                    onChange={(e) => setTopicForm({ ...topicForm, content: e.target.value })}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 placeholder-slate-400 focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-pink-500 font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={topicForm.isActive}
+                      onChange={(e) => setTopicForm({ ...topicForm, isActive: e.target.checked })}
+                      className="rounded border-slate-300 text-pink-600 focus:ring-pink-500 h-4 w-4"
+                    />
+                    <span className="text-xs font-medium text-slate-700">Tópico Ativo (disponível para a IA)</span>
+                  </label>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingTopic(false);
+                        setEditingTopic(null);
+                      }}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingTopic}
+                      className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 px-4 py-2 text-xs font-semibold text-white shadow-md hover:from-pink-500 hover:to-purple-500 disabled:opacity-50"
+                    >
+                      {savingTopic ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                      Salvar Tópico
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Lista de Tópicos */}
+          <div className="space-y-3">
+            {loadingTopics ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-pink-500" />
+              </div>
+            ) : topics.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+                <BookOpen className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                <p className="text-xs font-medium">Nenhum tópico cadastrado na central de conhecimento.</p>
+              </div>
+            ) : (
+              topics.map((t) => (
+                <div
+                  key={t.id}
+                  className={cn(
+                    "p-5 rounded-2xl border transition bg-white shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4",
+                    t.isActive ? "border-slate-200" : "border-slate-200/60 opacity-60 bg-slate-50/50"
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span className="rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[10px] font-bold text-pink-700 uppercase tracking-wider">
+                        {t.category}
+                      </span>
+                      <h4 className="text-sm font-bold text-slate-900">{t.title}</h4>
+                      {!t.isActive && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                          Inativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
+                      {t.content}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-start">
+                    <button
+                      onClick={() => {
+                        setEditingTopic(t);
+                        setTopicForm({
+                          title: t.title,
+                          category: t.category,
+                          content: t.content,
+                          isActive: t.isActive,
+                        });
+                        setIsCreatingTopic(true);
+                      }}
+                      className="p-2 rounded-lg text-slate-500 hover:text-pink-600 hover:bg-pink-50 transition"
+                      title="Editar Tópico"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTopic(t.id)}
+                      className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
+                      title="Excluir Tópico"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
