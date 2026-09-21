@@ -23,7 +23,7 @@ describe("WhatsAppFloatingButton", () => {
     expect(callout).toBeInTheDocument();
     expect(callout).toHaveAttribute(
       "href",
-      "https://wa.me/5551920044035?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt."
+      "https://wa.me/5551920044035?text=Ol%C3%A1!%20Sou%20visitante%20do%20site%20e%20gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt%20antes%20de%20assinar."
     );
     expect(callout).toHaveAttribute("target", "_blank");
 
@@ -31,7 +31,7 @@ describe("WhatsAppFloatingButton", () => {
     expect(circleButton).toBeInTheDocument();
     expect(circleButton).toHaveAttribute(
       "href",
-      "https://wa.me/5551920044035?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt."
+      "https://wa.me/5551920044035?text=Ol%C3%A1!%20Sou%20visitante%20do%20site%20e%20gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt%20antes%20de%20assinar."
     );
     expect(circleButton).toHaveAttribute("target", "_blank");
 

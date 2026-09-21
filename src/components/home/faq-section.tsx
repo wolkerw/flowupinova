@@ -55,7 +55,7 @@ export const FAQSection = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-base sm:text-lg text-slate-600">
             <span>Ainda tem dúvidas? Fale com nosso especialista:</span>
             <a
-              href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt."
+              href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Estava%20vendo%20as%20d%C3%BAvidas%20frequentes%20no%20site%20e%20gostaria%20de%20conversar%20com%20um%20especialista%20sobre%20a%20NumVapt."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 transition-colors shadow-sm"

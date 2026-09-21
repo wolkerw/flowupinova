@@ -10,7 +10,7 @@ interface WhatsAppFloatingButtonProps {
 
 export const WhatsAppFloatingButton: React.FC<WhatsAppFloatingButtonProps> = ({
   phoneNumber = "5551920044035",
-  defaultMessage = "Olá! Gostaria de tirar dúvidas sobre a NumVapt.",
+  defaultMessage = "Olá! Sou visitante do site e gostaria de tirar dúvidas sobre a NumVapt antes de assinar.",
 }) => {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(defaultMessage)}`;
 

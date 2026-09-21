@@ -789,7 +789,9 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
             <div className="space-y-3 pt-3">
               <a
-                href="https://wa.me/5551920044035?text=Olá!%20Gostaria%20de%20tirar%20dúvidas%20sobre%20os%20planos%20da%20NumVapt."
+                href={`https://wa.me/5551920044035?text=${encodeURIComponent(
+                  `Olá Suporte NumVapt! Sou cadastrado na plataforma${userData?.email ? ` (${userData.email})` : ""} e gostaria de tirar dúvidas sobre a assinatura dos planos.`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center text-[13px] font-semibold text-slate-500 transition-colors hover:text-slate-800"

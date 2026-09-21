@@ -56,7 +56,7 @@ export function HomePageContent() {
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               <a
-                href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt."
+                href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Sou%20visitante%20do%20site%20e%20gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt%20antes%20de%20assinar."
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp NumVapt para tirar dúvidas"
