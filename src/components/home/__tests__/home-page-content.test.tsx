@@ -57,5 +57,16 @@ describe("HomePageContent", () => {
     expect(instagramLink).toHaveAttribute("href", "https://www.instagram.com/numvapt/");
     expect(instagramLink).toHaveAttribute("target", "_blank");
     expect(screen.getByText("Siga @numvapt")).toBeInTheDocument();
+
+    // Garante que o botão de WhatsApp no footer existe e aponta para o número oficial
+    const whatsappFooterLink = screen.getByLabelText("WhatsApp NumVapt para tirar dúvidas");
+    expect(whatsappFooterLink).toBeInTheDocument();
+    expect(whatsappFooterLink.getAttribute("href")).toContain("5551920044035");
+    expect(screen.getByText("Tirar Dúvidas no WhatsApp")).toBeInTheDocument();
+
+    // Garante que o botão flutuante de WhatsApp está presente
+    const whatsappFloatingBtn = screen.getByLabelText("Fale conosco no WhatsApp para tirar dúvidas");
+    expect(whatsappFloatingBtn).toBeInTheDocument();
+    expect(whatsappFloatingBtn.getAttribute("href")).toContain("5551920044035");
   });
 });

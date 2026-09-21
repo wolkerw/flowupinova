@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 const faqs = [
@@ -52,17 +52,18 @@ export const FAQSection = () => {
           <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-[#0B1426] md:text-5xl">
             Dúvidas frequentes
           </h2>
-          <p className="text-lg text-slate-600">
-            Ainda em dúvida? Fale com nosso especialista humano — direto no{" "}
-            <Link
-              href="https://wa.me/5551920044035"
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-base sm:text-lg text-slate-600">
+            <span>Ainda tem dúvidas? Fale com nosso especialista:</span>
+            <a
+              href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt."
               target="_blank"
-              className="underline hover:text-[#0B1426]"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 transition-colors shadow-sm"
             >
-              chat
-            </Link>
-            .
-          </p>
+              <MessageCircle className="h-4 w-4 text-[#25D366]" />
+              Falar no WhatsApp
+            </a>
+          </div>
         </motion.div>
 
         <div className="space-y-4">

@@ -9,14 +9,16 @@ import { FeaturesBanner } from "./features-banner";
 import { FeaturesGrid } from "./features-grid";
 import { PricingSection } from "./pricing-section";
 import { FAQSection } from "./faq-section";
+import { WhatsAppFloatingButton } from "./whatsapp-floating-button";
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram } from "lucide-react";
+import { Instagram, MessageCircle } from "lucide-react";
 
 export function HomePageContent() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-orange-500/30">
       <FloatingNavbar />
+      <WhatsAppFloatingButton />
 
       <main>
         <HeroSection />
@@ -52,7 +54,22 @@ export function HomePageContent() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt."
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp NumVapt para tirar dúvidas"
+                className="group flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-400 shadow-lg shadow-emerald-500/10 transition-all duration-300 hover:scale-105 hover:border-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                  <MessageCircle className="h-4 w-4" />
+                </div>
+                <span className="font-semibold text-slate-200 group-hover:text-white">
+                  Tirar Dúvidas no WhatsApp
+                </span>
+              </a>
+
               <a
                 href="https://www.instagram.com/numvapt/"
                 target="_blank"
