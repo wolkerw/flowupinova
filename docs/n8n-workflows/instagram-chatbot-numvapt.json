@@ -1,0 +1,108 @@
+{
+  "name": "NumVapt - Chatbot Instagram Direct IA (Maia)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instagram-direct",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-instagram",
+      "name": "Webhook Instagram",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai dados principais do evento de mensagem do Instagram\nconst body = $input.item.json.body || $input.item.json;\nconst entry = body.entry?.[0];\nconst messaging = entry?.messaging?.[0];\n\nif (!messaging || !messaging.message || messaging.message.is_echo) {\n  return []; // Ignora ecos da própria página ou eventos vazios\n}\n\nconst senderId = messaging.sender?.id;\nconst text = messaging.message?.text || '';\n\nif (!text.trim()) {\n  return [];\n}\n\nreturn [{\n  json: {\n    senderId,\n    text,\n    timestamp: messaging.timestamp || Date.now()\n  }\n}];"
+      },
+      "id": "code-filter-event",
+      "name": "Filtro & Normalização",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash",
+        "prompt": "=Você é Maia, a inteligência artificial oficial de atendimento da NumVapt no Instagram Direct.\n\nRegras de Atendimento:\n1. Seja sempre simpática, prestativa, consultiva e direta.\n2. Seu objetivo é tirar dúvidas e incentivar o seguidor a criar uma conta gratuita para testar em https://numvapt.com.br/acesso/cadastro.\n3. Informações de Planos e Preços:\n   - Mensal: R$ 490,00/mês\n   - Trimestral: 3x de R$ 441,00/mês (10% de desconto)\n   - Semestral: 6x de R$ 416,50/mês (15% de desconto)\n   - Anual: 12x de R$ 399,00/mês (+ 1 mês grátis, saindo R$ 308,30/mês)\n   - Todos os planos são cobrados na modalidade Assinatura Mensal Recorrente, não ocupando o limite total do cartão de crédito.\n4. Se o usuário pedir para falar com um humano, informe que a equipe foi notificada e que ele também pode falar direto no WhatsApp oficial: (51) 92004-4035.\n\nMensagem do seguidor: {{ $json.text }}"
+      },
+      "id": "ai-maia-gemini",
+      "name": "IA Maia NumVapt",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/me/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"recipient\": { \"id\": \"{{ $('Filtro & Normalização').item.json.senderId }}\" },\n  \"message\": { \"text\": \"{{ $json.output }}\" }\n}",
+        "options": {}
+      },
+      "id": "send-direct-meta",
+      "name": "Enviar Direct Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        940,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Instagram": {
+      "main": [
+        [
+          {
+            "node": "Filtro & Normalização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro & Normalização": {
+      "main": [
+        [
+          {
+            "node": "IA Maia NumVapt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA Maia NumVapt": {
+      "main": [
+        [
+          {
+            "node": "Enviar Direct Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

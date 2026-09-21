@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   MessageSquare,
+  Instagram,
   Image as ImageIcon,
   Settings,
   FileWarning,
@@ -40,6 +41,11 @@ const navItems = [
     title: "Atendimento WhatsApp",
     href: "/admin/whatsapp",
     icon: MessageSquare,
+  },
+  {
+    title: "Atendimento Instagram",
+    href: "/admin/instagram",
+    icon: Instagram,
   },
   {
     title: "Solicitações CNPJ",
