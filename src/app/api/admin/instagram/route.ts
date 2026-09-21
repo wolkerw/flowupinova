@@ -14,30 +14,43 @@ async function sendInstagramDirectMessage(recipientId: string, text: string): Pr
     return false;
   }
 
-  try {
-    const res = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text },
-      }),
-    });
+  const endpoints = INSTAGRAM_PAGE_ACCESS_TOKEN.startsWith("IG")
+    ? [
+        `https://graph.instagram.com/v21.0/me/messages`,
+        `https://graph.facebook.com/v21.0/me/messages`,
+      ]
+    : [
+        `https://graph.facebook.com/v21.0/me/messages`,
+        `https://graph.instagram.com/v21.0/me/messages`,
+      ];
 
-    if (!res.ok) {
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text },
+        }),
+      });
+
+      if (res.ok) {
+        console.log(`[ADMIN_INSTAGRAM_SEND_SUCCESS] Mensagem enviada via ${url}`);
+        return true;
+      }
+
       const errBody = await res.text();
-      console.error("[ADMIN_INSTAGRAM_SEND_ERROR]", res.status, errBody);
-      return false;
+      console.warn(`[ADMIN_INSTAGRAM_SEND_FAIL] Status ${res.status} em ${url}:`, errBody);
+    } catch (error) {
+      console.error(`[ADMIN_INSTAGRAM_FETCH_ERROR] Erro em ${url}:`, error);
     }
-
-    return true;
-  } catch (error) {
-    console.error("[ADMIN_INSTAGRAM_FETCH_ERROR]", error);
-    return false;
   }
+
+  return false;
 }
 
 /**

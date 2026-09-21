@@ -15,30 +15,80 @@ async function sendInstagramDirectMessage(recipientId: string, text: string): Pr
     return false;
   }
 
-  try {
-    const res = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text },
-      }),
-    });
+  // Tokens da Instagram Business API (iniciando com IG) usam graph.instagram.com
+  const endpoints = INSTAGRAM_PAGE_ACCESS_TOKEN.startsWith("IG")
+    ? [
+        `https://graph.instagram.com/v21.0/me/messages`,
+        `https://graph.facebook.com/v21.0/me/messages`,
+      ]
+    : [
+        `https://graph.facebook.com/v21.0/me/messages`,
+        `https://graph.instagram.com/v21.0/me/messages`,
+      ];
 
-    if (!res.ok) {
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text },
+        }),
+      });
+
+      if (res.ok) {
+        console.log(`[INSTAGRAM_SEND_SUCCESS] Mensagem enviada com sucesso via ${url}`);
+        return true;
+      }
+
       const errBody = await res.text();
-      console.error("[INSTAGRAM_GRAPH_API_ERROR]", res.status, errBody);
-      return false;
+      console.warn(`[INSTAGRAM_GRAPH_API_FAIL] Status ${res.status} em ${url}:`, errBody);
+    } catch (error) {
+      console.error(`[INSTAGRAM_SEND_ERROR] Erro na requisição para ${url}:`, error);
     }
-
-    return true;
-  } catch (error) {
-    console.error("[INSTAGRAM_SEND_ERROR]", error);
-    return false;
   }
+
+  return false;
+}
+
+/**
+ * Consulta o perfil do seguidor no Instagram Graph API para obter o nome e username reais
+ */
+async function fetchInstagramUserProfile(senderId: string): Promise<{ name?: string; username?: string }> {
+  if (!INSTAGRAM_PAGE_ACCESS_TOKEN) return {};
+
+  const urls = INSTAGRAM_PAGE_ACCESS_TOKEN.startsWith("IG")
+    ? [
+        `https://graph.instagram.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+        `https://graph.facebook.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+      ]
+    : [
+        `https://graph.facebook.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+        `https://graph.instagram.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+      ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.name || data.username)) {
+          return {
+            name: data.name || data.username,
+            username: data.username || data.name,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("[INSTAGRAM_PROFILE_FETCH_FAIL]", err);
+    }
+  }
+
+  return {};
 }
 
 /**
@@ -93,7 +143,18 @@ export async function POST(request: NextRequest) {
         const chatSnap = await chatDocRef.get();
         const existingData = chatSnap.exists ? (chatSnap.data() as Partial<InstagramChatSession>) : null;
 
-        const contactName = existingData?.contactName || existingData?.username || `Seguidor (${senderId.slice(-4)})`;
+        let contactName = existingData?.contactName;
+        let username = existingData?.username;
+
+        if (!contactName || contactName.startsWith("Seguidor (") || !username) {
+          const profile = await fetchInstagramUserProfile(senderId);
+          if (profile.name) contactName = profile.name;
+          if (profile.username) username = profile.username;
+        }
+
+        if (!contactName) contactName = `Seguidor (${senderId.slice(-4)})`;
+        if (!username) username = senderId;
+
         const aiEnabled = existingData?.aiEnabled !== false;
         const humanTakeover = existingData?.humanTakeover === true;
 

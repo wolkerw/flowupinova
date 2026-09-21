@@ -24,7 +24,7 @@ Este guia orienta a conexão da conta do Instagram (`@numvapt`) ao sistema de at
    - Selecione o objeto **Instagram**.
    - Em **Callback URL**, insira:
      ```text
-     https://numvapt.com.br/api/webhooks/instagram
+     https://numvapt.com/api/webhooks/instagram
      ```
      *(ou a URL do Webhook do seu n8n: `https://webhook.flowupinova.com.br/webhook/instagram-direct`)*
    - Em **Verify Token**, insira:

@@ -862,10 +862,10 @@ export default function AdminInstagramPage() {
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
                 <span className="font-bold text-slate-900 block mb-1">1. URL do Webhook da NumVapt</span>
                 <code className="rounded bg-slate-200 px-2 py-1 text-slate-900 select-all font-mono text-[11px]">
-                  https://numvapt.com.br/api/webhooks/instagram
+                  https://numvapt.com/api/webhooks/instagram
                 </code>
                 <p className="mt-1.5 text-slate-500 text-[11px]">
-                  Cole essa URL no campo <strong>Callback URL</strong> do produto <em>Webhooks &gt; Instagram</em> no seu painel da Meta.
+                  Cole essa URL no campo <strong>Callback URL</strong> do produto <em>Instagram &gt; Webhooks</em> no seu painel da Meta.
                 </p>
               </div>
 
@@ -890,11 +890,34 @@ export default function AdminInstagramPage() {
               </div>
 
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
-                <span className="font-bold text-slate-900 block mb-1">4. Variáveis de Ambiente no Servidor (.env)</span>
-                <pre className="mt-2 rounded-lg bg-slate-900 p-3 font-mono text-[11px] text-emerald-400 overflow-x-auto">
-{`INSTAGRAM_VERIFY_TOKEN="numvapt_instagram_verify_token"
-INSTAGRAM_PAGE_ACCESS_TOKEN="SEU_PAGE_ACCESS_TOKEN_DA_META"`}
-                </pre>
+                <span className="font-bold text-slate-900 block mb-1">
+                  4. Token de Envio de Respostas (Firebase App Hosting)
+                </span>
+                <p className="text-slate-600 text-[11px] mb-3">
+                  Para permitir que a plataforma envie as respostas automáticas da IA aos seguidores no Instagram Direct, adicione a variável de ambiente abaixo no seu painel de hospedagem (Firebase App Hosting):
+                </p>
+
+                <div className="space-y-1.5 rounded-lg bg-slate-900 p-3 font-mono text-[11px]">
+                  <div className="text-slate-400">// Nome da Variável no Firebase App Hosting:</div>
+                  <div className="text-amber-300 font-bold">INSTAGRAM_PAGE_ACCESS_TOKEN</div>
+                  <div className="text-slate-400 pt-1">// Valor a colar:</div>
+                  <div className="text-emerald-400">"SEU_TOKEN_DE_ACESSO_DA_PAGINA_GERADO_NA_META"</div>
+                </div>
+
+                <div className="mt-3 rounded-lg bg-blue-50 border border-blue-100 p-3 text-[11px] text-blue-900">
+                  <span className="font-bold block mb-1">📌 Como preencher na tela da Meta (conforme sua 2ª imagem):</span>
+                  <ol className="list-decimal list-inside space-y-1.5 text-blue-800">
+                    <li>No painel do produto <strong>Instagram</strong>, abra o item <strong>"Configuração da API com login empresarial no Instagram"</strong> (App ID: <code className="font-mono bg-blue-100 px-1 rounded">1290699978892113</code>).</li>
+                    <li>No item <strong className="font-semibold">2. Configure webhooks</strong>:
+                      <ul className="list-disc list-inside pl-4 mt-1 space-y-0.5 text-[10.5px] text-blue-900">
+                        <li><strong>URL de callback:</strong> <code className="bg-blue-100 px-1 rounded font-mono">https://numvapt.com/api/webhooks/instagram</code> <em>(ou a URL do ngrok para testes locais)</em></li>
+                        <li><strong>Verificar token:</strong> <code className="bg-blue-100 px-1 rounded font-mono">numvapt_instagram_verify_token</code></li>
+                      </ul>
+                    </li>
+                    <li>Clique em <strong>Verificar e salvar</strong>.</li>
+                    <li>No item <strong className="font-semibold">1. Gere tokens de acesso</strong>: selecione a conta <strong className="font-semibold">@numvapt</strong>, gere o token e cole na variável <code className="bg-blue-100 px-1 rounded font-mono text-blue-900">INSTAGRAM_PAGE_ACCESS_TOKEN</code> no Firebase App Hosting.</li>
+                  </ol>
+                </div>
               </div>
             </div>
           </div>
