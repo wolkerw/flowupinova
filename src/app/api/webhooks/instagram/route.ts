@@ -55,6 +55,42 @@ async function sendInstagramDirectMessage(recipientId: string, text: string): Pr
 }
 
 /**
+ * Consulta o perfil do seguidor no Instagram Graph API para obter o nome e username reais
+ */
+async function fetchInstagramUserProfile(senderId: string): Promise<{ name?: string; username?: string }> {
+  if (!INSTAGRAM_PAGE_ACCESS_TOKEN) return {};
+
+  const urls = INSTAGRAM_PAGE_ACCESS_TOKEN.startsWith("IG")
+    ? [
+        `https://graph.instagram.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+        `https://graph.facebook.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+      ]
+    : [
+        `https://graph.facebook.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+        `https://graph.instagram.com/v21.0/${senderId}?fields=name,username&access_token=${INSTAGRAM_PAGE_ACCESS_TOKEN}`,
+      ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.name || data.username)) {
+          return {
+            name: data.name || data.username,
+            username: data.username || data.name,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("[INSTAGRAM_PROFILE_FETCH_FAIL]", err);
+    }
+  }
+
+  return {};
+}
+
+/**
  * Resposta inteligente pré-configurada da IA Maia NumVapt para o Instagram Direct
  */
 function generateMaiaResponse(userText: string, contactName: string): string {
@@ -70,7 +106,7 @@ function generateMaiaResponse(userText: string, contactName: string): string {
       `🔹 Semestral: 6x de R$ 416,50/mês (15% OFF)\n` +
       `🔹 Anual: 12x de R$ 399,00/mês (+ 1 mês grátis, saindo por R$ 308,30/mês)!\n\n` +
       `Todos incluem criação de posts com IA, geração ilimitada de imagens e agendamento automático.\n\n` +
-      `Você pode criar sua conta para experimentar agora mesmo: https://numvapt.com.br/acesso/cadastro\n\n` +
+      `Você pode criar sua conta para experimentar agora mesmo: https://numvapt.com/acesso/cadastro\n\n` +
       `Se preferir falar com um especialista no WhatsApp, me avise ou clique no link da nossa bio!`
     );
   }
@@ -88,7 +124,7 @@ function generateMaiaResponse(userText: string, contactName: string): string {
     return (
       `A NumVapt é uma plataforma de Inteligência Artificial feita sob medida para autônomos e empresas! 🚀\n\n` +
       `Você conta um pouco sobre o seu negócio e nossa IA aprende o tom da sua marca, gera imagens exclusivas e textos persuasivos, e publica com um clique no seu Instagram, Facebook e Google Meu Negócio.\n\n` +
-      `Crie sua conta em segundos: https://numvapt.com.br/acesso/cadastro`
+      `Crie sua conta em segundos: https://numvapt.com/acesso/cadastro`
     );
   }
 
@@ -151,7 +187,18 @@ export async function POST(request: NextRequest) {
         const chatSnap = await chatDocRef.get();
         const existingData = chatSnap.exists ? (chatSnap.data() as Partial<InstagramChatSession>) : null;
 
-        const contactName = existingData?.contactName || existingData?.username || `Seguidor (${senderId.slice(-4)})`;
+        let contactName = existingData?.contactName;
+        let username = existingData?.username;
+
+        if (!contactName || contactName.startsWith("Seguidor (") || !username) {
+          const profile = await fetchInstagramUserProfile(senderId);
+          if (profile.name) contactName = profile.name;
+          if (profile.username) username = profile.username;
+        }
+
+        if (!contactName) contactName = `Seguidor (${senderId.slice(-4)})`;
+        if (!username) username = senderId;
+
         const aiEnabled = existingData?.aiEnabled !== false;
         const humanTakeover = existingData?.humanTakeover === true;
 
