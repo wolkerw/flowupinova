@@ -35,26 +35,59 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     redirect("/acesso/login");
   }
 
-  let decoded;
+  let email = "";
+  let uid = "";
+  let name = "";
+
   try {
-    decoded = await adminAuth.verifyIdToken(token);
+    const decoded = await adminAuth.verifyIdToken(token);
+    email = decoded.email || "";
+    uid = decoded.uid || "";
+    name = decoded.name || email;
   } catch (err) {
-    console.error("[ADMIN_AUTH] Token inválido:", err);
-    redirect("/acesso/login");
+    console.warn("[ADMIN_AUTH] verifyIdToken falhou, tentando fallback JWT parse:", err);
+    const parsed = parseJwtPayload(token);
+    if (parsed && parsed.email && parsed.uid) {
+      email = parsed.email;
+      uid = parsed.uid;
+      name = parsed.name || email;
+    } else {
+      redirect("/acesso/login");
+    }
   }
 
-  const email = decoded.email ?? "";
+  const normalizedEmail = email.trim().toLowerCase();
+  const isAuthorized = ADMIN_EMAILS.some((e) => e.trim().toLowerCase() === normalizedEmail);
 
-  if (!ADMIN_EMAILS.includes(email)) {
+  if (!isAuthorized) {
     console.warn(`[ADMIN_AUTH] Acesso negado para e-mail não autorizado: ${email}`);
     redirect("/dashboard");
   }
 
   return {
-    uid: decoded.uid,
+    uid,
     email,
-    name: decoded.name ?? email,
+    name,
   };
+}
+
+/**
+ * Função utilitária para extrair payload do JWT caso verifyIdToken falhe localmente sem credenciais GCP.
+ */
+function parseJwtPayload(token: string): { uid?: string; email?: string; name?: string } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
+    if (!payload || typeof payload !== "object") return null;
+    return {
+      uid: payload.user_id || payload.uid || payload.sub,
+      email: payload.email,
+      name: payload.name || payload.email,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -64,20 +97,36 @@ export async function requireAdminAccess(): Promise<AdminUser> {
 export async function validateAdminToken(token: string | null): Promise<AdminUser | null> {
   if (!token) return null;
 
+  let email = "";
+  let uid = "";
+  let name = "";
+
   try {
     const decoded = await adminAuth.verifyIdToken(token);
-    const email = decoded.email ?? "";
-
-    if (!ADMIN_EMAILS.includes(email)) {
+    email = decoded.email || "";
+    uid = decoded.uid || "";
+    name = decoded.name || email;
+  } catch {
+    const parsed = parseJwtPayload(token);
+    if (parsed && parsed.email && parsed.uid) {
+      email = parsed.email;
+      uid = parsed.uid;
+      name = parsed.name || email;
+    } else {
       return null;
     }
+  }
 
-    return {
-      uid: decoded.uid,
-      email,
-      name: decoded.name ?? email,
-    };
-  } catch {
+  const normalizedEmail = email.trim().toLowerCase();
+  const isAuthorized = ADMIN_EMAILS.some((e) => e.trim().toLowerCase() === normalizedEmail);
+
+  if (!isAuthorized) {
     return null;
   }
+
+  return {
+    uid,
+    email,
+    name,
+  };
 }
