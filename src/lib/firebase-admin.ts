@@ -38,6 +38,11 @@ if (!getApps().length) {
 
 const adminAuth = admin.auth();
 const adminDb = admin.firestore();
+try {
+  adminDb.settings({ ignoreUndefinedProperties: true });
+} catch {
+  // Ignora se já estiver inicializado
+}
 
 export { admin, adminAuth, adminDb };
 

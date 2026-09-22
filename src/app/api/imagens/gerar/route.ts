@@ -108,28 +108,29 @@ export async function POST(request: NextRequest) {
     const genDocRef = adminDb.doc(`users/${userId}/aiImageGenerations/${generationId}`);
 
     if (!existingGenerationId) {
-      const initialGenData: AIImageGenerationDoc = {
+      const initialGenData: Record<string, any> = {
         id: generationId,
         userId,
         status: "generating",
         brief: brief || "",
-        visualDirection: visualDirection || undefined,
         objective,
         format,
         width,
         height,
         quantity,
         style,
-        useBrandKit,
-        brandSnapshot,
+        useBrandKit: Boolean(useBrandKit),
         referenceAssetUrls,
         sourceAssetUrls,
-        textOverlayMode,
-        productHeadline: productHeadline || undefined,
+        textOverlayMode: textOverlayMode || "NONE",
         safetyStatus: "approved",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      if (visualDirection) initialGenData.visualDirection = visualDirection;
+      if (productHeadline) initialGenData.productHeadline = productHeadline;
+      if (brandSnapshot) initialGenData.brandSnapshot = brandSnapshot;
+
       await genDocRef.set(initialGenData);
     }
 
@@ -215,22 +216,24 @@ export async function POST(request: NextRequest) {
       let modelUsed = "";
       let lastError = "";
 
-      // Pipeline multimodelo: 1. OpenAI gpt-image-2 -> 2. Gemini 3 Pro -> 3. Fallback DALL-E-3
+      // Pipeline multimodelo: 1. OpenAI DALL-E-3 -> 2. Gemini 2.0 Flash -> 3. Fallback DALL-E-2
       const modelsToTry = [
-        { provider: "openai", model: "gpt-image-2" },
-        { provider: "google", model: "gemini-3-pro-image" },
         { provider: "openai", model: "dall-e-3" },
+        { provider: "google", model: "gemini-2.0-flash-exp" },
+        { provider: "openai", model: "dall-e-2" },
       ];
 
       for (const cfg of modelsToTry) {
         try {
           if (cfg.provider === "openai" && openaiKey) {
             const nativeSize =
-              format === "portrait"
-                ? "1024x1792"
-                : format === "square"
-                  ? "1024x1024"
-                  : "1792x1024";
+              cfg.model === "dall-e-3"
+                ? format === "portrait"
+                  ? "1024x1792"
+                  : format === "square"
+                    ? "1024x1024"
+                    : "1792x1024"
+                : "1024x1024";
 
             const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
               method: "POST",
@@ -388,8 +391,8 @@ export async function POST(request: NextRequest) {
         galleryAssetId: galleryMediaId,
         promptMetadata: {
           fullPrompt: compiledPrompt,
-          modelUsed,
-          visualDirection,
+          modelUsed: modelUsed || "dall-e-3",
+          ...(visualDirection ? { visualDirection } : {}),
         },
         altText: titleSummary,
         createdAt: new Date().toISOString(),
@@ -402,7 +405,8 @@ export async function POST(request: NextRequest) {
         userId,
         type: "image_generation",
         provider: modelUsed.includes("gemini") ? "google_gemini" : "openai",
-        metadata: { generationId, assetId: slotId, format, modelUsed },
+        model: modelUsed || "dall-e-3",
+        costUsd: 0.04,
       });
 
       return readyAsset;

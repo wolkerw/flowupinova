@@ -161,8 +161,21 @@ REGRAS RÍGIDAS DE DIREÇÃO VISUAL:
             const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (rawText) {
               const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-              const parsed = JSON.parse(cleaned);
-              if (parsed.visualDirection) {
+              let parsed: any = null;
+              try {
+                parsed = JSON.parse(cleaned);
+              } catch {
+                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  try {
+                    parsed = JSON.parse(jsonMatch[0]);
+                  } catch (subErr) {
+                    console.warn("[DIRECAO_VISUAL] Sub-parse falhou:", subErr);
+                  }
+                }
+              }
+
+              if (parsed?.visualDirection) {
                 return NextResponse.json({
                   success: true,
                   visualDirection: parsed.visualDirection,
