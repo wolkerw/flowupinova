@@ -50,15 +50,6 @@ import {
   type AIImageAssetDoc,
   FORMAT_DIMENSIONS,
 } from "@/lib/types/ai-image-general";
-import dynamic from "next/dynamic";
-
-const ImageInpaintModal = dynamic(
-  () =>
-    import("@/app/dashboard/posts/gerar/_components/ImageInpaintModal").then(
-      (m) => m.ImageInpaintModal
-    ),
-  { ssr: false }
-);
 
 // Opções de Objetivo com linguagem acessível para baixa maturidade digital
 const OBJECTIVE_OPTIONS: {
@@ -271,10 +262,6 @@ export function ImageGenerationWizard() {
   const [assets, setAssets] = useState<AIImageAssetDoc[]>([]);
   const [retryingAssetId, setRetryingAssetId] = useState<string | null>(null);
   const [removingBgAssetId, setRemovingBgAssetId] = useState<string | null>(null);
-
-  // Estados da Edição e Marca
-  const [selectedAssetForEdit, setSelectedAssetForEdit] = useState<AIImageAssetDoc | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
 
   // Placeholder rotativo com proteção para ambiente de testes
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -570,30 +557,6 @@ export function ImageGenerationWizard() {
     }
   };
 
-  // Abrir editor para marca e edição (Etapa 3)
-  const handleOpenEditor = (asset: AIImageAssetDoc) => {
-    setSelectedAssetForEdit(asset);
-    setIsEditorOpen(true);
-  };
-
-  // Sucesso da edição com camadas
-  const handleEditorSuccess = (newImageUrl: string) => {
-    if (selectedAssetForEdit) {
-      setAssets((prev) =>
-        prev.map((a) =>
-          a.id === selectedAssetForEdit.id
-            ? { ...a, originalUrl: newImageUrl, previewUrl: newImageUrl, derivedFromAssetId: selectedAssetForEdit.id }
-            : a
-        )
-      );
-    }
-    setIsEditorOpen(false);
-    toast({
-      title: "Edição salva com sucesso!",
-      description: "Sua versão personalizada foi salva e adicionada à Galeria.",
-    });
-  };
-
   // Ação: Usar em Post
   const handleUseInPost = (asset: AIImageAssetDoc) => {
     if (!asset.originalUrl) return;
@@ -639,12 +602,11 @@ export function ImageGenerationWizard() {
     }
   };
 
-  // Lista de etapas do Stepper (Padrão NumVapt)
+  // Lista de etapas do Stepper (Padrão NumVapt - 3 Etapas Diretas)
   const wizardSteps = [
     { number: 1, label: "Ideia" },
     { number: 2, label: "Imagens" },
-    { number: 3, label: "Marca & Edição" },
-    { number: 4, label: "Concluir" },
+    { number: 3, label: "Concluir" },
   ];
 
   return (
@@ -658,11 +620,9 @@ export function ImageGenerationWizard() {
           {currentStep === 1 &&
             "Etapa 1: Conte o que você quer criar e personalize as opções para o seu negócio."}
           {currentStep === 2 &&
-            "Etapa 2: Veja o resultado gerado pela IA e faça os ajustes que desejar."}
+            "Etapa 2: Veja o resultado gerado pela IA e use como desejar."}
           {currentStep === 3 &&
-            "Etapa 3: Adicione sua logomarca ou edite detalhes da imagem com o editor."}
-          {currentStep === 4 &&
-            "Etapa 4: Suas imagens foram salvas na galeria e estão prontas para usar!"}
+            "Etapa 3: Suas imagens foram salvas na galeria e estão prontas para usar!"}
         </p>
       </div>
 
@@ -1245,7 +1205,7 @@ export function ImageGenerationWizard() {
               {assets.some((a) => a.status === "ready") && (
                 <Button
                   size="sm"
-                  onClick={() => setCurrentStep(4)}
+                  onClick={() => setCurrentStep(3)}
                   className="bg-accent hover:bg-orange-600 text-white font-bold rounded-2xl text-xs h-10 px-5 shadow-sm"
                 >
                   Avançar para Concluir
@@ -1313,50 +1273,42 @@ export function ImageGenerationWizard() {
                       <span className="font-medium text-gray-500">{FORMAT_DIMENSIONS[format].label}</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenEditor(asset)}
-                        className="rounded-xl text-xs font-bold border-slate-200 hover:bg-blue-50 hover:text-primary h-9"
-                      >
-                        <Edit3 className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                        Adicionar Textos
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={removingBgAssetId === asset.id}
-                        onClick={() => handleRemoveBackground(asset)}
-                        className="rounded-xl text-xs font-bold border-slate-200 hover:bg-orange-50 hover:text-accent h-9"
-                      >
-                        {removingBgAssetId === asset.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Scissors className="h-3.5 w-3.5 mr-1.5 text-accent" />
-                        )}
-                        Tirar Fundo
-                      </Button>
-
+                    <div className="flex flex-col gap-2">
                       <Button
                         size="sm"
                         onClick={() => handleUseInPost(asset)}
-                        className="rounded-xl text-xs font-bold bg-primary hover:bg-blue-600 text-white h-9"
+                        className="w-full rounded-xl text-xs font-bold bg-primary hover:bg-blue-600 text-white h-10 shadow-xs flex items-center justify-center gap-1.5"
                       >
-                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        <Send className="h-4 w-4" />
                         Usar em Post
                       </Button>
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDownload(asset.originalUrl, `numvapt_opcao_${idx + 1}.png`)}
-                        className="rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 h-9"
-                      >
-                        <Download className="h-3.5 w-3.5 mr-1.5" />
-                        Baixar
-                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownload(asset.originalUrl, `numvapt_opcao_${idx + 1}.png`)}
+                          className="rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 h-9 flex items-center justify-center gap-1.5"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Baixar
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={removingBgAssetId === asset.id}
+                          onClick={() => handleRemoveBackground(asset)}
+                          className="rounded-xl text-xs font-bold border-slate-200 hover:bg-orange-50 hover:text-accent h-9 flex items-center justify-center gap-1.5"
+                        >
+                          {removingBgAssetId === asset.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Scissors className="h-3.5 w-3.5 text-accent" />
+                          )}
+                          Tirar Fundo
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="pt-1 flex justify-center">
@@ -1379,27 +1331,9 @@ export function ImageGenerationWizard() {
       )}
 
       {/* ========================================================================= */}
-      {/* ETAPA 4 — MODAL INTEGRADO DE MARCA & EDIÇÃO                              */}
+      {/* ETAPA 3 — CONCLUSÃO, SALVAMENTO & GALERIA                                */}
       {/* ========================================================================= */}
-      {isEditorOpen && selectedAssetForEdit && (
-        <ImageInpaintModal
-          isOpen={isEditorOpen}
-          onClose={() => setIsEditorOpen(false)}
-          imageUrl={selectedAssetForEdit.originalUrl || ""}
-          prompt={brief}
-          postId={generationId || "general_image"}
-          userId={user?.uid || ""}
-          fileName={selectedAssetForEdit.id}
-          onSuccess={(newUrl) => handleEditorSuccess(newUrl)}
-          brandKitPrimaryColor={businessProfile?.primaryColor || businessProfile?.brandKit?.primaryColor}
-          brandKitSecondaryColor={businessProfile?.secondaryColor || businessProfile?.brandKit?.secondaryColor}
-        />
-      )}
-
-      {/* ========================================================================= */}
-      {/* ETAPA 4 — CONCLUSÃO, SALVAMENTO & GALERIA                                */}
-      {/* ========================================================================= */}
-      {currentStep === 4 && (
+      {currentStep === 3 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1458,25 +1392,14 @@ export function ImageGenerationWizard() {
                           Criar Post com Esta Imagem
                         </Button>
 
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => handleDownload(readyAsset.originalUrl, `numvapt_final_${idx + 1}.png`)}
-                            className="flex-1 rounded-xl text-xs font-bold h-9 border-slate-200 hover:bg-slate-100"
-                          >
-                            <Download className="h-3.5 w-3.5 mr-1" />
-                            Baixar Foto
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            onClick={() => handleOpenEditor(readyAsset)}
-                            className="flex-1 rounded-xl text-xs font-bold h-9 border-slate-200 hover:bg-slate-100"
-                          >
-                            <Edit3 className="h-3.5 w-3.5 mr-1" />
-                            Editar
-                          </Button>
-                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDownload(readyAsset.originalUrl, `numvapt_final_${idx + 1}.png`)}
+                          className="w-full rounded-xl text-xs font-bold h-9 border-slate-200 hover:bg-slate-100"
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                          Baixar Foto
+                        </Button>
                       </div>
                     </div>
                   ))}

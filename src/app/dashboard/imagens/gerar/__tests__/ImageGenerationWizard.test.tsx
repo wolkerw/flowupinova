@@ -178,5 +178,50 @@ describe("ImageGenerationWizard", () => {
       );
     });
   });
+
+  it("avança para a Etapa 3 de Conclusão ao clicar em Avançar para Concluir", async () => {
+    const mockAsset = {
+      id: "asset_test_ready",
+      generationId: "gen-789",
+      userId: "test-user-123",
+      order: 0,
+      status: "ready",
+      originalUrl: "https://example.com/ready.png",
+      altText: "Foto Pronta",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        generationId: "gen-789",
+        assets: [mockAsset],
+      }),
+    });
+
+    render(<ImageGenerationWizard />);
+
+    const textarea = screen.getByPlaceholderText(
+      /Crie uma foto publicitária de um bolo de chocolate/i
+    );
+    fireEvent.change(textarea, { target: { value: "Bolo vulcão de brigadeiro" } });
+
+    const generateBtn = screen.getByRole("button", { name: /Gerar Imagem com IA/i });
+    fireEvent.click(generateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Etapa 2: Sua Imagem Gerada/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Avançar para Concluir/i })).toBeInTheDocument();
+    });
+
+    const advanceBtn = screen.getByRole("button", { name: /Avançar para Concluir/i });
+    fireEvent.click(advanceBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Tudo Pronto! Sua imagem já está salva na Galeria/i)).toBeInTheDocument();
+    });
+  });
 });
 
