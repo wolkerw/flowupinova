@@ -563,7 +563,7 @@ export const Step1Idea = () => {
   const [isTutorialOpen, setIsTutorialOpen] = React.useState(false);
   const tutorialVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Mapeamento de vídeos tutoriais por fluxo (Vídeo oficial nos fluxos Conceito e Produto)
+  // Mapeamento de vídeos tutoriais por fluxo (Vídeos oficiais nos fluxos Conceito, Produto e Pessoa + Cenário)
   const tutorialVideoUrl = React.useMemo(() => {
     if (mode === "concept") {
       return "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2FComo%20Usar%20-%20Fluxo%20Conceito%20V1%20(final).mp4?alt=media&token=af60de5d-4b8c-4cf9-be93-912da50ce18d";
@@ -571,7 +571,9 @@ export const Step1Idea = () => {
     if (mode === "reference-photo") {
       return "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2FComo%20Usar%20-%20Fluxo%20Produto%20V1%20(final).mp4?alt=media&token=31bfd5b2-2424-43b8-9e67-023cd6bcd335";
     }
-    // Para 'reference-hybrid' (Pessoa + Cenário), aguardando novos links
+    if (mode === "reference-hybrid") {
+      return "https://firebasestorage.googleapis.com/v0/b/studio-7502195980-3983c.firebasestorage.app/o/videos%2FComo%20Usar%20-%20Fluxo%20Pessoa%2BCen%C3%A1rio%20V1%20(final).mp4?alt=media&token=bbfc2dad-6fdf-4711-9065-f095f887edf1";
+    }
     return "";
   }, [mode]);
 

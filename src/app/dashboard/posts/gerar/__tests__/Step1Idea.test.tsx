@@ -128,4 +128,28 @@ describe("Step1Idea Component", () => {
     // Restaura o modo padrão para não interferir em outros testes
     mockSearchParamsMode = "concept";
   });
+
+  it("abre o modal do vídeo tutorial no fluxo Pessoas + Cenário com a URL oficial correta", () => {
+    mockSearchParamsMode = "reference-hybrid";
+
+    render(
+      <WizardProvider>
+        <Step1Idea />
+      </WizardProvider>
+    );
+
+    const tutorialBtn = screen.getByRole("button", { name: /Assistir Vídeo Tutorial/i });
+    expect(tutorialBtn).toBeInTheDocument();
+
+    fireEvent.click(tutorialBtn);
+
+    expect(screen.getByText(/Tutorial: Como Criar Posts \(Pessoa \+ Cenário\)/i)).toBeInTheDocument();
+
+    const videoSource = document.querySelector("video source");
+    expect(videoSource).toBeInTheDocument();
+    expect(videoSource?.getAttribute("src")).toContain("Como%20Usar%20-%20Fluxo%20Pessoa%2BCen%C3%A1rio%20V1%20(final).mp4");
+
+    // Restaura o modo padrão
+    mockSearchParamsMode = "concept";
+  });
 });
