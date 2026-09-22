@@ -56,35 +56,36 @@ describe("ImageGenerationWizard", () => {
     global.fetch = vi.fn();
   });
 
-  it("renderiza a Etapa 1 com campos de briefing e opções de estilo", () => {
+  it("renderiza a Etapa 1 com campos de briefing e botão de gerar imagem direto", () => {
     render(<ImageGenerationWizard />);
 
     expect(screen.getByText(/Geração de Imagens com IA/i)).toBeInTheDocument();
     expect(screen.getByText(/O que você quer criar\?/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Continuar com este briefing/i })
+      screen.getByRole("button", { name: /Gerar Imagem com IA/i })
     ).toBeInTheDocument();
     expect(screen.getByText(/Usar identidade do negócio/i)).toBeInTheDocument();
   });
 
-  it("avança para a Etapa 2 ao preencher briefing e chamar direção visual", async () => {
-    const mockVisualDirection = {
-      interpretation: "Uma foto cinematográfica de um café",
-      subject: "Xícara de café com grãos",
-      composition: "Centralizado",
-      lighting: "Luz natural dourada",
-      style: "Fotográfico",
-      brandApplication: "Tons da marca sutis",
-      textLayers: [],
-      avoid: ["desfoque excessivo"],
+  it("avança diretamente para a Etapa 2 ao preencher briefing e chamar gerar", async () => {
+    const mockAsset = {
+      id: "asset_test_1",
+      generationId: "gen-123",
+      userId: "test-user-123",
+      order: 0,
+      status: "ready",
+      originalUrl: "https://example.com/test-image.png",
+      altText: "Café gourmet",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         success: true,
-        visualDirection: mockVisualDirection,
-        alternativeDirections: [],
+        generationId: "gen-123",
+        assets: [mockAsset],
       }),
     });
 
@@ -97,34 +98,30 @@ describe("ImageGenerationWizard", () => {
       target: { value: "Uma xícara de café gourmet na mesa de madeira" },
     });
 
-    const continueBtn = screen.getByRole("button", {
-      name: /Continuar com este briefing/i,
+    const generateBtn = screen.getByRole("button", {
+      name: /Gerar Imagem com IA/i,
     });
-    fireEvent.click(continueBtn);
+    fireEvent.click(generateBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Etapa 2: Direção Visual Interpretada/i)).toBeInTheDocument();
-      expect(screen.getByText(/Uma foto cinematográfica de um café/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Gerar Agora com IA/i })).toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/imagens/gerar",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"brief":"Uma xícara de café gourmet na mesa de madeira"'),
+        })
+      );
+      expect(screen.getByText(/Etapa 2: Sua Imagem Gerada/i)).toBeInTheDocument();
     });
   });
 
-  it("permite selecionar modo de infográfico e preencher headline comercial", async () => {
+  it("permite selecionar modo de infográfico, preencher headline e enviar direto para a geração", async () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         success: true,
-        visualDirection: {
-          interpretation: "Cartaz infográfico",
-          subject: "Café especial",
-          composition: "Infográfico com badges",
-          lighting: "Estúdio comercial",
-          style: "Design gráfico",
-          brandApplication: "",
-          textLayers: [],
-          avoid: [],
-        },
-        alternativeDirections: [],
+        generationId: "gen-456",
+        assets: [],
       }),
     });
 
@@ -151,7 +148,7 @@ describe("ImageGenerationWizard", () => {
     // Digita um slogan
     fireEvent.change(headlineInput, { target: { value: "O MELHOR GRÃO DO BRASIL" } });
 
-    // Preenche briefing e avança
+    // Preenche briefing e avança direto para a geração
     const textarea = screen.getByPlaceholderText(
       /Crie uma foto publicitária de um bolo de chocolate/i
     );
@@ -159,22 +156,23 @@ describe("ImageGenerationWizard", () => {
       target: { value: "Post de promoção de café artesanal" },
     });
 
-    const continueBtn = screen.getByRole("button", {
-      name: /Continuar com este briefing/i,
+    const generateBtn = screen.getByRole("button", {
+      name: /Gerar Imagem com IA/i,
     });
-    fireEvent.click(continueBtn);
+    fireEvent.click(generateBtn);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/imagens/direcao-visual",
+        "/api/imagens/gerar",
         expect.objectContaining({
           method: "POST",
           body: expect.stringContaining('"textOverlayMode":"INFOGRAPHIC"'),
         })
       );
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/imagens/direcao-visual",
+        "/api/imagens/gerar",
         expect.objectContaining({
+          method: "POST",
           body: expect.stringContaining('"productHeadline":"O MELHOR GRÃO DO BRASIL"'),
         })
       );

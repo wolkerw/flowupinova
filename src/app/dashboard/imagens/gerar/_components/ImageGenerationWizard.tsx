@@ -47,7 +47,6 @@ import {
   type AIImageFormat,
   type AIImageStyle,
   type AIImageTextOverlayMode,
-  type VisualDirectionResponse,
   type AIImageAssetDoc,
   FORMAT_DIMENSIONS,
 } from "@/lib/types/ai-image-general";
@@ -266,20 +265,14 @@ export function ImageGenerationWizard() {
   // BrandKit carregado do negócio
   const [businessProfile, setBusinessProfile] = useState<any>(null);
 
-  // Estados da Direção Visual (Etapa 2)
-  const [isLoadingDirection, setIsLoadingDirection] = useState<boolean>(false);
-  const [visualDirection, setVisualDirection] = useState<VisualDirectionResponse | null>(null);
-  const [alternativeDirections, setAlternativeDirections] = useState<VisualDirectionResponse[]>([]);
-  const [selectedDirectionIndex, setSelectedDirectionIndex] = useState<number>(0);
-
-  // Estados da Geração (Etapa 3)
+  // Estados da Geração (Etapa 2)
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [assets, setAssets] = useState<AIImageAssetDoc[]>([]);
   const [retryingAssetId, setRetryingAssetId] = useState<string | null>(null);
   const [removingBgAssetId, setRemovingBgAssetId] = useState<string | null>(null);
 
-  // Estados da Edição e Marca (Etapa 4)
+  // Estados da Edição e Marca
   const [selectedAssetForEdit, setSelectedAssetForEdit] = useState<AIImageAssetDoc | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
 
@@ -317,7 +310,6 @@ export function ImageGenerationWizard() {
           if (parsed.textOverlayMode) setTextOverlayMode(parsed.textOverlayMode);
           if (parsed.productHeadline) setProductHeadline(parsed.productHeadline);
           if (parsed.useBrandKit !== undefined) setUseBrandKit(parsed.useBrandKit);
-          if (parsed.visualDirection) setVisualDirection(parsed.visualDirection);
         }
       } catch (e) {
         console.warn("Erro ao recuperar rascunho:", e);
@@ -367,7 +359,6 @@ export function ImageGenerationWizard() {
           textOverlayMode,
           productHeadline,
           useBrandKit,
-          visualDirection,
           updatedAt: new Date().toISOString(),
         };
         window.sessionStorage?.setItem("numvapt_image_generation_draft", JSON.stringify(draft));
@@ -375,7 +366,7 @@ export function ImageGenerationWizard() {
         // ignore
       }
     }
-  }, [brief, objective, format, style, textOverlayMode, productHeadline, useBrandKit, visualDirection]);
+  }, [brief, objective, format, style, textOverlayMode, productHeadline, useBrandKit]);
 
   // Upload de arquivos locais para o Storage
   const handleUploadImageFile = async (file: File): Promise<string> => {
@@ -389,8 +380,8 @@ export function ImageGenerationWizard() {
   // Ações do Fluxo
   // -------------------------------------------------------------
 
-  // Avançar da Etapa 1 para a Etapa 2 (Interpretação da Direção Visual)
-  const handleContinueWithBriefing = async () => {
+  // Avançar diretamente da Ideia (Etapa 1) para a Geração de Imagens (Etapa 2)
+  const handleStartGenerationDirect = async () => {
     if (!brief.trim()) {
       toast({
         variant: "destructive",
@@ -400,7 +391,20 @@ export function ImageGenerationWizard() {
       return;
     }
 
-    setIsLoadingDirection(true);
+    setIsGenerating(true);
+    setCurrentStep(2);
+
+    const initialSlots: AIImageAssetDoc[] = Array.from({ length: quantity }).map((_, idx) => ({
+      id: `temp_slot_${idx}`,
+      generationId: "pending",
+      userId: user?.uid || "",
+      order: idx,
+      status: "processing",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    setAssets(initialSlots);
+
     try {
       const uploadedRefUrls: string[] = [];
       for (const item of referenceImages) {
@@ -417,67 +421,6 @@ export function ImageGenerationWizard() {
         uploadedSourceUrl = await handleUploadImageFile(sourceImage.file);
       }
 
-      const res = await fetch("/api/imagens/direcao-visual", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brief,
-          objective,
-          format,
-          style,
-          useBrandKit,
-          textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
-          textOverlayMode,
-          productHeadline,
-          negativeInstructions,
-          referenceAssetUrls: uploadedRefUrls,
-          sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.visualDirection) {
-        throw new Error(data.error || "Não foi possível planejar a direção visual.");
-      }
-
-      setVisualDirection(data.visualDirection);
-      setAlternativeDirections(data.alternativeDirections || []);
-      setCurrentStep(2);
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Não foi possível avançar",
-        description: err.message || "Tente novamente ou ajuste a descrição da sua imagem.",
-      });
-    } finally {
-      setIsLoadingDirection(false);
-    }
-  };
-
-  // Avançar da Etapa 2 para a Etapa 3 (Geração de Imagens)
-  const handleStartGeneration = async () => {
-    if (!brief.trim()) return;
-
-    setIsGenerating(true);
-    setCurrentStep(3);
-
-    const activeVisualDirection =
-      selectedDirectionIndex > 0 && alternativeDirections[selectedDirectionIndex - 1]
-        ? alternativeDirections[selectedDirectionIndex - 1]
-        : visualDirection;
-
-    const initialSlots: AIImageAssetDoc[] = Array.from({ length: quantity }).map((_, idx) => ({
-      id: `temp_slot_${idx}`,
-      generationId: "pending",
-      userId: user?.uid || "",
-      order: idx,
-      status: "processing",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-    setAssets(initialSlots);
-
-    try {
       const dimensions = FORMAT_DIMENSIONS[format];
       const res = await fetch("/api/imagens/gerar", {
         method: "POST",
@@ -496,9 +439,8 @@ export function ImageGenerationWizard() {
           textOverlayMode,
           productHeadline,
           negativeInstructions,
-          visualDirection: activeVisualDirection,
-          referenceAssetUrls: referenceImages.map((r) => r.url).filter(Boolean),
-          sourceAssetUrls: sourceImage?.url ? [sourceImage.url] : [],
+          referenceAssetUrls: uploadedRefUrls,
+          sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
         }),
       });
 
@@ -555,7 +497,6 @@ export function ImageGenerationWizard() {
           textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
           textOverlayMode,
           productHeadline,
-          visualDirection,
           retryAssetId: assetId,
           existingGenerationId: generationId,
         }),
@@ -629,7 +570,7 @@ export function ImageGenerationWizard() {
     }
   };
 
-  // Abrir editor para marca e edição (Etapa 4)
+  // Abrir editor para marca e edição (Etapa 3)
   const handleOpenEditor = (asset: AIImageAssetDoc) => {
     setSelectedAssetForEdit(asset);
     setIsEditorOpen(true);
@@ -701,10 +642,9 @@ export function ImageGenerationWizard() {
   // Lista de etapas do Stepper (Padrão NumVapt)
   const wizardSteps = [
     { number: 1, label: "Ideia" },
-    { number: 2, label: "Direção Visual" },
-    { number: 3, label: "Imagens" },
-    { number: 4, label: "Marca & Edição" },
-    { number: 5, label: "Concluir" },
+    { number: 2, label: "Imagens" },
+    { number: 3, label: "Marca & Edição" },
+    { number: 4, label: "Concluir" },
   ];
 
   return (
@@ -718,13 +658,11 @@ export function ImageGenerationWizard() {
           {currentStep === 1 &&
             "Etapa 1: Conte o que você quer criar e personalize as opções para o seu negócio."}
           {currentStep === 2 &&
-            "Etapa 2: Confira como a inteligência artificial planejou a sua imagem."}
+            "Etapa 2: Veja o resultado gerado pela IA e faça os ajustes que desejar."}
           {currentStep === 3 &&
-            "Etapa 3: Escolha as melhores opções geradas e faça os ajustes que desejar."}
+            "Etapa 3: Adicione sua logomarca ou edite detalhes da imagem com o editor."}
           {currentStep === 4 &&
-            "Etapa 4: Adicione sua logomarca ou edite detalhes da imagem com o editor."}
-          {currentStep === 5 &&
-            "Etapa 5: Suas imagens foram salvas na galeria e estão prontas para usar!"}
+            "Etapa 4: Suas imagens foram salvas na galeria e estão prontas para usar!"}
         </p>
       </div>
 
@@ -734,11 +672,11 @@ export function ImageGenerationWizard() {
           <button
             key={s.number}
             onClick={() => {
-              if (s.number <= currentStep || (s.number === 2 && visualDirection)) {
+              if (s.number <= currentStep) {
                 setCurrentStep(s.number);
               }
             }}
-            disabled={s.number > currentStep && !(s.number === 2 && visualDirection)}
+            disabled={s.number > currentStep}
             className={`flex items-center gap-2 rounded-2xl px-3.5 py-1.5 transition-all duration-300 md:px-5 md:py-2 ${
               currentStep === s.number
                 ? "scale-105 border-2 border-accent bg-accent text-white shadow-lg shadow-orange-100 font-bold"
@@ -1253,19 +1191,19 @@ export function ImageGenerationWizard() {
                 <Button
                   type="button"
                   size="lg"
-                  disabled={isLoadingDirection || !brief.trim()}
-                  onClick={handleContinueWithBriefing}
+                  disabled={isGenerating || !brief.trim()}
+                  onClick={handleStartGenerationDirect}
                   className="w-full sm:w-auto bg-accent hover:bg-orange-600 text-white font-bold rounded-2xl h-12 px-8 text-base shadow-lg shadow-orange-100 flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
                 >
-                  {isLoadingDirection ? (
+                  {isGenerating ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Interpretando Ideia...</span>
+                      <span>Gerando Imagem com IA...</span>
                     </>
                   ) : (
                     <>
-                      <span>Continuar com este briefing</span>
-                      <ArrowRight className="h-5 w-5" />
+                      <Sparkles className="h-5 w-5" />
+                      <span>Gerar Imagem com IA</span>
                     </>
                   )}
                 </Button>
@@ -1276,163 +1214,9 @@ export function ImageGenerationWizard() {
       )}
 
       {/* ========================================================================= */}
-      {/* ETAPA 2 — DIREÇÃO VISUAL INTERPRETADA                                     */}
+      {/* ETAPA 2 — SUA IMAGEM GERADA & RESULTADOS                                 */}
       {/* ========================================================================= */}
-      {currentStep === 2 && visualDirection && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          <Card className="relative mx-auto w-full max-w-4xl overflow-hidden border-none shadow-lg bg-white rounded-2xl">
-            <CardHeader className="bg-slate-50/70 border-b border-slate-100 p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
-                    <SlidersHorizontal className="h-6 w-6 text-accent" />
-                    Etapa 2: Direção Visual Interpretada
-                  </CardTitle>
-                  <CardDescription className="text-sm text-gray-600">
-                    Confira como a nossa inteligência artificial planejou sua imagem antes de gerar.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentStep(1)}
-                  className="rounded-xl text-xs font-semibold h-9"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5 mr-1" />
-                  Ajustar Ideia
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-6 sm:p-8 space-y-6">
-              {/* Sugestões Alternativas se houver */}
-              {alternativeDirections.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-700">
-                    Escolha a abordagem visual que mais gosta:
-                  </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDirectionIndex(0)}
-                      className={`p-3.5 rounded-2xl text-left border-2 text-xs transition-all ${
-                        selectedDirectionIndex === 0
-                          ? "border-accent bg-orange-50/50 font-bold text-gray-900"
-                          : "border-gray-200 hover:bg-slate-50 text-gray-700"
-                      }`}
-                    >
-                      ⭐ Abordagem Principal
-                    </button>
-                    {alternativeDirections.map((alt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setSelectedDirectionIndex(i + 1)}
-                        className={`p-3.5 rounded-2xl text-left border-2 text-xs transition-all ${
-                          selectedDirectionIndex === i + 1
-                            ? "border-accent bg-orange-50/50 font-bold text-gray-900"
-                            : "border-gray-200 hover:bg-slate-50 text-gray-700"
-                        }`}
-                      >
-                        {alt.style || `Opção Alternativa ${i + 2}`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cards Explicativos da Direção Visual */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                    💡 Ideia Compreendida
-                  </span>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {visualDirection.interpretation}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                    🎯 Elemento Principal
-                  </span>
-                  <p className="text-sm font-semibold text-gray-900">{visualDirection.subject}</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                    🏞️ Cenário & Composição
-                  </span>
-                  <p className="text-sm font-medium text-gray-700">
-                    {visualDirection.composition}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                    🌟 Iluminação & Clima
-                  </span>
-                  <p className="text-sm font-medium text-gray-700">{visualDirection.lighting}</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                    🏷️ Cores & Marca
-                  </span>
-                  <p className="text-sm font-medium text-gray-700">
-                    {visualDirection.brandApplication}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1">
-                    🚫 O que NÃO haverá na imagem
-                  </span>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {visualDirection.avoid.map((av, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-[11px] bg-rose-50 text-rose-600 border-none font-medium">
-                        ✕ {av}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Botões de Ação da Etapa 2 */}
-              <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(1)}
-                  className="rounded-2xl text-xs font-semibold text-gray-600 hover:text-gray-900 h-11"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar e alterar ideias
-                </Button>
-
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={isGenerating}
-                  onClick={handleStartGeneration}
-                  className="w-full sm:w-auto bg-accent hover:bg-orange-600 text-white font-bold rounded-2xl h-12 px-10 text-base shadow-lg shadow-orange-100 flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Gerar Agora com IA
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* ETAPA 3 — GERAÇÃO DE IMAGENS & RESULTADOS                                 */}
-      {/* ========================================================================= */}
-      {currentStep === 3 && (
+      {currentStep === 2 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1442,7 +1226,7 @@ export function ImageGenerationWizard() {
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Sparkles className="h-6 w-6 text-accent" />
-                Etapa 3: Sua Imagem Gerada
+                Etapa 2: Sua Imagem Gerada
               </h2>
               <p className="text-xs sm:text-sm text-gray-500">
                 Veja o resultado gerado pela IA. Você pode adicionar textos, tirar o fundo ou usá-la no seu post.
@@ -1461,7 +1245,7 @@ export function ImageGenerationWizard() {
               {assets.some((a) => a.status === "ready") && (
                 <Button
                   size="sm"
-                  onClick={() => setCurrentStep(5)}
+                  onClick={() => setCurrentStep(4)}
                   className="bg-accent hover:bg-orange-600 text-white font-bold rounded-2xl text-xs h-10 px-5 shadow-sm"
                 >
                   Avançar para Concluir
@@ -1613,9 +1397,9 @@ export function ImageGenerationWizard() {
       )}
 
       {/* ========================================================================= */}
-      {/* ETAPA 5 — CONCLUSÃO, SALVAMENTO & GALERIA                                */}
+      {/* ETAPA 4 — CONCLUSÃO, SALVAMENTO & GALERIA                                */}
       {/* ========================================================================= */}
-      {currentStep === 5 && (
+      {currentStep === 4 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
