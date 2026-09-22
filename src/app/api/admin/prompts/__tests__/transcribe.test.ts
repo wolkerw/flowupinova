@@ -22,50 +22,44 @@ vi.mock("@/lib/firebase-admin", () => ({
   },
 }));
 
-describe("POST /api/admin/prompts/transcribe", () => {
-  const originalEnv = process.env;
-
+describe("API /api/admin/prompts/transcribe", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env = { ...originalEnv, GEMINI_API_KEY: "test-gemini-key" };
+    global.fetch = vi.fn();
+    process.env.GEMINI_API_KEY = "mock-gemini-key";
   });
 
-  it("retorna 400 se nenhum dado de imagem for enviado", async () => {
+  it("retorna 400 se nenhuma imagem for enviada", async () => {
+    const formData = new FormData();
     const req = new NextRequest("http://localhost:9002/api/admin/prompts/transcribe", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: formData,
     });
 
     const res = await POST(req);
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("Imagem");
+    expect(data.error).toMatch(/Nenhuma imagem foi enviada/i);
   });
 
-  it("transcreve o print e divide em seções técnicas com sucesso", async () => {
-    const mockGeminiReply = {
+  it("transcreve o print de prompt com sucesso usando fallback de modelo Gemini", async () => {
+    const mockGeminiResponse = {
       candidates: [
         {
           content: {
             parts: [
               {
                 text: JSON.stringify({
-                  title: "Pizza Artesanal em Forno a Lenha",
-                  category: "Gastronomia & Alimentos",
-                  targetUse: "product_photo",
-                  rawPrompt: "Fotografia de pizza napolitana saindo do forno com queijo borbulhante...",
+                  title: "DEIXE SUA FOTO COM APARÊNCIA PROFISSIONAL",
+                  category: "Retratos & Fotos Pessoais",
+                  targetUse: "personal_portrait",
+                  rawPrompt: "Faça um retoque profissional nesta imagem...",
                   sections: {
-                    subjectTemplate: "{{produto}} com queijo derretido e manjericão fresco",
-                    environment: "Bancada rústica em frente ao forno a lenha incandescente",
-                    lighting: "Brilho quente do fogo lateral com foco direto",
-                    cameraAndLens: "50mm f/1.8",
-                    composition: "Ângulo de 45 graus com fumaça subindo",
-                    styleAndMood: "Fotografia gastronômica acolhedora e artesanal",
-                    negativeRules: "Sem aspecto artificial ou queimado",
+                    subjectTemplate: "Retoque profissional preservando identidade",
+                    lighting: "Iluminação balanceada e natural",
                   },
-                  triggerKeywords: ["pizza", "pizzaria", "artesanal", "forno a lenha", "massa"],
-                  semanticSummary: "Fotografia profissional de pizza artesanal para pizzarias",
+                  triggerKeywords: ["retoque", "foto de perfil", "profissional"],
+                  semanticSummary: "Transforma fotos comuns em retratos executivos e profissionais",
                 }),
               },
             ],
@@ -74,28 +68,37 @@ describe("POST /api/admin/prompts/transcribe", () => {
       ],
     };
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockGeminiReply,
-    });
+    // Primeiro modelo retorna 404, segundo modelo (gemini-flash-latest ou 2.5-flash) tem sucesso
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => JSON.stringify({ error: { message: "models/gemini-2.5-flash not found" } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockGeminiResponse,
+      });
 
     const req = new NextRequest("http://localhost:9002/api/admin/prompts/transcribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        imageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-        fileName: "print-pizza.png",
+        imageBase64: "data:image/png;base64,ZmFrZS1pbWFnZS1ieXRlcw==",
+        mimeType: "image/png",
+        fileName: "prompt-print.png",
       }),
     });
 
     const res = await POST(req);
     expect(res.status).toBe(200);
     const data = await res.json();
+
     expect(data.success).toBe(true);
-    expect(data.transcription.title).toBe("Pizza Artesanal em Forno a Lenha");
-    expect(data.transcription.category).toBe("Gastronomia & Alimentos");
-    expect(data.transcription.sections.subjectTemplate).toContain("{{produto}}");
-    expect(data.transcription.sections.lighting).toContain("Brilho quente do fogo");
-    expect(data.transcription.triggerKeywords).toContain("pizza");
+    expect(data.transcription.title).toBe("DEIXE SUA FOTO COM APARÊNCIA PROFISSIONAL");
+    expect(data.transcription.category).toBe("Retratos & Fotos Pessoais");
+    expect(data.transcription.triggerKeywords).toContain("retoque");
   });
 });

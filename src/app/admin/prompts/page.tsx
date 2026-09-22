@@ -303,18 +303,11 @@ export default function AdminPromptsPage() {
                   </div>
                 </div>
 
-                {/* Print em miniatura e Prompt */}
-                <div className="flex gap-3">
-                  {item.printImageUrl && (
-                    <div className="relative h-20 w-20 rounded-xl overflow-hidden border border-gray-200 shrink-0 bg-slate-100">
-                      <img src={item.printImageUrl} alt={item.title} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 font-mono">
-                      {item.rawPrompt}
-                    </p>
-                  </div>
+                {/* Prompt em largura total sem necessidade de thumb */}
+                <div className="w-full">
+                  <p className="text-xs text-gray-700 line-clamp-4 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/70 font-mono">
+                    {item.rawPrompt}
+                  </p>
                 </div>
 
                 {/* Especificações Técnicas Extraídas */}

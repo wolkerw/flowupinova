@@ -37,30 +37,52 @@ export async function POST(request: NextRequest) {
     // Detectar se veio via multipart/form-data ou application/json
     const contentType = request.headers.get("content-type") || "";
 
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
-      const file = formData.get("file") as File | null;
-      if (!file) {
-        return NextResponse.json(
-          { error: "Nenhum arquivo de imagem/print foi enviado." },
-          { status: 400 }
-        );
+    let hasExtractedImage = false;
+
+    if (contentType.includes("multipart/form-data") || !contentType.includes("application/json")) {
+      try {
+        const formData = await request.formData();
+        const file = formData.get("file") as any;
+        if (file) {
+          originalFileName = file.name || originalFileName;
+          mimeType = file.type || "image/png";
+          if (typeof file.arrayBuffer === "function") {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            base64Data = buffer.toString("base64");
+            hasExtractedImage = true;
+          } else if (typeof file.text === "function") {
+            const txt = await file.text();
+            base64Data = Buffer.from(txt).toString("base64");
+            hasExtractedImage = true;
+          } else if (typeof file === "string") {
+            base64Data = Buffer.from(file).toString("base64");
+            hasExtractedImage = true;
+          }
+        }
+      } catch {
+        // Fallback para tentar JSON
       }
-      originalFileName = file.name || originalFileName;
-      mimeType = file.type || "image/png";
-      const buffer = Buffer.from(await file.arrayBuffer());
-      base64Data = buffer.toString("base64");
-    } else {
-      const body = await request.json();
-      if (!body.imageBase64) {
-        return NextResponse.json(
-          { error: "Imagem base64 não fornecida no corpo da requisição." },
-          { status: 400 }
-        );
+    }
+
+    if (!hasExtractedImage) {
+      try {
+        const body = await request.json();
+        if (body.imageBase64) {
+          base64Data = body.imageBase64.replace(/^data:image\/\w+;base64,/, "");
+          mimeType = body.mimeType || "image/png";
+          originalFileName = body.fileName || originalFileName;
+          hasExtractedImage = true;
+        }
+      } catch {
+        // ignore
       }
-      base64Data = body.imageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
-      if (body.mimeType) mimeType = body.mimeType;
-      if (body.fileName) originalFileName = body.fileName;
+    }
+
+    if (!hasExtractedImage || !base64Data) {
+      return NextResponse.json(
+        { error: "Nenhuma imagem foi enviada para transcrição." },
+        { status: 400 }
+      );
     }
 
     // 2. Salvar imagem no Firebase Storage para manter histórico visual
@@ -124,45 +146,66 @@ Responda OBRIGATORIAMENTE em JSON válido com o seguinte formato:
   "semanticSummary": "string"
 }`;
 
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const candidateModels = [
+      "gemini-2.5-flash",
+      "gemini-flash-latest",
+      "gemini-3.5-flash",
+      "gemini-2.5-pro",
+    ];
 
-    const geminiPayload = {
-      contents: [
-        {
-          parts: [
-            { text: systemPrompt },
+    let candidateText = "";
+    let lastError = "";
+
+    for (const modelName of candidateModels) {
+      try {
+        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+        const geminiPayload = {
+          contents: [
             {
-              inlineData: {
-                mimeType,
-                data: base64Data,
-              },
+              parts: [
+                { text: systemPrompt },
+                {
+                  inlineData: {
+                    mimeType,
+                    data: base64Data,
+                  },
+                },
+              ],
             },
           ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
-      },
-    };
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        };
 
-    const geminiRes = await fetch(geminiEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiPayload),
-    });
+        const geminiRes = await fetch(geminiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(geminiPayload),
+        });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("[PROMPT_TRANSCRIBE] Erro no Gemini Vision:", errText);
-      throw new Error(`Falha na IA ao transcrever a imagem: ${errText.slice(0, 100)}`);
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          lastError = errText;
+          console.warn(`[PROMPT_TRANSCRIBE] Modelo ${modelName} falhou (${geminiRes.status}), tentando próximo:`, errText.slice(0, 100));
+          continue;
+        }
+
+        const geminiData = await geminiRes.json();
+        const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          candidateText = text;
+          break;
+        }
+      } catch (err: any) {
+        lastError = err.message;
+        console.warn(`[PROMPT_TRANSCRIBE] Exceção com ${modelName}:`, err.message);
+      }
     }
 
-    const geminiData = await geminiRes.json();
-    const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-
     if (!candidateText) {
-      throw new Error("A IA não retornou o texto da transcrição.");
+      throw new Error(`Falha na IA ao transcrever a imagem: ${lastError.slice(0, 120)}`);
     }
 
     let parsedResult: any;
