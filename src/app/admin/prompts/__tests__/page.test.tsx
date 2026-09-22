@@ -3,8 +3,30 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import AdminPromptsPage from "../page";
 
+const mockToast = vi.fn();
+const mockToastHook = { toast: mockToast };
 vi.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: vi.fn() }),
+  useToast: () => mockToastHook,
+}));
+
+vi.mock("../_components/PromptUploadModal", () => ({
+  PromptUploadModal: ({ isOpen, onClose }: any) =>
+    isOpen ? (
+      <div data-testid="upload-modal">
+        <p>Cadastrar Novo Prompt na Central</p>
+        <p>Cole seu print aqui com</p>
+        <button onClick={onClose}>Fechar</button>
+      </div>
+    ) : null,
+}));
+
+vi.mock("../_components/StyleCommandsTab", () => ({
+  StyleCommandsTab: () => (
+    <div data-testid="style-commands-tab">
+      <span>/bokeh</span>
+      <span>Luzes Desfocadas (Bokeh)</span>
+    </div>
+  ),
 }));
 
 describe("AdminPromptsPage", () => {
@@ -63,4 +85,46 @@ describe("AdminPromptsPage", () => {
       expect(screen.getByText(/Cole seu print aqui com/i)).toBeInTheDocument();
     });
   });
+
+  it("alterna para a aba de Comandos de Estilo ao clicar no botão da aba", async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === "string" && url.includes("/commands")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            items: [
+              {
+                id: "cmd_bokeh",
+                command: "/bokeh",
+                label: "Luzes Desfocadas (Bokeh)",
+                description: "Cria luzes desfocadas ao fundo",
+                category: "Câmera & Lentes",
+                iconEmoji: "✨",
+                promptInjection: "bokeh blur",
+                triggerKeywords: ["bokeh"],
+                active: true,
+                order: 2,
+              },
+            ],
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ success: true, items: [] }),
+      });
+    });
+
+    render(<AdminPromptsPage />);
+
+    const tabBtn = screen.getByRole("button", { name: /Comandos de Estilo/i });
+    fireEvent.click(tabBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("/bokeh")).toBeInTheDocument();
+      expect(screen.getByText(/Luzes Desfocadas \(Bokeh\)/i)).toBeInTheDocument();
+    });
+  });
 });
+

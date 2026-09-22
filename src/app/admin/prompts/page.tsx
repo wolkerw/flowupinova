@@ -24,14 +24,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { PromptUploadModal } from "./_components/PromptUploadModal";
+import { StyleCommandsTab } from "./_components/StyleCommandsTab";
 import {
   PROMPT_DEFAULT_CATEGORIES,
   type AIPromptKnowledgeItem,
 } from "@/lib/types/ai-prompt-knowledge";
+import { Zap } from "lucide-react";
 
 export default function AdminPromptsPage() {
   const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState<"references" | "commands">("references");
   const [prompts, setPrompts] = useState<AIPromptKnowledgeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -148,21 +151,72 @@ export default function AdminPromptsPage() {
             Central de Conhecimento de Prompts
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Cadastre os melhores prompts do mercado colando prints com Ctrl+V. O sistema enriquece automaticamente as criações dos usuários.
+            Cadastre os melhores prompts do mercado e gerencie comandos de estilo fotográficos para enriquecer as criações dos usuários.
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-accent hover:bg-accent/90 text-white font-bold rounded-xl gap-2 shadow-sm shrink-0 h-11 px-5"
-        >
-          <Plus className="h-5 w-5" />
-          Enviar Print de Prompt (Ctrl+V)
-        </Button>
+        {activeTab === "references" && (
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-accent hover:bg-accent/90 text-white font-bold rounded-xl gap-2 shadow-sm shrink-0 h-11 px-5"
+          >
+            <Plus className="h-5 w-5" />
+            Enviar Print de Prompt (Ctrl+V)
+          </Button>
+        )}
       </div>
 
-      {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Seletor de Abas da Central */}
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("references")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            activeTab === "references"
+              ? "bg-primary text-white shadow-xs"
+              : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>Prompts de Referência</span>
+          <Badge
+            className={`ml-1 text-xs border-none ${
+              activeTab === "references" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            {prompts.length}
+          </Badge>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("commands")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            activeTab === "commands"
+              ? "bg-primary text-white shadow-xs"
+              : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+          }`}
+        >
+          <Zap className="h-4 w-4 text-amber-300" />
+          <span>Comandos de Estilo</span>
+          <Badge
+            className={`ml-1 text-xs border-none ${
+              activeTab === "commands" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            20+
+          </Badge>
+        </button>
+      </div>
+
+      {/* Conteúdo da Aba 2: Comandos de Estilo */}
+      {activeTab === "commands" && <StyleCommandsTab />}
+
+      {/* Conteúdo da Aba 1: Prompts de Referência */}
+      {activeTab === "references" && (
+        <div className="space-y-6">
+          {/* Cards de Métricas */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="rounded-2xl border-gray-200/80 shadow-2xs">
           <CardContent className="p-5 flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-orange-100 text-accent flex items-center justify-center shrink-0">
@@ -343,6 +397,8 @@ export default function AdminPromptsPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
         </div>
       )}
 

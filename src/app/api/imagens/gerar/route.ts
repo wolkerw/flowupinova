@@ -10,6 +10,7 @@ import type {
   AIImageTextOverlayMode,
   BrandSnapshot,
 } from "@/lib/types/ai-image-general";
+import { matchStyleCommands } from "@/lib/services/style-command-matcher";
 import crypto from "crypto";
 
 export const maxDuration = 300;
@@ -136,6 +137,24 @@ export async function POST(request: NextRequest) {
 
     // 3. Montar prompt otimizado para o motor visual
     let compiledPrompt = brief;
+
+    // 3.1. Matching inteligente de comandos de estilo da central (/bokeh, /naturallight, etc.)
+    try {
+      const matchResult = await matchStyleCommands(brief || "");
+      if (matchResult.matchedCommands.length > 0) {
+        if (matchResult.injectedDirectives.length > 0) {
+          compiledPrompt += ` [ESTILO PROFISSIONAL APLICADO: ${matchResult.injectedDirectives.join(" ")}]`;
+        }
+        if (matchResult.injectedNegativeDirectives.length > 0) {
+          negativeInstructions = negativeInstructions
+            ? `${negativeInstructions}, ${matchResult.injectedNegativeDirectives.join(", ")}`
+            : matchResult.injectedNegativeDirectives.join(", ");
+        }
+      }
+    } catch (cmdMatchErr) {
+      console.warn("[IMAGENS_GERAR] Aviso ao fazer matching de comandos de estilo:", cmdMatchErr);
+    }
+
     if (visualDirection) {
       compiledPrompt = `${visualDirection.subject}. ${visualDirection.composition}. ${visualDirection.lighting}. Estilo: ${visualDirection.style}.`;
       if (visualDirection.brandApplication && useBrandKit) {
