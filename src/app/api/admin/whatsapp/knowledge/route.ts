@@ -8,7 +8,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     id: "topic_planos",
     category: "planos",
     title: "Planos e Preços Oficiais NumVapt",
-    content: "• Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser).\n• Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).\n• Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).\n• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus grátis, saindo por R$ 308,30/mês considerando 13 meses).\n• IMPORTANTE: Todos os valores são cobrados na modalidade 'Assinatura Mensal Recorrente', de modo que NÃO incide no valor total do limite do cartão de crédito (o limite não fica travado)!\n• Link oficial de cadastro para teste grátis: https://numvapt.com.br/acesso/cadastro",
+    content: "• Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser).\n• Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).\n• Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).\n• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus grátis, saindo por R$ 368,30/mês considerando 13 meses).\n• IMPORTANTE: Todos os valores são cobrados na modalidade 'Assinatura Mensal Recorrente', de modo que NÃO incide no valor total do limite do cartão de crédito (o limite não fica travado)!\n• Link oficial de cadastro para teste grátis: https://numvapt.com.br/acesso/cadastro",
     isActive: true,
     order: 1,
     updatedAt: new Date().toISOString(),

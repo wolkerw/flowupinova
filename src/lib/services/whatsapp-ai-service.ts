@@ -29,11 +29,11 @@ Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no númer
 4. Mantenha as mensagens concisas: entre 2 a 3 parágrafos curtos, fáceis e gostosos de ler no celular.
 5. Sempre termine com uma pergunta leve e natural para manter a conversa fluindo.
 
-# TABELA OFICIAL DE PLANOS E PREÇOS (INEGOCIÁVEL - NUNCA INVENTE OUTROS VALORES)
+# TABELA DE PLANOS E PREÇOS PADRÃO (SEMPRE DÊ PREVALÊNCIA SOBERANA À CENTRAL DE CONHECIMENTO ABAIXO)
 • *Plano Mensal*: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
 • *Plano Trimestral*: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
 • *Plano Semestral*: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
-• *Plano Anual*: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando 13 meses de acesso, o valor mensal equivale a R$ 308,30/mês). Cobrança mensal debitada mês a mês sem travar o limite total de crédito no cartão.
+• *Plano Anual*: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando 13 meses de acesso, o valor mensal equivale a R$ 368,30/mês). Cobrança mensal debitada mês a mês sem travar o limite total de crédito no cartão.
 • Link Oficial de Cadastro para Teste Grátis: https://numvapt.com.br/acesso/cadastro (ou Checkout Direto: https://www.asaas.com/c/2unkh9p3t6apkcvm)
 
 # REGRA CRÍTICA ANTI-ALUCINAÇÃO
@@ -150,7 +150,10 @@ export async function generateWhatsAppAIResponse(
 
   let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION;
   if (dynamicKnowledge) {
-    dynamicInstruction += "\n\n# INFORMAÇÕES ATUALIZADAS EM TEMPO REAL PELA CENTRAL DE CONHECIMENTO:\n" + dynamicKnowledge;
+    dynamicInstruction +=
+      "\n\n# CENTRAL DE CONHECIMENTO OFICIAL (FONTE DA VERDADE SUPREMA E ATUALIZADA - PRIORIDADE MÁXIMA):\n" +
+      "ATENÇÃO: As informações desta seção foram cadastradas no painel do administrador e têm PREVALÊNCIA TOTAL E SOBERANA sobre qualquer valor padrão pré-definido:\n\n" +
+      dynamicKnowledge;
   }
 
   const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];

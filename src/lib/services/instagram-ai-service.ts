@@ -16,11 +16,11 @@ A NumVapt é a plataforma inteligente que automatiza o marketing digital de empr
 - Geração de imagens e fotos profissionais de produtos com Inteligência Artificial contextualizada.
 - Agendamento e publicação com 1 clique no Instagram, Facebook e Google Meu Negócio.
 
-# TABELA OFICIAL DE PLANOS E PREÇOS (INEGOCIÁVEL - NUNCA INVENTE OUTROS VALORES)
+# TABELA DE PLANOS E PREÇOS PADRÃO (SEMPRE DÊ PREVALÊNCIA SOBERANA À CENTRAL DE CONHECIMENTO ABAIXO)
 • Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
 • Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
 • Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
-• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando os 13 meses de acesso, o valor mensal equivale a R$ 308,30/mês).
+• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando os 13 meses de acesso, o valor mensal equivale a R$ 368,30/mês).
 
 # REGRA DE PAGAMENTO (RECORRÊNCIA SEM TRAVAR LIMITE)
 • Todos os planos são cobrados na modalidade "Assinatura Mensal Recorrente", ou seja, NÃO compromete nem trava o limite total do cartão de crédito do cliente!
@@ -93,7 +93,10 @@ export async function generateInstagramAIResponse(
     try {
       let fullInstruction = INSTAGRAM_SYSTEM_INSTRUCTION;
       if (dynamicKnowledge) {
-        fullInstruction += "\n\n# INFORMAÇÕES ADICIONAIS ATUALIZADAS DA CENTRAL DE CONHECIMENTO:\n" + dynamicKnowledge;
+        fullInstruction +=
+          "\n\n# CENTRAL DE CONHECIMENTO OFICIAL (FONTE DA VERDADE SUPREMA E ATUALIZADA - PRIORIDADE MÁXIMA):\n" +
+          "ATENÇÃO: As informações desta seção foram cadastradas no painel do administrador e têm PREVALÊNCIA TOTAL E SOBERANA sobre qualquer valor padrão pré-definido:\n\n" +
+          dynamicKnowledge;
       }
 
       const conversationParts: any[] = [];
@@ -156,7 +159,7 @@ export async function generateInstagramAIResponse(
       `• Plano Mensal: R$ 490,00/mês\n` +
       `• Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% OFF)\n` +
       `• Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% OFF)\n` +
-      `• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês grátis, saindo por R$ 308,30/mês)`;
+      `• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês grátis, saindo por R$ 368,30/mês)`;
 
     return {
       replyText:
