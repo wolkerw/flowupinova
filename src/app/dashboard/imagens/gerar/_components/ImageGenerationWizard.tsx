@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -40,6 +40,7 @@ import {
   UploadCloud,
   ChevronDown,
   HelpCircle,
+  RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -137,6 +138,23 @@ const FORMAT_OPTIONS: {
     aspectClass: "w-9 h-5", // Proporção 16:9
   },
 ];
+
+// Helper para proporção dinâmica do container de preview adaptada ao formato
+export function getFormatAspectClass(fmt: AIImageFormat): string {
+  switch (fmt) {
+    case "portrait": // 4:5 (Feed vertical Instagram)
+      return "aspect-[4/5] max-h-[620px]";
+    case "story": // 9:16 (Stories, Reels, TikTok)
+      return "aspect-[9/16] max-h-[680px]";
+    case "landscape": // 16:9 (Horizontal / Banner)
+      return "aspect-[16/9] max-h-[420px]";
+    case "banner": // 1200x630
+      return "aspect-[1200/630] max-h-[380px]";
+    case "square": // 1:1 (Quadrado)
+    default:
+      return "aspect-square max-h-[540px]";
+  }
+}
 
 // Opções de Estilo Visual com linguagem desmistificada
 const STYLE_OPTIONS: {
@@ -273,36 +291,55 @@ export function ImageGenerationWizard() {
     return () => clearInterval(interval);
   }, []);
 
-  // 1. Carregar perfil de BrandKit do usuário e rascunho anterior
+  // 1. Carregar perfil de BrandKit do negócio (lê tanto de onboarding quanto de profile)
   useEffect(() => {
     if (!user) return;
 
-    // Carregar BrandKit do negócio
-    getDoc(doc(db, "users", user.uid, "business", "onboarding")).then((snap) => {
-      if (snap.exists()) {
-        setBusinessProfile(snap.data());
+    Promise.all([
+      getDoc(doc(db, "users", user.uid, "business", "onboarding")),
+      getDoc(doc(db, "users", user.uid, "business", "profile")),
+    ]).then(([onboardingSnap, profileSnap]) => {
+      const onboardingData = onboardingSnap.exists() ? onboardingSnap.data() : {};
+      const profileData = profileSnap.exists() ? profileSnap.data() : {};
+      const merged = { ...profileData, ...onboardingData };
+      if (onboardingSnap.exists() || profileSnap.exists()) {
+        setBusinessProfile(merged);
       }
+    }).catch((err) => {
+      console.warn("[IMAGE_WIZARD] Erro ao carregar perfil de marca:", err);
     });
+  }, [user]);
 
-    // Carregar rascunho salvo se disponível
+  // Função para resetar todos os campos e garantir uma nova solicitação limpa
+  const handleResetForm = useCallback(() => {
+    setBrief("");
+    setProductHeadline("");
+    setNegativeInstructions("");
+    setReferenceImages([]);
+    setSourceImage(null);
+    setAssets([]);
+    setGenerationId(null);
+    setObjective("commercial");
+    setFormat("portrait");
+    setStyle("automatic");
+    setTextOverlayMode("NONE");
+    setTextMode("none");
+    setUseBrandKit(true);
+    setShowAdvanced(false);
+    setCurrentStep(1);
     if (typeof window !== "undefined") {
       try {
-        const savedDraft = window.sessionStorage?.getItem("numvapt_image_generation_draft");
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft);
-          if (parsed.brief) setBrief(parsed.brief);
-          if (parsed.objective) setObjective(parsed.objective);
-          if (parsed.format) setFormat(parsed.format);
-          if (parsed.style) setStyle(parsed.style);
-          if (parsed.textOverlayMode) setTextOverlayMode(parsed.textOverlayMode);
-          if (parsed.productHeadline) setProductHeadline(parsed.productHeadline);
-          if (parsed.useBrandKit !== undefined) setUseBrandKit(parsed.useBrandKit);
-        }
+        window.sessionStorage?.removeItem("numvapt_image_generation_draft");
       } catch (e) {
-        console.warn("Erro ao recuperar rascunho:", e);
+        // ignore
       }
     }
-  }, [user]);
+  }, []);
+
+  // Sempre que entrar no fluxo geral, resetar as informações da geração anterior
+  useEffect(() => {
+    handleResetForm();
+  }, [handleResetForm]);
 
   // Suporte a colar imagens com Ctrl+V diretamente na página
   useEffect(() => {
@@ -332,28 +369,6 @@ export function ImageGenerationWizard() {
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, [sourceImage, toast]);
-
-  // Autosave no sessionStorage a cada alteração no briefing
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const draft = {
-          brief,
-          objective,
-          format,
-          style,
-          quantity,
-          textOverlayMode,
-          productHeadline,
-          useBrandKit,
-          updatedAt: new Date().toISOString(),
-        };
-        window.sessionStorage?.setItem("numvapt_image_generation_draft", JSON.stringify(draft));
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, [brief, objective, format, style, textOverlayMode, productHeadline, useBrandKit]);
 
   // Upload de arquivos locais para o Storage
   const handleUploadImageFile = async (file: File): Promise<string> => {
@@ -671,14 +686,30 @@ export function ImageGenerationWizard() {
           className="space-y-6"
         >
           <Card className="relative mx-auto w-full max-w-4xl overflow-hidden border-none shadow-lg bg-white rounded-2xl">
-            <CardHeader className="bg-slate-50/70 border-b border-slate-100 p-6">
-              <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
-                <Sparkles className="h-6 w-6 text-accent" />
-                Etapa 1: O que você quer criar?
-              </CardTitle>
-              <CardDescription className="text-sm text-gray-600">
-                Conte sua ideia em palavras simples ou escolha um dos nossos modelos prontos. Você não precisa saber termos técnicos.
-              </CardDescription>
+            <CardHeader className="bg-slate-50/70 border-b border-slate-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
+                  <Sparkles className="h-6 w-6 text-accent" />
+                  Etapa 1: O que você quer criar?
+                </CardTitle>
+                <CardDescription className="text-sm text-gray-600 mt-1">
+                  Conte sua ideia em palavras simples ou escolha um dos nossos modelos prontos. Você não precisa saber termos técnicos.
+                </CardDescription>
+              </div>
+
+              {(brief || productHeadline || referenceImages.length > 0 || sourceImage) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetForm}
+                  className="text-xs text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl gap-1.5 self-start sm:self-auto shrink-0"
+                  title="Limpar todos os campos e começar uma nova solicitação"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Limpar campos
+                </Button>
+              )}
             </CardHeader>
 
             <CardContent className="p-6 sm:p-8 space-y-8">
@@ -1089,23 +1120,54 @@ export function ImageGenerationWizard() {
                 </div>
 
                 {useBrandKit && businessProfile && (
-                  <div className="flex items-center gap-3 pt-2 text-xs text-gray-700 bg-white/90 p-3 rounded-xl border border-blue-100">
-                    <div
-                      className="h-5 w-5 rounded-full border border-gray-300 shadow-2xs shrink-0"
-                      style={{
-                        backgroundColor:
-                          businessProfile.primaryColor ||
-                          businessProfile.brandKit?.primaryColor ||
-                          "#0083C7",
-                      }}
-                    />
-                    <span className="font-bold text-gray-900">
-                      {businessProfile.name || "Sua Empresa"}
-                    </span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-600 truncate">
-                      Cores e identidade da marca ativos
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-gray-700 bg-white/90 p-3.5 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-1 shrink-0">
+                        <div
+                          className="h-5 w-5 rounded-full border border-gray-300 shadow-2xs"
+                          title="Cor Primária"
+                          style={{
+                            backgroundColor:
+                              businessProfile.primaryColor ||
+                              businessProfile.brandKit?.primaryColor ||
+                              "#0083C7",
+                          }}
+                        />
+                        {(businessProfile.secondaryColor || businessProfile.brandKit?.secondaryColor) && (
+                          <div
+                            className="h-4 w-4 rounded-full border border-gray-300 shadow-2xs -ml-1.5"
+                            title="Cor Secundária"
+                            style={{
+                              backgroundColor:
+                                businessProfile.secondaryColor ||
+                                businessProfile.brandKit?.secondaryColor ||
+                                "#FA6305",
+                            }}
+                          />
+                        )}
+                      </div>
+                      <span className="font-bold text-gray-900">
+                        {businessProfile.name || "Sua Empresa"}
+                      </span>
+                      {(businessProfile.segment || businessProfile.category) && (
+                        <Badge variant="outline" className="text-[10px] text-gray-500 border-gray-200">
+                          {businessProfile.segment || businessProfile.category}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {((businessProfile.brandKit?.personas && businessProfile.brandKit.personas.length > 0) ||
+                        (businessProfile.personas && businessProfile.personas.length > 0)) && (
+                        <Badge className="bg-blue-50 text-primary border-blue-200 text-[10px] font-bold">
+                          {(businessProfile.brandKit?.personas || businessProfile.personas).length} Personas Ativas
+                        </Badge>
+                      )}
+                      <span className="text-emerald-600 font-semibold flex items-center gap-1 text-[11px]">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Identidade Vinculada à IA
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1197,7 +1259,7 @@ export function ImageGenerationWizard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentStep(1)}
+                onClick={handleResetForm}
                 className="rounded-2xl text-xs font-semibold h-10 px-4"
               >
                 Novo Briefing
@@ -1219,7 +1281,7 @@ export function ImageGenerationWizard() {
           <div className="grid grid-cols-1 max-w-xl mx-auto gap-6">
             {assets.map((asset, idx) => (
               <Card key={asset.id || idx} className="overflow-hidden border border-slate-200 shadow-md rounded-2xl bg-white">
-                <div className="relative aspect-square w-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                <div className={`relative ${getFormatAspectClass(format)} w-full bg-slate-950 flex items-center justify-center overflow-hidden rounded-t-2xl mx-auto shadow-inner`}>
                   {asset.status === "processing" ? (
                     <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                       <Loader2 className="h-10 w-10 text-accent animate-spin" />
@@ -1253,7 +1315,7 @@ export function ImageGenerationWizard() {
                     <img
                       src={asset.originalUrl}
                       alt={asset.altText || "Sua Imagem"}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : null}
 
@@ -1359,11 +1421,11 @@ export function ImageGenerationWizard() {
                       key={readyAsset.id}
                       className="border border-slate-200 rounded-2xl overflow-hidden p-4 space-y-4 bg-slate-50/40"
                     >
-                      <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-inner">
+                      <div className={`relative ${getFormatAspectClass(format)} w-full rounded-xl overflow-hidden shadow-inner bg-slate-950 flex items-center justify-center mx-auto`}>
                         <img
                           src={readyAsset.originalUrl}
                           alt="Imagem Pronta"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       </div>
 
@@ -1416,13 +1478,7 @@ export function ImageGenerationWizard() {
                 </Button>
 
                 <Button
-                  onClick={() => {
-                    setBrief("");
-                    setReferenceImages([]);
-                    setSourceImage(null);
-                    setAssets([]);
-                    setCurrentStep(1);
-                  }}
+                  onClick={handleResetForm}
                   className="rounded-2xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 h-11 px-6"
                 >
                   <Plus className="h-4 w-4 mr-2" />

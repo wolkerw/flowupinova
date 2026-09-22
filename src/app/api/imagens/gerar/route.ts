@@ -85,19 +85,27 @@ export async function POST(request: NextRequest) {
     let brandSnapshot: BrandSnapshot | null = null;
     if (useBrandKit) {
       try {
-        const businessDoc = await adminDb.doc(`users/${userId}/business/onboarding`).get();
-        if (businessDoc.exists) {
-          const data = businessDoc.data();
-          const bk = data?.brandKit;
-          brandSnapshot = {
-            name: data?.name || bk?.name || "Empresa",
-            segment: data?.segment || bk?.segment || "",
-            primaryColor: data?.primaryColor || bk?.primaryColor,
-            secondaryColor: data?.secondaryColor || bk?.secondaryColor,
-            visualGuidelines: bk?.visualGuidelines || "",
-            logoUrl: bk?.logoUrl || data?.logo?.url || "",
-          };
-        }
+        const [onboardingDoc, profileDoc] = await Promise.all([
+          adminDb.doc(`users/${userId}/business/onboarding`).get(),
+          adminDb.doc(`users/${userId}/business/profile`).get(),
+        ]);
+        const data = {
+          ...(profileDoc.exists ? profileDoc.data() : {}),
+          ...(onboardingDoc.exists ? onboardingDoc.data() : {}),
+        };
+        const bk = data?.brandKit || {};
+        brandSnapshot = {
+          name: data?.name || bk?.name || "Empresa",
+          segment: data?.segment || data?.category || bk?.segment || "",
+          primaryColor: data?.primaryColor || bk?.primaryColor || "#0083C7",
+          secondaryColor: data?.secondaryColor || bk?.secondaryColor || "#FA6305",
+          visualGuidelines: bk?.visualGuidelines || data?.visualGuidelines || "",
+          logoUrl: bk?.logoUrl || data?.logo?.url || (typeof data?.logo === "string" ? data.logo : ""),
+          targetAudience: data?.targetAudience || bk?.targetAudience || "",
+          toneOfVoice: data?.toneOfVoice || bk?.toneOfVoice || "",
+          slogan: data?.slogan || bk?.slogan || "",
+          personas: bk?.personas || data?.personas || [],
+        };
       } catch (bkErr) {
         console.warn("[IMAGENS_GERAR] Aviso ao obter brand snapshot:", bkErr);
       }
@@ -137,6 +145,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Montar prompt otimizado para o motor visual
     let compiledPrompt = brief;
+    let effectiveNegative = negativeInstructions || "";
 
     // 3.1. Matching inteligente de comandos de estilo da central (/bokeh, /naturallight, etc.)
     try {
@@ -146,8 +155,8 @@ export async function POST(request: NextRequest) {
           compiledPrompt += ` [ESTILO PROFISSIONAL APLICADO: ${matchResult.injectedDirectives.join(" ")}]`;
         }
         if (matchResult.injectedNegativeDirectives.length > 0) {
-          negativeInstructions = negativeInstructions
-            ? `${negativeInstructions}, ${matchResult.injectedNegativeDirectives.join(", ")}`
+          effectiveNegative = effectiveNegative
+            ? `${effectiveNegative}, ${matchResult.injectedNegativeDirectives.join(", ")}`
             : matchResult.injectedNegativeDirectives.join(", ");
         }
       }
@@ -159,6 +168,53 @@ export async function POST(request: NextRequest) {
       compiledPrompt = `${visualDirection.subject}. ${visualDirection.composition}. ${visualDirection.lighting}. Estilo: ${visualDirection.style}.`;
       if (visualDirection.brandApplication && useBrandKit) {
         compiledPrompt += ` ${visualDirection.brandApplication}`;
+      }
+    }
+
+    // 3.2. Integração do BrandKit & Personas da Marca no Prompt
+    if (useBrandKit && brandSnapshot) {
+      const brandDirectives: string[] = [];
+
+      if (brandSnapshot.name && brandSnapshot.name !== "Empresa") {
+        brandDirectives.push(`Marca/Empresa: "${brandSnapshot.name}"`);
+      }
+      if (brandSnapshot.segment) {
+        brandDirectives.push(`Segmento/Nicho: ${brandSnapshot.segment}`);
+      }
+      if (brandSnapshot.primaryColor || brandSnapshot.secondaryColor) {
+        const colors = [
+          brandSnapshot.primaryColor ? `cor primária ${brandSnapshot.primaryColor}` : "",
+          brandSnapshot.secondaryColor ? `cor secundária ${brandSnapshot.secondaryColor}` : "",
+        ].filter(Boolean).join(" e ");
+        brandDirectives.push(
+          `Paleta de Cores da Marca: Harmonizar a cena utilizando ${colors} em detalhes de iluminação, ambiente, elementos gráficos ou vestuário.`
+        );
+      }
+      if (brandSnapshot.visualGuidelines) {
+        brandDirectives.push(`Diretrizes Visuais da Marca: ${brandSnapshot.visualGuidelines}`);
+      }
+      if (brandSnapshot.targetAudience) {
+        brandDirectives.push(`Público-Alvo: ${brandSnapshot.targetAudience}`);
+      }
+
+      // Personas cadastradas no BrandKit
+      if (brandSnapshot.personas && Array.isArray(brandSnapshot.personas) && brandSnapshot.personas.length > 0) {
+        const personasList = brandSnapshot.personas
+          .slice(0, 3)
+          .map((p: any) => `"${p.name || 'Persona'}" (${p.profile || ''}${p.painPoints ? ', foco: ' + p.painPoints : ''})`.trim())
+          .join(" | ");
+        brandDirectives.push(`Personas da Marca: Adequar a estética humana, estilo e representatividade visual para conectar diretamente com as personas da marca: ${personasList}`);
+      }
+
+      // Se o objetivo for Foto de Perfil / Personal Branding ("personal")
+      if (objective === "personal") {
+        brandDirectives.push(
+          `Personal Branding / Foto de Perfil Executiva: Retrato profissional de alta credibilidade, postura confiante e autoridade executiva, alinhado perfeitamente à identidade e nicho da marca "${brandSnapshot.name || 'Empresa'}"`
+        );
+      }
+
+      if (brandDirectives.length > 0) {
+        compiledPrompt += ` [INTEGRAÇÃO BRANDKIT & IDENTIDADE: ${brandDirectives.join(" — ")}]`;
       }
     }
 

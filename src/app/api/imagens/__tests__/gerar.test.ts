@@ -140,5 +140,39 @@ describe("API /api/imagens/gerar", () => {
     expect(capturedPrompt).toContain("O MELHOR CAFÉ DA CIDADE");
     expect(capturedPrompt).toContain("INFOGRAPHIC POSTER MODE");
   });
+
+  it("injeta cores, diretrizes da marca e personas no prompt quando useBrandKit é true", async () => {
+    let capturedPrompt = "";
+    global.fetch = vi.fn().mockImplementation((url, options) => {
+      if (options && options.body) {
+        try {
+          const parsed = JSON.parse(options.body as string);
+          if (parsed.prompt) capturedPrompt = parsed.prompt;
+        } catch {}
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          data: [{ b64_json: Buffer.from("fake-brand-image").toString("base64") }],
+        }),
+      });
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/gerar", {
+      method: "POST",
+      body: JSON.stringify({
+        brief: "Foto de perfil executiva para meu negócio",
+        objective: "personal",
+        format: "portrait",
+        quantity: 1,
+        useBrandKit: true,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(capturedPrompt).toContain("INTEGRAÇÃO BRANDKIT & IDENTIDADE");
+    expect(capturedPrompt).toContain("Personal Branding / Foto de Perfil Executiva");
+  });
 });
 

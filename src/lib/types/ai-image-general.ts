@@ -89,6 +89,10 @@ export interface BrandSnapshot {
   visualGuidelines?: string;
   logoUrl?: string;
   fontFamily?: string;
+  targetAudience?: string;
+  toneOfVoice?: string;
+  slogan?: string;
+  personas?: any[];
 }
 
 export interface AIImageGenerationDoc {

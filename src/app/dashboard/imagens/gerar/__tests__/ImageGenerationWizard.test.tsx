@@ -37,9 +37,11 @@ vi.mock("firebase/firestore", () => ({
   }),
 }));
 
-// Mock toast
+// Mock toast estático
+const mockToastFn = vi.fn();
+const mockToastHook = { toast: mockToastFn };
 vi.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: vi.fn() }),
+  useToast: () => mockToastHook,
 }));
 
 // Mock framer-motion para evitar problemas de animação em testes JSDOM
