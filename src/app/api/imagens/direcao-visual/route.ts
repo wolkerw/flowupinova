@@ -69,11 +69,38 @@ Dados da Marca / Negócio do Usuário:
       }
     }
 
+    // 2. Consultar Central de Conhecimento de Prompts para enriquecimento inteligente
+    let promptKnowledgeContext = "";
+    let matchedKnowledgeTitle = "";
+    try {
+      const { getActivePromptKnowledgeItems, findBestMatchingPrompt } = await import(
+        "@/lib/services/prompt-knowledge-service"
+      );
+      const activeKnowledgeItems = await getActivePromptKnowledgeItems();
+      const match = findBestMatchingPrompt(brief, activeKnowledgeItems);
+
+      if (match) {
+        matchedKnowledgeTitle = match.item.title;
+        promptKnowledgeContext = `
+Referência de Alto Padrão da Central de Prompts [Modelo de Estúdio: "${match.item.title}"]:
+- Iluminação Técnica: ${match.item.sections.lighting || "Luz de estúdio comercial"}
+- Equipamento e Lente: ${match.item.sections.cameraAndLens || "Lente profissional 50mm ou 85mm"}
+- Composição e Ângulo: ${match.item.sections.composition || "Enquadramento comercial"}
+- Cenário e Atmosfera: ${match.item.sections.environment || "Ambiente realista de alta definição"}
+- Estilo e Clima: ${match.item.sections.styleAndMood || "Comercial publicitário"}
+INSTRUÇÃO ESPECIAL DE QUALIDADE: Aplique rigorosamente este acabamento técnico de estúdio profissional à arte, mantendo o produto ou tema do usuário ("${brief}") como protagonista absoluto.
+`;
+      }
+    } catch (pkErr) {
+      console.warn("[DIRECAO_VISUAL] Aviso ao consultar Central de Prompts:", pkErr);
+    }
+
     const systemPrompt = `
 Você é um Diretor de Arte e Especialista Sênior em Design Visual e Fotografia Publicitária da NumVapt.
 Sua missão é interpretar o briefing livre do usuário e transformá-lo em uma Direção Visual estruturada de alto impacto, pronta para geração com IA de ponta.
 
 ${brandContext}
+${promptKnowledgeContext}
 
 Parâmetros do Pedido:
 - Briefing do Usuário: "${brief}"
@@ -140,6 +167,9 @@ REGRAS RÍGIDAS DE DIREÇÃO VISUAL:
                   success: true,
                   visualDirection: parsed.visualDirection,
                   alternativeDirections: parsed.alternativeDirections || [],
+                  matchedPromptKnowledge: matchedKnowledgeTitle
+                    ? { title: matchedKnowledgeTitle }
+                    : undefined,
                 });
               }
             }

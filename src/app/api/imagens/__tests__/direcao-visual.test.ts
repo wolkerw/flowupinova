@@ -24,6 +24,13 @@ vi.mock("@/lib/firebase-admin", () => ({
         }),
       }),
     }),
+    collection: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnThis(),
+      get: vi.fn().mockResolvedValue({
+        empty: true,
+        docs: [],
+      }),
+    }),
   },
 }));
 
@@ -96,5 +103,90 @@ describe("API /api/imagens/direcao-visual", () => {
     expect(data.success).toBe(true);
     expect(data.visualDirection.subject).toContain("Pão");
     expect(data.visualDirection.lighting).toBeDefined();
+  });
+
+  it("enriquece a direção visual quando há um prompt correspondente na central", async () => {
+    let capturedSystemPrompt = "";
+
+    const mockPromptDoc = {
+      data: () => ({
+        id: "pk_padaria",
+        title: "Pão Rústico de Padaria Artesanal",
+        category: "Gastronomia & Alimentos",
+        targetUse: "product_photo",
+        sections: {
+          lighting: "Luz matinal dourada lateral de janela",
+          cameraAndLens: "50mm f/1.4",
+          composition: "Close-up 45 graus",
+          environment: "Tábua de corte rústica com farinha polvilhada",
+          styleAndMood: "Editorial gastronômico",
+        },
+        triggerKeywords: ["pão", "padaria", "fornada"],
+        active: true,
+      }),
+    };
+
+    const { adminDb } = await import("@/lib/firebase-admin");
+    vi.mocked(adminDb.collection).mockReturnValueOnce({
+      where: vi.fn().mockReturnThis(),
+      get: vi.fn().mockResolvedValue({
+        empty: false,
+        docs: [mockPromptDoc],
+      }),
+    } as any);
+
+    global.fetch = vi.fn().mockImplementation((url, opts) => {
+      if (opts?.body) {
+        try {
+          const parsed = JSON.parse(opts.body);
+          capturedSystemPrompt = parsed.contents?.[0]?.parts?.[0]?.text || "";
+        } catch {}
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      visualDirection: {
+                        interpretation: "Pão rústico de padaria artesanal com luz matinal",
+                        subject: "Pão de fermentação natural",
+                        composition: "Close-up 45 graus",
+                        lighting: "Luz matinal dourada lateral de janela",
+                        style: "Editorial gastronômico",
+                        brandApplication: "",
+                        textLayers: [],
+                        avoid: [],
+                      },
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      });
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/direcao-visual", {
+      method: "POST",
+      body: JSON.stringify({
+        brief: "Quero uma foto da fornada de pão da manhã",
+        objective: "commercial",
+        format: "square",
+        style: "photographic",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.matchedPromptKnowledge?.title).toBe("Pão Rústico de Padaria Artesanal");
+    expect(capturedSystemPrompt).toContain("Pão Rústico de Padaria Artesanal");
+    expect(capturedSystemPrompt).toContain("Luz matinal dourada lateral de janela");
   });
 });
