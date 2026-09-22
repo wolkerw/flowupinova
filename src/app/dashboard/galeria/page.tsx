@@ -422,6 +422,14 @@ export default function GaleriaPage() {
             imediato.
           </p>
         </div>
+
+        <Button
+          onClick={() => router.push("/dashboard/imagens/gerar?mode=general")}
+          className="bg-gradient-to-r from-blue-600 to-[#FA6305] hover:opacity-90 text-white font-bold rounded-xl text-xs h-10 px-5 shadow-md flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+        >
+          <Sparkles className="h-4 w-4" />
+          Criar com IA
+        </Button>
       </div>
 
       <Card className="border-none bg-white/70 shadow-lg backdrop-blur-md">

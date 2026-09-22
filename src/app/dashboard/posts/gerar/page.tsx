@@ -1,6 +1,7 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { WizardProvider, useWizard } from "./context/WizardContext";
 import { Step1Idea } from "./_components/Step1Idea";
 import { Step2TextSelection } from "./_components/Step2TextSelection";
@@ -10,6 +11,7 @@ import { Step5ReviewPublish } from "./_components/Step5ReviewPublish";
 import { SchedulerModal } from "./_components/SchedulerModal";
 
 function WizardContent() {
+  const router = useRouter();
   const {
     step,
     setStep,
@@ -24,6 +26,12 @@ function WizardContent() {
     referenceImageFile,
     mode,
   } = useWizard();
+
+  useEffect(() => {
+    if (mode === "image-general") {
+      router.replace("/dashboard/imagens/gerar?mode=general");
+    }
+  }, [mode, router]);
 
   const isReferenceMode =
     mode === "reference-photo" ||
