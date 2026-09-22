@@ -34,6 +34,13 @@ describe("matchStyleCommands", () => {
     expect(result.commandNames).toContain("/skinreal");
   });
 
+  it("identifica novos comandos como goldenhour, droneview e blueprint", async () => {
+    const result = await matchStyleCommands("Foto aérea com drone no pôr do sol /blueprint");
+    expect(result.commandNames).toContain("/droneview");
+    expect(result.commandNames).toContain("/goldenhour");
+    expect(result.commandNames).toContain("/blueprint");
+  });
+
   it("não injeta comandos se o texto não corresponder a nenhum estilo cadastrado", async () => {
     const result = await matchStyleCommands("Um quadrado azul simples");
     expect(result.commandNames).toHaveLength(0);

@@ -24,11 +24,10 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await adminDb.collection(COLLECTION_NAME).get();
 
-    // Se estiver vazio, popula automaticamente com os seeds
+    // Se estiver vazio, popula automaticamente com todos os seeds
     if (snapshot.empty) {
       const now = new Date().toISOString();
       const batch = adminDb.batch();
-
       const seededItems: AIStyleCommand[] = [];
 
       for (const item of DEFAULT_STYLE_COMMANDS_SEED) {
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
 
       await batch.commit();
-      seededItems.sort((a, b) => a.order - b.order);
+      seededItems.sort((a, b) => (a.order || 0) - (b.order || 0));
 
       return NextResponse.json({
         success: true,
@@ -53,9 +52,32 @@ export async function GET(request: NextRequest) {
     }
 
     const items: AIStyleCommand[] = [];
+    const existingIds = new Set<string>();
+
     snapshot.forEach((doc) => {
-      items.push(doc.data() as AIStyleCommand);
+      const data = doc.data() as AIStyleCommand;
+      const id = doc.id || data?.id;
+      if (id) existingIds.add(id);
+      items.push(data);
     });
+
+    // Se faltarem comandos do seed (ex: novas adições de comandos ao catálogo), insere automaticamente
+    const missingSeeds = DEFAULT_STYLE_COMMANDS_SEED.filter((seed) => !existingIds.has(seed.id));
+    if (missingSeeds.length > 0) {
+      const now = new Date().toISOString();
+      const batch = adminDb.batch();
+      for (const item of missingSeeds) {
+        const docRef = adminDb.collection(COLLECTION_NAME).doc(item.id);
+        const fullItem: AIStyleCommand = {
+          ...item,
+          createdAt: now,
+          updatedAt: now,
+        };
+        batch.set(docRef, fullItem);
+        items.push(fullItem);
+      }
+      await batch.commit();
+    }
 
     items.sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -63,6 +85,7 @@ export async function GET(request: NextRequest) {
       success: true,
       items,
       count: items.length,
+      newlySeededCount: missingSeeds.length,
     });
   } catch (error: any) {
     console.error("[STYLE_COMMANDS_GET] Erro ao listar comandos:", error);

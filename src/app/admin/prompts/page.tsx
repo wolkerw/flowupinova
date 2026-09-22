@@ -204,7 +204,7 @@ export default function AdminPromptsPage() {
               activeTab === "commands" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
             }`}
           >
-            20+
+            40+
           </Badge>
         </button>
       </div>
