@@ -804,25 +804,6 @@ export function ImageGenerationWizard() {
                   placeholder={PLACEHOLDER_PROMPTS[placeholderIndex]}
                   className="rounded-2xl p-4 text-sm leading-relaxed border-gray-200 focus:border-accent focus:ring-accent resize-none shadow-inner"
                 />
-
-                {/* Chips de Sugestão Rápida */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
-                  <span className="text-xs text-gray-500 font-bold shrink-0 flex items-center gap-1">
-                    💡 Exemplos rápidos para testar:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PLACEHOLDER_PROMPTS.slice(0, 3).map((promptSample, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setBrief(promptSample)}
-                        className="text-xs bg-slate-100 hover:bg-orange-50 hover:text-accent hover:border-accent/40 border border-slate-200/80 text-slate-700 px-3 py-1.5 rounded-xl transition-all font-medium text-left truncate max-w-xs"
-                      >
-                        {promptSample}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* 2. Seleção de Formato de Tela (Visual e Claro) */}
