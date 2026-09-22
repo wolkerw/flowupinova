@@ -216,24 +216,22 @@ export async function POST(request: NextRequest) {
       let modelUsed = "";
       let lastError = "";
 
-      // Pipeline multimodelo: 1. OpenAI DALL-E-3 -> 2. Gemini 2.0 Flash -> 3. Fallback DALL-E-2
+      // Pipeline multimodelo de alta qualidade: 1. OpenAI gpt-image-2 -> 2. Gemini 2.5 Flash Image -> 3. Gemini 3 Pro Image
       const modelsToTry = [
-        { provider: "openai", model: "dall-e-3" },
-        { provider: "google", model: "gemini-2.0-flash-exp" },
-        { provider: "openai", model: "dall-e-2" },
+        { provider: "openai", model: "gpt-image-2" },
+        { provider: "google", model: "gemini-2.5-flash-image" },
+        { provider: "google", model: "gemini-3-pro-image" },
       ];
 
       for (const cfg of modelsToTry) {
         try {
           if (cfg.provider === "openai" && openaiKey) {
             const nativeSize =
-              cfg.model === "dall-e-3"
-                ? format === "portrait"
-                  ? "1024x1792"
-                  : format === "square"
-                    ? "1024x1024"
-                    : "1792x1024"
-                : "1024x1024";
+              format === "portrait"
+                ? "1024x1536"
+                : format === "square"
+                  ? "1024x1024"
+                  : "1536x1024";
 
             const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
               method: "POST",
@@ -266,6 +264,9 @@ export async function POST(request: NextRequest) {
                   break;
                 }
               }
+            } else {
+              const errBody = await res.text().catch(() => `status ${res.status}`);
+              console.error(`[IMAGENS_GERAR] OpenAI (${cfg.model}) retornou status ${res.status}: ${errBody.slice(0, 300)}`);
             }
           } else if (cfg.provider === "google" && geminiKey) {
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
@@ -310,6 +311,9 @@ export async function POST(request: NextRequest) {
                 modelUsed = cfg.model;
                 break;
               }
+            } else {
+              const errBody = await res.text().catch(() => `status ${res.status}`);
+              console.error(`[IMAGENS_GERAR] Gemini (${cfg.model}) retornou status ${res.status}: ${errBody.slice(0, 300)}`);
             }
           }
         } catch (err: any) {
