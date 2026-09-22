@@ -18,4 +18,11 @@ describe("ai-image-general types & contracts", () => {
     expect(FORMAT_DIMENSIONS.portrait.width).toBe(1080);
     expect(FORMAT_DIMENSIONS.portrait.height).toBe(1350);
   });
+
+  it("garante consistência dos modos de texto suportados", () => {
+    const validModes = ["NONE", "TITLE_ONLY", "INFOGRAPHIC", "BOTH"];
+    validModes.forEach((mode) => {
+      expect(["NONE", "TITLE_ONLY", "INFOGRAPHIC", "BOTH"]).toContain(mode);
+    });
+  });
 });

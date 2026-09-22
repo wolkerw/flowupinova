@@ -7,6 +7,7 @@ import type {
   AIImageGenerationRequest,
   AIImageGenerationDoc,
   AIImageAssetDoc,
+  AIImageTextOverlayMode,
   BrandSnapshot,
 } from "@/lib/types/ai-image-general";
 import crypto from "crypto";
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
       style = "automatic",
       useBrandKit = true,
       textMode = "none",
+      textOverlayMode = "NONE",
+      productHeadline = "",
       negativeInstructions = "",
       visualDirection,
       referenceAssetUrls = [],
@@ -121,6 +124,8 @@ export async function POST(request: NextRequest) {
         brandSnapshot,
         referenceAssetUrls,
         sourceAssetUrls,
+        textOverlayMode,
+        productHeadline: productHeadline || undefined,
         safetyStatus: "approved",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -141,9 +146,26 @@ export async function POST(request: NextRequest) {
       compiledPrompt = `[ESTILO VISUAL: ${style.toUpperCase()}] ${compiledPrompt}`;
     }
 
-    if (textMode === "none") {
+    // Harmonizar modo de sobreposição de texto
+    const effectiveOverlayMode: AIImageTextOverlayMode =
+      textOverlayMode && textOverlayMode !== "NONE" ? textOverlayMode : "NONE";
+
+    // Diretivas de Diagramação, Textos e Infográficos
+    if (effectiveOverlayMode === "NONE") {
       compiledPrompt +=
-        " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image.]";
+        " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image. Pristine photography only.]";
+    } else if (effectiveOverlayMode === "TITLE_ONLY") {
+      const headlineDirective = productHeadline?.trim()
+        ? `with the exact headline: "${productHeadline.trim()}"`
+        : "with an impactful commercial headline in Portuguese (pt-BR)";
+      compiledPrompt +=
+        ` [COMMERCIAL HEADLINE POSTER DIRECTIVE: Render a bold, clean, high-contrast headline typography in Portuguese (pt-BR) ${headlineDirective} at the top of the image with elegant lettering and safe margins. No icons or complex infographic elements, just the hero subject and the bold headline.]`;
+    } else if (effectiveOverlayMode === "INFOGRAPHIC" || effectiveOverlayMode === "BOTH") {
+      const headlineDirective = productHeadline?.trim()
+        ? `headline "${productHeadline.trim()}"`
+        : "an impactful commercial headline";
+      compiledPrompt +=
+        ` [CREATIVE ADVERTISING AGENCY DIRECTIVE — INFOGRAPHIC POSTER MODE: Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful ${headlineDirective} at the top in Portuguese with decorative badge, (2) A floating quality or guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The subject prominently staged in high fidelity with atmospheric depth, (4) A structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese micro-descriptions tailored to the subject, (5) An elegant slogan bar. 20% safe margins from all borders.]`;
     }
 
     if (negativeInstructions) {
@@ -379,7 +401,7 @@ export async function POST(request: NextRequest) {
       logApiUsage({
         userId,
         type: "image_generation",
-        provider: modelUsed.includes("gemini") ? "gemini" : "openai",
+        provider: modelUsed.includes("gemini") ? "google_gemini" : "openai",
         metadata: { generationId, assetId: slotId, format, modelUsed },
       });
 

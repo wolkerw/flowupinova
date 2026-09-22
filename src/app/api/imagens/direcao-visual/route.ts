@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
       style = "automatic",
       useBrandKit = true,
       textMode = "editable_layers",
+      textOverlayMode = "NONE",
+      productHeadline = "",
       negativeInstructions = "",
     } = body;
 
@@ -78,15 +80,18 @@ Parâmetros do Pedido:
 - Objetivo: ${objective}
 - Formato: ${format}
 - Estilo: ${style}
-- Modo de Texto: ${textMode}
+- Modo de Texto e Diagramação: ${textOverlayMode} ${productHeadline ? `(Frase / Título solicitado: "${productHeadline}")` : ""}
 - Restrições/Instruções Negativas: ${negativeInstructions || "Nenhuma específica"}
 
 REGRAS RÍGIDAS DE DIREÇÃO VISUAL:
 1. Responda em Português do Brasil de forma clara, estética e profissional.
-2. Não invente promoções, certificações, preços ou depoimentos não mencionados no briefing.
-3. Se o briefing for ambíguo ou permitir abordagens distintas, gere até 2 variações adicionais no array "alternativeDirections".
-4. Campo "avoid": liste elementos indesejáveis (ex: texto borrado, membros extras, logotipos desenhados pela IA, etc).
-5. O retorno DEVE ser estritamente um JSON no formato abaixo:
+2. Se o modo de texto for INFOGRAPHIC ou BOTH, planeje a cena como um cartaz publicitário comercial de agência, com espaço para headline no topo, selo de qualidade, cards com ícones de diferenciais e rodapé de slogan, com margem segura de respiro de 20%.
+3. Se o modo de texto for TITLE_ONLY, planeje espaço harmônico no topo para tipografia de headline comercial nítida.
+4. Se o modo de texto for NONE, a composição deve ser puramente fotográfica sem textos.
+5. Não invente certificações falsas ou preços não citados.
+6. Se o briefing for ambíguo, gere até 2 variações adicionais no array "alternativeDirections".
+7. Campo "avoid": liste elementos indesejáveis (ex: texto borrado, membros extras, logotipos bizarros).
+8. O retorno DEVE ser estritamente um JSON no formato abaixo:
 
 {
   "visualDirection": {
@@ -155,7 +160,16 @@ REGRAS RÍGIDAS DE DIREÇÃO VISUAL:
       brandApplication: useBrandKit
         ? "Harmonização sutil com as cores e linguagem visual do negócio."
         : "Estilo limpo e neutro sem aplicação de marca.",
-      textLayers: textMode === "none" ? [] : [{ text: brief.slice(0, 40), type: "headline" }],
+      textLayers:
+        textOverlayMode === "NONE" || textMode === "none"
+          ? []
+          : textOverlayMode === "TITLE_ONLY"
+          ? [{ text: productHeadline || brief.slice(0, 40), type: "headline" }]
+          : [
+              { text: productHeadline || brief.slice(0, 40), type: "headline" },
+              { text: "Qualidade Garantida", type: "badge" },
+              { text: "Diferenciais Exclusivos", type: "subtitle" },
+            ],
       avoid: ["textos desenhados com artefatos", "logotipos distorcidos", "baixa resolução"],
     };
 

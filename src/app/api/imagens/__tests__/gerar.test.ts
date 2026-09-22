@@ -99,4 +99,46 @@ describe("API /api/imagens/gerar", () => {
     expect(data.assets[0].status).toBe("ready");
     expect(data.assets[0].originalUrl).toContain("firebasestorage.googleapis.com");
   });
+
+  it("aplica diretivas de infográfico publicitário e slogan no prompt compilado", async () => {
+    let capturedPrompt = "";
+    global.fetch = vi.fn().mockImplementation((url, options) => {
+      if (options && options.body) {
+        try {
+          const parsed = JSON.parse(options.body as string);
+          if (parsed.prompt) {
+            capturedPrompt = parsed.prompt;
+          }
+        } catch {}
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          data: [{ b64_json: Buffer.from("fake-infographic-image").toString("base64") }],
+        }),
+      });
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/gerar", {
+      method: "POST",
+      body: JSON.stringify({
+        brief: "Crie um post publicitário para o novo espresso aromático",
+        format: "square",
+        quantity: 1,
+        style: "photographic",
+        textOverlayMode: "INFOGRAPHIC",
+        productHeadline: "O MELHOR CAFÉ DA CIDADE",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    // Verifica que o prompt para o modelo de imagem recebeu as diretivas de infográfico e slogan
+    expect(capturedPrompt).toContain("O MELHOR CAFÉ DA CIDADE");
+    expect(capturedPrompt).toContain("INFOGRAPHIC POSTER MODE");
+  });
 });
+

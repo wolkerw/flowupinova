@@ -46,6 +46,7 @@ import {
   type AIImageObjective,
   type AIImageFormat,
   type AIImageStyle,
+  type AIImageTextOverlayMode,
   type VisualDirectionResponse,
   type AIImageAssetDoc,
   FORMAT_DIMENSIONS,
@@ -200,6 +201,34 @@ const STYLE_OPTIONS: {
   },
 ];
 
+const TEXT_OVERLAY_OPTIONS: {
+  id: AIImageTextOverlayMode;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  icon: string;
+}[] = [
+  {
+    id: "NONE",
+    title: "Fotografia Pura",
+    subtitle: "Apenas a foto realista limpa em alta qualidade, sem letras ou textos desenhados.",
+    icon: "🖼️",
+  },
+  {
+    id: "TITLE_ONLY",
+    title: "Título Comercial / Slogan",
+    subtitle: "Adiciona uma frase de impacto, slogan ou chamada promocional em destaque no topo da arte.",
+    icon: "✨",
+  },
+  {
+    id: "INFOGRAPHIC",
+    title: "Infográfico Completo",
+    subtitle: "Cartaz comercial completo: título de destaque, selo de qualidade, cards com ícones de diferenciais e rodapé.",
+    badge: "Recomendado para Anúncios",
+    icon: "📊",
+  },
+];
+
 const PLACEHOLDER_PROMPTS = [
   "Crie uma foto publicitária de um bolo de chocolate em uma mesa elegante.",
   "Transforme esta foto de celular em uma imagem profissional para vender no Instagram.",
@@ -222,6 +251,8 @@ export function ImageGenerationWizard() {
   const [format, setFormat] = useState<AIImageFormat>("portrait");
   const [style, setStyle] = useState<AIImageStyle>("automatic");
   const quantity = 1;
+  const [textOverlayMode, setTextOverlayMode] = useState<AIImageTextOverlayMode>("NONE");
+  const [productHeadline, setProductHeadline] = useState<string>("");
   const [useBrandKit, setUseBrandKit] = useState<boolean>(true);
   const [textMode, setTextMode] = useState<"none" | "editable_layers" | "rasterized">("none");
   const [negativeInstructions, setNegativeInstructions] = useState<string>("");
@@ -283,6 +314,8 @@ export function ImageGenerationWizard() {
           if (parsed.objective) setObjective(parsed.objective);
           if (parsed.format) setFormat(parsed.format);
           if (parsed.style) setStyle(parsed.style);
+          if (parsed.textOverlayMode) setTextOverlayMode(parsed.textOverlayMode);
+          if (parsed.productHeadline) setProductHeadline(parsed.productHeadline);
           if (parsed.useBrandKit !== undefined) setUseBrandKit(parsed.useBrandKit);
           if (parsed.visualDirection) setVisualDirection(parsed.visualDirection);
         }
@@ -331,6 +364,8 @@ export function ImageGenerationWizard() {
           format,
           style,
           quantity,
+          textOverlayMode,
+          productHeadline,
           useBrandKit,
           visualDirection,
           updatedAt: new Date().toISOString(),
@@ -340,7 +375,7 @@ export function ImageGenerationWizard() {
         // ignore
       }
     }
-  }, [brief, objective, format, style, quantity, useBrandKit, visualDirection]);
+  }, [brief, objective, format, style, textOverlayMode, productHeadline, useBrandKit, visualDirection]);
 
   // Upload de arquivos locais para o Storage
   const handleUploadImageFile = async (file: File): Promise<string> => {
@@ -391,7 +426,9 @@ export function ImageGenerationWizard() {
           format,
           style,
           useBrandKit,
-          textMode,
+          textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
+          textOverlayMode,
+          productHeadline,
           negativeInstructions,
           referenceAssetUrls: uploadedRefUrls,
           sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
@@ -455,7 +492,9 @@ export function ImageGenerationWizard() {
           quantity,
           style,
           useBrandKit,
-          textMode,
+          textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
+          textOverlayMode,
+          productHeadline,
           negativeInstructions,
           visualDirection: activeVisualDirection,
           referenceAssetUrls: referenceImages.map((r) => r.url).filter(Boolean),
@@ -513,6 +552,9 @@ export function ImageGenerationWizard() {
           quantity: 1,
           style,
           useBrandKit,
+          textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
+          textOverlayMode,
+          productHeadline,
           visualDirection,
           retryAssetId: assetId,
           existingGenerationId: generationId,
@@ -940,11 +982,76 @@ export function ImageGenerationWizard() {
                 </div>
               </div>
 
-              {/* 5. Fotos para Ajudar a IA (Opcional, com suporte a Ctrl+V) */}
+              {/* 5. Textos e Infográficos na Imagem */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm sm:text-base font-bold text-gray-900">
+                    5. Textos e Infográficos na Imagem
+                  </Label>
+                  <span className="text-xs text-gray-400">Diagramação visual</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {TEXT_OVERLAY_OPTIONS.map((tOpt) => {
+                    const isSelected = textOverlayMode === tOpt.id;
+                    return (
+                      <div
+                        key={tOpt.id}
+                        role="button"
+                        data-testid={`overlay-mode-${tOpt.id}`}
+                        onClick={() => setTextOverlayMode(tOpt.id)}
+                        className={`flex flex-col justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer relative text-left min-h-[96px] ${
+                          isSelected
+                            ? "border-accent bg-orange-50/40 shadow-sm"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-slate-50/50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{tOpt.icon}</span>
+                            <span className="text-sm font-bold text-gray-900">{tOpt.title}</span>
+                          </div>
+                          {isSelected ? (
+                            <CheckCircle2 className="h-5 w-5 text-accent shrink-0" />
+                          ) : (
+                            <div className="h-5 w-5 rounded-full border-2 border-gray-300 shrink-0" />
+                          )}
+                        </div>
+
+                        <p className="text-xs text-gray-500 leading-snug mt-2">
+                          {tOpt.subtitle}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {(textOverlayMode === "TITLE_ONLY" || textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") && (
+                  <div
+                    className="p-4 rounded-2xl bg-orange-50/50 border border-orange-200/80 space-y-2 mt-2 transition-all"
+                  >
+                    <Label htmlFor="headlineInput" className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                      <span>Frase, Título ou Slogan do Anúncio (Opcional)</span>
+                    </Label>
+                    <Input
+                      id="headlineInput"
+                      value={productHeadline}
+                      onChange={(e) => setProductHeadline(e.target.value)}
+                      placeholder="Ex: 30% OFF NO SEGUNDO ITEM ou QUALIDADE QUE TRANSFORMA"
+                      className="rounded-xl border-orange-200 bg-white text-sm focus:border-accent focus:ring-accent"
+                    />
+                    <p className="text-[11px] text-gray-500">
+                      💡 Se deixar em branco, a própria inteligência artificial criará uma frase comercial chamativa com base na sua ideia.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Fotos para Ajudar a IA (Opcional, com suporte a Ctrl+V) */}
               <div className="space-y-3 pt-2">
                 <div>
                   <Label className="text-sm sm:text-base font-bold text-gray-900">
-                    5. Fotos para ajudar a IA (Opcional)
+                    6. Fotos para ajudar a IA (Opcional)
                   </Label>
                   <p className="text-xs text-gray-500">
                     Você pode tirar uma foto pelo celular, selecionar um arquivo ou colar com Ctrl+V.
@@ -1079,7 +1186,7 @@ export function ImageGenerationWizard() {
                 </div>
               </div>
 
-              {/* 6. BrandKit (Cores e Marca da Empresa) */}
+              {/* 7. BrandKit (Cores e Marca da Empresa) */}
               <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1088,7 +1195,7 @@ export function ImageGenerationWizard() {
                     </div>
                     <div>
                       <Label htmlFor="brandKitToggle" className="text-sm font-bold text-gray-900 cursor-pointer block">
-                        Usar identidade do negócio (BrandKit)
+                        7. Usar identidade do negócio (BrandKit)
                       </Label>
                       <span className="text-xs text-gray-500">
                         A IA usará suas cores institucionais e elementos cadastrados

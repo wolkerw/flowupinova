@@ -56,6 +56,8 @@ export interface VisualDirectionResponse {
   avoid: string[];
 }
 
+export type AIImageTextOverlayMode = "NONE" | "TITLE_ONLY" | "INFOGRAPHIC" | "BOTH";
+
 export interface AIImageGenerationRequest {
   type: "general_image";
   brief: string;
@@ -72,6 +74,8 @@ export interface AIImageGenerationRequest {
   sourceAssetIds?: string[];
   sourceAssetUrls?: string[];
   textMode: "none" | "editable_layers" | "rasterized";
+  textOverlayMode?: AIImageTextOverlayMode;
+  productHeadline?: string;
   negativeInstructions?: string;
   selectedVisualDirectionIndex?: number;
   visualDirection?: VisualDirectionResponse;
@@ -108,6 +112,8 @@ export interface AIImageGenerationDoc {
   referenceAssetUrls?: string[];
   sourceAssetIds?: string[];
   sourceAssetUrls?: string[];
+  textOverlayMode?: AIImageTextOverlayMode;
+  productHeadline?: string;
   safetyStatus?: "approved" | "flagged" | "rejected";
   errorCode?: string | null;
   createdAt: any;

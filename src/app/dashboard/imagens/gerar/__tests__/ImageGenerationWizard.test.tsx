@@ -42,6 +42,14 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+// Mock framer-motion para evitar problemas de animação em testes JSDOM
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
+
 describe("ImageGenerationWizard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -100,4 +108,77 @@ describe("ImageGenerationWizard", () => {
       expect(screen.getByRole("button", { name: /Gerar Agora com IA/i })).toBeInTheDocument();
     });
   });
+
+  it("permite selecionar modo de infográfico e preencher headline comercial", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        visualDirection: {
+          interpretation: "Cartaz infográfico",
+          subject: "Café especial",
+          composition: "Infográfico com badges",
+          lighting: "Estúdio comercial",
+          style: "Design gráfico",
+          brandApplication: "",
+          textLayers: [],
+          avoid: [],
+        },
+        alternativeDirections: [],
+      }),
+    });
+
+    render(<ImageGenerationWizard />);
+
+    // Verifica que a seção de Textos e Infográficos está visível
+    expect(screen.getByText(/5\. Textos e Infográficos na Imagem/i)).toBeInTheDocument();
+    expect(screen.getByText(/Fotografia Pura/i)).toBeInTheDocument();
+    expect(screen.getByText(/Título Comercial/i)).toBeInTheDocument();
+    expect(screen.getByText(/Infográfico Completo/i)).toBeInTheDocument();
+
+    // Clica no card de Infográfico Completo
+    const infographicCard = screen.getByTestId("overlay-mode-INFOGRAPHIC");
+    fireEvent.click(infographicCard);
+
+    // O campo de título/slogan opcional deve aparecer
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(/30% OFF NO SEGUNDO ITEM/i)
+      ).toBeInTheDocument();
+    });
+
+    const headlineInput = screen.getByPlaceholderText(/30% OFF NO SEGUNDO ITEM/i);
+    // Digita um slogan
+    fireEvent.change(headlineInput, { target: { value: "O MELHOR GRÃO DO BRASIL" } });
+
+    // Preenche briefing e avança
+    const textarea = screen.getByPlaceholderText(
+      /Crie uma foto publicitária de um bolo de chocolate/i
+    );
+    fireEvent.change(textarea, {
+      target: { value: "Post de promoção de café artesanal" },
+    });
+
+    const continueBtn = screen.getByRole("button", {
+      name: /Continuar com este briefing/i,
+    });
+    fireEvent.click(continueBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/imagens/direcao-visual",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"textOverlayMode":"INFOGRAPHIC"'),
+        })
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/imagens/direcao-visual",
+        expect.objectContaining({
+          body: expect.stringContaining('"productHeadline":"O MELHOR GRÃO DO BRASIL"'),
+        })
+      );
+    });
+  });
 });
+
