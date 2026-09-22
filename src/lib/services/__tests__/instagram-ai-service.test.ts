@@ -2,26 +2,30 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generateInstagramAIResponse } from "../instagram-ai-service";
 
 vi.mock("@/lib/firebase-admin", () => {
+  const mockDocs = [
+    {
+      id: "topic_planos",
+      data: () => ({
+        title: "Planos e Preços Oficiais NumVapt",
+        content: "• Mensal: R$ 490,00\n• Anual: 12x de R$ 399,00 (+ 1 mês grátis)",
+        isActive: true,
+        order: 1,
+      }),
+    },
+  ];
+
+  const mockQuery = {
+    get: vi.fn().mockResolvedValue({
+      empty: false,
+      docs: mockDocs,
+    }),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+  };
+
   return {
     adminDb: {
-      collection: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            get: vi.fn().mockResolvedValue({
-              empty: false,
-              docs: [
-                {
-                  data: () => ({
-                    title: "Planos e Preços",
-                    content: "• Mensal: R$ 490,00\n• Anual: 12x de R$ 399,00 (+ 1 mês grátis)",
-                    isActive: true,
-                  }),
-                },
-              ],
-            }),
-          }),
-        }),
-      }),
+      collection: vi.fn().mockReturnValue(mockQuery),
     },
   };
 });

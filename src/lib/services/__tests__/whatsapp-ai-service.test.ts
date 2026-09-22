@@ -1,26 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/firebase-admin", () => ({
-  adminDb: {
-    collection: vi.fn(() => ({
-      where: vi.fn(() => ({
-        orderBy: vi.fn(() => ({
-          get: vi.fn().mockResolvedValue({
-            empty: false,
-            docs: [
-              {
-                data: () => ({
-                  title: "Planos e Preços",
-                  content: "Plano Anual: R$ 400/mês",
-                }),
-              },
-            ],
-          }),
-        })),
-      })),
-    })),
-  },
-}));
+vi.mock("@/lib/firebase-admin", () => {
+  const mockDocs = [
+    {
+      id: "topic_planos",
+      data: () => ({
+        title: "Planos e Preços",
+        content: "Plano Anual: R$ 399/mês",
+        isActive: true,
+        order: 1,
+      }),
+    },
+  ];
+
+  const mockQuery = {
+    get: vi.fn().mockResolvedValue({
+      empty: false,
+      docs: mockDocs,
+    }),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+  };
+
+  return {
+    adminDb: {
+      collection: vi.fn(() => mockQuery),
+    },
+  };
+});
 
 import { generateWhatsAppAIResponse } from "../whatsapp-ai-service";
 

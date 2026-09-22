@@ -1,5 +1,6 @@
 import type { WhatsAppMessage, WhatsAppAIResponse } from "@/lib/types/whatsapp";
 import { adminDb } from "@/lib/firebase-admin";
+import { DEFAULT_KNOWLEDGE_TOPICS } from "@/app/api/admin/whatsapp/knowledge/route";
 
 interface GenerateWhatsAppAIOptions {
   incomingMessage: string;
@@ -28,19 +29,23 @@ Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no númer
 4. Mantenha as mensagens concisas: entre 2 a 3 parágrafos curtos, fáceis e gostosos de ler no celular.
 5. Sempre termine com uma pergunta leve e natural para manter a conversa fluindo.
 
-# BASE DE CONHECIMENTO NUMVAPT
+# TABELA OFICIAL DE PLANOS E PREÇOS (INEGOCIÁVEL - NUNCA INVENTE OUTROS VALORES)
+• *Plano Mensal*: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
+• *Plano Trimestral*: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
+• *Plano Semestral*: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
+• *Plano Anual*: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando 13 meses de acesso, o valor mensal equivale a R$ 308,30/mês). Cobrança mensal debitada mês a mês sem travar o limite total de crédito no cartão.
+• Link Oficial de Cadastro para Teste Grátis: https://numvapt.com.br/acesso/cadastro (ou Checkout Direto: https://www.asaas.com/c/2unkh9p3t6apkcvm)
 
+# REGRA CRÍTICA ANTI-ALUCINAÇÃO
+- NUNCA invente outros planos, preços, cupons ou URLs não oficiais (como /planos).
+- Esclareça que todos os planos no cartão utilizam Assinatura Mensal Recorrente, de modo que NÃO comprometem o limite total do cartão de crédito.
+
+# BASE DE CONHECIMENTO NUMVAPT
 • O que a NumVapt faz:
   - Cria posts completos com texto persuasivo, legendas e hashtags em segundos.
   - Gera imagens profissionais de produtos contextualizados com IA.
   - Vitrine Digital automatizada para vendas.
   - Agendamento e publicação automática de posts no Instagram e LinkedIn.
-
-• Planos e Preços Oficiais:
-  - *Plano Mensal*: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
-  - *Plano Trimestral*: R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
-  - *Plano Semestral*: R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
-  - *Plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis)*: R$ 400,00/mês (13 meses de acesso — 12 meses pagos + 1 mês bônus gratuito!). Cobrança mensal de R$ 400,00 debitada mês a mês sem travar o limite total de R$ 4.800 no cartão do cliente. Link Oficial: https://www.asaas.com/c/2unkh9p3t6apkcvm
 
 • Formas de Pagamento:
   - Cartão de crédito (modalidade mensal recorrente sem bloquear o limite total).
@@ -113,23 +118,39 @@ export async function generateWhatsAppAIResponse(
     parts: currentParts,
   });
 
-  // Busca dinamicamente a Central de Conhecimento configurada no Admin
-  let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION;
+  // Busca dinamicamente a Central de Conhecimento configurada no Firestore
+  // Usamos get() simples sem where/orderBy compostos para NUNCA falhar por falta de índice no Firebase!
+  let dynamicKnowledge = "";
   try {
-    const snap = await adminDb
-      .collection("whatsapp_knowledge_base")
-      .where("isActive", "==", true)
-      .orderBy("order", "asc")
-      .get();
+    const snap = await adminDb.collection("whatsapp_knowledge_base").get();
 
     if (!snap.empty) {
-      const dynamicContent = snap.docs
-        .map((d) => `### ${d.data().title?.toUpperCase()}\n${d.data().content}`)
-        .join("\n\n");
-      dynamicInstruction += "\n\n# INFORMAÇÕES ATUALIZADAS EM TEMPO REAL PELO ADMIN:\n" + dynamicContent;
+      const activeTopics = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }))
+        .filter((t) => t.isActive !== false)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      if (activeTopics.length > 0) {
+        dynamicKnowledge = activeTopics
+          .map((t) => `### ${t.title?.toUpperCase()}\n${t.content}`)
+          .join("\n\n");
+      }
     }
   } catch (kbErr) {
-    console.warn("[WHATSAPP_AI] Falha ao carregar conhecimento dinâmico, usando instrução base:", kbErr);
+    console.warn("[WHATSAPP_AI] Falha ao carregar conhecimento do Firestore, usando fallback padrão:", kbErr);
+  }
+
+  // Se o Firestore não tiver tópicos ou estiver vazio, usa os tópicos oficiais padrão
+  if (!dynamicKnowledge) {
+    dynamicKnowledge = DEFAULT_KNOWLEDGE_TOPICS
+      .filter((t) => t.isActive)
+      .map((t) => `### ${t.title?.toUpperCase()}\n${t.content}`)
+      .join("\n\n");
+  }
+
+  let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION;
+  if (dynamicKnowledge) {
+    dynamicInstruction += "\n\n# INFORMAÇÕES ATUALIZADAS EM TEMPO REAL PELA CENTRAL DE CONHECIMENTO:\n" + dynamicKnowledge;
   }
 
   const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
@@ -148,7 +169,7 @@ export async function generateWhatsAppAIResponse(
           },
           contents: conversationParts,
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.5,
             maxOutputTokens: 2500,
             thinkingConfig: {
               thinkingBudget: 150,
