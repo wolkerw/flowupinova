@@ -45,6 +45,11 @@ describe("HomePageContent", () => {
     expect(screen.getByText("Termos de Uso")).toBeInTheDocument();
     expect(screen.getByText("Privacidade")).toBeInTheDocument();
 
+    // Verifica informações institucionais de credibilidade (Razão Social e CNPJ)
+    expect(screen.getByText(/Todos os direitos reservados/i)).toBeInTheDocument();
+    expect(screen.getByText("Flowup Soluções e Inovações Ltda")).toBeInTheDocument();
+    expect(screen.getByText(/62\.826\.950\/0001-27/)).toBeInTheDocument();
+
     // Garante que o link/botão de suporte foi removido
     expect(screen.queryByRole("link", { name: /^suporte$/i })).not.toBeInTheDocument();
 

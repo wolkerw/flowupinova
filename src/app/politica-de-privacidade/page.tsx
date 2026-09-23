@@ -128,8 +128,14 @@ export default function PrivacyPolicyPage() {
             </p>
 
             <p className="mt-8 text-sm text-slate-500">
-              Esta política é efetiva a partir de <strong>30 July 2026 17:00</strong>
+              Esta política é efetiva a partir de <strong>30 July 2026 17:00</strong> e mantida por{" "}
+              <strong>Flowup Soluções e Inovações Ltda</strong> (CNPJ: 62.826.950/0001-27).
             </p>
+          </div>
+
+          <div className="mt-8 border-t border-slate-200 pt-6 text-center text-xs text-slate-500">
+            <p className="font-semibold text-slate-700">Flowup Soluções e Inovações Ltda • CNPJ: 62.826.950/0001-27</p>
+            <p className="mt-1">© {new Date().getFullYear()} NumVapt. Todos os direitos reservados.</p>
           </div>
         </div>
       </div>

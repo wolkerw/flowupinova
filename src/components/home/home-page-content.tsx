@@ -34,15 +34,24 @@ export function HomePageContent() {
       <footer className="border-t border-slate-800 bg-slate-900 py-12 text-slate-400">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/logo-numvapt.png"
-                alt="NumVapt Logo"
-                width={120}
-                height={32}
-                className="object-contain"
-              />
-              <span className="text-sm">© {new Date().getFullYear()}</span>
+            <div className="flex flex-col items-center gap-1.5 md:items-start">
+              <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                <Image
+                  src="/logo-numvapt.png"
+                  alt="NumVapt Logo"
+                  width={120}
+                  height={32}
+                  className="object-contain"
+                />
+                <span className="text-sm text-slate-400">
+                  © {new Date().getFullYear()} - Todos os direitos reservados
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                <span className="font-medium text-slate-300">Flowup Soluções e Inovações Ltda</span>
+                <span className="mx-2 text-slate-600">•</span>
+                <span>CNPJ: 62.826.950/0001-27</span>
+              </p>
             </div>
 
             <div className="flex gap-6 text-sm">
