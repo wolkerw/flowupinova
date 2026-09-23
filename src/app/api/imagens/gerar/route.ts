@@ -265,10 +265,10 @@ export async function POST(request: NextRequest) {
         ` [COMMERCIAL HEADLINE POSTER DIRECTIVE: Render a bold, clean, high-contrast headline typography in Portuguese (pt-BR) ${headlineDirective} at the top of the image with elegant lettering and safe margins. No icons or complex infographic elements, just the hero subject and the bold headline.]`;
     } else if (effectiveOverlayMode === "INFOGRAPHIC" || effectiveOverlayMode === "BOTH") {
       const headlineDirective = productHeadline?.trim()
-        ? `headline "${productHeadline.trim()}"`
-        : "an impactful commercial headline";
+        ? `with the main headline: "${productHeadline.trim()}"`
+        : "with an impactful context-tailored commercial headline in Portuguese (pt-BR)";
       compiledPrompt +=
-        ` [CREATIVE ADVERTISING AGENCY DIRECTIVE — INFOGRAPHIC POSTER MODE: Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful ${headlineDirective} at the top in Portuguese with decorative badge, (2) A floating quality or guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The subject prominently staged in high fidelity with atmospheric depth, (4) A structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese micro-descriptions tailored to the subject, (5) An elegant slogan bar. 20% safe margins from all borders.]`;
+        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC ADVERTISING DIRECTIVE: The AI has full creative freedom to decide the most fitting, modern infographic composition in Portuguese (pt-BR) tailored dynamically to the subject and briefing. Do NOT force a repetitive rigid template (do NOT force a mandatory warranty seal or a fixed row of 4 bottom cards). Instead, adapt the layout organically: (a) Floating feature callout tags with clean pointers to product/subject details, (b) A sleek modern sidebar or clean list of 2-4 key benefits with minimalist line icons, (c) Glassmorphic stat badges, step-by-step points, or comparative visual highlights, or (d) Integrated editorial typography harmonized naturally with the scene. Include: ${headlineDirective} in bold high-contrast Portuguese typography, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders.]`;
     }
 
     if (negativeInstructions) {

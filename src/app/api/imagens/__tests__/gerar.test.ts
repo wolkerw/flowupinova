@@ -148,9 +148,9 @@ describe("API /api/imagens/gerar", () => {
     const data = await res.json();
     expect(data.success).toBe(true);
 
-    // Verifica que o prompt para o modelo de imagem recebeu as diretivas de infográfico e slogan
+    // Verifica que o prompt para o modelo de imagem recebeu as diretivas de infográfico
     expect(capturedPrompt).toContain("O MELHOR CAFÉ DA CIDADE");
-    expect(capturedPrompt).toContain("INFOGRAPHIC POSTER MODE");
+    expect(capturedPrompt).toContain("DYNAMIC & CONTEXTUAL INFOGRAPHIC");
   });
 
   it("injeta cores, diretrizes da marca e personas no prompt quando useBrandKit é true", async () => {
