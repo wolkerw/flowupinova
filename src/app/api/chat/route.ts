@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
+import { getAIModelsConfig } from "@/lib/services/system-ai-config-service";
 import { z } from "zod";
 
 const chatSchema = z.object({
@@ -31,7 +32,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = chatSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.issues?.[0]?.message ?? parsed.error.message },
+        { status: 400 }
+      );
     }
 
     const { message, history, userId } = parsed.data;
@@ -395,7 +399,8 @@ DIRETRIZES DE ESTILO:
     ];
 
     // 5. Disparar chamada REST com Fallback Automático Resiliente
-    const modelsToTry = [
+    const aiConfig = await getAIModelsConfig();
+    const baseModels = [
       "gemini-2.5-flash",
       "gemini-2.0-flash",
       "gemini-1.5-flash",
@@ -403,6 +408,11 @@ DIRETRIZES DE ESTILO:
       "gemini-pro-latest",
       "gemini-3.5-flash",
       "gemini-3.1-flash-lite",
+    ];
+    const configuredChatModel = aiConfig.chatModel || "gemini-2.5-flash";
+    const modelsToTry = [
+      configuredChatModel,
+      ...baseModels.filter((m) => m !== configuredChatModel),
     ];
     let aiResponseText = "";
     let lastError: any = null;

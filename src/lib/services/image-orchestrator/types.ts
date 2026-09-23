@@ -57,6 +57,7 @@ export interface Gpt5PlannerInput {
   textOverlayMode?: AIImageTextOverlayMode;
   productHeadline?: string;
   negativeInstructions?: string;
+  preferredModel?: string;
 }
 
 export interface Gpt5VisualPlanResponse {

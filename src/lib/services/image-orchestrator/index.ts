@@ -22,6 +22,7 @@ import type {
   BrandSnapshot,
 } from "@/lib/types/ai-image-general";
 import type { OrchestratorPlanResult, ReferenceInput } from "./types";
+import { getAIModelsConfig } from "@/lib/services/system-ai-config-service";
 
 export interface OrchestratorRunParams {
   userId: string;
@@ -84,7 +85,10 @@ export class ImageGenerationOrchestrator {
       brief: normalized.cleanedBrief,
     });
 
-    // 4. Etapa Intermediária: Planejamento Visual com GPT-5
+    // 4. Carregar Configuração Dinâmica dos Modelos de IA
+    const aiConfig = await getAIModelsConfig();
+
+    // 5. Etapa Intermediária: Planejamento Visual com GPT-5 (ou modelo configurado)
     const planResult = await Gpt5PromptPlanner.plan({
       userBrief: normalized.cleanedBrief,
       compiledPrompt: params.compiledPrompt,
@@ -100,14 +104,16 @@ export class ImageGenerationOrchestrator {
       textOverlayMode: normalized.requestedTextOverlayMode,
       productHeadline: normalized.explicitHeadline,
       negativeInstructions: normalized.negativeDirectives,
+      preferredModel: aiConfig.generalPlannerModel,
     });
 
-    // 5. Etapa de Renderização: Geração de Imagem com GPT Image 2
+    // 6. Etapa de Renderização: Geração de Imagem com GPT Image 2 (ou modelo configurado)
     const execution = await ImageModelExecutor.execute({
       prompt: planResult.compiledImagePrompt,
       format,
       references,
-      preferredModel: "gpt-image-2",
+      preferredModel: aiConfig.generalImageModel,
+      fallbackModel: aiConfig.generalFallbackImageModel,
     });
 
     // 6. Validação e Padronização de Dimensões (sem cortes destrutivos)

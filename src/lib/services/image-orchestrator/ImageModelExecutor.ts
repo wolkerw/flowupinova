@@ -28,6 +28,7 @@ export class ImageModelExecutor {
     format: AIImageFormat;
     references?: ReferenceInput[];
     preferredModel?: string;
+    fallbackModel?: string;
   }): Promise<{
     imageBuffer: Buffer;
     modelUsed: string;
@@ -59,11 +60,23 @@ export class ImageModelExecutor {
       ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
       : "";
 
+    const getProvider = (m: string): "openai" | "google" =>
+      m.startsWith("gemini") ? "google" : "openai";
+
+    const preferred = params.preferredModel || "gpt-image-2";
+    const fallback = params.fallbackModel || "gemini-2.5-flash-image";
+
+    const defaultList = [
+      { provider: "openai" as const, model: "gpt-image-2" },
+      { provider: "google" as const, model: "gemini-2.5-flash-image" },
+      { provider: "google" as const, model: "gemini-3-pro-image" },
+      { provider: "google" as const, model: "gemini-2.0-flash-exp" },
+    ];
+
     const modelsToTry = [
-      { provider: "openai", model: params.preferredModel || "gpt-image-2" },
-      { provider: "google", model: "gemini-2.5-flash-image" },
-      { provider: "google", model: "gemini-3-pro-image" },
-      { provider: "google", model: "gemini-2.0-flash-exp" },
+      { provider: getProvider(preferred), model: preferred },
+      { provider: getProvider(fallback), model: fallback },
+      ...defaultList.filter((d) => d.model !== preferred && d.model !== fallback),
     ];
 
     let lastError = "";

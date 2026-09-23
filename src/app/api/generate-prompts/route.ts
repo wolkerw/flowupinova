@@ -4,6 +4,7 @@ import { Jimp } from "jimp";
 import { safeParseJSON } from "@/lib/utils";
 import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
 import { getAuthenticatedUser } from "@/lib/api-auth";
+import { getAIModelsConfig } from "@/lib/services/system-ai-config-service";
 
 export const maxDuration = 300;
 
@@ -743,7 +744,8 @@ HOWEVER:
 `;
 
     // 2. Chamar a API do Gemini com Fallback Resiliente
-    const modelsToTry = [
+    const aiConfig = await getAIModelsConfig();
+    const baseModels = [
       "gemini-2.5-flash",
       "gemini-2.0-flash",
       "gemini-1.5-flash",
@@ -752,6 +754,11 @@ HOWEVER:
       "gemini-3.5-flash",
       "gemini-3.1-flash-lite",
       "gemini-2.5-pro",
+    ];
+    const configuredPromptsModel = aiConfig.promptsIdeaModel || "gemini-2.5-flash";
+    const modelsToTry = [
+      configuredPromptsModel,
+      ...baseModels.filter((m) => m !== configuredPromptsModel),
     ];
     let aiResponseText = "";
     let lastError: any = null;

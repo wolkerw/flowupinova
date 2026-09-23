@@ -41,9 +41,12 @@ REGRAS DE CONFORMIDADE:
     // Tentar planejamento com GPT-5 (ou gpt-4o como fallback) com suporte multimodal se houver foto
     if (openaiKey) {
       try {
-        const userPrompt = this.buildUserPrompt(input);
-        const modelsToTry = ["gpt-5", "gpt-4o", "gpt-4o-mini"];
+        const baseModels = ["gpt-5", "gpt-4o", "gpt-4o-mini"];
+        const modelsToTry = input.preferredModel
+          ? [input.preferredModel, ...baseModels.filter((m) => m !== input.preferredModel)]
+          : baseModels;
 
+        const userPrompt = this.buildUserPrompt(input);
         // Montar mensagem multimodal para que o GPT-5 veja a foto real do sujeito/produto
         const contentParts: any[] = [{ type: "text", text: userPrompt }];
         const subjectImage = input.referenceImages?.find((r) => r.role === "product_subject");
