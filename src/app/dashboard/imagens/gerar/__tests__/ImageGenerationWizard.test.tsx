@@ -67,6 +67,8 @@ describe("ImageGenerationWizard", () => {
       screen.getByRole("button", { name: /Gerar Imagem com IA/i })
     ).toBeInTheDocument();
     expect(screen.getByText(/Usar identidade do negócio/i)).toBeInTheDocument();
+    // Confirma que a opção de seleção de estilo visual foi removida do front-end
+    expect(screen.queryByText(/Qual o estilo visual/i)).toBeNull();
   });
 
   it("avança diretamente para a Etapa 2 ao preencher briefing e chamar gerar", async () => {
@@ -117,7 +119,7 @@ describe("ImageGenerationWizard", () => {
     });
   });
 
-  it("permite selecionar modo de infográfico, preencher headline e enviar direto para a geração", async () => {
+  it("traz modo de infográfico completo selecionado por padrão como primeira opção e permite preencher headline", async () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -129,24 +131,16 @@ describe("ImageGenerationWizard", () => {
 
     render(<ImageGenerationWizard />);
 
-    // Verifica que a seção de Textos e Infográficos está visível
-    expect(screen.getByText(/5\. Textos e Infográficos na Imagem/i)).toBeInTheDocument();
-    expect(screen.getByText(/Fotografia Pura/i)).toBeInTheDocument();
-    expect(screen.getByText(/Título Comercial/i)).toBeInTheDocument();
+    // Verifica que a seção de Textos e Infográficos está visível como item 4
+    expect(screen.getByText(/4\. Textos e Infográficos na Imagem/i)).toBeInTheDocument();
     expect(screen.getByText(/Infográfico Completo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Título Comercial/i)).toBeInTheDocument();
+    expect(screen.getByText(/Fotografia Pura/i)).toBeInTheDocument();
 
-    // Clica no card de Infográfico Completo
-    const infographicCard = screen.getByTestId("overlay-mode-INFOGRAPHIC");
-    fireEvent.click(infographicCard);
-
-    // O campo de título/slogan opcional deve aparecer
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(/30% OFF NO SEGUNDO ITEM/i)
-      ).toBeInTheDocument();
-    });
-
+    // Como Infográfico Completo já vem selecionado por padrão, o campo de slogan/título já está visível
     const headlineInput = screen.getByPlaceholderText(/30% OFF NO SEGUNDO ITEM/i);
+    expect(headlineInput).toBeInTheDocument();
+
     // Digita um slogan
     fireEvent.change(headlineInput, { target: { value: "O MELHOR GRÃO DO BRASIL" } });
 
@@ -169,6 +163,13 @@ describe("ImageGenerationWizard", () => {
         expect.objectContaining({
           method: "POST",
           body: expect.stringContaining('"textOverlayMode":"INFOGRAPHIC"'),
+        })
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/imagens/gerar",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"style":"automatic"'),
         })
       );
       expect(global.fetch).toHaveBeenCalledWith(

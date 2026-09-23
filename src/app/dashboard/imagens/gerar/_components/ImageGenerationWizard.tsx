@@ -156,59 +156,7 @@ export function getFormatAspectClass(fmt: AIImageFormat): string {
   }
 }
 
-// Opções de Estilo Visual com linguagem desmistificada
-const STYLE_OPTIONS: {
-  id: AIImageStyle;
-  label: string;
-  icon: string;
-  desc: string;
-  badge?: string;
-}[] = [
-  {
-    id: "automatic",
-    label: "Automático (IA decide)",
-    icon: "✨",
-    desc: "A inteligência artificial escolhe o melhor estilo de acordo com a sua ideia",
-    badge: "Recomendado",
-  },
-  {
-    id: "photographic",
-    label: "Foto Realista de Estúdio",
-    icon: "📸",
-    desc: "Foto nítida com luz profissional, como em um estúdio fotográfico",
-  },
-  {
-    id: "editorial",
-    label: "Elegante & Premium",
-    icon: "💎",
-    desc: "Visual sofisticado de revista, estética minimalista e cores nobres",
-  },
-  {
-    id: "illustration",
-    label: "Desenho / Ilustração",
-    icon: "🖌️",
-    desc: "Arte moderna e colorida, perfeita para conteúdos criativos e didáticos",
-  },
-  {
-    id: "3d",
-    label: "3D de Produto",
-    icon: "🧊",
-    desc: "Modelagem 3D limpa e brilhante, ideal para embalagens e tecnologia",
-  },
-  {
-    id: "minimalist",
-    label: "Minimalista Clean",
-    icon: "⚪",
-    desc: "Fundo suave e foco absoluto no produto ou elemento central",
-  },
-  {
-    id: "cinematic",
-    label: "Estilo Cinema",
-    icon: "🎬",
-    desc: "Iluminação dramática, sombras marcantes e atmosfera de filme",
-  },
-];
-
+// Opções de Diagramação e Textos na Imagem (Infográfico Completo como padrão e primeira opção)
 const TEXT_OVERLAY_OPTIONS: {
   id: AIImageTextOverlayMode;
   title: string;
@@ -217,10 +165,11 @@ const TEXT_OVERLAY_OPTIONS: {
   icon: string;
 }[] = [
   {
-    id: "NONE",
-    title: "Fotografia Pura",
-    subtitle: "Apenas a foto realista limpa em alta qualidade, sem letras ou textos desenhados.",
-    icon: "🖼️",
+    id: "INFOGRAPHIC",
+    title: "Infográfico Completo",
+    subtitle: "Cartaz comercial completo: título de destaque, selo de qualidade, cards com ícones de diferenciais e rodapé.",
+    badge: "Recomendado para Anúncios",
+    icon: "📊",
   },
   {
     id: "TITLE_ONLY",
@@ -229,11 +178,10 @@ const TEXT_OVERLAY_OPTIONS: {
     icon: "✨",
   },
   {
-    id: "INFOGRAPHIC",
-    title: "Infográfico Completo",
-    subtitle: "Cartaz comercial completo: título de destaque, selo de qualidade, cards com ícones de diferenciais e rodapé.",
-    badge: "Recomendado para Anúncios",
-    icon: "📊",
+    id: "NONE",
+    title: "Fotografia Pura",
+    subtitle: "Apenas a foto realista limpa em alta qualidade, sem letras ou textos desenhados.",
+    icon: "🖼️",
   },
 ];
 
@@ -259,7 +207,7 @@ export function ImageGenerationWizard() {
   const [format, setFormat] = useState<AIImageFormat>("portrait");
   const [style, setStyle] = useState<AIImageStyle>("automatic");
   const quantity = 1;
-  const [textOverlayMode, setTextOverlayMode] = useState<AIImageTextOverlayMode>("NONE");
+  const [textOverlayMode, setTextOverlayMode] = useState<AIImageTextOverlayMode>("INFOGRAPHIC");
   const [productHeadline, setProductHeadline] = useState<string>("");
   const [useBrandKit, setUseBrandKit] = useState<boolean>(true);
   const [textMode, setTextMode] = useState<"none" | "editable_layers" | "rasterized">("none");
@@ -322,7 +270,7 @@ export function ImageGenerationWizard() {
     setObjective("commercial");
     setFormat("portrait");
     setStyle("automatic");
-    setTextOverlayMode("NONE");
+    setTextOverlayMode("INFOGRAPHIC");
     setTextMode("none");
     setUseBrandKit(true);
     setShowAdvanced(false);
@@ -849,54 +797,11 @@ export function ImageGenerationWizard() {
                 </div>
               </div>
 
-              {/* 4. Estilo Visual Desejado */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm sm:text-base font-bold text-gray-900">
-                    4. Qual o estilo visual que você prefere?
-                  </Label>
-                  <span className="text-xs text-gray-400">Aparência da imagem</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {STYLE_OPTIONS.map((st) => {
-                    const isSelected = style === st.id;
-                    return (
-                      <div
-                        key={st.id}
-                        onClick={() => setStyle(st.id)}
-                        className={`flex flex-col justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer relative text-left min-h-[96px] ${
-                          isSelected
-                            ? "border-accent bg-orange-50/40 shadow-sm"
-                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-slate-50/50"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{st.icon}</span>
-                            <span className="text-sm font-bold text-gray-900">{st.label}</span>
-                          </div>
-                          {isSelected ? (
-                            <CheckCircle2 className="h-5 w-5 text-accent shrink-0" />
-                          ) : (
-                            <div className="h-5 w-5 rounded-full border-2 border-gray-300 shrink-0" />
-                          )}
-                        </div>
-
-                        <p className="text-xs text-gray-500 leading-snug mt-2">
-                          {st.desc}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 5. Textos e Infográficos na Imagem */}
+              {/* 4. Textos e Infográficos na Imagem */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm sm:text-base font-bold text-gray-900">
-                    5. Textos e Infográficos na Imagem
+                    4. Textos e Infográficos na Imagem
                   </Label>
                   <span className="text-xs text-gray-400">Diagramação visual</span>
                 </div>
@@ -1438,10 +1343,6 @@ export function ImageGenerationWizard() {
                         <div className="flex justify-between">
                           <span className="font-bold text-gray-700">Formato:</span>
                           <span className="font-semibold">{FORMAT_DIMENSIONS[format].label}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-gray-700">Estilo:</span>
-                          <span className="capitalize">{style}</span>
                         </div>
                       </div>
 
