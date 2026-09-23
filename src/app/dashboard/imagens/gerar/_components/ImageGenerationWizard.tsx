@@ -1236,14 +1236,7 @@ export function ImageGenerationWizard() {
                 {asset.status === "ready" && (
                   <CardContent className="p-4 sm:p-5 bg-white space-y-3">
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-gray-800 text-sm">Sua Imagem</span>
-                        {(asset.modelUsed || asset.promptMetadata?.modelUsed) && (
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-semibold text-slate-600 bg-slate-50 border-slate-200">
-                            {asset.modelUsed || asset.promptMetadata?.modelUsed}
-                          </Badge>
-                        )}
-                      </div>
+                      <span className="font-bold text-gray-800 text-sm">Sua Imagem</span>
                       <span className="font-medium text-gray-500">{FORMAT_DIMENSIONS[format].label}</span>
                     </div>
 
@@ -1339,24 +1332,6 @@ export function ImageGenerationWizard() {
                           alt="Imagem Pronta"
                           className="h-full w-full object-cover"
                         />
-                      </div>
-
-                      {/* Metadados Exibidos */}
-                      <div className="space-y-1.5 text-xs text-gray-600 bg-white p-3 rounded-xl border border-gray-100">
-                        <div className="flex justify-between">
-                          <span className="font-bold text-gray-700">Ideia:</span>
-                          <span className="truncate max-w-[200px] text-gray-800">{brief}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-gray-700">Formato:</span>
-                          <span className="font-semibold">{FORMAT_DIMENSIONS[format].label}</span>
-                        </div>
-                        {(readyAsset.modelUsed || readyAsset.promptMetadata?.modelUsed) && (
-                          <div className="flex justify-between">
-                            <span className="font-bold text-gray-700">Modelo IA:</span>
-                            <span className="font-semibold text-primary">{readyAsset.modelUsed || readyAsset.promptMetadata?.modelUsed}</span>
-                          </div>
-                        )}
                       </div>
 
                       <div className="flex flex-col gap-2 pt-1">
