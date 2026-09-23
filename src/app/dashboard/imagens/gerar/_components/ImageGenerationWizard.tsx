@@ -1220,7 +1220,7 @@ export function ImageGenerationWizard() {
                     <img
                       src={asset.originalUrl}
                       alt={asset.altText || "Sua Imagem"}
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-cover"
                     />
                   ) : null}
 
@@ -1236,7 +1236,14 @@ export function ImageGenerationWizard() {
                 {asset.status === "ready" && (
                   <CardContent className="p-4 sm:p-5 bg-white space-y-3">
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span className="font-bold text-gray-800 text-sm">Sua Imagem</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-gray-800 text-sm">Sua Imagem</span>
+                        {(asset.modelUsed || asset.promptMetadata?.modelUsed) && (
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-semibold text-slate-600 bg-slate-50 border-slate-200">
+                            {asset.modelUsed || asset.promptMetadata?.modelUsed}
+                          </Badge>
+                        )}
+                      </div>
                       <span className="font-medium text-gray-500">{FORMAT_DIMENSIONS[format].label}</span>
                     </div>
 
@@ -1330,7 +1337,7 @@ export function ImageGenerationWizard() {
                         <img
                           src={readyAsset.originalUrl}
                           alt="Imagem Pronta"
-                          className="h-full w-full object-contain"
+                          className="h-full w-full object-cover"
                         />
                       </div>
 
@@ -1344,6 +1351,12 @@ export function ImageGenerationWizard() {
                           <span className="font-bold text-gray-700">Formato:</span>
                           <span className="font-semibold">{FORMAT_DIMENSIONS[format].label}</span>
                         </div>
+                        {(readyAsset.modelUsed || readyAsset.promptMetadata?.modelUsed) && (
+                          <div className="flex justify-between">
+                            <span className="font-bold text-gray-700">Modelo IA:</span>
+                            <span className="font-semibold text-primary">{readyAsset.modelUsed || readyAsset.promptMetadata?.modelUsed}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-2 pt-1">

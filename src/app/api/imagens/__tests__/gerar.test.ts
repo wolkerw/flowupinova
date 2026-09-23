@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "../gerar/route";
 import { NextRequest } from "next/server";
 
+vi.mock("jimp", () => ({
+  Jimp: {
+    read: vi.fn().mockResolvedValue({
+      width: 1080,
+      height: 1350,
+      crop: vi.fn(),
+      resize: vi.fn(),
+      getBuffer: vi.fn().mockResolvedValue(Buffer.from("processed-image-bytes")),
+    }),
+  },
+}));
+
 vi.mock("@/lib/api-auth", () => ({
   getAuthenticatedUser: vi.fn().mockResolvedValue({
     uid: "test-user-123",
@@ -175,7 +187,68 @@ describe("API /api/imagens/gerar", () => {
     expect(capturedPrompt).toContain("Personal Branding / Foto de Perfil Executiva");
   });
 
-  it("prioriza Google Gemini Multimodal e anexa a imagem/logo enviada em parts quando sourceAssetUrls for fornecido", async () => {
+  it("prioriza gpt-image-2 mesmo quando houver foto/logomarca e registra modelUsed no Firestore", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+    process.env.OPENAI_API_KEY = "test-openai-key";
+
+    let openAiCalled = false;
+    let openAiPayload: any = null;
+
+    global.fetch = vi.fn().mockImplementation((url, options) => {
+      const urlStr = String(url);
+      if (urlStr.includes("http://example.com/logo.png")) {
+        return Promise.resolve({
+          ok: true,
+          headers: new Headers({ "content-type": "image/png" }),
+          arrayBuffer: async () => Buffer.from("fake-png-logo-bytes"),
+        });
+      }
+      if (urlStr.includes("api.openai.com/v1/images/generations")) {
+        openAiCalled = true;
+        if (options && options.body) {
+          try {
+            openAiPayload = JSON.parse(options.body as string);
+          } catch {}
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: [{ b64_json: Buffer.from("generated-openai-image").toString("base64") }],
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ data: [{ b64_json: "" }] }),
+      });
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/gerar", {
+      method: "POST",
+      body: JSON.stringify({
+        brief: "Crie uma arte cartoon para a NumVapt usando a logomarca oficial enviada",
+        sourceAssetUrls: ["http://example.com/logo.png"],
+        format: "portrait",
+        quantity: 1,
+        useBrandKit: true,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(openAiCalled).toBe(true);
+    expect(openAiPayload.model).toBe("gpt-image-2");
+    expect(openAiPayload.size).toBe("1024x1536"); // Enquadramento vertical para portrait
+    expect(openAiPayload.prompt).toContain("FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5");
+    expect(openAiPayload.prompt).toContain("IDENTIDADE VISUAL E LOGOMARCA");
+
+    const data = await res.json();
+    expect(data.assets[0].modelUsed).toBe("gpt-image-2");
+    expect(data.assets[0].promptMetadata.modelUsed).toBe("gpt-image-2");
+  });
+
+  it("executa fallback para Google Gemini Multimodal se a OpenAI falhar e anexa imagem em parts", async () => {
     process.env.GEMINI_API_KEY = "test-gemini-key";
     process.env.OPENAI_API_KEY = "test-openai-key";
 
@@ -189,6 +262,14 @@ describe("API /api/imagens/gerar", () => {
           ok: true,
           headers: new Headers({ "content-type": "image/png" }),
           arrayBuffer: async () => Buffer.from("fake-png-logo-bytes"),
+        });
+      }
+      if (urlStr.includes("api.openai.com/v1/images/generations")) {
+        // Simular falha da OpenAI para forçar fallback sem atraso de retry
+        return Promise.resolve({
+          ok: false,
+          status: 400,
+          text: async () => "OpenAI client error",
         });
       }
       if (urlStr.includes("generativelanguage.googleapis.com")) {
@@ -247,6 +328,9 @@ describe("API /api/imagens/gerar", () => {
     expect(parts[1].inlineData).toBeDefined();
     expect(parts[1].inlineData.mimeType).toBe("image/png");
     expect(parts[1].inlineData.data).toBe(Buffer.from("fake-png-logo-bytes").toString("base64"));
+
+    const data = await res.json();
+    expect(data.assets[0].modelUsed).toBe("gemini-2.5-flash-image");
   });
 });
 

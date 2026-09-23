@@ -118,6 +118,7 @@ export interface AIImageGenerationDoc {
   sourceAssetUrls?: string[];
   textOverlayMode?: AIImageTextOverlayMode;
   productHeadline?: string;
+  modelUsed?: string;
   safetyStatus?: "approved" | "flagged" | "rejected";
   errorCode?: string | null;
   createdAt: any;
@@ -133,6 +134,7 @@ export interface AIImageAssetDoc {
   originalUrl?: string;
   previewUrl?: string;
   thumbnailUrl?: string;
+  modelUsed?: string;
   editorState?: any;
   promptMetadata?: {
     fullPrompt?: string;

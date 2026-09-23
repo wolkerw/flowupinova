@@ -8,8 +8,11 @@ import type {
   AIImageGenerationDoc,
   AIImageAssetDoc,
   AIImageTextOverlayMode,
+  AIImageFormat,
   BrandSnapshot,
 } from "@/lib/types/ai-image-general";
+import { FORMAT_DIMENSIONS } from "@/lib/types/ai-image-general";
+import { Jimp } from "jimp";
 import { matchStyleCommands } from "@/lib/services/style-command-matcher";
 import crypto from "crypto";
 import fs from "fs";
@@ -146,7 +149,22 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Montar prompt otimizado para o motor visual
-    let compiledPrompt = brief;
+    const FORMAT_PROMPT_DIRECTIVES: Record<AIImageFormat, string> = {
+      portrait:
+        "[FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5 (1080x1350)]: A arte DEVE ser estritamente vertical com proporção 4:5 (1080 de largura por 1350 de altura). Composição vertical expandida ocupando 100% da tela, sem barras pretas no topo ou rodapé, sem letterboxing. Distribua harmonicamente os elementos ao longo de toda a altura vertical.",
+      story:
+        "[FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — STORY / REELS 9:16 (1080x1920)]: A arte DEVE ser estritamente vertical com proporção 9:16 (1080 de largura por 1920 de altura). Composição vertical imersiva ocupando 100% da altura da tela, sem barras pretas laterais ou verticais.",
+      square:
+        "[FORMATO E ENQUADRAMENTO QUADRADO MANDATÓRIO (1:1 / 1080x1080)]: A arte DEVE ter proporção quadrada 1:1 (1080x1080).",
+      landscape:
+        "[FORMATO E ENQUADRAMENTO HORIZONTAL MANDATÓRIO (16:9 / 1920x1080)]: A arte DEVE ter proporção horizontal widescreen 16:9 (1920x1080).",
+      banner:
+        "[FORMATO E ENQUADRAMENTO PANORÂMICO MANDATÓRIO (1200x630)]: A arte DEVE ter proporção panorâmica horizontal de 1200x630 pixels.",
+    };
+
+    let compiledPrompt = FORMAT_PROMPT_DIRECTIVES[format]
+      ? `${FORMAT_PROMPT_DIRECTIVES[format]} ${brief}`
+      : brief;
     let effectiveNegative = negativeInstructions || "";
 
     // 3.1. Matching inteligente de comandos de estilo da central (/bokeh, /naturallight, etc.)
@@ -405,24 +423,15 @@ export async function POST(request: NextRequest) {
       let modelUsed = "";
       let lastError = "";
 
-      // Prioridade de Modelos:
-      // Se houver imagens de entrada (logomarca oficial, foto de sujeito/produto ou referências),
-      // o Google Gemini Multimodal DEVE ser o primeiro a ser executado, pois ele recebe os buffers
-      // reais das imagens via inlineData no parts[]. A OpenAI (gpt-image-2) é text-only na API
-      // images/generations e NUNCA deve ser chamada com prioridade quando há imagens reais para preservar.
+      // Conforme diretriz do usuário: SEMPRE priorizar gpt-image-2 (OpenAI) mesmo ao enviar foto ou logomarca.
+      // Se houver oscilação ou erro, os modelos Google Gemini multimodal assumem como fallback.
       const hasInputImages = inputImages.length > 0;
-      const modelsToTry = hasInputImages
-        ? [
-            { provider: "google", model: "gemini-2.5-flash-image" },
-            { provider: "google", model: "gemini-3-pro-image" },
-            { provider: "google", model: "gemini-2.0-flash-exp" },
-            { provider: "openai", model: "gpt-image-2" },
-          ]
-        : [
-            { provider: "openai", model: "gpt-image-2" },
-            { provider: "google", model: "gemini-2.5-flash-image" },
-            { provider: "google", model: "gemini-3-pro-image" },
-          ];
+      const modelsToTry = [
+        { provider: "openai", model: "gpt-image-2" },
+        { provider: "google", model: "gemini-2.5-flash-image" },
+        { provider: "google", model: "gemini-3-pro-image" },
+        { provider: "google", model: "gemini-2.0-flash-exp" },
+      ];
 
       for (const cfg of modelsToTry) {
         try {
@@ -430,13 +439,16 @@ export async function POST(request: NextRequest) {
             const nativeSize =
               format === "portrait"
                 ? "1024x1536"
-                : format === "square"
-                  ? "1024x1024"
-                  : "1536x1024";
+                : format === "story"
+                  ? "1024x1792"
+                  : format === "square"
+                    ? "1024x1024"
+                    : "1536x1024";
 
             let openaiPrompt = compiledPrompt;
             if (hasInputImages) {
-              openaiPrompt += ` [MANDATE: Respect the official brand identity "${brandSnapshot?.name || "NumVapt"}". Do not invent arbitrary logos, cartoon rockets or fake symbols.]`;
+              const brandName = brandSnapshot?.name || "NumVapt";
+              openaiPrompt += ` [MANDATÓRIO — IDENTIDADE VISUAL E LOGOMARCA]: Incorpore a identidade oficial da marca "${brandName}". Respeite as cores oficiais${brandSnapshot?.primaryColor ? ` (primária ${brandSnapshot.primaryColor})` : ""}${brandSnapshot?.secondaryColor ? ` e (secundária ${brandSnapshot.secondaryColor})` : ""}. Reproduza com máxima clareza e fidelidade a estética e logomarca oficial da marca. NÃO desenhe logotipos substitutos arbitrários, foguetes caricatos ou mascotes fictícios.]`;
             }
 
             const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
@@ -495,20 +507,64 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            const res = await fetchWithRetry(geminiUrl, {
+            const getGeminiAspectRatio = (fmt: AIImageFormat): string => {
+              switch (fmt) {
+                case "portrait":
+                  return "3:4";
+                case "story":
+                  return "9:16";
+                case "landscape":
+                case "banner":
+                  return "16:9";
+                case "square":
+                default:
+                  return "1:1";
+              }
+            };
+
+            const geminiPayload: any = {
+              contents: [{ parts }],
+              generationConfig: {
+                responseModalities: ["IMAGE"],
+                imageConfig: {
+                  aspectRatio: getGeminiAspectRatio(format),
+                },
+              },
+            };
+
+            let res = await fetchWithRetry(geminiUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+              body: JSON.stringify(geminiPayload),
+            });
+
+            // Se o modelo rejeitar imageConfig (status 400), tentar sem imageConfig como fallback
+            if (!res.ok && res.status === 400) {
+              const fallbackPayload = {
                 contents: [{ parts }],
                 generationConfig: {
                   responseModalities: ["IMAGE"],
                 },
-              }),
-            });
+              };
+              res = await fetchWithRetry(geminiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(fallbackPayload),
+              });
+            }
 
             if (res.ok) {
               const data = await res.json();
-              const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              let b64: string | undefined;
+              const candidateParts = data?.candidates?.[0]?.content?.parts;
+              if (Array.isArray(candidateParts)) {
+                for (const part of candidateParts) {
+                  if (part?.inlineData?.data) {
+                    b64 = part.inlineData.data;
+                    break;
+                  }
+                }
+              }
               if (b64) {
                 imageBuffer = Buffer.from(b64, "base64");
                 modelUsed = cfg.model;
@@ -540,7 +596,39 @@ export async function POST(request: NextRequest) {
         return failedAsset;
       }
 
-      // 5. Salvar arquivo físico no Firebase Storage
+      // 5. Pós-processamento e Padronização Exata de Proporção e Resolução via Jimp
+      const targetDims = FORMAT_DIMENSIONS[format] || { width: 1080, height: 1350 };
+      const targetWidth = targetDims.width;
+      const targetHeight = targetDims.height;
+      const targetRatio = targetWidth / targetHeight;
+
+      try {
+        const jimpImage = await Jimp.read(imageBuffer);
+        const currentRatio = jimpImage.width / jimpImage.height;
+
+        // Se a proporção diferir por mais de 1%, faz crop centralizado para eliminar barras pretas e excessos
+        if (Math.abs(currentRatio - targetRatio) > 0.01) {
+          let cropW = jimpImage.width;
+          let cropH = jimpImage.height;
+          if (currentRatio > targetRatio) {
+            // Imagem mais larga que o alvo: corta as bordas laterais
+            cropW = Math.round(jimpImage.height * targetRatio);
+          } else {
+            // Imagem mais alta que o alvo: corta excesso no topo/base
+            cropH = Math.round(jimpImage.width / targetRatio);
+          }
+          const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
+          const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
+          jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
+        }
+
+        jimpImage.resize({ w: targetWidth, h: targetHeight });
+        imageBuffer = await jimpImage.getBuffer("image/png");
+      } catch (jimpErr) {
+        console.warn("[IMAGENS_GERAR] Aviso no ajuste de dimensões/proporção via Jimp:", jimpErr);
+      }
+
+      // 6. Salvar arquivo físico no Firebase Storage
       const storageFilePath = `${userStoragePath}/aiImages/image_${slotId}.png`;
       const fileRef = bucket.file(storageFilePath);
       const downloadToken = crypto.randomUUID();
@@ -553,6 +641,7 @@ export async function POST(request: NextRequest) {
             userId,
             generationId,
             source: "ai_image_general",
+            modelUsed: modelUsed || "gpt-image-2",
           },
         },
       });
@@ -561,7 +650,7 @@ export async function POST(request: NextRequest) {
         storageFilePath
       )}?alt=media&token=${downloadToken}`;
 
-      // 6. Cadastrar automaticamente na Galeria do usuário (mediaGallery)
+      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) anotando modelUsed
       const galleryMediaId = `ai_img_${slotId}`;
       const galleryRef = adminDb.doc(`users/${userId}/mediaGallery/${galleryMediaId}`);
 
@@ -576,8 +665,9 @@ export async function POST(request: NextRequest) {
         type: "image",
         style,
         format,
-        width,
-        height,
+        width: targetWidth,
+        height: targetHeight,
+        modelUsed: modelUsed || "gpt-image-2",
         generationId,
         assetId: slotId,
         brandKitApplied: Boolean(useBrandKit && brandSnapshot),
@@ -586,7 +676,7 @@ export async function POST(request: NextRequest) {
         fileName: `image_${slotId}.png`,
       });
 
-      // 7. Salvar status no aiImageAsset
+      // 8. Salvar status no aiImageAsset anotando modelUsed na raiz e no promptMetadata
       const readyAsset: AIImageAssetDoc = {
         id: slotId,
         generationId,
@@ -596,9 +686,10 @@ export async function POST(request: NextRequest) {
         originalUrl: publicUrl,
         previewUrl: publicUrl,
         galleryAssetId: galleryMediaId,
+        modelUsed: modelUsed || "gpt-image-2",
         promptMetadata: {
           fullPrompt: compiledPrompt,
-          modelUsed: modelUsed || "dall-e-3",
+          modelUsed: modelUsed || "gpt-image-2",
           ...(visualDirection ? { visualDirection } : {}),
         },
         altText: titleSummary,
@@ -612,7 +703,7 @@ export async function POST(request: NextRequest) {
         userId,
         type: "image_generation",
         provider: modelUsed.includes("gemini") ? "google_gemini" : "openai",
-        model: modelUsed || "dall-e-3",
+        model: modelUsed || "gpt-image-2",
         costUsd: 0.04,
       });
 
@@ -636,8 +727,11 @@ export async function POST(request: NextRequest) {
           ? "partial_ready"
           : "failed";
 
+    const primaryModelUsed = generatedAssets.find((a) => a.modelUsed)?.modelUsed || "gpt-image-2";
+
     await genDocRef.update({
       status: finalStatus,
+      modelUsed: primaryModelUsed,
       updatedAt: new Date().toISOString(),
     });
 
