@@ -239,8 +239,9 @@ describe("API /api/imagens/gerar", () => {
     expect(res.status).toBe(200);
     expect(openAiCalled).toBe(true);
     expect(openAiPayload.model).toBe("gpt-image-2");
-    expect(openAiPayload.size).toBe("1024x1536"); // Enquadramento vertical para portrait
+    expect(openAiPayload.size).toBe("1024x1280"); // Proporção nativa 4:5 exata para a OpenAI
     expect(openAiPayload.prompt).toContain("FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5");
+    expect(openAiPayload.prompt).toContain("ZERO TEXT CROPPING & SAFE MARGINS");
     expect(openAiPayload.prompt).toContain("IDENTIDADE VISUAL E LOGOMARCA");
 
     const data = await res.json();

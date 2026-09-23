@@ -86,14 +86,14 @@ export const PostPreview = ({
           {instagramConnection?.instagramUsername || "seu_usuario"}
         </span>
       </div>
-      <div className="group relative aspect-[3/4] bg-gray-200 overflow-hidden">
+      <div className="group relative aspect-[4/5] bg-slate-950 flex items-center justify-center overflow-hidden">
         {imageUrl ? (
           <>
             {isVideo ? (
               <video
                 key={`ig-prev-${imageUrl}`}
                 src={imageUrl}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
                 autoPlay
                 muted
                 loop
@@ -104,7 +104,7 @@ export const PostPreview = ({
                 src={imageUrl}
                 alt="Preview"
                 layout="fill"
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
                 unoptimized
               />
             )}

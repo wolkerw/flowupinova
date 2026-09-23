@@ -151,15 +151,15 @@ export async function POST(request: NextRequest) {
     // 3. Montar prompt otimizado para o motor visual
     const FORMAT_PROMPT_DIRECTIVES: Record<AIImageFormat, string> = {
       portrait:
-        "[FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5 (1080x1350)]: A arte DEVE ser estritamente vertical com proporção 4:5 (1080 de largura por 1350 de altura). Composição vertical expandida ocupando 100% da tela, sem barras pretas no topo ou rodapé, sem letterboxing. Distribua harmonicamente os elementos ao longo de toda a altura vertical.",
+        "[FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5 (1080x1350)]: A arte DEVE ser estritamente vertical com proporção 4:5 (1080 de largura por 1350 de altura). [CRITICAL RULE — ZERO TEXT CROPPING & SAFE MARGINS]: É TERMINANTEMENTE PROIBIDO cortar qualquer texto, título, logo ou elemento gráfico. Mantenha uma margem de segurança e respiro generosa de 15% a 20% em todas as bordas (topo, rodapé e laterais). Todos os textos, títulos, cartões e logos DEVEM estar totalmente contidos dentro da área segura central, 100% visíveis e legíveis, com espaçamento confortável das extremidades.",
       story:
-        "[FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — STORY / REELS 9:16 (1080x1920)]: A arte DEVE ser estritamente vertical com proporção 9:16 (1080 de largura por 1920 de altura). Composição vertical imersiva ocupando 100% da altura da tela, sem barras pretas laterais ou verticais.",
+        "[FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — STORY / REELS 9:16 (1080x1920)]: A arte DEVE ser estritamente vertical com proporção 9:16 (1080 de largura por 1920 de altura). [CRITICAL RULE — ZERO TEXT CROPPING & SAFE MARGINS]: É TERMINANTEMENTE PROIBIDO cortar qualquer texto ou encostar nas bordas. Mantenha 15% a 20% de margem segura e respiro no topo, rodapé e laterais. Todo o conteúdo textual deve estar contido com folga na área segura central.",
       square:
-        "[FORMATO E ENQUADRAMENTO QUADRADO MANDATÓRIO (1:1 / 1080x1080)]: A arte DEVE ter proporção quadrada 1:1 (1080x1080).",
+        "[FORMATO E ENQUADRAMENTO QUADRADO MANDATÓRIO (1:1 / 1080x1080)]: A arte DEVE ter proporção quadrada 1:1. [CRITICAL RULE — ZERO TEXT CROPPING]: Textos e logos com margens seguras de respiro de 15%, sem encostar ou cortar nas bordas.",
       landscape:
-        "[FORMATO E ENQUADRAMENTO HORIZONTAL MANDATÓRIO (16:9 / 1920x1080)]: A arte DEVE ter proporção horizontal widescreen 16:9 (1920x1080).",
+        "[FORMATO E ENQUADRAMENTO HORIZONTAL MANDATÓRIO (16:9 / 1920x1080)]: A arte DEVE ter proporção horizontal widescreen 16:9 com margens seguras de respiro de 15% para todos os textos e elementos.",
       banner:
-        "[FORMATO E ENQUADRAMENTO PANORÂMICO MANDATÓRIO (1200x630)]: A arte DEVE ter proporção panorâmica horizontal de 1200x630 pixels.",
+        "[FORMATO E ENQUADRAMENTO PANORÂMICO MANDATÓRIO (1200x630)]: A arte DEVE ter proporção panorâmica horizontal com margens seguras de respiro de 15% para todos os textos e elementos.",
     };
 
     let compiledPrompt = FORMAT_PROMPT_DIRECTIVES[format]
@@ -438,12 +438,14 @@ export async function POST(request: NextRequest) {
           if (cfg.provider === "openai" && openaiKey) {
             const nativeSize =
               format === "portrait"
-                ? "1024x1536"
+                ? "1024x1280"
                 : format === "story"
-                  ? "1024x1792"
+                  ? "864x1536"
                   : format === "square"
                     ? "1024x1024"
-                    : "1536x1024";
+                    : format === "banner"
+                      ? "1200x624"
+                      : "1792x1024";
 
             let openaiPrompt = compiledPrompt;
             if (hasInputImages) {
@@ -596,36 +598,18 @@ export async function POST(request: NextRequest) {
         return failedAsset;
       }
 
-      // 5. Pós-processamento e Padronização Exata de Proporção e Resolução via Jimp
+      // 5. Pós-processamento e Padronização Exata de Resolução via Jimp (SEM CORTES DESTRUTIVOS)
       const targetDims = FORMAT_DIMENSIONS[format] || { width: 1080, height: 1350 };
       const targetWidth = targetDims.width;
       const targetHeight = targetDims.height;
-      const targetRatio = targetWidth / targetHeight;
 
       try {
         const jimpImage = await Jimp.read(imageBuffer);
-        const currentRatio = jimpImage.width / jimpImage.height;
-
-        // Se a proporção diferir por mais de 1%, faz crop centralizado para eliminar barras pretas e excessos
-        if (Math.abs(currentRatio - targetRatio) > 0.01) {
-          let cropW = jimpImage.width;
-          let cropH = jimpImage.height;
-          if (currentRatio > targetRatio) {
-            // Imagem mais larga que o alvo: corta as bordas laterais
-            cropW = Math.round(jimpImage.height * targetRatio);
-          } else {
-            // Imagem mais alta que o alvo: corta excesso no topo/base
-            cropH = Math.round(jimpImage.width / targetRatio);
-          }
-          const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
-          const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
-          jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
-        }
-
+        // Redimensiona diretamente para as dimensões finais alvo, preservando 100% de todo o conteúdo sem cortar textos
         jimpImage.resize({ w: targetWidth, h: targetHeight });
         imageBuffer = await jimpImage.getBuffer("image/png");
       } catch (jimpErr) {
-        console.warn("[IMAGENS_GERAR] Aviso no ajuste de dimensões/proporção via Jimp:", jimpErr);
+        console.warn("[IMAGENS_GERAR] Aviso no ajuste de dimensões via Jimp:", jimpErr);
       }
 
       // 6. Salvar arquivo físico no Firebase Storage

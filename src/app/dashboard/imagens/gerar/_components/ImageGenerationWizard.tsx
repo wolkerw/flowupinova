@@ -1220,7 +1220,7 @@ export function ImageGenerationWizard() {
                     <img
                       src={asset.originalUrl}
                       alt={asset.altText || "Sua Imagem"}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : null}
 
@@ -1330,7 +1330,7 @@ export function ImageGenerationWizard() {
                         <img
                           src={readyAsset.originalUrl}
                           alt="Imagem Pronta"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       </div>
 
