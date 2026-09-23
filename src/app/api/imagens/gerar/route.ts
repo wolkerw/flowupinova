@@ -12,6 +12,8 @@ import type {
 } from "@/lib/types/ai-image-general";
 import { matchStyleCommands } from "@/lib/services/style-command-matcher";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 export const maxDuration = 300;
 
@@ -213,6 +215,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Se houver logomarca oficial no BrandKit ou enviada pelo usuário
+      if (brandSnapshot.logoUrl || (sourceAssetUrls && sourceAssetUrls.length > 0)) {
+        brandDirectives.push(
+          `Logomarca Oficial Obrigatória: É TERMINANTEMENTE PROIBIDO inventar, alterar ou desenhar novos logotipos, símbolos substitutos, balões ou mascotes. Reproduza EXATAMENTE a logomarca oficial anexada, respeitando sua tipografia, cores e formato originais.`
+        );
+      }
+
       if (brandDirectives.length > 0) {
         compiledPrompt += ` [INTEGRAÇÃO BRANDKIT & IDENTIDADE: ${brandDirectives.join(" — ")}]`;
       }
@@ -284,6 +293,111 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 3.3. Coleta e pré-carregamento de imagens de entrada (Logo oficial, sujeito/produto, referências)
+    interface InputImagePart {
+      url?: string;
+      mimeType: string;
+      base64: string;
+      role: "source_or_logo" | "reference";
+    }
+    const inputImages: InputImagePart[] = [];
+
+    const detectMimeType = (url: string, buf: Buffer): string => {
+      if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+        return "image/png";
+      }
+      if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+        return "image/jpeg";
+      }
+      if (url.toLowerCase().includes(".png")) return "image/png";
+      if (url.toLowerCase().includes(".webp")) return "image/webp";
+      return "image/jpeg";
+    };
+
+    // 1. Fotos de Sujeito / Produto ou Logomarca enviadas pelo usuário (sourceAssetUrls)
+    if (sourceAssetUrls && sourceAssetUrls.length > 0) {
+      for (const srcUrl of sourceAssetUrls.slice(0, 2)) {
+        try {
+          const res = await fetch(srcUrl);
+          if (res.ok) {
+            const ab = await res.arrayBuffer();
+            const buf = Buffer.from(ab);
+            inputImages.push({
+              url: srcUrl,
+              mimeType: detectMimeType(srcUrl, buf),
+              base64: buf.toString("base64"),
+              role: "source_or_logo",
+            });
+          }
+        } catch (e) {
+          console.warn("[IMAGENS_GERAR] Erro ao carregar foto do sujeito/produto:", e);
+        }
+      }
+    }
+
+    // 2. Logomarca oficial do BrandKit se não estiver já na lista de sourceAssetUrls
+    if (useBrandKit && brandSnapshot?.logoUrl && !sourceAssetUrls.includes(brandSnapshot.logoUrl)) {
+      try {
+        const res = await fetch(brandSnapshot.logoUrl);
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          const buf = Buffer.from(ab);
+          inputImages.push({
+            url: brandSnapshot.logoUrl,
+            mimeType: detectMimeType(brandSnapshot.logoUrl, buf),
+            base64: buf.toString("base64"),
+            role: "source_or_logo",
+          });
+        }
+      } catch (e) {
+        console.warn("[IMAGENS_GERAR] Erro ao carregar logo do BrandKit:", e);
+      }
+    }
+
+    // 3. Fallback inteligente: Logomarca Oficial NumVapt local do sistema
+    // Se a marca for NumVapt (ou o briefing citar NumVapt) e nenhuma logo foi carregada até aqui
+    const hasSourceOrLogo = inputImages.some((img) => img.role === "source_or_logo");
+    if (
+      !hasSourceOrLogo &&
+      ((brandSnapshot?.name && brandSnapshot.name.toLowerCase().includes("numvapt")) ||
+        brief.toLowerCase().includes("numvapt"))
+    ) {
+      try {
+        const localLogoPath = path.join(process.cwd(), "public", "logo-numvapt.png");
+        if (fs.existsSync(localLogoPath)) {
+          const logoBuf = fs.readFileSync(localLogoPath);
+          inputImages.unshift({
+            mimeType: "image/png",
+            base64: logoBuf.toString("base64"),
+            role: "source_or_logo",
+          });
+        }
+      } catch (localLogoErr) {
+        console.warn("[IMAGENS_GERAR] Erro ao carregar logo local NumVapt:", localLogoErr);
+      }
+    }
+
+    // 4. Fotos de Referência / Inspiração (referenceAssetUrls)
+    if (referenceAssetUrls && referenceAssetUrls.length > 0) {
+      for (const refUrl of referenceAssetUrls.slice(0, 2)) {
+        try {
+          const res = await fetch(refUrl);
+          if (res.ok) {
+            const ab = await res.arrayBuffer();
+            const buf = Buffer.from(ab);
+            inputImages.push({
+              url: refUrl,
+              mimeType: detectMimeType(refUrl, buf),
+              base64: buf.toString("base64"),
+              role: "reference",
+            });
+          }
+        } catch (e) {
+          console.warn("[IMAGENS_GERAR] Erro ao carregar imagem de referência:", e);
+        }
+      }
+    }
+
     // 4. Função auxiliar de geração de imagem individual
     const generateSingleImage = async (slotId: string, orderIndex: number): Promise<AIImageAssetDoc> => {
       const slotRef = adminDb.doc(`users/${userId}/aiImageAssets/${slotId}`);
@@ -291,12 +405,24 @@ export async function POST(request: NextRequest) {
       let modelUsed = "";
       let lastError = "";
 
-      // Pipeline multimodelo de alta qualidade: 1. OpenAI gpt-image-2 -> 2. Gemini 2.5 Flash Image -> 3. Gemini 3 Pro Image
-      const modelsToTry = [
-        { provider: "openai", model: "gpt-image-2" },
-        { provider: "google", model: "gemini-2.5-flash-image" },
-        { provider: "google", model: "gemini-3-pro-image" },
-      ];
+      // Prioridade de Modelos:
+      // Se houver imagens de entrada (logomarca oficial, foto de sujeito/produto ou referências),
+      // o Google Gemini Multimodal DEVE ser o primeiro a ser executado, pois ele recebe os buffers
+      // reais das imagens via inlineData no parts[]. A OpenAI (gpt-image-2) é text-only na API
+      // images/generations e NUNCA deve ser chamada com prioridade quando há imagens reais para preservar.
+      const hasInputImages = inputImages.length > 0;
+      const modelsToTry = hasInputImages
+        ? [
+            { provider: "google", model: "gemini-2.5-flash-image" },
+            { provider: "google", model: "gemini-3-pro-image" },
+            { provider: "google", model: "gemini-2.0-flash-exp" },
+            { provider: "openai", model: "gpt-image-2" },
+          ]
+        : [
+            { provider: "openai", model: "gpt-image-2" },
+            { provider: "google", model: "gemini-2.5-flash-image" },
+            { provider: "google", model: "gemini-3-pro-image" },
+          ];
 
       for (const cfg of modelsToTry) {
         try {
@@ -308,6 +434,11 @@ export async function POST(request: NextRequest) {
                   ? "1024x1024"
                   : "1536x1024";
 
+            let openaiPrompt = compiledPrompt;
+            if (hasInputImages) {
+              openaiPrompt += ` [MANDATE: Respect the official brand identity "${brandSnapshot?.name || "NumVapt"}". Do not invent arbitrary logos, cartoon rockets or fake symbols.]`;
+            }
+
             const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
               method: "POST",
               headers: {
@@ -316,7 +447,7 @@ export async function POST(request: NextRequest) {
               },
               body: JSON.stringify({
                 model: cfg.model,
-                prompt: compiledPrompt,
+                prompt: openaiPrompt,
                 n: 1,
                 size: nativeSize,
               }),
@@ -345,26 +476,23 @@ export async function POST(request: NextRequest) {
             }
           } else if (cfg.provider === "google" && geminiKey) {
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
-            const parts: any[] = [{ text: compiledPrompt }];
+            
+            let geminiPrompt = compiledPrompt;
+            const hasLogoOrSubject = inputImages.some((img) => img.role === "source_or_logo");
+            if (hasLogoOrSubject) {
+              geminiPrompt = `[MANDATÓRIO — REPRODUÇÃO DA LOGOMARCA / SUJEITO ANEXADO]: A imagem anexada contém a logomarca oficial / sujeito real da marca "${brandSnapshot?.name || "NumVapt"}". É OBRIGATÓRIO reproduzir fielmente os traços, cores, tipografia e símbolos desta logomarca oficial na arte. NÃO invente logotipos substitutos, foguetes genéricos, balões ou mascotes fictícios. Preserve a identidade visual da imagem anexada.\n\n${compiledPrompt}`;
+            }
 
-            // Se houver referências visuais
-            if (referenceAssetUrls.length > 0) {
-              for (const refUrl of referenceAssetUrls.slice(0, 2)) {
-                try {
-                  const refFetch = await fetch(refUrl);
-                  if (refFetch.ok) {
-                    const refAb = await refFetch.arrayBuffer();
-                    parts.push({
-                      inlineData: {
-                        mimeType: "image/jpeg",
-                        data: Buffer.from(refAb).toString("base64"),
-                      },
-                    });
-                  }
-                } catch (e) {
-                  console.warn("[IMAGENS_GERAR] Falha ao anexar imagem de referência:", e);
-                }
-              }
+            const parts: any[] = [{ text: geminiPrompt }];
+
+            // Anexar imagens de entrada (sujeito/logo primeiro, depois referências)
+            for (const img of inputImages.slice(0, 3)) {
+              parts.push({
+                inlineData: {
+                  mimeType: img.mimeType,
+                  data: img.base64,
+                },
+              });
             }
 
             const res = await fetchWithRetry(geminiUrl, {
