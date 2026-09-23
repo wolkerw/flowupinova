@@ -49,6 +49,16 @@ export class ImageModelExecutor {
               ? "1200x624"
               : "1792x1024";
 
+    const subjectRef = params.references?.find((r) => r.role === "product_subject");
+
+    // Diretiva estrita de proibição de logomarca gerada
+    const zeroLogoDirective =
+      " [CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE: Absolutely DO NOT draw, invent, or render any logos, brand emblems, corporate icons, or badges. Leave a clean, open space in the top corner specifically reserved for manual logo overlay.]";
+
+    const subjectDirective = subjectRef
+      ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
+      : "";
+
     const modelsToTry = [
       { provider: "openai", model: params.preferredModel || "gpt-image-2" },
       { provider: "google", model: "gemini-2.5-flash-image" },
@@ -62,11 +72,64 @@ export class ImageModelExecutor {
       try {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
-          const hasInputImages = params.references && params.references.length > 0;
-          if (hasInputImages && !openaiPrompt.includes("IDENTIDADE VISUAL E LOGOMARCA")) {
-            openaiPrompt += ` [MANDATÓRIO — IDENTIDADE VISUAL E LOGOMARCA]: Incorpore a identidade oficial da marca. Respeite as cores oficiais e a estética da logomarca oficial. NÃO desenhe logotipos substitutos arbitrários, foguetes caricatos ou mascotes fictícios.]`;
+          if (!openaiPrompt.includes("ZERO LOGOS")) {
+            openaiPrompt += zeroLogoDirective;
+          }
+          if (subjectRef && !openaiPrompt.includes("HERO SUBJECT PRESERVATION")) {
+            openaiPrompt += subjectDirective;
           }
 
+          // Se houver foto do sujeito (pessoa ou produto) da Etapa 5, tentar Image-to-Image / Edits da OpenAI
+          if (subjectRef && subjectRef.base64) {
+            try {
+              const imageBuf = Buffer.from(subjectRef.base64, "base64");
+              const subjectBlob = new Blob([imageBuf], { type: subjectRef.mimeType || "image/png" });
+              const editsFormData = new FormData();
+              editsFormData.append("image", subjectBlob, "subject.png");
+              editsFormData.append("model", cfg.model);
+              editsFormData.append("prompt", openaiPrompt);
+              editsFormData.append("n", "1");
+              editsFormData.append("size", nativeSize);
+
+              const editRes = await fetch("https://api.openai.com/v1/images/edits", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${openaiKey}`,
+                },
+                body: editsFormData,
+              });
+
+              if (editRes.ok) {
+                const data = await editRes.json();
+                const b64 = data?.data?.[0]?.b64_json;
+                const imgUrl = data?.data?.[0]?.url;
+                if (b64) {
+                  return {
+                    imageBuffer: Buffer.from(b64, "base64"),
+                    modelUsed: cfg.model,
+                    durationMs: Date.now() - startTime,
+                  };
+                } else if (imgUrl) {
+                  const downloadRes = await fetch(imgUrl);
+                  if (downloadRes.ok) {
+                    const ab = await downloadRes.arrayBuffer();
+                    return {
+                      imageBuffer: Buffer.from(ab),
+                      modelUsed: cfg.model,
+                      durationMs: Date.now() - startTime,
+                    };
+                  }
+                }
+              } else {
+                const editErrTxt = await editRes.text().catch(() => "");
+                console.warn(`[ImageModelExecutor] OpenAI edits (${cfg.model}) retornou ${editRes.status}: ${editErrTxt.slice(0, 150)}`);
+              }
+            } catch (editEx) {
+              console.warn(`[ImageModelExecutor] Falha na chamada de edits OpenAI:`, editEx);
+            }
+          }
+
+          // Geração padrão via OpenAI images/generations
           const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
             method: "POST",
             headers: {
@@ -111,16 +174,18 @@ export class ImageModelExecutor {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
           
           let geminiPrompt = params.prompt;
-          const hasLogoOrSubject = params.references?.some((r) => r.role === "official_logo" || r.role === "product_subject");
-          if (hasLogoOrSubject && !geminiPrompt.includes("REPRODUÇÃO DA LOGOMARCA")) {
-            geminiPrompt = `[MANDATÓRIO — REPRODUÇÃO DA LOGOMARCA / SUJEITO ANEXADO]: A imagem anexada contém a logomarca oficial / sujeito real da marca. É OBRIGATÓRIO reproduzir fielmente os traços, cores, tipografia e símbolos desta logomarca oficial na arte. NÃO invente logotipos substitutos, foguetes genéricos, balões ou mascotes fictícios. Preserve a identidade visual da imagem anexada.\n\n${geminiPrompt}`;
+          if (!geminiPrompt.includes("ZERO LOGOS")) {
+            geminiPrompt += zeroLogoDirective;
+          }
+          if (subjectRef && !geminiPrompt.includes("HERO SUBJECT PRESERVATION")) {
+            geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
           }
 
           const parts: any[] = [{ text: geminiPrompt }];
 
-          // Anexar referências se presentes
+          // Anexar imagem da pessoa/produto da Etapa 5 como parte multimodal direta
           if (params.references && params.references.length > 0) {
-            for (const ref of params.references.slice(0, 3)) {
+            for (const ref of params.references.slice(0, 2)) {
               if (ref.base64 && ref.mimeType) {
                 parts.push({
                   inlineData: {

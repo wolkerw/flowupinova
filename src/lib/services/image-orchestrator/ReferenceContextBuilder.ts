@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import type { ReferenceInput } from "./types";
 
 export class ReferenceContextBuilder {
@@ -24,7 +22,7 @@ export class ReferenceContextBuilder {
   }): Promise<ReferenceInput[]> {
     const references: ReferenceInput[] = [];
 
-    // 1. Fotos de Sujeito / Produto ou Logomarca direta enviadas pelo usuário
+    // 1. Fotos do Sujeito Real (Pessoa ou Produto) enviadas na Etapa 5
     if (params.sourceAssetUrls && params.sourceAssetUrls.length > 0) {
       for (const srcUrl of params.sourceAssetUrls.slice(0, 2)) {
         try {
@@ -32,68 +30,21 @@ export class ReferenceContextBuilder {
           if (res.ok) {
             const ab = await res.arrayBuffer();
             const buf = Buffer.from(ab);
-            const isLogo = srcUrl.toLowerCase().includes("logo");
             references.push({
               url: srcUrl,
               mimeType: this.detectMimeType(srcUrl, buf),
               base64: buf.toString("base64"),
-              role: isLogo ? "official_logo" : "product_subject",
-              description: isLogo
-                ? "Logomarca enviada pelo usuário"
-                : "Foto real do sujeito ou produto enviada pelo usuário",
+              role: "product_subject",
+              description: "Foto real da pessoa ou produto enviada pelo usuário na Etapa 5",
             });
           }
         } catch (e) {
-          console.warn("[ReferenceContextBuilder] Erro ao carregar foto do sujeito:", e);
+          console.warn("[ReferenceContextBuilder] Erro ao carregar foto do sujeito/produto:", e);
         }
       }
     }
 
-    // 2. Logomarca oficial do BrandKit
-    if (params.logoUrl && !params.sourceAssetUrls?.includes(params.logoUrl)) {
-      try {
-        const res = await fetch(params.logoUrl);
-        if (res.ok) {
-          const ab = await res.arrayBuffer();
-          const buf = Buffer.from(ab);
-          references.push({
-            url: params.logoUrl,
-            mimeType: this.detectMimeType(params.logoUrl, buf),
-            base64: buf.toString("base64"),
-            role: "official_logo",
-            description: "Logomarca oficial da empresa",
-          });
-        }
-      } catch (e) {
-        console.warn("[ReferenceContextBuilder] Erro ao carregar logo do BrandKit:", e);
-      }
-    }
-
-    // 3. Fallback inteligente: Logomarca Oficial NumVapt local do sistema
-    // Apenas se nenhuma foto de sujeito ou logomarca tiver sido carregada até aqui
-    const hasSourceOrLogo = references.some((r) => r.role === "official_logo" || r.role === "product_subject");
-    const isNumVapt =
-      (params.businessName && params.businessName.toLowerCase().includes("numvapt")) ||
-      (params.brief && params.brief.toLowerCase().includes("numvapt"));
-
-    if (!hasSourceOrLogo && isNumVapt) {
-      try {
-        const localLogoPath = path.join(process.cwd(), "public", "logo-numvapt.png");
-        if (fs.existsSync(localLogoPath)) {
-          const logoBuf = fs.readFileSync(localLogoPath);
-          references.unshift({
-            mimeType: "image/png",
-            base64: logoBuf.toString("base64"),
-            role: "official_logo",
-            description: "Logomarca oficial local da NumVapt",
-          });
-        }
-      } catch (localLogoErr) {
-        console.warn("[ReferenceContextBuilder] Erro ao carregar logo local NumVapt:", localLogoErr);
-      }
-    }
-
-    // 4. Fotos de Referência / Inspiração de Estilo
+    // 2. Fotos de Inspiração / Estilo enviadas na Etapa 5
     if (params.referenceAssetUrls && params.referenceAssetUrls.length > 0) {
       for (const refUrl of params.referenceAssetUrls.slice(0, 2)) {
         try {
@@ -106,14 +57,18 @@ export class ReferenceContextBuilder {
               mimeType: this.detectMimeType(refUrl, buf),
               base64: buf.toString("base64"),
               role: "style_reference",
-              description: "Referência estética ou de composição",
+              description: "Foto de referência estética, cores ou iluminação enviada na Etapa 5",
             });
           }
         } catch (e) {
-          console.warn("[ReferenceContextBuilder] Erro ao carregar imagem de referência:", e);
+          console.warn("[ReferenceContextBuilder] Erro ao carregar imagem de referência de estilo:", e);
         }
       }
     }
+
+    // NOTA MANDATÓRIA: NÃO injetamos arquivos de logotipo como referência de imagem para os motores de IA.
+    // Conforme especificação do usuário, a IA é proibida de desenhar logotipos (pois distorce e inventa marcas fictícias).
+    // O espaço para a logomarca oficial é deixado limpo e reservado para sobreposição manual do PNG no editor.
 
     return references;
   }

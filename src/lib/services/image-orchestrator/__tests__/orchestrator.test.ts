@@ -90,18 +90,18 @@ describe("Image Orchestrator Suite", () => {
   });
 
   describe("ReferenceContextBuilder", () => {
-    it("adiciona logo oficial da NumVapt se for o caso", async () => {
+    it("carrega fotos do sujeito da Etapa 5 sem poluição de logo", async () => {
       const refs = await ReferenceContextBuilder.buildReferences({
         businessName: "NumVapt Soluções",
         brief: "Crie um post publicitário para a NumVapt",
       });
-      // Verifica que o builder roda sem erros
-      expect(Array.isArray(refs)).toBe(true);
+      // Garante que a IA não recebe logos em referências visuais
+      expect(refs.every((r) => r.role !== "official_logo")).toBe(true);
     });
   });
 
   describe("Gpt5PromptPlanner", () => {
-    it("gera plano com GPT-5 estruturado ou fallback determinístico garantindo safe margins", async () => {
+    it("gera plano com GPT-5 estruturado ou fallback determinístico garantindo safe margins e zero logos", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Café especial aromático",
         objective: "commercial",
@@ -125,6 +125,7 @@ describe("Image Orchestrator Suite", () => {
       expect(planResult.plannerModelUsed).toBeDefined();
       expect(planResult.visualPlan).toBeDefined();
       expect(planResult.compiledImagePrompt).toContain("SAFE MARGINS");
+      expect(planResult.compiledImagePrompt).toContain("ZERO LOGOS");
       expect(planResult.compiledImagePrompt).toContain("15% to 20%");
     });
   });

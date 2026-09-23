@@ -237,10 +237,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Se houver logomarca oficial no BrandKit ou enviada pelo usuário
-      if (brandSnapshot.logoUrl || (sourceAssetUrls && sourceAssetUrls.length > 0)) {
+      // Regra Mandatória de Logomarcas: ZERO LOGOS desenhados pela IA (espaço reservado para overlay manual)
+      brandDirectives.push(
+        `PROIBIÇÃO TOTAL DE DESENHAR LOGOMARCAS (ZERO LOGOS): É terminantemente PROIBIDO desenhar, inventar, criar, simular ou tentar reproduzir qualquer logotipo, marca, brasão, símbolo comercial, foguete ou mascote na imagem. Deixe o canto superior da imagem 100% limpo, neutro e desobstruído (área de respiro) para que a logomarca oficial seja inserida manualmente depois pelo usuário. A imagem NÃO PODE conter nenhum logotipo gerado.`
+      );
+
+      // Se houver foto real de pessoa ou produto enviada na Etapa 5
+      if (sourceAssetUrls && sourceAssetUrls.length > 0) {
         brandDirectives.push(
-          `Logomarca Oficial Obrigatória: É TERMINANTEMENTE PROIBIDO inventar, alterar ou desenhar novos logotipos, símbolos substitutos, balões ou mascotes. Reproduza EXATAMENTE a logomarca oficial anexada, respeitando sua tipografia, cores e formato originais.`
+          `SUJEITO REAL DA ETAPA 5 (PESSOA OU PRODUTO): Foi fornecida a foto real do sujeito/produto. A IA DEVE OBRIGATORIAMENTE manter a fisionomia, traços, roupas e características da pessoa, ou a embalagem, formato e rótulo do produto real enviado na Etapa 5, criando o cenário publicitário em volta dele como protagonista da cena.`
         );
       }
 

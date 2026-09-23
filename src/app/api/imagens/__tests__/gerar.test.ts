@@ -266,7 +266,8 @@ describe("API /api/imagens/gerar", () => {
     expect(openAiPayload.size).toBe("1024x1280"); // Proporção nativa 4:5 exata para a OpenAI
     expect(openAiPayload.prompt).toContain("FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5");
     expect(openAiPayload.prompt).toContain("ZERO TEXT CROPPING & SAFE MARGINS");
-    expect(openAiPayload.prompt).toContain("IDENTIDADE VISUAL E LOGOMARCA");
+    expect(openAiPayload.prompt).toContain("ZERO LOGOS");
+    expect(openAiPayload.prompt).toContain("SUJEITO REAL DA ETAPA 5");
 
     const data = await res.json();
     expect(data.assets[0].modelUsed).toBe("gpt-image-2");
@@ -349,7 +350,8 @@ describe("API /api/imagens/gerar", () => {
     // Verifica que Gemini recebeu tanto o prompt quanto a imagem nos parts
     const parts = geminiPayload.contents[0].parts;
     expect(parts.length).toBeGreaterThanOrEqual(2);
-    expect(parts[0].text).toContain("REPRODUÇÃO DA LOGOMARCA");
+    expect(parts[0].text).toContain("ZERO LOGOS");
+    expect(parts[0].text).toContain("HERO SUBJECT PRESERVATION");
     expect(parts[1].inlineData).toBeDefined();
     expect(parts[1].inlineData.mimeType).toBe("image/png");
     expect(parts[1].inlineData.data).toBe(Buffer.from("fake-png-logo-bytes").toString("base64"));
