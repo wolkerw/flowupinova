@@ -93,11 +93,12 @@ REGRAS DE CONFORMIDADE:
             } else if (res) {
               const errTxt = await res.text().catch(() => "");
               console.warn(`[Gpt5PromptPlanner] Erro na OpenAI (${model}): ${res.status} - ${errTxt.slice(0, 150)}`);
+              // Se o projeto não tiver acesso ao modelo (ex: 403/404 em gpt-5), tenta o próximo (gpt-4o)
+              continue;
             }
-            break;
           } catch (modelErr) {
             console.warn(`[Gpt5PromptPlanner] Exceção ao tentar ${model}:`, modelErr);
-            break;
+            continue;
           }
         }
       } catch (err) {
