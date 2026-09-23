@@ -83,12 +83,36 @@ describe("API /api/imagens/gerar", () => {
   });
 
   it("cria a geração, processa slots e retorna as variações geradas", async () => {
-    // Mock OpenAI image generation response
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        data: [{ b64_json: Buffer.from("fake-image-bytes").toString("base64") }],
-      }),
+    global.fetch = vi.fn().mockImplementation((url) => {
+      const urlStr = String(url);
+      if (urlStr.includes("chat/completions")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    schemaVersion: "1.0",
+                    confidence: 0.95,
+                    needsClarification: false,
+                    interpretation: { goal: "commercial", subject: "café" },
+                    visualPlan: { scene: "cafeteria" },
+                    imagePrompt: "Fotografia de café especial em xícara artesanal [SAFE MARGINS MANDATE: 20%]",
+                    negativePrompt: "blurry",
+                  }),
+                },
+              },
+            ],
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          data: [{ b64_json: Buffer.from("fake-image-bytes").toString("base64") }],
+        }),
+      });
     });
 
     const req = new NextRequest("http://localhost:9002/api/imagens/gerar", {

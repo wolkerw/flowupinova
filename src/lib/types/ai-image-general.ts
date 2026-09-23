@@ -119,6 +119,8 @@ export interface AIImageGenerationDoc {
   textOverlayMode?: AIImageTextOverlayMode;
   productHeadline?: string;
   modelUsed?: string;
+  plannerModelUsed?: string;
+  visualPlan?: any;
   safetyStatus?: "approved" | "flagged" | "rejected";
   errorCode?: string | null;
   createdAt: any;
@@ -135,10 +137,13 @@ export interface AIImageAssetDoc {
   previewUrl?: string;
   thumbnailUrl?: string;
   modelUsed?: string;
+  plannerModelUsed?: string;
   editorState?: any;
   promptMetadata?: {
     fullPrompt?: string;
     modelUsed?: string;
+    plannerModelUsed?: string;
+    visualPlan?: any;
     seed?: number;
     visualDirection?: VisualDirectionResponse;
   };

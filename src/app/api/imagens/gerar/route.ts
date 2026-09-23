@@ -14,6 +14,10 @@ import type {
 import { FORMAT_DIMENSIONS } from "@/lib/types/ai-image-general";
 import { Jimp } from "jimp";
 import { matchStyleCommands } from "@/lib/services/style-command-matcher";
+import {
+  ImageGenerationOrchestrator,
+  type OrchestratorRunResult,
+} from "@/lib/services/image-orchestrator";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -416,171 +420,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Função auxiliar de geração de imagem individual
+    // 4. Função auxiliar de geração de imagem individual com intermediário GPT-5 -> GPT Image 2
     const generateSingleImage = async (slotId: string, orderIndex: number): Promise<AIImageAssetDoc> => {
       const slotRef = adminDb.doc(`users/${userId}/aiImageAssets/${slotId}`);
       let imageBuffer: Buffer | null = null;
-      let modelUsed = "";
+      let modelUsed = "gpt-image-2";
+      let plannerModelUsed = "gpt-5";
+      let visualPlan: any = null;
+      let usedPrompt = compiledPrompt;
       let lastError = "";
 
-      // Conforme diretriz do usuário: SEMPRE priorizar gpt-image-2 (OpenAI) mesmo ao enviar foto ou logomarca.
-      // Se houver oscilação ou erro, os modelos Google Gemini multimodal assumem como fallback.
-      const hasInputImages = inputImages.length > 0;
-      const modelsToTry = [
-        { provider: "openai", model: "gpt-image-2" },
-        { provider: "google", model: "gemini-2.5-flash-image" },
-        { provider: "google", model: "gemini-3-pro-image" },
-        { provider: "google", model: "gemini-2.0-flash-exp" },
-      ];
+      try {
+        const orchResult = await ImageGenerationOrchestrator.execute({
+          userId,
+          generationId,
+          assetId: slotId,
+          rawBrief: brief,
+          compiledPrompt,
+          objective,
+          format,
+          style,
+          useBrandKit,
+          brandSnapshot,
+          textOverlayMode: effectiveOverlayMode,
+          productHeadline,
+          negativeInstructions,
+          sourceAssetUrls,
+          referenceAssetUrls,
+        });
 
-      for (const cfg of modelsToTry) {
-        try {
-          if (cfg.provider === "openai" && openaiKey) {
-            const nativeSize =
-              format === "portrait"
-                ? "1024x1280"
-                : format === "story"
-                  ? "864x1536"
-                  : format === "square"
-                    ? "1024x1024"
-                    : format === "banner"
-                      ? "1200x624"
-                      : "1792x1024";
-
-            let openaiPrompt = compiledPrompt;
-            if (hasInputImages) {
-              const brandName = brandSnapshot?.name || "NumVapt";
-              openaiPrompt += ` [MANDATÓRIO — IDENTIDADE VISUAL E LOGOMARCA]: Incorpore a identidade oficial da marca "${brandName}". Respeite as cores oficiais${brandSnapshot?.primaryColor ? ` (primária ${brandSnapshot.primaryColor})` : ""}${brandSnapshot?.secondaryColor ? ` e (secundária ${brandSnapshot.secondaryColor})` : ""}. Reproduza com máxima clareza e fidelidade a estética e logomarca oficial da marca. NÃO desenhe logotipos substitutos arbitrários, foguetes caricatos ou mascotes fictícios.]`;
-            }
-
-            const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${openaiKey}`,
-              },
-              body: JSON.stringify({
-                model: cfg.model,
-                prompt: openaiPrompt,
-                n: 1,
-                size: nativeSize,
-              }),
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              const b64 = data?.data?.[0]?.b64_json;
-              const imgUrl = data?.data?.[0]?.url;
-              if (b64) {
-                imageBuffer = Buffer.from(b64, "base64");
-                modelUsed = cfg.model;
-                break;
-              } else if (imgUrl) {
-                const downloadRes = await fetch(imgUrl);
-                if (downloadRes.ok) {
-                  const ab = await downloadRes.arrayBuffer();
-                  imageBuffer = Buffer.from(ab);
-                  modelUsed = cfg.model;
-                  break;
-                }
-              }
-            } else {
-              const errBody = await res.text().catch(() => `status ${res.status}`);
-              console.error(`[IMAGENS_GERAR] OpenAI (${cfg.model}) retornou status ${res.status}: ${errBody.slice(0, 300)}`);
-            }
-          } else if (cfg.provider === "google" && geminiKey) {
-            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
-            
-            let geminiPrompt = compiledPrompt;
-            const hasLogoOrSubject = inputImages.some((img) => img.role === "source_or_logo");
-            if (hasLogoOrSubject) {
-              geminiPrompt = `[MANDATÓRIO — REPRODUÇÃO DA LOGOMARCA / SUJEITO ANEXADO]: A imagem anexada contém a logomarca oficial / sujeito real da marca "${brandSnapshot?.name || "NumVapt"}". É OBRIGATÓRIO reproduzir fielmente os traços, cores, tipografia e símbolos desta logomarca oficial na arte. NÃO invente logotipos substitutos, foguetes genéricos, balões ou mascotes fictícios. Preserve a identidade visual da imagem anexada.\n\n${compiledPrompt}`;
-            }
-
-            const parts: any[] = [{ text: geminiPrompt }];
-
-            // Anexar imagens de entrada (sujeito/logo primeiro, depois referências)
-            for (const img of inputImages.slice(0, 3)) {
-              parts.push({
-                inlineData: {
-                  mimeType: img.mimeType,
-                  data: img.base64,
-                },
-              });
-            }
-
-            const getGeminiAspectRatio = (fmt: AIImageFormat): string => {
-              switch (fmt) {
-                case "portrait":
-                  return "3:4";
-                case "story":
-                  return "9:16";
-                case "landscape":
-                case "banner":
-                  return "16:9";
-                case "square":
-                default:
-                  return "1:1";
-              }
-            };
-
-            const geminiPayload: any = {
-              contents: [{ parts }],
-              generationConfig: {
-                responseModalities: ["IMAGE"],
-                imageConfig: {
-                  aspectRatio: getGeminiAspectRatio(format),
-                },
-              },
-            };
-
-            let res = await fetchWithRetry(geminiUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(geminiPayload),
-            });
-
-            // Se o modelo rejeitar imageConfig (status 400), tentar sem imageConfig como fallback
-            if (!res.ok && res.status === 400) {
-              const fallbackPayload = {
-                contents: [{ parts }],
-                generationConfig: {
-                  responseModalities: ["IMAGE"],
-                },
-              };
-              res = await fetchWithRetry(geminiUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(fallbackPayload),
-              });
-            }
-
-            if (res.ok) {
-              const data = await res.json();
-              let b64: string | undefined;
-              const candidateParts = data?.candidates?.[0]?.content?.parts;
-              if (Array.isArray(candidateParts)) {
-                for (const part of candidateParts) {
-                  if (part?.inlineData?.data) {
-                    b64 = part.inlineData.data;
-                    break;
-                  }
-                }
-              }
-              if (b64) {
-                imageBuffer = Buffer.from(b64, "base64");
-                modelUsed = cfg.model;
-                break;
-              }
-            } else {
-              const errBody = await res.text().catch(() => `status ${res.status}`);
-              console.error(`[IMAGENS_GERAR] Gemini (${cfg.model}) retornou status ${res.status}: ${errBody.slice(0, 300)}`);
-            }
-          }
-        } catch (err: any) {
-          lastError = err?.message || String(err);
-          console.warn(`[IMAGENS_GERAR] Falha no modelo ${cfg.model}:`, lastError);
-        }
+        imageBuffer = orchResult.imageBuffer;
+        modelUsed = orchResult.imageModelUsed;
+        plannerModelUsed = orchResult.plannerModelUsed;
+        visualPlan = orchResult.planResult.visualPlan;
+        usedPrompt = orchResult.planResult.compiledImagePrompt;
+      } catch (orchErr: any) {
+        lastError = orchErr?.message || String(orchErr);
+        console.warn(`[IMAGENS_GERAR] Orquestrador falhou para slot ${slotId}:`, lastError);
       }
 
       if (!imageBuffer) {
@@ -590,7 +466,7 @@ export async function POST(request: NextRequest) {
           userId,
           order: orderIndex,
           status: "failed",
-          error: "Não foi possível gerar esta variação. Tente novamente ou ajuste o briefing.",
+          error: lastError || "Não foi possível gerar esta variação. Tente novamente ou ajuste o briefing.",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -605,7 +481,6 @@ export async function POST(request: NextRequest) {
 
       try {
         const jimpImage = await Jimp.read(imageBuffer);
-        // Redimensiona diretamente para as dimensões finais alvo, preservando 100% de todo o conteúdo sem cortar textos
         jimpImage.resize({ w: targetWidth, h: targetHeight });
         imageBuffer = await jimpImage.getBuffer("image/png");
       } catch (jimpErr) {
@@ -625,7 +500,8 @@ export async function POST(request: NextRequest) {
             userId,
             generationId,
             source: "ai_image_general",
-            modelUsed: modelUsed || "gpt-image-2",
+            modelUsed,
+            plannerModelUsed,
           },
         },
       });
@@ -634,7 +510,7 @@ export async function POST(request: NextRequest) {
         storageFilePath
       )}?alt=media&token=${downloadToken}`;
 
-      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) anotando modelUsed
+      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) anotando modelUsed e plannerModelUsed
       const galleryMediaId = `ai_img_${slotId}`;
       const galleryRef = adminDb.doc(`users/${userId}/mediaGallery/${galleryMediaId}`);
 
@@ -651,7 +527,8 @@ export async function POST(request: NextRequest) {
         format,
         width: targetWidth,
         height: targetHeight,
-        modelUsed: modelUsed || "gpt-image-2",
+        modelUsed,
+        plannerModelUsed,
         generationId,
         assetId: slotId,
         brandKitApplied: Boolean(useBrandKit && brandSnapshot),
@@ -660,7 +537,7 @@ export async function POST(request: NextRequest) {
         fileName: `image_${slotId}.png`,
       });
 
-      // 8. Salvar status no aiImageAsset anotando modelUsed na raiz e no promptMetadata
+      // 8. Salvar status no aiImageAsset anotando modelUsed e plannerModelUsed na raiz e no promptMetadata
       const readyAsset: AIImageAssetDoc = {
         id: slotId,
         generationId,
@@ -670,10 +547,13 @@ export async function POST(request: NextRequest) {
         originalUrl: publicUrl,
         previewUrl: publicUrl,
         galleryAssetId: galleryMediaId,
-        modelUsed: modelUsed || "gpt-image-2",
+        modelUsed,
+        plannerModelUsed,
         promptMetadata: {
-          fullPrompt: compiledPrompt,
-          modelUsed: modelUsed || "gpt-image-2",
+          fullPrompt: usedPrompt,
+          modelUsed,
+          plannerModelUsed,
+          ...(visualPlan ? { visualPlan } : {}),
           ...(visualDirection ? { visualDirection } : {}),
         },
         altText: titleSummary,
@@ -711,11 +591,16 @@ export async function POST(request: NextRequest) {
           ? "partial_ready"
           : "failed";
 
-    const primaryModelUsed = generatedAssets.find((a) => a.modelUsed)?.modelUsed || "gpt-image-2";
+    const readyAssetFound = generatedAssets.find((a) => a.status === "ready");
+    const primaryModelUsed = readyAssetFound?.modelUsed || "gpt-image-2";
+    const primaryPlannerModelUsed = readyAssetFound?.plannerModelUsed || "gpt-5";
+    const primaryVisualPlan = readyAssetFound?.promptMetadata?.visualPlan || null;
 
     await genDocRef.update({
       status: finalStatus,
       modelUsed: primaryModelUsed,
+      plannerModelUsed: primaryPlannerModelUsed,
+      ...(primaryVisualPlan ? { visualPlan: primaryVisualPlan } : {}),
       updatedAt: new Date().toISOString(),
     });
 
