@@ -13,6 +13,23 @@ export const WhatsAppFloatingButton: React.FC<WhatsAppFloatingButtonProps> = ({
   defaultMessage = "Olá! Sou visitante do site e gostaria de tirar dúvidas sobre a NumVapt antes de assinar.",
 }) => {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(defaultMessage)}`;
+  const [isNearBottom, setIsNearBottom] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (typeof window === "undefined") return;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+      // Quando faltar menos de 280px para o final da página (área do rodapé)
+      const nearBottom = scrollHeight - (scrollTop + clientHeight) < 280;
+      setIsNearBottom(nearBottom);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
@@ -24,7 +41,11 @@ export const WhatsAppFloatingButton: React.FC<WhatsAppFloatingButtonProps> = ({
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 1, duration: 0.5 }}
-        className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-xs font-bold text-slate-800 shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:border-green-300 hover:text-green-700"
+        className={`hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-xs font-bold text-slate-800 shadow-xl backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-green-300 hover:text-green-700 ${
+          isNearBottom
+            ? "opacity-0 pointer-events-none translate-x-4 scale-95"
+            : "opacity-100 translate-x-0 scale-100"
+        }`}
         aria-label="Tire dúvidas pelo WhatsApp"
       >
         <span className="relative flex h-2 w-2">

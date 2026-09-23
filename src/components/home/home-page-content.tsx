@@ -31,7 +31,7 @@ export function HomePageContent() {
       </main>
 
       {/* Footer Simples e Elegante */}
-      <footer className="border-t border-slate-800 bg-slate-900 py-12 text-slate-400">
+      <footer className="border-t border-slate-800 bg-slate-900 pt-12 pb-24 md:pb-20 text-slate-400">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex flex-col items-center gap-1.5 md:items-start">
@@ -63,7 +63,7 @@ export function HomePageContent() {
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:pr-14 lg:pr-16">
               <a
                 href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Sou%20visitante%20do%20site%20e%20gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt%20antes%20de%20assinar."
                 target="_blank"
