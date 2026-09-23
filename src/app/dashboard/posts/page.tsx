@@ -1797,7 +1797,7 @@ export default function Conteudo() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* Card Destaque - Imagem com IA (Fluxo Geral) */}
+                  {/* Card Destaque - Geral (Fluxo Geral) */}
                   <button
                     onClick={() => router.push("/dashboard/imagens/gerar?mode=general")}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-600 via-purple-600 to-[#FA6305] p-6 text-left text-white shadow-xl shadow-purple-200 transition-all hover:scale-[1.01] active:scale-[0.99] md:col-span-2"
@@ -1809,12 +1809,7 @@ export default function Conteudo() {
                       <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
                         <Sparkles className="h-6 w-6 text-white" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-black leading-tight">Imagem com IA</h3>
-                        <span className="rounded-full bg-white/25 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
-                          Novo
-                        </span>
-                      </div>
+                      <h3 className="text-xl font-black leading-tight">Geral</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/90 max-w-2xl">
                       Crie qualquer imagem a partir de uma ideia, referência ou foto. Gere variações visuais de alta qualidade, personalize com sua marca e salve na Galeria.

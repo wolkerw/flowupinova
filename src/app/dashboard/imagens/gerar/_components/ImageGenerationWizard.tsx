@@ -198,7 +198,7 @@ export function ImageGenerationWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Etapa atual (1 a 5)
+  // Etapa atual (1 a 3)
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // Estados do Briefing (Etapa 1)
@@ -862,11 +862,11 @@ export function ImageGenerationWizard() {
                 )}
               </div>
 
-              {/* 6. Fotos para Ajudar a IA (Opcional, com suporte a Ctrl+V) */}
+              {/* 5. Fotos para Ajudar a IA (Opcional, com suporte a Ctrl+V) */}
               <div className="space-y-3 pt-2">
                 <div>
                   <Label className="text-sm sm:text-base font-bold text-gray-900">
-                    6. Fotos para ajudar a IA (Opcional)
+                    5. Fotos para ajudar a IA (Opcional)
                   </Label>
                   <p className="text-xs text-gray-500">
                     Você pode tirar uma foto pelo celular, selecionar um arquivo ou colar com Ctrl+V.
@@ -1001,7 +1001,7 @@ export function ImageGenerationWizard() {
                 </div>
               </div>
 
-              {/* 7. BrandKit (Cores e Marca da Empresa) */}
+              {/* 6. BrandKit (Cores e Marca da Empresa) */}
               <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1010,7 +1010,7 @@ export function ImageGenerationWizard() {
                     </div>
                     <div>
                       <Label htmlFor="brandKitToggle" className="text-sm font-bold text-gray-900 cursor-pointer block">
-                        7. Usar identidade do negócio (BrandKit)
+                        6. Usar identidade do negócio (BrandKit)
                       </Label>
                       <span className="text-xs text-gray-500">
                         A IA usará suas cores institucionais e elementos cadastrados
@@ -1077,7 +1077,7 @@ export function ImageGenerationWizard() {
                 )}
               </div>
 
-              {/* 8. Opções Adicionais (Colapsável para não assustar o usuário) */}
+              {/* 7. Opções Adicionais (Colapsável para não assustar o usuário) */}
               <div className="pt-1">
                 <button
                   type="button"
