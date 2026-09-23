@@ -67,4 +67,11 @@ describe("SystemAIConfigService", () => {
     expect(updated.updatedBy).toBe("admin@numvapt.com.br");
     expect(updated.updatedAt).toBeDefined();
   });
+
+  it("deve conter os novos modelos gpt-image-2.5-sunburst e gpt-image-2.5-flare nas opcoes disponiveis", async () => {
+    const { AVAILABLE_AI_MODELS } = await import("../system-ai-config-service");
+    const ids = AVAILABLE_AI_MODELS.imageGenerators.map((m) => m.id);
+    expect(ids).toContain("gpt-image-2.5-sunburst");
+    expect(ids).toContain("gpt-image-2.5-flare");
+  });
 });

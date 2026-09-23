@@ -18,6 +18,8 @@ export const AVAILABLE_AI_MODELS = {
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Google - Rápido)", provider: "google" },
   ],
   imageGenerators: [
+    { id: "gpt-image-2.5-sunburst", label: "GPT-Image-2.5 Sunburst (OpenAI - Qualidade Máxima)", provider: "openai" },
+    { id: "gpt-image-2.5-flare", label: "GPT-Image-2.5 Flare (OpenAI - Alta Velocidade)", provider: "openai" },
     { id: "gpt-image-2", label: "GPT Image 2 (OpenAI - Alta Fidelidade)", provider: "openai" },
     { id: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image (Google)", provider: "google" },
     { id: "gemini-3-pro-image", label: "Gemini 3 Pro Image (Google Pro)", provider: "google" },

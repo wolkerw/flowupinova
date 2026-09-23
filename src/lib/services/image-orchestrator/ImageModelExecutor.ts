@@ -67,6 +67,8 @@ export class ImageModelExecutor {
     const fallback = params.fallbackModel || "gemini-2.5-flash-image";
 
     const defaultList = [
+      { provider: "openai" as const, model: "gpt-image-2.5-sunburst" },
+      { provider: "openai" as const, model: "gpt-image-2.5-flare" },
       { provider: "openai" as const, model: "gpt-image-2" },
       { provider: "google" as const, model: "gemini-2.5-flash-image" },
       { provider: "google" as const, model: "gemini-3-pro-image" },
@@ -92,6 +94,8 @@ export class ImageModelExecutor {
             openaiPrompt += subjectDirective;
           }
 
+          const isGpt25 = cfg.model.includes("2.5");
+
           // Se houver foto do sujeito (pessoa ou produto) da Etapa 5, tentar Image-to-Image / Edits da OpenAI
           if (subjectRef && subjectRef.base64) {
             try {
@@ -103,6 +107,9 @@ export class ImageModelExecutor {
               editsFormData.append("prompt", openaiPrompt);
               editsFormData.append("n", "1");
               editsFormData.append("size", nativeSize);
+              if (isGpt25) {
+                editsFormData.append("quality", "auto");
+              }
 
               const editRes = await fetch("https://api.openai.com/v1/images/edits", {
                 method: "POST",
@@ -143,18 +150,23 @@ export class ImageModelExecutor {
           }
 
           // Geração padrão via OpenAI images/generations
+          const requestBody: Record<string, any> = {
+            model: cfg.model,
+            prompt: openaiPrompt,
+            n: 1,
+            size: nativeSize,
+          };
+          if (isGpt25) {
+            requestBody.quality = "auto";
+          }
+
           const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${openaiKey}`,
             },
-            body: JSON.stringify({
-              model: cfg.model,
-              prompt: openaiPrompt,
-              n: 1,
-              size: nativeSize,
-            }),
+            body: JSON.stringify(requestBody),
           });
 
           if (res.ok) {
