@@ -131,6 +131,54 @@ export async function POST(request: NextRequest) {
 
     const cleanCommand = command.startsWith("/") ? command.trim().toLowerCase() : `/${command.trim().toLowerCase()}`;
     const commandId = id || `cmd_${cleanCommand.replace("/", "")}`;
+
+    // Validação estrita de unicidade de código/comando
+    if (!id) {
+      // 1. Caso Criação: rejeita se o código já existir pelo ID gerado ou por query do campo command
+      const directDocRef = adminDb.collection(COLLECTION_NAME).doc(commandId);
+      const directDocSnap = await directDocRef.get();
+      if (directDocSnap.exists) {
+        return NextResponse.json(
+          {
+            error: `O código de comando "${cleanCommand}" já está cadastrado no sistema (${directDocSnap.data()?.label || "existente"}). Escolha um código diferente para evitar conflitos.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      const duplicateQuery = await adminDb
+        .collection(COLLECTION_NAME)
+        .where("command", "==", cleanCommand)
+        .get();
+
+      if (!duplicateQuery.empty) {
+        const existingData = duplicateQuery.docs[0].data();
+        return NextResponse.json(
+          {
+            error: `O código de comando "${cleanCommand}" já está cadastrado no sistema (${existingData?.label || "existente"}). Escolha um código diferente para evitar conflitos.`,
+          },
+          { status: 409 }
+        );
+      }
+    } else {
+      // 2. Caso Edição: rejeita se o novo código colidir com outro comando diferente
+      const duplicateQuery = await adminDb
+        .collection(COLLECTION_NAME)
+        .where("command", "==", cleanCommand)
+        .get();
+
+      const conflictingDoc = duplicateQuery.docs.find((d) => d.id !== id);
+      if (conflictingDoc) {
+        const conflictingData = conflictingDoc.data();
+        return NextResponse.json(
+          {
+            error: `O código de comando "${cleanCommand}" já pertence ao estilo "${conflictingData?.label || conflictingDoc.id}". Cada comando deve possuir um código exclusivo.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const docRef = adminDb.collection(COLLECTION_NAME).doc(commandId);
     const existingSnap = await docRef.get();
 

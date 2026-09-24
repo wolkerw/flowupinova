@@ -54,6 +54,19 @@ export function StyleCommandsTab() {
   const [formNegativeInjection, setFormNegativeInjection] = useState("");
   const [formTriggerKeywords, setFormTriggerKeywords] = useState("");
 
+  const normalizedFormCommand = formCommand.trim().startsWith("/")
+    ? formCommand.trim().toLowerCase()
+    : `/${formCommand.trim().toLowerCase()}`;
+
+  const isDuplicateCommand =
+    Boolean(formCommand.trim()) &&
+    formCommand.trim() !== "/" &&
+    commands.some(
+      (c) =>
+        c.command.toLowerCase() === normalizedFormCommand &&
+        c.id !== editingCommand?.id
+    );
+
   const fetchCommands = useCallback(async () => {
     setLoading(true);
     try {
@@ -112,6 +125,15 @@ export function StyleCommandsTab() {
         variant: "destructive",
         title: "Preencha os campos obrigatórios",
         description: "Comando, nome amigável e prompt técnico são necessários.",
+      });
+      return;
+    }
+
+    if (isDuplicateCommand) {
+      toast({
+        variant: "destructive",
+        title: "Código de estilo repetido",
+        description: `O código de comando "${normalizedFormCommand}" já está cadastrado no sistema. Escolha outro código exclusivo.`,
       });
       return;
     }
@@ -377,16 +399,32 @@ export function StyleCommandsTab() {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1">
-                  <Label htmlFor="cmdCode" className="text-xs font-bold text-gray-700">
-                    Comando (com barra) *
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="cmdCode" className="text-xs font-bold text-gray-700">
+                      Comando (com barra) *
+                    </Label>
+                    {isDuplicateCommand && (
+                      <span className="text-[10px] font-semibold text-rose-600 animate-pulse">
+                        Código já cadastrado
+                      </span>
+                    )}
+                  </div>
                   <Input
                     id="cmdCode"
                     value={formCommand}
                     onChange={(e) => setFormCommand(e.target.value)}
                     placeholder="Ex: /bokeh ou /naturallight"
-                    className="font-mono text-sm rounded-xl"
+                    className={`font-mono text-sm rounded-xl transition-colors ${
+                      isDuplicateCommand
+                        ? "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40 text-rose-900"
+                        : ""
+                    }`}
                   />
+                  {isDuplicateCommand && (
+                    <p className="text-[11px] font-medium text-rose-600 mt-1">
+                      ⚠️ Este código já existe no sistema. Escolha outro para evitar conflitos.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -500,8 +538,8 @@ export function StyleCommandsTab() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSaving}
-                className="bg-accent hover:bg-accent/90 text-white font-bold rounded-xl text-xs gap-1.5"
+                disabled={isSaving || isDuplicateCommand}
+                className="bg-accent hover:bg-accent/90 text-white font-bold rounded-xl text-xs gap-1.5 disabled:opacity-50"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Salvar Comando
