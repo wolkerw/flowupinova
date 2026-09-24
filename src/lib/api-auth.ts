@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { verifyIdToken } from "./firebase-admin";
+import { ADMIN_EMAILS } from "./admin-auth";
 
 export interface AuthenticatedUser {
   uid: string;
@@ -39,10 +40,16 @@ export async function getAuthenticatedUser(request?: Request): Promise<Authentic
       return null;
     }
 
+    const emailLower = (decoded.email || "").trim().toLowerCase();
+    const isSystemAdmin =
+      Boolean(emailLower && emailLower === (process.env.ADMIN_EMAIL || "").trim().toLowerCase()) ||
+      decoded.isAdmin === true ||
+      ADMIN_EMAILS.some((e) => e.trim().toLowerCase() === emailLower);
+
     return {
       uid: decoded.uid,
       email: decoded.email,
-      isAdmin: decoded.email === process.env.ADMIN_EMAIL || decoded.isAdmin === true,
+      isAdmin: isSystemAdmin,
     };
   } catch (error) {
     console.warn("[API_AUTH] Falha ao verificar autenticação:", error);
