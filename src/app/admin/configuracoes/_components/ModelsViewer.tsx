@@ -14,12 +14,14 @@ import {
   ShieldCheck,
   Lock,
   Layers,
+  Sliders,
 } from "lucide-react";
 
 interface AIModelsConfig {
   generalPlannerModel: string;
   generalImageModel: string;
   generalFallbackImageModel: string;
+  imageQuality?: string;
   chatModel: string;
   promptsIdeaModel: string;
   updatedAt?: string;
@@ -32,9 +34,15 @@ interface ModelOption {
   provider: "openai" | "google";
 }
 
+interface QualityOption {
+  id: string;
+  label: string;
+}
+
 interface AvailableOptions {
   planners: ModelOption[];
   imageGenerators: ModelOption[];
+  imageQualities?: QualityOption[];
   chatAssistants: ModelOption[];
   promptGenerators: ModelOption[];
 }
@@ -114,6 +122,7 @@ export function ModelsViewer() {
         generalPlannerModel: defaults.generalPlannerModel,
         generalImageModel: defaults.generalImageModel,
         generalFallbackImageModel: defaults.generalFallbackImageModel,
+        imageQuality: defaults.imageQuality || "medium",
         chatModel: defaults.chatModel,
         promptsIdeaModel: defaults.promptsIdeaModel,
       });
@@ -299,6 +308,33 @@ export function ModelsViewer() {
                 {options.imageGenerators.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Nível de Qualidade e Custo de Imagem */}
+            <div className="rounded-lg border border-sky-900/40 bg-sky-950/10 p-4">
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                  <Sliders className="h-3.5 w-3.5 text-sky-400" />
+                  4. Nível de Qualidade & Custo (OpenAI)
+                </label>
+                <span className="text-[10px] font-medium text-sky-500">Eficiência de Tokens</span>
+              </div>
+              <p className="mb-2 text-[11px] text-slate-400">
+                Define a densidade de tokens e o acabamento das imagens geradas pelos modelos OpenAI (GPT-Image-2.5 / GPT Image 2). Permite economizar tokens em rascunhos ou elevar a fidelidade em campanhas finais.
+              </p>
+              <select
+                value={config.imageQuality || "medium"}
+                onChange={(e) =>
+                  setConfig({ ...config, imageQuality: e.target.value })
+                }
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+              >
+                {options.imageQualities?.map((q) => (
+                  <option key={q.id} value={q.id}>
+                    {q.label}
                   </option>
                 ))}
               </select>

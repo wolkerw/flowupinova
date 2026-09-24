@@ -57,6 +57,9 @@ export async function POST(request: NextRequest) {
     if (body.generalFallbackImageModel && typeof body.generalFallbackImageModel === "string") {
       payload.generalFallbackImageModel = body.generalFallbackImageModel.trim();
     }
+    if (body.imageQuality && typeof body.imageQuality === "string") {
+      payload.imageQuality = body.imageQuality.trim() as any;
+    }
     if (body.chatModel && typeof body.chatModel === "string") {
       payload.chatModel = body.chatModel.trim();
     }

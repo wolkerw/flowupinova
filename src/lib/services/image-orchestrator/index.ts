@@ -114,6 +114,7 @@ export class ImageGenerationOrchestrator {
       references,
       preferredModel: aiConfig.generalImageModel,
       fallbackModel: aiConfig.generalFallbackImageModel,
+      quality: aiConfig.imageQuality,
     });
 
     // 6. Validação e Padronização de Dimensões (sem cortes destrutivos)

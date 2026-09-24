@@ -29,6 +29,7 @@ export class ImageModelExecutor {
     references?: ReferenceInput[];
     preferredModel?: string;
     fallbackModel?: string;
+    quality?: string;
   }): Promise<{
     imageBuffer: Buffer;
     modelUsed: string;
@@ -95,6 +96,8 @@ export class ImageModelExecutor {
           }
 
           const isGpt25 = cfg.model.includes("2.5");
+          const isGptImage = cfg.model.startsWith("gpt-image-");
+          const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 
           // Se houver foto do sujeito (pessoa ou produto) da Etapa 5, tentar Image-to-Image / Edits da OpenAI
           if (subjectRef && subjectRef.base64) {
@@ -107,8 +110,8 @@ export class ImageModelExecutor {
               editsFormData.append("prompt", openaiPrompt);
               editsFormData.append("n", "1");
               editsFormData.append("size", nativeSize);
-              if (isGpt25) {
-                editsFormData.append("quality", "auto");
+              if (isGptImage || isGpt25) {
+                editsFormData.append("quality", selectedQuality);
               }
 
               const editRes = await fetch("https://api.openai.com/v1/images/edits", {
@@ -156,8 +159,10 @@ export class ImageModelExecutor {
             n: 1,
             size: nativeSize,
           };
-          if (isGpt25) {
-            requestBody.quality = "auto";
+          if (isGptImage || isGpt25) {
+            requestBody.quality = selectedQuality;
+          } else if (cfg.model === "dall-e-3") {
+            requestBody.quality = selectedQuality === "high" || selectedQuality === "xhigh" ? "hd" : "standard";
           }
 
           const res = await fetchWithRetry("https://api.openai.com/v1/images/generations", {

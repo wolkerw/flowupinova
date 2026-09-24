@@ -75,6 +75,7 @@ describe("Admin AI Models API", () => {
       body: JSON.stringify({
         generalPlannerModel: "gpt-4o",
         generalImageModel: "gemini-2.5-flash-image",
+        imageQuality: "low",
       }),
     });
     const res = await POST(req);
@@ -83,5 +84,6 @@ describe("Admin AI Models API", () => {
     expect(data.success).toBe(true);
     expect(data.config.generalPlannerModel).toBe("gpt-4o");
     expect(data.config.generalImageModel).toBe("gemini-2.5-flash-image");
+    expect(data.config.imageQuality).toBe("low");
   });
 });

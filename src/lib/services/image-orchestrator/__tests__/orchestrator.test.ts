@@ -157,6 +157,34 @@ describe("Image Orchestrator Suite", () => {
       expect(capturedBody.size).toBe("1024x1280");
       expect(res.imageBuffer).toBeDefined();
     });
+
+    it("passa o parâmetro quality dinamicamente para a requisição da OpenAI", async () => {
+      process.env.OPENAI_API_KEY = "test-key";
+      let capturedBody: any = null;
+
+      global.fetch = vi.fn().mockImplementation((url, opts) => {
+        if (opts && opts.body) {
+          capturedBody = JSON.parse(opts.body as string);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: [{ b64_json: Buffer.from("fake-b64-image").toString("base64") }],
+          }),
+        });
+      });
+
+      const res = await ImageModelExecutor.execute({
+        prompt: "Commercial coffee ad",
+        format: "square",
+        preferredModel: "gpt-image-2.5-sunburst",
+        quality: "low",
+      });
+
+      expect(res.modelUsed).toBe("gpt-image-2.5-sunburst");
+      expect(capturedBody.quality).toBe("low");
+      expect(capturedBody.size).toBe("1024x1024");
+    });
   });
 
   describe("ImageResultValidator", () => {
