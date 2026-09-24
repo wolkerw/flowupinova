@@ -31,18 +31,27 @@ export function HomePageContent() {
       </main>
 
       {/* Footer Simples e Elegante */}
-      <footer className="border-t border-slate-800 bg-slate-900 py-12 text-slate-400">
+      <footer className="border-t border-slate-800 bg-slate-900 pt-12 pb-24 md:pb-20 text-slate-400">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/logo-numvapt.png"
-                alt="NumVapt Logo"
-                width={120}
-                height={32}
-                className="object-contain"
-              />
-              <span className="text-sm">© {new Date().getFullYear()}</span>
+            <div className="flex flex-col items-center gap-1.5 md:items-start">
+              <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                <Image
+                  src="/logo-numvapt.png"
+                  alt="NumVapt Logo"
+                  width={120}
+                  height={32}
+                  className="object-contain"
+                />
+                <span className="text-sm text-slate-400">
+                  © {new Date().getFullYear()} - Todos os direitos reservados
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                <span className="font-medium text-slate-300">Flowup Soluções e Inovações Ltda</span>
+                <span className="mx-2 text-slate-600">•</span>
+                <span>CNPJ: 62.826.950/0001-27</span>
+              </p>
             </div>
 
             <div className="flex gap-6 text-sm">
@@ -54,7 +63,7 @@ export function HomePageContent() {
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:pr-14 lg:pr-16">
               <a
                 href="https://wa.me/5551920044035?text=Ol%C3%A1!%20Sou%20visitante%20do%20site%20e%20gostaria%20de%20tirar%20d%C3%BAvidas%20sobre%20a%20NumVapt%20antes%20de%20assinar."
                 target="_blank"

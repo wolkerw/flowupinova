@@ -132,10 +132,16 @@ export default function TermsOfServicePage() {
               Lei aplicável
             </h2>
             <p>
-              Estes termos e condições são regidos e interpretados de acordo com as leis do numvapt e
-              você se submete irrevogavelmente à jurisdição exclusiva dos tribunais naquele estado
-              ou localidade.
+              Estes termos e condições são regidos e interpretados de acordo com as leis da República
+              Federativa do Brasil, operados por Flowup Soluções e Inovações Ltda, inscrita no CNPJ sob
+              o nº 62.826.950/0001-27, e você se submete irrevogavelmente à jurisdição exclusiva dos
+              tribunais competentes.
             </p>
+          </div>
+
+          <div className="mt-8 border-t border-slate-200 pt-6 text-center text-xs text-slate-500">
+            <p className="font-semibold text-slate-700">Flowup Soluções e Inovações Ltda • CNPJ: 62.826.950/0001-27</p>
+            <p className="mt-1">© {new Date().getFullYear()} NumVapt. Todos os direitos reservados.</p>
           </div>
         </div>
       </div>

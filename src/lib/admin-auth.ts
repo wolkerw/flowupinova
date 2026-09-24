@@ -7,10 +7,11 @@ import { redirect } from "next/navigation";
  * Lida a partir de variável de ambiente do servidor (nunca exposta ao cliente).
  * Fallback hardcoded para garantir acesso em caso de .env não configurado.
  */
-const ADMIN_EMAILS: string[] = [
+export const ADMIN_EMAILS: string[] = [
   "fernando.home@hotmail.com",
   "contato@wolker.com.br",
   "bruno@muranmarketing.com.br",
+  "flowupinova@gmail.com",
   ...(process.env.ADMIN_EMAILS?.split(",")
     .map((e) => e.trim())
     .filter(Boolean) ?? []),

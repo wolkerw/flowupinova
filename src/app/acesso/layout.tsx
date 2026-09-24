@@ -23,6 +23,10 @@ export default function AcessoLayout({ children }: { children: React.ReactNode }
       <main className="w-full max-w-[420px]">
         {children}
       </main>
+      <footer className="mt-8 text-center text-xs text-slate-500">
+        <p className="font-medium text-slate-600">Flowup Soluções e Inovações Ltda • CNPJ: 62.826.950/0001-27</p>
+        <p className="mt-1 text-slate-400">© {new Date().getFullYear()} NumVapt. Todos os direitos reservados.</p>
+      </footer>
     </div>
   );
 }

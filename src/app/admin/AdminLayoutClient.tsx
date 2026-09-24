@@ -19,6 +19,7 @@ import {
   Tag,
   Lightbulb,
   FlaskConical,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -76,6 +77,11 @@ const navItems = [
     title: "Logs & Erros",
     href: "/admin/logs",
     icon: FileWarning,
+  },
+  {
+    title: "Central de Prompts",
+    href: "/admin/prompts",
+    icon: Sparkles,
   },
   {
     title: "Laboratório IA",

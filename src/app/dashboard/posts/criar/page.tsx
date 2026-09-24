@@ -1008,7 +1008,7 @@ const InstagramPreview = ({
       </div>
 
       {/* Image */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200">
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-950 flex items-center justify-center">
         {currentMedia ? (
           currentMedia.type === "video" ||
           (currentMedia.file &&
@@ -1018,16 +1018,16 @@ const InstagramPreview = ({
             <VideoPreviewPlayer
               src={currentMedia.publicUrl || currentMedia.previewUrl}
               thumbnailUrl={currentMedia.thumbnailUrl}
-              objectFit="cover"
+              objectFit="contain"
               showPlayToggle={true}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           ) : (
             <Image
               src={currentMedia.publicUrl || currentMedia.previewUrl}
               alt="Preview"
               layout="fill"
-              objectFit="cover"
+              objectFit="contain"
               unoptimized
             />
           )
@@ -1340,7 +1340,7 @@ const FacebookPreview = ({
       <div className="px-3 pb-2 text-sm">
         <p className="whitespace-pre-wrap">{text}</p>
       </div>
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200">
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-950 flex items-center justify-center">
         {singleItem ? (
           singleItem.type === "video" ||
           (singleItem.file &&
@@ -1350,16 +1350,16 @@ const FacebookPreview = ({
             <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
               thumbnailUrl={singleItem.thumbnailUrl}
-              objectFit="cover"
+              objectFit="contain"
               showPlayToggle={true}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           ) : (
             <Image
               src={singleItem.publicUrl || singleItem.previewUrl}
               alt="Preview"
               layout="fill"
-              objectFit="cover"
+              objectFit="contain"
               unoptimized
             />
           )
@@ -1611,7 +1611,7 @@ const LinkedInPreview = ({
       <div className="px-3 pb-2 text-sm text-gray-800">
         <p className="whitespace-pre-wrap">{text}</p>
       </div>
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200">
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-950 flex items-center justify-center">
         {singleItem ? (
           singleItem.type === "video" ||
           (singleItem.file &&
@@ -1621,16 +1621,16 @@ const LinkedInPreview = ({
             <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
               thumbnailUrl={singleItem.thumbnailUrl}
-              objectFit="cover"
+              objectFit="contain"
               showPlayToggle={true}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           ) : (
             <Image
               src={singleItem.publicUrl || singleItem.previewUrl}
               alt="Preview"
               layout="fill"
-              objectFit="cover"
+              objectFit="contain"
               unoptimized
             />
           )

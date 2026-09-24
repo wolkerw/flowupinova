@@ -121,6 +121,10 @@ export default function PrivacidadePage() {
           </CardHeader>
           <CardContent>
             <div className="terms-content" dangerouslySetInnerHTML={{ __html: privacidadeHtml }} />
+            <div className="mt-8 border-t border-slate-200 pt-6 text-center text-xs text-slate-500">
+              <p className="font-semibold text-slate-700">Flowup Soluções e Inovações Ltda • CNPJ: 62.826.950/0001-27</p>
+              <p className="mt-1">© {new Date().getFullYear()} NumVapt. Todos os direitos reservados.</p>
+            </div>
           </CardContent>
         </Card>
       </div>
