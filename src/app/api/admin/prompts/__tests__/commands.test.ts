@@ -17,6 +17,12 @@ const mockDoc = {
 
 const mockCollection = {
   doc: vi.fn(() => mockDoc),
+  where: vi.fn(() => ({
+    get: vi.fn().mockResolvedValue({
+      empty: true,
+      docs: [],
+    }),
+  })),
   get: vi.fn().mockResolvedValue({
     empty: false,
     forEach: (cb: any) =>
@@ -55,7 +61,7 @@ describe("API /api/admin/prompts/commands", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
-    expect(data.items).toHaveLength(40);
+    expect(data.items).toHaveLength(77);
     expect(data.items[0].command).toBe("/bokeh");
   });
 
@@ -64,6 +70,7 @@ describe("API /api/admin/prompts/commands", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        id: "cmd_bokeh",
         command: "/bokeh",
         label: "Luzes Desfocadas",
         description: "Fundo com efeito bokeh",
