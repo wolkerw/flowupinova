@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Garante que os assets estáticos da pasta public/ sejam incluídos no
+  // container do Firebase App Hosting (Cloud Run) durante o output file tracing.
+  // Sem isso, imagens estáticas como /layout-styles/*.png e /demo-*.png
+  // ficam ausentes no ambiente de produção mesmo estando no git.
+  outputFileTracingIncludes: {
+    "/**": ["./public/**/*"],
+  },
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   },

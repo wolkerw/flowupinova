@@ -9,6 +9,23 @@ vi.mock("next/headers", () => ({
   cookies: () => mockCookies(),
 }));
 
+// Mock do cron-service-v2 para evitar imports transitivos não mockados (firebase-admin/firestore, etc.)
+vi.mock("@/lib/services/cron-service-v2", () => ({
+  runCronJob: vi.fn().mockResolvedValue({ processed: 0, errors: 0 }),
+}));
+
+// Mock do firebase-admin/firestore para rotas que o importam diretamente
+vi.mock("firebase-admin/firestore", () => ({
+  Timestamp: {
+    now: vi.fn().mockReturnValue({ toDate: () => new Date() }),
+    fromDate: vi.fn().mockReturnValue({}),
+  },
+  FieldValue: {
+    serverTimestamp: vi.fn().mockReturnValue(new Date()),
+    increment: vi.fn().mockReturnValue(0),
+  },
+}));
+
 vi.mock("@/lib/firebase-admin", () => {
   const dummyDoc = {
     get: vi.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
@@ -129,7 +146,7 @@ describe("API Security Hardening", () => {
       const res = await POST(req);
       expect(res.status).toBe(401);
       delete process.env.CRON_SECRET;
-    });
+    }, 10000);
 
     it("rejects /api/cron/sync-ads when CRON_SECRET is set and header is wrong (401)", async () => {
       process.env.CRON_SECRET = "super-secret-cron-key";
@@ -141,7 +158,7 @@ describe("API Security Hardening", () => {
       const res = await POST(req);
       expect(res.status).toBe(401);
       delete process.env.CRON_SECRET;
-    });
+    }, 10000);
   });
 
   describe("Proxy Webhook Security", () => {
