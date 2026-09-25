@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import {
   doc,
   getDoc,
@@ -192,6 +193,7 @@ interface WizardContextType {
 const WizardContext = createContext<WizardContextType | undefined>(undefined);
 
 export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
+  const { checkSubscriptionOrPrompt } = useSubscriptionGate();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
@@ -511,6 +513,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleGenerateText = async (summary?: any) => {
+    if (!checkSubscriptionOrPrompt("criar posts e criativos com IA")) {
+      return null;
+    }
     if (!generateTextSuggestions) {
       setGeneratedContent([]);
       setSelectedContentId(undefined);
@@ -813,6 +818,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleGeneratePrompts = async (contentOverride?: GeneratedContent) => {
+    if (!checkSubscriptionOrPrompt("gerar imagens de criativos com IA")) {
+      return;
+    }
     const selContent =
       contentOverride ||
       (selectedContentId !== undefined

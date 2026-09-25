@@ -35,6 +35,29 @@ vi.mock("firebase/firestore", () => ({
       brandKit: { visualGuidelines: "Design limpo e moderno" },
     }),
   }),
+  onSnapshot: vi.fn((_docRef, onNext) => {
+    setTimeout(() => {
+      if (typeof onNext === "function") {
+        onNext({
+          exists: () => true,
+          data: () => ({ plan: "pro", paymentStatus: "active" }),
+        });
+      }
+    }, 0);
+    return () => {};
+  }),
+}));
+
+// Mock subscription gate estático
+vi.mock("@/hooks/use-subscription-gate", () => ({
+  useSubscriptionGate: () => ({
+    isSubscribed: true,
+    userPlan: "pro",
+    paymentStatus: "active",
+    loading: false,
+    checkSubscriptionOrPrompt: () => true,
+    openSubscriptionModal: vi.fn(),
+  }),
 }));
 
 // Mock toast estático

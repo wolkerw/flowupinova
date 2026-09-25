@@ -73,6 +73,7 @@ vi.mock("@/lib/firebase", () => ({
 vi.mock("firebase/firestore", () => ({
   doc: vi.fn(),
   getDoc: vi.fn(),
+  onSnapshot: vi.fn(() => () => {}),
   collection: vi.fn(),
   addDoc: vi.fn().mockResolvedValue({ id: "test-post-id" }),
   serverTimestamp: vi.fn(),

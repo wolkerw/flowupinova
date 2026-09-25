@@ -74,7 +74,7 @@ export const FloatingNavbar = () => {
             asChild
             className="rounded-full bg-[#0083C7] text-white transition-transform duration-300 hover:scale-105 hover:bg-[#006ca3]"
           >
-            <Link href="/acesso/cadastro">Começar Grátis</Link>
+            <Link href="/acesso/cadastro">Começar Agora</Link>
           </Button>
         </div>
       </motion.nav>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { parseMetaError, getAccountStatusInfo, type AccountStatusInfo } from "@/lib/utils/meta-error-mapper";
 import { MetaConnectionGuideModal } from "@/components/modals/MetaConnectionGuideModal";
 import {
@@ -261,6 +262,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const { user } = useAuth();
   const userId = user?.uid;
   const { toast } = useToast();
+  const { checkSubscriptionOrPrompt } = useSubscriptionGate();
 
   // Dados principais
   const [publishedPosts, setPublishedPosts] = useState<any[]>([]);
@@ -908,6 +910,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   };
 
   const handleConnectMetaAds = () => {
+    if (!checkSubscriptionOrPrompt("conectar sua conta de anúncios da Meta")) return;
     setIsMetaGuideOpen(true);
   };
 
@@ -1100,6 +1103,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   // Conexão Google Ads
   const handleConnectGoogleAds = () => {
+    if (!checkSubscriptionOrPrompt("conectar sua conta do Google Ads")) return;
     const clientId =
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
       "569130702994-a9gjs7gopkquehcui77s58umbdrupql5.apps.googleusercontent.com";

@@ -177,7 +177,7 @@ export const HeroSection = () => {
                   size="lg"
                   className="shadow-soft h-14 w-full rounded-full bg-[#0083C7] px-8 text-lg text-white transition-transform duration-300 hover:scale-105 hover:bg-[#006ca3] sm:w-auto"
                 >
-                  <Link href="/acesso/cadastro">Comece Gratuitamente</Link>
+                  <Link href="/acesso/cadastro">Começar Agora</Link>
                 </Button>
 
                 {/* Botão Ver Demonstração — abre lightbox */}

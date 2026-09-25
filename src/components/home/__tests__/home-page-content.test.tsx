@@ -32,10 +32,11 @@ describe("HomePageContent", () => {
     expect(screen.getByRole("link", { name: "Planos" })).toHaveAttribute("href", "#planos");
     expect(screen.getByRole("link", { name: "Dúvidas" })).toHaveAttribute("href", "#duvidas");
     expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/acesso/login");
-    expect(screen.getByRole("link", { name: "Começar Grátis" })).toHaveAttribute(
-      "href",
-      "/acesso/cadastro"
-    );
+    const ctaLinks = screen.getAllByRole("link", { name: "Começar Agora" });
+    expect(ctaLinks.length).toBeGreaterThanOrEqual(1);
+    ctaLinks.forEach((link) => {
+      expect(link).toHaveAttribute("href", "/acesso/cadastro");
+    });
   });
 
   it("renders home page elements and footer links without support or linkedin button", () => {

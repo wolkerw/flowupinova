@@ -174,9 +174,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: name,
           phone: phone,
           segment: segment || null,
-          createdAt: new Date(), // This is the trial start date
-          plan: "trial",
-          paymentStatus: "active",
+          createdAt: new Date(),
+          plan: "free",
+          paymentStatus: "inactive",
         },
         { merge: true }
       );
@@ -264,8 +264,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone: user.phoneNumber || "",
           segment: null,
           createdAt: new Date(),
-          plan: "trial",
-          paymentStatus: "active",
+          plan: "free",
+          paymentStatus: "inactive",
         });
         fetch("/api/email/welcome", {
           method: "POST",

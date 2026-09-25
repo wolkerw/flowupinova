@@ -79,6 +79,7 @@ import {
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import {
   deletePost,
   getScheduledPosts,
@@ -674,6 +675,7 @@ export default function Conteudo() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkSubscriptionOrPrompt } = useSubscriptionGate();
   const effectRan = useRef(false);
 
   // Data
@@ -1129,10 +1131,12 @@ export default function Conteudo() {
   }, [user?.uid]);
 
   const handleConnectMeta = useCallback(() => {
+    if (!checkSubscriptionOrPrompt("conectar sua página do Facebook")) return;
     setIsMetaGuideOpen(true);
-  }, []);
+  }, [checkSubscriptionOrPrompt]);
 
   const handleConnectInstagram = () => {
+    if (!checkSubscriptionOrPrompt("conectar seu perfil do Instagram")) return;
     const clientId = config.instagram.appId;
     const origin = window.location.origin;
     const redirectUri = `${origin}/api/instagram/callback`;
@@ -1170,6 +1174,7 @@ export default function Conteudo() {
   }, [fetchPageData, toast, user]);
 
   const handleConnectLinkedIn = useCallback(() => {
+    if (!checkSubscriptionOrPrompt("conectar sua conta do LinkedIn")) return;
     const origin = window.location.origin;
     const redirectUri = `${origin}/api/linkedin/callback`;
     const clientId = config.linkedin.clientId;
@@ -1186,7 +1191,7 @@ export default function Conteudo() {
       "r_organization_social w_organization_social rw_organization_admin r_basicprofile";
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
     window.location.href = authUrl;
-  }, [user?.uid, toast]);
+  }, [checkSubscriptionOrPrompt, user?.uid, toast]);
 
   const handleDisconnectLinkedIn = useCallback(async () => {
     if (!user) return;
@@ -1204,6 +1209,7 @@ export default function Conteudo() {
   }, [fetchPageData, toast, user]);
 
   const handleConnectTikTok = useCallback(() => {
+    if (!checkSubscriptionOrPrompt("conectar sua conta do TikTok")) return;
     if (!user?.uid) {
       toast({
         variant: "destructive",
@@ -1213,7 +1219,7 @@ export default function Conteudo() {
       return;
     }
     window.location.href = `/api/tiktok/login?userId=${user.uid}`;
-  }, [user?.uid, toast]);
+  }, [checkSubscriptionOrPrompt, user?.uid, toast]);
 
   const handleDisconnectTikTok = useCallback(async () => {
     if (!user) return;
@@ -1799,7 +1805,10 @@ export default function Conteudo() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {/* Card Destaque - Geral (Fluxo Geral) */}
                   <button
-                    onClick={() => router.push("/dashboard/imagens/gerar?mode=general")}
+                    onClick={() => {
+                      if (!checkSubscriptionOrPrompt("criar novas imagens com IA")) return;
+                      router.push("/dashboard/imagens/gerar?mode=general");
+                    }}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-600 via-purple-600 to-[#FA6305] p-6 text-left text-white shadow-xl shadow-purple-200 transition-all hover:scale-[1.01] active:scale-[0.99] md:col-span-2"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-15 transition-transform duration-500 group-hover:scale-110">
@@ -1818,7 +1827,10 @@ export default function Conteudo() {
 
                   {/* Botão 1 - Conceito com IA */}
                   <button
-                    onClick={() => router.push("/dashboard/posts/gerar?mode=concept")}
+                    onClick={() => {
+                      if (!checkSubscriptionOrPrompt("criar posts conceituais com IA")) return;
+                      router.push("/dashboard/posts/gerar?mode=concept");
+                    }}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-left text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
@@ -1838,7 +1850,10 @@ export default function Conteudo() {
 
                   {/* Botão 2 - Referência Foto com IA */}
                   <button
-                    onClick={() => router.push("/dashboard/posts/gerar?mode=reference-photo")}
+                    onClick={() => {
+                      if (!checkSubscriptionOrPrompt("criar posts de produtos com IA")) return;
+                      router.push("/dashboard/posts/gerar?mode=reference-photo");
+                    }}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-left text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
@@ -1858,7 +1873,10 @@ export default function Conteudo() {
 
                   {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
                   <button
-                    onClick={() => router.push("/dashboard/posts/gerar?mode=reference-hybrid")}
+                    onClick={() => {
+                      if (!checkSubscriptionOrPrompt("criar posts híbridos com IA")) return;
+                      router.push("/dashboard/posts/gerar?mode=reference-hybrid");
+                    }}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">

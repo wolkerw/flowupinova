@@ -156,7 +156,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userPlan, setUserPlan] = useState<string>("trial");
+  const [userPlan, setUserPlan] = useState<string>("free");
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
@@ -184,7 +184,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const userDocRef = doc(db, `users/${user.uid}`);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-          setUserPlan(docSnap.data().plan || "trial");
+          setUserPlan(docSnap.data().plan || "free");
         }
       });
 
@@ -386,7 +386,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
-                {(userPlan === "trial" || userPlan === "free") && (
+                {(userPlan === "trial" || userPlan === "free" || userPlan === "unsubscribed") && (
                   <Button
                     onClick={() => setShowSubscriptionModal(true)}
                     className="hidden h-9 gap-2 rounded-xl border-0 bg-gradient-to-r from-orange-500 to-orange-400 px-4 font-bold text-white shadow-sm transition-opacity hover:opacity-90 sm:flex"

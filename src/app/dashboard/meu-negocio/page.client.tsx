@@ -75,6 +75,7 @@ import {
 } from "@/lib/services/google-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
@@ -534,6 +535,7 @@ const syncOnboardingIfEmpty = async (userId: string, gmbProfile: BusinessProfile
 };
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
+  const { checkSubscriptionOrPrompt } = useSubscriptionGate();
   const [authLoading, setAuthLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(true);
@@ -1057,6 +1059,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   }, [searchParams, user, handleTokenExchange, router, toast]);
 
   const handleConnect = () => {
+    if (!checkSubscriptionOrPrompt("conectar sua conta e perfil do Google")) return;
     if (!user) {
       toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
       return;

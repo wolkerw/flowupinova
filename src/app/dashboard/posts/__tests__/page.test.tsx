@@ -61,6 +61,19 @@ vi.mock("@/lib/services/tiktok-service", () => ({
   getTikTokConnection: vi.fn().mockResolvedValue({ isConnected: false }),
 }));
 
+const mockCheckSubscriptionOrPrompt = vi.fn().mockReturnValue(true);
+
+vi.mock("@/hooks/use-subscription-gate", () => ({
+  useSubscriptionGate: () => ({
+    isSubscribed: true,
+    userPlan: "pro",
+    paymentStatus: "active",
+    loading: false,
+    checkSubscriptionOrPrompt: mockCheckSubscriptionOrPrompt,
+    openSubscriptionModal: vi.fn(),
+  }),
+}));
+
 describe("Posts Page", () => {
   it("renders the main title and section header", async () => {
     render(
@@ -75,5 +88,17 @@ describe("Posts Page", () => {
     expect(screen.getByText("Produto")).toBeInTheDocument();
     expect(screen.getByText("Pessoa + Cenário")).toBeInTheDocument();
     expect(screen.getByText("Manual")).toBeInTheDocument();
+  });
+
+  it("checks subscription when user clicks to create a concept post", async () => {
+    render(
+      <AuthProvider>
+        <Toaster />
+        <Conteudo />
+      </AuthProvider>
+    );
+    const conceptBtn = await screen.findByText("Conceito");
+    conceptBtn.closest("button")?.click();
+    expect(mockCheckSubscriptionOrPrompt).toHaveBeenCalledWith("criar posts conceituais com IA");
   });
 });

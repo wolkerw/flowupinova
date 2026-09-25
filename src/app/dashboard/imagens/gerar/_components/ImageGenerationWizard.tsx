@@ -8,6 +8,7 @@ import { db, storage } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -195,6 +196,7 @@ const PLACEHOLDER_PROMPTS = [
 export function ImageGenerationWizard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkSubscriptionOrPrompt } = useSubscriptionGate();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -332,6 +334,7 @@ export function ImageGenerationWizard() {
 
   // Avançar diretamente da Ideia (Etapa 1) para a Geração de Imagens (Etapa 2)
   const handleStartGenerationDirect = async () => {
+    if (!checkSubscriptionOrPrompt("gerar imagens com IA")) return;
     if (!brief.trim()) {
       toast({
         variant: "destructive",
@@ -424,6 +427,7 @@ export function ImageGenerationWizard() {
 
   // Retry individual de uma variação
   const handleRetryVariation = async (assetId: string) => {
+    if (!checkSubscriptionOrPrompt("gerar novas variações de imagens com IA")) return;
     setRetryingAssetId(assetId);
     setAssets((prev) =>
       prev.map((a) => (a.id === assetId ? { ...a, status: "processing", error: null } : a))
