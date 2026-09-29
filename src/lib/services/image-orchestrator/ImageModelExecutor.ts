@@ -52,10 +52,17 @@ export class ImageModelExecutor {
               : "1792x1024";
 
     const subjectRef = params.references?.find((r) => r.role === "product_subject");
+    const logoRef = params.references?.find(
+      (r) => r.role === "business_logo" || r.role === "official_logo"
+    );
+    const hasLogo = Boolean(logoRef);
 
-    // Diretiva estrita de proibição de logomarca gerada
+    // Diretiva estrita de proibição de logomarca gerada (apenas se NENHUMA logo foi fornecida)
     const zeroLogoDirective =
       " [CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE: Absolutely DO NOT draw, invent, or render any logos, brand emblems, corporate icons, or badges. Leave a clean, open space in the top corner specifically reserved for manual logo overlay.]";
+
+    const logoDirective =
+      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO: The user has supplied their official business logo image. Seamlessly and prominently integrate this exact official logo into the generated artwork (placed cleanly at the top corner or header badge) with crisp clarity and harmonious contrast, faithfully representing the brand.]";
 
     const subjectDirective = subjectRef
       ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
@@ -88,8 +95,16 @@ export class ImageModelExecutor {
       try {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
-          if (!openaiPrompt.includes("ZERO LOGOS")) {
-            openaiPrompt += zeroLogoDirective;
+          if (hasLogo) {
+            if (openaiPrompt.includes("ZERO LOGOS")) {
+              openaiPrompt = openaiPrompt.replace(/\[CRITICAL MANDATE — ZERO LOGOS[^\]]+\]/g, logoDirective);
+            } else if (!openaiPrompt.includes("MANDATORY")) {
+              openaiPrompt += logoDirective;
+            }
+          } else {
+            if (!openaiPrompt.includes("ZERO LOGOS")) {
+              openaiPrompt += zeroLogoDirective;
+            }
           }
           if (subjectRef && !openaiPrompt.includes("HERO SUBJECT PRESERVATION")) {
             openaiPrompt += subjectDirective;
@@ -204,8 +219,16 @@ export class ImageModelExecutor {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
           
           let geminiPrompt = params.prompt;
-          if (!geminiPrompt.includes("ZERO LOGOS")) {
-            geminiPrompt += zeroLogoDirective;
+          if (hasLogo) {
+            if (geminiPrompt.includes("ZERO LOGOS")) {
+              geminiPrompt = geminiPrompt.replace(/\[CRITICAL MANDATE — ZERO LOGOS[^\]]+\]/g, logoDirective);
+            } else if (!geminiPrompt.includes("MANDATORY")) {
+              geminiPrompt = `${logoDirective}\n\n${geminiPrompt}`;
+            }
+          } else {
+            if (!geminiPrompt.includes("ZERO LOGOS")) {
+              geminiPrompt += zeroLogoDirective;
+            }
           }
           if (subjectRef && !geminiPrompt.includes("HERO SUBJECT PRESERVATION")) {
             geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
@@ -213,9 +236,15 @@ export class ImageModelExecutor {
 
           const parts: any[] = [{ text: geminiPrompt }];
 
-          // Anexar imagem da pessoa/produto da Etapa 5 como parte multimodal direta
+          // Anexar imagem do sujeito e/ou logomarca oficial como partes multimodais diretas
           if (params.references && params.references.length > 0) {
-            for (const ref of params.references.slice(0, 2)) {
+            const prioritizedRefs = [
+              ...params.references.filter((r) => r.role === "product_subject"),
+              ...params.references.filter((r) => r.role === "business_logo" || r.role === "official_logo"),
+              ...params.references.filter((r) => r.role === "style_reference"),
+            ].slice(0, 3);
+
+            for (const ref of prioritizedRefs) {
               if (ref.base64 && ref.mimeType) {
                 parts.push({
                   inlineData: {

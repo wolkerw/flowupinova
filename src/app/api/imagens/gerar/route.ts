@@ -70,11 +70,13 @@ export async function POST(request: NextRequest) {
       productHeadline = "",
       negativeInstructions = "",
       visualDirection,
+      logoUrl = "",
       referenceAssetUrls = [],
       sourceAssetUrls = [],
       retryAssetId = null,
       existingGenerationId = null,
     } = body as AIImageGenerationRequest & {
+      logoUrl?: string;
       retryAssetId?: string | null;
       existingGenerationId?: string | null;
     };
@@ -120,6 +122,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 1.1 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit)
+    const effectiveLogoUrl = logoUrl || (useBrandKit ? brandSnapshot?.logoUrl || "" : "");
+
     // 2. Criar ou reutilizar entidade aiImageGeneration no Firestore
     const generationId =
       existingGenerationId || `gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
@@ -145,6 +150,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      if (effectiveLogoUrl) initialGenData.logoUrl = effectiveLogoUrl;
       if (visualDirection) initialGenData.visualDirection = visualDirection;
       if (productHeadline) initialGenData.productHeadline = productHeadline;
       if (brandSnapshot) initialGenData.brandSnapshot = brandSnapshot;
@@ -237,10 +243,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Regra Mandatória de Logomarcas: ZERO LOGOS desenhados pela IA (espaço reservado para overlay manual)
-      brandDirectives.push(
-        `PROIBIÇÃO TOTAL DE DESENHAR LOGOMARCAS (ZERO LOGOS): É terminantemente PROIBIDO desenhar, inventar, criar, simular ou tentar reproduzir qualquer logotipo, marca, brasão, símbolo comercial, foguete ou mascote na imagem. Deixe o canto superior da imagem 100% limpo, neutro e desobstruído (área de respiro) para que a logomarca oficial seja inserida manualmente depois pelo usuário. A imagem NÃO PODE conter nenhum logotipo gerado.`
-      );
+      // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
+      if (effectiveLogoUrl) {
+        brandDirectives.push(
+          `INCLUSÃO OBRIGATÓRIA DA LOGOMARCA DO NEGÓCIO: A logomarca oficial da empresa foi fornecida. A imagem gerada DEVE OBRIGATORIAMENTE conter e exibir a logomarca oficial de forma nítida, destacada e elegante (no topo, canto superior ou cabeçalho harmônico), com excelente contraste e legibilidade, respeitando fielmente a identidade visual da marca.`
+        );
+      } else {
+        brandDirectives.push(
+          `PROIBIÇÃO DE LOGOMARCAS FICTÍCIAS: Nenhuma logo oficial foi fornecida. Não invente ou desenhe marcas ou logotipos fictícios. Deixe o canto superior da imagem limpo.`
+        );
+      }
 
       // Se houver foto real de pessoa ou produto enviada na Etapa 5
       if (sourceAssetUrls && sourceAssetUrls.length > 0) {
@@ -264,8 +276,9 @@ export async function POST(request: NextRequest) {
 
     // Diretivas de Diagramação, Textos e Infográficos
     if (effectiveOverlayMode === "NONE") {
-      compiledPrompt +=
-        " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image. Pristine photography only.]";
+      compiledPrompt += effectiveLogoUrl
+        ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays, featuring the official business logo cleanly integrated.]"
+        : " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image. Pristine photography only.]";
     } else if (effectiveOverlayMode === "TITLE_ONLY") {
       const headlineDirective = productHeadline?.trim()
         ? `with the exact headline: "${productHeadline.trim()}"`
@@ -450,6 +463,7 @@ export async function POST(request: NextRequest) {
           textOverlayMode: effectiveOverlayMode,
           productHeadline,
           negativeInstructions,
+          logoUrl: effectiveLogoUrl,
           sourceAssetUrls,
           referenceAssetUrls,
         });

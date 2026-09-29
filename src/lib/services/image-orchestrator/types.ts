@@ -10,7 +10,7 @@ export interface ReferenceInput {
   url?: string;
   mimeType: string;
   base64: string;
-  role: "official_logo" | "product_subject" | "style_reference";
+  role: "official_logo" | "business_logo" | "product_subject" | "style_reference";
   description?: string;
 }
 

@@ -219,6 +219,8 @@ export function ImageGenerationWizard() {
   // Arquivos anexos do Briefing
   const [referenceImages, setReferenceImages] = useState<{ file?: File; url: string }[]>([]);
   const [sourceImage, setSourceImage] = useState<{ file?: File; url: string } | null>(null);
+  const [logoImage, setLogoImage] = useState<{ file?: File; url: string } | null>(null);
+  const [includeLogo, setIncludeLogo] = useState<boolean>(true);
   const [isUploadingFiles, setIsUploadingFiles] = useState<boolean>(false);
 
   // BrandKit carregado do negócio
@@ -254,6 +256,14 @@ export function ImageGenerationWizard() {
       const merged = { ...profileData, ...onboardingData };
       if (onboardingSnap.exists() || profileSnap.exists()) {
         setBusinessProfile(merged);
+        const profileLogo =
+          merged.brandKit?.logoUrl ||
+          merged.logo?.url ||
+          (typeof merged.logo === "string" ? merged.logo : "");
+        if (profileLogo) {
+          setLogoImage({ url: profileLogo });
+          setIncludeLogo(true);
+        }
       }
     }).catch((err) => {
       console.warn("[IMAGE_WIZARD] Erro ao carregar perfil de marca:", err);
@@ -374,6 +384,15 @@ export function ImageGenerationWizard() {
         uploadedSourceUrl = await handleUploadImageFile(sourceImage.file);
       }
 
+      let uploadedLogoUrl = "";
+      if (includeLogo && logoImage) {
+        if (logoImage.file) {
+          uploadedLogoUrl = await handleUploadImageFile(logoImage.file);
+        } else if (logoImage.url) {
+          uploadedLogoUrl = logoImage.url;
+        }
+      }
+
       const dimensions = FORMAT_DIMENSIONS[format];
       const res = await fetch("/api/imagens/gerar", {
         method: "POST",
@@ -392,6 +411,7 @@ export function ImageGenerationWizard() {
           textOverlayMode,
           productHeadline,
           negativeInstructions,
+          logoUrl: uploadedLogoUrl || undefined,
           referenceAssetUrls: uploadedRefUrls,
           sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
         }),
@@ -451,6 +471,7 @@ export function ImageGenerationWizard() {
           textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
           textOverlayMode,
           productHeadline,
+          logoUrl: (includeLogo && logoImage?.url) || undefined,
           retryAssetId: assetId,
           existingGenerationId: generationId,
         }),
@@ -1076,6 +1097,92 @@ export function ImageGenerationWizard() {
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Identidade Vinculada à IA
                       </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Logomarca do Negócio com Inserção Automática */}
+                {useBrandKit && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-white p-3.5 rounded-xl border border-blue-100 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      {logoImage?.url ? (
+                        <div className="h-10 w-16 bg-slate-50 border border-slate-200 rounded-lg p-1 flex items-center justify-center shrink-0">
+                          <img
+                            src={logoImage.url}
+                            alt="Logomarca"
+                            className="h-full w-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 bg-slate-100 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
+                          <ImageIcon className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900">Logomarca do Negócio</span>
+                          {logoImage?.url && (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                              {includeLogo ? "Inserção Automática Ativa" : "Desativada"}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500">
+                          {logoImage?.url
+                            ? "A IA integrará sua logo de forma harmônica e visível na imagem solicitada."
+                            : "Nenhuma logomarca cadastrada. Envie um arquivo para que a IA insira na arte."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                      {logoImage?.url ? (
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor="includeLogoSwitch"
+                            className="text-xs font-semibold text-gray-700 cursor-pointer"
+                          >
+                            Inserir na Arte
+                          </Label>
+                          <Switch
+                            id="includeLogoSwitch"
+                            checked={includeLogo}
+                            onCheckedChange={setIncludeLogo}
+                          />
+                          <label className="text-[11px] text-primary hover:underline cursor-pointer ml-1">
+                            Trocar
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  const f = e.target.files[0];
+                                  setLogoImage({ file: f, url: URL.createObjectURL(f) });
+                                  setIncludeLogo(true);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <label className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-primary border border-blue-200 rounded-lg font-bold text-xs cursor-pointer flex items-center gap-1.5 transition-all">
+                          <UploadCloud className="h-3.5 w-3.5" />
+                          <span>Enviar Logomarca</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                const f = e.target.files[0];
+                                setLogoImage({ file: f, url: URL.createObjectURL(f) });
+                                setIncludeLogo(true);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
                   </div>
                 )}
