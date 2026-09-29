@@ -60,6 +60,15 @@ export interface Gpt5PlannerInput {
   preferredModel?: string;
 }
 
+export interface SocialCaptionPlan {
+  title?: string;
+  hook?: string;
+  body?: string;
+  callToAction?: string;
+  hashtags: string[];
+  fullPostText: string;
+}
+
 export interface Gpt5VisualPlanResponse {
   schemaVersion: "1.0";
   requestType: "generate" | "edit";
@@ -98,6 +107,7 @@ export interface Gpt5VisualPlanResponse {
     type: "headline" | "badge" | "subtitle" | "cta";
     position?: string;
   }>;
+  socialCaption?: SocialCaptionPlan;
   imagePrompt: string;
   negativePrompt: string;
   preserve: string[];

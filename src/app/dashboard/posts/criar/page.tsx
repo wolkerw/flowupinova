@@ -1913,6 +1913,14 @@ export default function CriarConteudoPage() {
     logoPreviewUrlRef.current = logoPreviewUrl;
   }, [logoPreviewUrl]);
 
+  const skipAutoLogoRef = useRef<boolean>(
+    typeof window !== "undefined" &&
+      Boolean(
+        sessionStorage.getItem("preloaded_gallery_image")?.includes('"skipAutoLogo":true') ||
+        sessionStorage.getItem("preloaded_gallery_image")?.includes('"hasPrintedLogo":true')
+      )
+  );
+
   useEffect(() => {
     if (!user) return;
     Promise.all([
@@ -1940,8 +1948,8 @@ export default function CriarConteudoPage() {
       if (tiktokConn?.isConnected) initialPlatforms.push("tiktok");
       setPlatforms(initialPlatforms);
 
-      // Carregar automaticamente a logomarca do Brand Kit se existir e nenhuma estiver selecionada
-      if (profile?.logo?.url && !logoPreviewUrlRef.current) {
+      // Carregar automaticamente a logomarca do Brand Kit se existir, nenhuma estiver selecionada e a imagem não possuir logo impressa por IA
+      if (profile?.logo?.url && !logoPreviewUrlRef.current && !skipAutoLogoRef.current) {
         setLogoPreviewUrl(profile.logo.url);
 
         const logoUrlToFetch = profile.logo.url.startsWith("http")
@@ -1981,6 +1989,8 @@ export default function CriarConteudoPage() {
     usedInPostId: string | null;
     fileName: string;
     caption?: string | null;
+    hasPrintedLogo?: boolean;
+    skipAutoLogo?: boolean;
   }
   const [galleryImages, setGalleryImages] = useState<GalleryMediaItem[]>([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -2013,6 +2023,8 @@ export default function CriarConteudoPage() {
           usedInPostId: data.usedInPostId || null,
           fileName: data.fileName || "imagem.jpg",
           caption: data.caption || null,
+          hasPrintedLogo: Boolean(data.hasPrintedLogo),
+          skipAutoLogo: Boolean(data.hasPrintedLogo || data.skipAutoLogo),
         });
       });
 
@@ -2064,6 +2076,12 @@ export default function CriarConteudoPage() {
 
         if (item.caption) {
           setText(item.caption);
+        }
+
+        if (item.skipAutoLogo || item.hasPrintedLogo) {
+          skipAutoLogoRef.current = true;
+          setLogoPreviewUrl(null);
+          setLogoFile(null);
         }
 
         sessionStorage.removeItem("preloaded_gallery_image");
@@ -2125,6 +2143,12 @@ export default function CriarConteudoPage() {
 
     if (item.caption) {
       setText(item.caption);
+    }
+
+    if (item.hasPrintedLogo || item.skipAutoLogo) {
+      skipAutoLogoRef.current = true;
+      setLogoPreviewUrl(null);
+      setLogoFile(null);
     }
 
     setIsGalleryOpen(false);

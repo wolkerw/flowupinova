@@ -545,24 +545,85 @@ export function ImageGenerationWizard() {
     }
   };
 
-  // Ação: Usar em Post
+  // Helper para gerar legenda comercial engajadora caso o asset ainda não contenha
+  const generateClientSocialCaption = (userBrief: string, headline?: string, profile?: any): string => {
+    const brandName = profile?.name || profile?.brandKit?.name || "Nosso Negócio";
+    const segment = profile?.segment || profile?.category || "";
+    const cleanBrief = userBrief
+      .replace(
+        /^(crie|gere|faça|monte|produza)\s+(uma?\s+)?(imagem|arte|foto|post|design)?\s+(que\s+)?(contextualize|traga|mostre|apresente|com|sobre|de)?/i,
+        ""
+      )
+      .trim();
+
+    const cleanTag = (str: string) => str.replace(/[^a-zA-Z0-9À-ÿ]/g, "");
+    const tagsSet = new Set<string>();
+    if (brandName && brandName !== "Empresa" && brandName !== "Nosso Negócio") {
+      tagsSet.add(`#${cleanTag(brandName)}`);
+    }
+    if (segment) {
+      tagsSet.add(`#${cleanTag(segment)}`);
+    }
+
+    const stopWords = ["para", "com", "uma", "sobre", "mais", "trazendo", "acao", "ramo", "ideia", "negocio", "imagem"];
+    const keywords = cleanBrief
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => cleanTag(w))
+      .filter((w) => w.length > 3 && !stopWords.includes(w));
+
+    keywords.slice(0, 3).forEach((k) => {
+      tagsSet.add(`#${k.charAt(0).toUpperCase() + k.slice(1)}`);
+    });
+
+    tagsSet.add("#NegocioLocal");
+    tagsSet.add("#Qualidade");
+    tagsSet.add("#Inovacao");
+    tagsSet.add("#Empreendedorismo");
+
+    const hashtags = Array.from(tagsSet).slice(0, 7).join(" ");
+    const hook = headline?.trim()
+      ? `✨ ${headline.trim()}!`
+      : `✨ Transforme a experiência do seu dia a dia com soluções pensadas para você!`;
+
+    const body = cleanBrief
+      ? `Aqui no ${brandName}, cada detalhe é planejado com dedicação e profissionalismo para entregar o melhor para você.`
+      : `No ${brandName}, colocamos qualidade, dedicação e excelência em primeiro lugar para encantar você a cada momento!`;
+
+    const cta = `👉 Venha conferir de perto ou fale conosco pelo link da bio!`;
+    return `${hook}\n\n${body}\n\n${cta}\n\n${hashtags}`;
+  };
+
+  // Ação: Usar em Post (com legenda criada por IA e proteção de logo já impressa)
   const handleUseInPost = (asset: AIImageAssetDoc) => {
     if (!asset.originalUrl) return;
     try {
+      const generatedCaption =
+        asset.caption ||
+        generateClientSocialCaption(brief, productHeadline, businessProfile);
+
+      const hasPrintedLogo = Boolean(
+        asset.hasPrintedLogo !== undefined
+          ? asset.hasPrintedLogo
+          : (includeLogo && logoImage?.url)
+      );
+
       if (typeof window !== "undefined") {
         window.sessionStorage?.setItem(
           "preloaded_gallery_image",
           JSON.stringify({
             url: asset.originalUrl,
             prompt: brief,
-            caption: brief.slice(0, 100),
+            caption: generatedCaption,
             type: "image",
+            hasPrintedLogo,
+            skipAutoLogo: hasPrintedLogo,
           })
         );
       }
       toast({
-        title: "Imagem selecionada!",
-        description: "Abrindo o criador de post com sua imagem...",
+        title: "Legenda e imagem prontas! ✨",
+        description: "Abrindo o criador de post com sua imagem e legenda criada por IA...",
       });
       router.push("/dashboard/posts/criar?from_gallery=true");
     } catch (e) {

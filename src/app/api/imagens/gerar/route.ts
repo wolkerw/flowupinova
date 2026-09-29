@@ -529,9 +529,35 @@ export async function POST(request: NextRequest) {
         storageFilePath
       )}?alt=media&token=${downloadToken}`;
 
-      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) anotando modelUsed e plannerModelUsed
+      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) com legenda criada por IA
       const galleryMediaId = `ai_img_${slotId}`;
       const galleryRef = adminDb.doc(`users/${userId}/mediaGallery/${galleryMediaId}`);
+
+      const socialCaption = visualPlan?.socialCaption;
+      const fullPostCaption =
+        socialCaption?.fullPostText ||
+        Gpt5PromptPlanner.generateFallbackSocialCaption({
+          userBrief: brief,
+          productHeadline,
+          objective,
+          format,
+          width: targetWidth,
+          height: targetHeight,
+          quantity: 1,
+          stylePreference: style,
+          useBrandKit,
+          brandKit: brandSnapshot
+            ? {
+                enabled: true,
+                businessName: brandSnapshot.name,
+                segment: brandSnapshot.segment,
+                primaryColors: [brandSnapshot.primaryColor || "#0083C7"],
+                secondaryColors: [brandSnapshot.secondaryColor || "#FA6305"],
+                accentColors: [],
+                hasLocalOfficialLogo: Boolean(effectiveLogoUrl),
+              }
+            : undefined,
+        }).fullPostText;
 
       const titleSummary = brief.slice(0, 60);
       await galleryRef.set({
@@ -540,7 +566,7 @@ export async function POST(request: NextRequest) {
         storagePath: storageFilePath,
         source: "ai_image_general",
         prompt: brief,
-        caption: titleSummary,
+        caption: fullPostCaption,
         type: "image",
         style,
         format,
@@ -551,12 +577,13 @@ export async function POST(request: NextRequest) {
         generationId,
         assetId: slotId,
         brandKitApplied: Boolean(useBrandKit && brandSnapshot),
+        hasPrintedLogo: Boolean(effectiveLogoUrl),
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         usedInPostId: null,
         fileName: `image_${slotId}.png`,
       });
 
-      // 8. Salvar status no aiImageAsset anotando modelUsed e plannerModelUsed na raiz e no promptMetadata
+      // 8. Salvar status no aiImageAsset anotando modelUsed, plannerModelUsed, caption gerada e hasPrintedLogo
       const readyAsset: AIImageAssetDoc = {
         id: slotId,
         generationId,
@@ -568,6 +595,9 @@ export async function POST(request: NextRequest) {
         galleryAssetId: galleryMediaId,
         modelUsed,
         plannerModelUsed,
+        caption: fullPostCaption,
+        hashtags: socialCaption?.hashtags || [],
+        hasPrintedLogo: Boolean(effectiveLogoUrl),
         promptMetadata: {
           fullPrompt: usedPrompt,
           modelUsed,

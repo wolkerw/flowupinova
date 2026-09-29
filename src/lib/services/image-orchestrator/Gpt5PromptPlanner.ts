@@ -29,6 +29,14 @@ DIRETRIZES DE TEXTO / INFOGRÁFICO:
 - Se textOverlayMode for TITLE_ONLY: Incluir headline em português com tipografia nítida e contrastante no topo com margens de segurança.
 - Se textOverlayMode for INFOGRAPHIC: Criar layout dinâmico adaptado ao briefing (badges flutuantes, callouts com linhas sutis, cards de benefícios modernos), com espaçamento generoso e textos nítidos em português (pt-BR).
 
+DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
+No campo "socialCaption", crie um copywriting persuasivo e engajador em português (pt-BR) pronto para publicação comercial nas redes sociais (Instagram, Facebook, LinkedIn):
+- hook: gancho inicial envolvente (1 a 2 linhas com emoji atraente);
+- body: desenvolvimento comercial ou storytelling persuasivo destacando os diferenciais;
+- callToAction: chamada para ação clara (ex: "Peça pelo link da bio", "Comente aqui embaixo", "Venha nos visitar");
+- hashtags: array com 5 a 8 hashtags estratégicas em português (incluindo a marca, nicho e tema);
+- fullPostText: o texto completo unificado e pronto para postar, com quebras de linha e o bloco de hashtags no final. NUNCA utilize instruções ou prompts de imagem como legenda.
+
 REGRAS DE CONFORMIDADE:
 - Responda OBRIGATORIAMENTE em formato JSON válido respeitando o schema solicitado.
 - Não inclua markdown adicional ou texto fora do JSON.
@@ -244,6 +252,21 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       },
       referenceInstructions: Array.isArray(raw.referenceInstructions) ? raw.referenceInstructions : [],
       textLayers: Array.isArray(raw.textLayers) ? raw.textLayers : [],
+      socialCaption:
+        raw.socialCaption &&
+        typeof raw.socialCaption.fullPostText === "string" &&
+        raw.socialCaption.fullPostText.trim().length > 20
+          ? {
+              title: raw.socialCaption.title || input.productHeadline || "Post Oficial",
+              hook: raw.socialCaption.hook || "",
+              body: raw.socialCaption.body || "",
+              callToAction: raw.socialCaption.callToAction || "",
+              hashtags: Array.isArray(raw.socialCaption.hashtags)
+                ? raw.socialCaption.hashtags
+                : [],
+              fullPostText: raw.socialCaption.fullPostText.trim(),
+            }
+          : this.generateFallbackSocialCaption(input),
       imagePrompt: raw.imagePrompt || this.buildFallbackImagePrompt(input),
       negativePrompt:
         raw.negativePrompt ||
@@ -310,6 +333,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       textLayers: input.productHeadline
         ? [{ text: input.productHeadline, type: "headline", position: "top" }]
         : [],
+      socialCaption: this.generateFallbackSocialCaption(input),
       imagePrompt: this.buildFallbackImagePrompt(input),
       negativePrompt: hasLogo
         ? "distorted logo, warped branding, competitor trademarks, fake text, cropped typography, text touching borders, amateur framing"
@@ -389,5 +413,67 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     }
 
     return `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere. ${brandInstruction} ${subjectMandate} ${textInstruction} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+  }
+
+  public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {
+    const brandName = input.brandKit?.businessName || "Nosso Negócio";
+    const segment = input.brandKit?.segment || "";
+    // Limpar prefixos comuns de comandos como "crie uma imagem que..."
+    const cleanBrief = input.userBrief
+      .replace(/^(crie|gere|faça|monte|produza)\s+(uma?\s+)?(imagem|arte|foto|post|design)?\s+(que\s+)?(contextualize|traga|mostre|apresente|com|sobre|de)?/i, "")
+      .trim();
+
+    const title = input.productHeadline?.trim() || cleanBrief.slice(0, 60);
+
+    // Gerar hashtags estratégicas
+    const cleanTag = (str: string) => str.replace(/[^a-zA-Z0-9À-ÿ]/g, "");
+    const tagsSet = new Set<string>();
+
+    if (brandName && brandName !== "Empresa" && brandName !== "Nosso Negócio") {
+      tagsSet.add(`#${cleanTag(brandName)}`);
+    }
+    if (segment) {
+      tagsSet.add(`#${cleanTag(segment)}`);
+    }
+
+    // Extrair palavras-chave relevantes do briefing
+    const stopWords = ["para", "com", "uma", "sobre", "mais", "trazendo", "acao", "ramo", "ideia", "negocio", "imagem"];
+    const keywords = cleanBrief
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => cleanTag(w))
+      .filter((w) => w.length > 3 && !stopWords.includes(w));
+
+    keywords.slice(0, 3).forEach((k) => {
+      tagsSet.add(`#${k.charAt(0).toUpperCase() + k.slice(1)}`);
+    });
+
+    tagsSet.add("#NegocioLocal");
+    tagsSet.add("#Qualidade");
+    tagsSet.add("#Inovacao");
+    tagsSet.add("#Empreendedorismo");
+
+    const hashtags = Array.from(tagsSet).slice(0, 7);
+
+    const hook = input.productHeadline?.trim()
+      ? `✨ ${input.productHeadline.trim()}!`
+      : `✨ Transforme a experiência do seu dia a dia com soluções pensadas para você!`;
+
+    const body = cleanBrief
+      ? `Aqui no ${brandName}, cada detalhe é planejado com dedicação e profissionalismo. Trabalhamos constantemente para oferecer o melhor padrão de qualidade, atendimento acolhedor e resultados que superam suas expectativas.`
+      : `No ${brandName}, colocamos qualidade, dedicação e excelência em primeiro lugar para encantar você a cada momento!`;
+
+    const cta = `👉 Venha conferir de perto ou fale conosco pelo link da bio!`;
+
+    const fullPostText = `${hook}\n\n${body}\n\n${cta}\n\n${hashtags.join(" ")}`;
+
+    return {
+      title: title || "Publicação Especial",
+      hook,
+      body,
+      callToAction: cta,
+      hashtags,
+      fullPostText,
+    };
   }
 }
