@@ -90,18 +90,62 @@ describe("Image Orchestrator Suite", () => {
   });
 
   describe("ReferenceContextBuilder", () => {
-    it("carrega fotos do sujeito da Etapa 5 sem poluição de logo", async () => {
+    it("não inclui logo em referências visuais quando logoUrl não for fornecida", async () => {
       const refs = await ReferenceContextBuilder.buildReferences({
         businessName: "NumVapt Soluções",
         brief: "Crie um post publicitário para a NumVapt",
       });
-      // Garante que a IA não recebe logos em referências visuais
-      expect(refs.every((r) => r.role !== "official_logo")).toBe(true);
+      expect(refs.every((r) => r.role !== "business_logo" && r.role !== "official_logo")).toBe(true);
+    });
+
+    it("carrega logomarca oficial com role business_logo quando logoUrl for fornecida", async () => {
+      const originalFetch = global.fetch;
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => Buffer.from("fake-png-logo-data"),
+      });
+
+      const refs = await ReferenceContextBuilder.buildReferences({
+        businessName: "NumVapt Soluções",
+        logoUrl: "https://example.com/logo.png",
+        brief: "Crie um post publicitário",
+      });
+
+      expect(refs.some((r) => r.role === "business_logo")).toBe(true);
+      global.fetch = originalFetch;
     });
   });
 
   describe("Gpt5PromptPlanner", () => {
-    it("gera plano com GPT-5 estruturado ou fallback determinístico garantindo safe margins e zero logos", async () => {
+    it("gera plano determinístico com zero logos quando nenhuma logo é fornecida", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Café especial aromático",
+        objective: "commercial",
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic",
+        useBrandKit: true,
+        brandKit: {
+          enabled: true,
+          businessName: "NumVapt",
+          primaryColors: ["#0083C7"],
+          secondaryColors: ["#FA6305"],
+          accentColors: ["#FFFFFF"],
+          restrictions: [],
+          hasLocalOfficialLogo: false,
+        },
+      });
+
+      expect(planResult.plannerModelUsed).toBeDefined();
+      expect(planResult.visualPlan).toBeDefined();
+      expect(planResult.compiledImagePrompt).toContain("SAFE MARGINS");
+      expect(planResult.compiledImagePrompt).toContain("ZERO LOGOS");
+      expect(planResult.compiledImagePrompt).toContain("15% to 20%");
+    });
+
+    it("gera plano determinístico com inclusão mandatória de logo quando logomarca é fornecida", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Café especial aromático",
         objective: "commercial",
@@ -119,14 +163,13 @@ describe("Image Orchestrator Suite", () => {
           accentColors: ["#FFFFFF"],
           restrictions: [],
           hasLocalOfficialLogo: true,
+          logoUrl: "https://example.com/logo.png",
         },
       });
 
-      expect(planResult.plannerModelUsed).toBeDefined();
-      expect(planResult.visualPlan).toBeDefined();
-      expect(planResult.compiledImagePrompt).toContain("SAFE MARGINS");
-      expect(planResult.compiledImagePrompt).toContain("ZERO LOGOS");
-      expect(planResult.compiledImagePrompt).toContain("15% to 20%");
+      expect(planResult.visualPlan.brandApplication.useLogo).toBe(true);
+      expect(planResult.compiledImagePrompt).toContain("MANDATORY LOGO INTEGRATION");
+      expect(planResult.compiledImagePrompt).not.toContain("ZERO LOGOS");
     });
   });
 

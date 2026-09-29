@@ -359,5 +359,48 @@ describe("API /api/imagens/gerar", () => {
     const data = await res.json();
     expect(data.assets[0].modelUsed).toBe("gemini-2.5-flash-image");
   });
+
+  it("injeta diretiva mandatória de logo no prompt quando logoUrl for enviada", async () => {
+    let capturedPrompt = "";
+    global.fetch = vi.fn().mockImplementation((url, options) => {
+      const urlStr = String(url);
+      if (urlStr.includes("http://example.com/logo-oficial.png")) {
+        return Promise.resolve({
+          ok: true,
+          arrayBuffer: async () => Buffer.from("fake-logo-data"),
+        });
+      }
+      if (options && options.body) {
+        try {
+          const parsed = JSON.parse(options.body as string);
+          if (parsed.prompt) {
+            capturedPrompt = parsed.prompt;
+          }
+        } catch {}
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          data: [{ b64_json: Buffer.from("fake-image-with-logo").toString("base64") }],
+        }),
+      });
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/gerar", {
+      method: "POST",
+      body: JSON.stringify({
+        brief: "Post comercial sobre novos serviços",
+        logoUrl: "http://example.com/logo-oficial.png",
+        format: "square",
+        quantity: 1,
+        useBrandKit: true,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(capturedPrompt).toContain("MANDATORY");
+    expect(capturedPrompt).not.toContain("ZERO LOGOS");
+  });
 });
 

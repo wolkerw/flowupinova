@@ -21,13 +21,21 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    [6. LIGHTING & COLOR]: Iluminação profissional e paleta cromática harmônica inspirada nas cores da marca.
    [7. TEXTURES & FINISH]: Acabamentos de estúdio de alta fidelidade e realismo.
    [8. VISUAL STYLE]: Fotografia comercial moderna de alto padrão.
-   [9. ZERO LOGO MANDATE & CLEAN LOGO SPACE]: REGRA INVIOLÁVEL: É expressamente PROIBIDO desenhar, inventar, criar, simular ou tentar reproduzir qualquer logotipo, marca, brasão, símbolo comercial, foguete ou mascote. Deixe uma área reservada limpa, neutra e desobstruída (área de respiro no topo/canto da imagem) para que a logomarca oficial seja inserida manualmente depois pelo usuário.
+   [9. LOGO DIRECTIVE]: Se o usuário tiver fornecido a logomarca do negócio, a IA DEVE OBRIGATORIAMENTE exibir e integrar a logomarca oficial de forma visível, nítida e harmoniosa na arte (no canto superior, cabeçalho ou badge de marca). Se NENHUMA logomarca tiver sido fornecida, é expressamente PROIBIDO inventar, criar ou simular logotipos fictícios.
    [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas.
 
 DIRETRIZES DE TEXTO / INFOGRÁFICO:
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia pura sem letras ou legendas.
 - Se textOverlayMode for TITLE_ONLY: Incluir headline em português com tipografia nítida e contrastante no topo com margens de segurança.
 - Se textOverlayMode for INFOGRAPHIC: Criar layout dinâmico adaptado ao briefing (badges flutuantes, callouts com linhas sutis, cards de benefícios modernos), com espaçamento generoso e textos nítidos em português (pt-BR).
+
+DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
+No campo "socialCaption", crie um copywriting persuasivo e engajador em português (pt-BR) pronto para publicação comercial nas redes sociais (Instagram, Facebook, LinkedIn):
+- hook: gancho inicial envolvente (1 a 2 linhas com emoji atraente);
+- body: desenvolvimento comercial ou storytelling persuasivo destacando os diferenciais;
+- callToAction: chamada para ação clara (ex: "Peça pelo link da bio", "Comente aqui embaixo", "Venha nos visitar");
+- hashtags: array com 5 a 8 hashtags estratégicas em português (incluindo a marca, nicho e tema);
+- fullPostText: o texto completo unificado e pronto para postar, com quebras de linha e o bloco de hashtags no final. NUNCA utilize instruções ou prompts de imagem como legenda.
 
 REGRAS DE CONFORMIDADE:
 - Responda OBRIGATORIAMENTE em formato JSON válido respeitando o schema solicitado.
@@ -55,6 +63,18 @@ REGRAS DE CONFORMIDADE:
             type: "image_url",
             image_url: {
               url: `data:${subjectImage.mimeType};base64,${subjectImage.base64}`,
+              detail: "high",
+            },
+          });
+        }
+        const logoImage = input.referenceImages?.find(
+          (r) => r.role === "business_logo" || r.role === "official_logo"
+        );
+        if (logoImage && logoImage.base64) {
+          contentParts.push({
+            type: "image_url",
+            image_url: {
+              url: `data:${logoImage.mimeType};base64,${logoImage.base64}`,
               detail: "high",
             },
           });
@@ -151,6 +171,17 @@ INSTRUÇÃO OBRIGATÓRIA:
         ? "FOTO DE ESTILO/INSPIRAÇÃO ANEXADA: Utilize a paleta de cores e atmosfera da imagem como referência de luz."
         : "Nenhuma foto externa anexada na Etapa 5.";
 
+    const logoRef = input.referenceImages?.find(
+      (r) => r.role === "business_logo" || r.role === "official_logo"
+    );
+    const hasLogo = Boolean(logoRef || brand?.logoUrl);
+
+    const logoDirectiveText = hasLogo
+      ? `REGRA MANDATÓRIA DE LOGOMARCA:
+A logomarca oficial do negócio foi fornecida pelo usuário. A IA DEVE OBRIGATORIAMENTE inserir a logomarca oficial de forma visível, destacada e elegante na arte (no canto superior, cabeçalho ou badge de marca), respeitando suas formas e cores originais sem distorção.`
+      : `REGRA CRÍTICA DE LOGOMARCAS:
+Nenhuma logomarca foi fornecida. É TERMINANTEMENTE PROIBIDO inventar ou desenhar qualquer logotipo fictício na imagem. Deixe o canto superior limpo para inserção manual se desejado.`;
+
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
 "${input.userBrief}"
@@ -167,8 +198,7 @@ ${brandSection}
 ${referencesSection}
 ${input.compiledPrompt ? `\nDIRETRIZES TÉCNICAS PRÉ-COMPILADAS:\n${input.compiledPrompt}\n` : ""}
 
-REGRA CRÍTICA DE LOGOMARCAS:
-É TERMINANTEMENTE PROIBIDO desenhar qualquer logotipo na imagem. NENHUM logotipo deve ser renderizado. Deixe o canto superior da imagem limpo para inserção manual da logomarca oficial pelo usuário.
+${logoDirectiveText}
 
 Gere o JSON completo e estruturado conforme o schema com o prompt em inglês perfeito para gpt-image-2.
 `;
@@ -177,6 +207,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
   private static validateAndNormalizePlan(raw: any, input: Gpt5PlannerInput): Gpt5VisualPlanResponse {
     const brand = input.brandKit;
     const safeAspect = input.format === "portrait" ? "1024x1280" : input.format === "story" ? "864x1536" : "1024x1024";
+    const logoRef = input.referenceImages?.find(
+      (r) => r.role === "business_logo" || r.role === "official_logo"
+    );
+    const hasLogo = Boolean(logoRef || brand?.logoUrl);
 
     return {
       schemaVersion: "1.0",
@@ -192,7 +226,11 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       },
       visualPlan: {
         scene: raw.visualPlan?.scene || "Ambiente moderno e iluminado de alto padrão comercial.",
-        composition: raw.visualPlan?.composition || "Composição central equilibrada com 20% de margens seguras e espaço limpo no topo para logo manual.",
+        composition:
+          raw.visualPlan?.composition ||
+          (hasLogo
+            ? "Composição equilibrada com 20% de margens seguras e logomarca oficial da empresa integrada harmonicamente no topo ou canto superior."
+            : "Composição central equilibrada com 20% de margens seguras e espaço limpo no topo para logo manual."),
         framing: raw.visualPlan?.framing || "Enquadramento comercial aberto garantindo que nenhum elemento seja cortado.",
         lighting: raw.visualPlan?.lighting || "Iluminação suave de estúdio com luz de preenchimento.",
         materialsAndTextures: Array.isArray(raw.visualPlan?.materialsAndTextures)
@@ -207,16 +245,37 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       brandApplication: {
         enabled: Boolean(brand?.enabled),
         useColors: Boolean(brand?.enabled),
-        useLogo: false, // Logomarcas NUNCA são desenhadas pela IA
-        brandElementsToPreserve: ["Cores oficiais e espaço reservado para logo manual"],
+        useLogo: hasLogo,
+        brandElementsToPreserve: hasLogo
+          ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais da marca"]
+          : ["Cores oficiais e espaço reservado para logo manual"],
       },
       referenceInstructions: Array.isArray(raw.referenceInstructions) ? raw.referenceInstructions : [],
       textLayers: Array.isArray(raw.textLayers) ? raw.textLayers : [],
+      socialCaption:
+        raw.socialCaption &&
+        typeof raw.socialCaption.fullPostText === "string" &&
+        raw.socialCaption.fullPostText.trim().length > 20
+          ? {
+              title: raw.socialCaption.title || input.productHeadline || "Post Oficial",
+              hook: raw.socialCaption.hook || "",
+              body: raw.socialCaption.body || "",
+              callToAction: raw.socialCaption.callToAction || "",
+              hashtags: Array.isArray(raw.socialCaption.hashtags)
+                ? raw.socialCaption.hashtags
+                : [],
+              fullPostText: raw.socialCaption.fullPostText.trim(),
+            }
+          : this.generateFallbackSocialCaption(input),
       imagePrompt: raw.imagePrompt || this.buildFallbackImagePrompt(input),
       negativePrompt:
         raw.negativePrompt ||
-        "logo, brand emblem, corporate symbol, fake logo, watermark, signature, mascot, cartoon rocket, invented branding, badge, emblem, arbitrary logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts",
-      preserve: ["Foto do sujeito da Etapa 5", "Espaço limpo para logo manual", "Margens seguras"],
+        (hasLogo
+          ? "distorted logo, warped branding, competitor trademarks, fake text, cropped headline, cut off borders, low quality, artifacts"
+          : "logo, brand emblem, corporate symbol, fake logo, watermark, signature, mascot, cartoon rocket, invented branding, badge, emblem, arbitrary logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts"),
+      preserve: hasLogo
+        ? ["Logomarca oficial do negócio", "Foto do sujeito da Etapa 5", "Margens seguras"]
+        : ["Foto do sujeito da Etapa 5", "Espaço limpo para logo manual", "Margens seguras"],
       generationParameters: {
         model: "gpt-image-2",
         quality: "high",
@@ -234,6 +293,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
   private static createDeterministicPlan(input: Gpt5PlannerInput): Gpt5VisualPlanResponse {
     const brand = input.brandKit;
     const safeAspect = input.format === "portrait" ? "1024x1280" : input.format === "story" ? "864x1536" : "1024x1024";
+    const logoRef = input.referenceImages?.find(
+      (r) => r.role === "business_logo" || r.role === "official_logo"
+    );
+    const hasLogo = Boolean(logoRef || brand?.logoUrl);
 
     return {
       schemaVersion: "1.0",
@@ -249,7 +312,9 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       },
       visualPlan: {
         scene: "Estúdio fotográfico comercial profissional com iluminação equilibrada e fundo limpo.",
-        composition: "Composição harmônica com ponto focal nítido, margens seguras e topo limpo reservado para logo manual.",
+        composition: hasLogo
+          ? "Composição harmônica com ponto focal nítido, margens seguras e logomarca oficial do negócio integrada de forma visível e nítida no canto superior ou topo."
+          : "Composição harmônica com ponto focal nítido, margens seguras e topo limpo reservado para logo manual.",
         framing: "Plano médio com respiro de 20% em todas as bordas para evitar corte de conteúdo.",
         lighting: "Luz suave de softbox com destaques pontuais de contraste.",
         materialsAndTextures: ["Acabamento premium", "Texturas orgânicas fiéis"],
@@ -260,16 +325,22 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       brandApplication: {
         enabled: Boolean(brand?.enabled),
         useColors: Boolean(brand?.enabled),
-        useLogo: false,
-        brandElementsToPreserve: ["Cores oficiais", "Espaço para logo manual"],
+        useLogo: hasLogo,
+        brandElementsToPreserve: hasLogo
+          ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais"]
+          : ["Cores oficiais", "Espaço para logo manual"],
       },
       textLayers: input.productHeadline
         ? [{ text: input.productHeadline, type: "headline", position: "top" }]
         : [],
+      socialCaption: this.generateFallbackSocialCaption(input),
       imagePrompt: this.buildFallbackImagePrompt(input),
-      negativePrompt:
-        "logo, brand emblem, corporate symbol, fake logo, watermark, signature, mascot, cartoon rocket, invented branding, badge, emblem, arbitrary logo, distorted text logo, cropped typography, text touching borders, amateur framing",
-      preserve: ["Foto do sujeito da Etapa 5", "Espaço para logo manual", "Margem segura de 20%"],
+      negativePrompt: hasLogo
+        ? "distorted logo, warped branding, competitor trademarks, fake text, cropped typography, text touching borders, amateur framing"
+        : "logo, brand emblem, corporate symbol, fake logo, watermark, signature, mascot, cartoon rocket, invented branding, badge, emblem, arbitrary logo, distorted text logo, cropped typography, text touching borders, amateur framing",
+      preserve: hasLogo
+        ? ["Logomarca oficial do negócio", "Foto do sujeito da Etapa 5", "Margem segura de 20%"]
+        : ["Foto do sujeito da Etapa 5", "Espaço para logo manual", "Margem segura de 20%"],
       generationParameters: {
         model: "gpt-image-2",
         quality: "high",
@@ -289,6 +360,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const isInfographic =
       input.textOverlayMode === "INFOGRAPHIC" || input.textOverlayMode === "BOTH";
     const isTitle = input.textOverlayMode === "TITLE_ONLY";
+    const logoRef = input.referenceImages?.find(
+      (r) => r.role === "business_logo" || r.role === "official_logo"
+    );
+    const hasLogo = Boolean(logoRef || brand?.logoUrl);
 
     let textInstruction =
       "[CRITICAL MANDATE — ZERO TEXT: Clean photography with zero typography, letters or watermarks.]";
@@ -305,8 +380,9 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         ? `Color palette harmonized with ${brand.primaryColors.join(", ")}.`
         : "";
 
-    const logoMandate =
-      "[CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE: Absolutely DO NOT draw, generate, invent, or render any logos, brand emblems, corporate icons, or badges. Leave a clean, open breathing space in the top corner specifically reserved for manual logo overlay.]";
+    const logoMandate = hasLogo
+      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo has been supplied by the user. You MUST visibly and prominently integrate the exact business logo into the artwork (positioned at top corner or header badge) with crisp clarity and harmonious contrast, faithfully representing the brand.]"
+      : "[CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE: Absolutely DO NOT draw, generate, invent, or render any logos, brand emblems, corporate icons, or badges. Leave a clean, open breathing space in the top corner specifically reserved for manual logo overlay.]";
 
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
     const subjectMandate = subjectRef
@@ -315,8 +391,17 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
 
     if (input.compiledPrompt) {
       let p = input.compiledPrompt;
-      if (!p.includes("ZERO LOGOS")) {
-        p += ` ${logoMandate}`;
+      if (hasLogo) {
+        // Se houver diretiva antiga de ZERO LOGOS mas a logo foi enviada, substituir por diretiva mandatória
+        if (p.includes("ZERO LOGOS")) {
+          p = p.replace(/\[CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE:[^\]]+\]/g, logoMandate);
+        } else if (!p.includes("MANDATORY LOGO")) {
+          p += ` ${logoMandate}`;
+        }
+      } else {
+        if (!p.includes("ZERO LOGOS")) {
+          p += ` ${logoMandate}`;
+        }
       }
       if (subjectRef && !p.includes("HERO SUBJECT PRESERVATION")) {
         p += ` ${subjectMandate}`;
@@ -328,5 +413,67 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     }
 
     return `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere. ${brandInstruction} ${subjectMandate} ${textInstruction} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+  }
+
+  public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {
+    const brandName = input.brandKit?.businessName || "Nosso Negócio";
+    const segment = input.brandKit?.segment || "";
+    // Limpar prefixos comuns de comandos como "crie uma imagem que..."
+    const cleanBrief = input.userBrief
+      .replace(/^(crie|gere|faça|monte|produza)\s+(uma?\s+)?(imagem|arte|foto|post|design)?\s+(que\s+)?(contextualize|traga|mostre|apresente|com|sobre|de)?/i, "")
+      .trim();
+
+    const title = input.productHeadline?.trim() || cleanBrief.slice(0, 60);
+
+    // Gerar hashtags estratégicas
+    const cleanTag = (str: string) => str.replace(/[^a-zA-Z0-9À-ÿ]/g, "");
+    const tagsSet = new Set<string>();
+
+    if (brandName && brandName !== "Empresa" && brandName !== "Nosso Negócio") {
+      tagsSet.add(`#${cleanTag(brandName)}`);
+    }
+    if (segment) {
+      tagsSet.add(`#${cleanTag(segment)}`);
+    }
+
+    // Extrair palavras-chave relevantes do briefing
+    const stopWords = ["para", "com", "uma", "sobre", "mais", "trazendo", "acao", "ramo", "ideia", "negocio", "imagem"];
+    const keywords = cleanBrief
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => cleanTag(w))
+      .filter((w) => w.length > 3 && !stopWords.includes(w));
+
+    keywords.slice(0, 3).forEach((k) => {
+      tagsSet.add(`#${k.charAt(0).toUpperCase() + k.slice(1)}`);
+    });
+
+    tagsSet.add("#NegocioLocal");
+    tagsSet.add("#Qualidade");
+    tagsSet.add("#Inovacao");
+    tagsSet.add("#Empreendedorismo");
+
+    const hashtags = Array.from(tagsSet).slice(0, 7);
+
+    const hook = input.productHeadline?.trim()
+      ? `✨ ${input.productHeadline.trim()}!`
+      : `✨ Transforme a experiência do seu dia a dia com soluções pensadas para você!`;
+
+    const body = cleanBrief
+      ? `Aqui no ${brandName}, cada detalhe é planejado com dedicação e profissionalismo. Trabalhamos constantemente para oferecer o melhor padrão de qualidade, atendimento acolhedor e resultados que superam suas expectativas.`
+      : `No ${brandName}, colocamos qualidade, dedicação e excelência em primeiro lugar para encantar você a cada momento!`;
+
+    const cta = `👉 Venha conferir de perto ou fale conosco pelo link da bio!`;
+
+    const fullPostText = `${hook}\n\n${body}\n\n${cta}\n\n${hashtags.join(" ")}`;
+
+    return {
+      title: title || "Publicação Especial",
+      hook,
+      body,
+      callToAction: cta,
+      hashtags,
+      fullPostText,
+    };
   }
 }

@@ -70,11 +70,13 @@ export async function POST(request: NextRequest) {
       productHeadline = "",
       negativeInstructions = "",
       visualDirection,
+      logoUrl = "",
       referenceAssetUrls = [],
       sourceAssetUrls = [],
       retryAssetId = null,
       existingGenerationId = null,
     } = body as AIImageGenerationRequest & {
+      logoUrl?: string;
       retryAssetId?: string | null;
       existingGenerationId?: string | null;
     };
@@ -120,6 +122,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 1.1 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit)
+    const effectiveLogoUrl = logoUrl || (useBrandKit ? brandSnapshot?.logoUrl || "" : "");
+
     // 2. Criar ou reutilizar entidade aiImageGeneration no Firestore
     const generationId =
       existingGenerationId || `gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
@@ -145,6 +150,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      if (effectiveLogoUrl) initialGenData.logoUrl = effectiveLogoUrl;
       if (visualDirection) initialGenData.visualDirection = visualDirection;
       if (productHeadline) initialGenData.productHeadline = productHeadline;
       if (brandSnapshot) initialGenData.brandSnapshot = brandSnapshot;
@@ -237,10 +243,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Regra Mandatória de Logomarcas: ZERO LOGOS desenhados pela IA (espaço reservado para overlay manual)
-      brandDirectives.push(
-        `PROIBIÇÃO TOTAL DE DESENHAR LOGOMARCAS (ZERO LOGOS): É terminantemente PROIBIDO desenhar, inventar, criar, simular ou tentar reproduzir qualquer logotipo, marca, brasão, símbolo comercial, foguete ou mascote na imagem. Deixe o canto superior da imagem 100% limpo, neutro e desobstruído (área de respiro) para que a logomarca oficial seja inserida manualmente depois pelo usuário. A imagem NÃO PODE conter nenhum logotipo gerado.`
-      );
+      // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
+      if (effectiveLogoUrl) {
+        brandDirectives.push(
+          `INCLUSÃO OBRIGATÓRIA DA LOGOMARCA DO NEGÓCIO: A logomarca oficial da empresa foi fornecida. A imagem gerada DEVE OBRIGATORIAMENTE conter e exibir a logomarca oficial de forma nítida, destacada e elegante (no topo, canto superior ou cabeçalho harmônico), com excelente contraste e legibilidade, respeitando fielmente a identidade visual da marca.`
+        );
+      } else {
+        brandDirectives.push(
+          `PROIBIÇÃO DE LOGOMARCAS FICTÍCIAS: Nenhuma logo oficial foi fornecida. Não invente ou desenhe marcas ou logotipos fictícios. Deixe o canto superior da imagem limpo.`
+        );
+      }
 
       // Se houver foto real de pessoa ou produto enviada na Etapa 5
       if (sourceAssetUrls && sourceAssetUrls.length > 0) {
@@ -264,8 +276,9 @@ export async function POST(request: NextRequest) {
 
     // Diretivas de Diagramação, Textos e Infográficos
     if (effectiveOverlayMode === "NONE") {
-      compiledPrompt +=
-        " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image. Pristine photography only.]";
+      compiledPrompt += effectiveLogoUrl
+        ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays, featuring the official business logo cleanly integrated.]"
+        : " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image. Pristine photography only.]";
     } else if (effectiveOverlayMode === "TITLE_ONLY") {
       const headlineDirective = productHeadline?.trim()
         ? `with the exact headline: "${productHeadline.trim()}"`
@@ -450,6 +463,7 @@ export async function POST(request: NextRequest) {
           textOverlayMode: effectiveOverlayMode,
           productHeadline,
           negativeInstructions,
+          logoUrl: effectiveLogoUrl,
           sourceAssetUrls,
           referenceAssetUrls,
         });
@@ -515,9 +529,35 @@ export async function POST(request: NextRequest) {
         storageFilePath
       )}?alt=media&token=${downloadToken}`;
 
-      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) anotando modelUsed e plannerModelUsed
+      // 7. Cadastrar automaticamente na Galeria do usuário (mediaGallery) com legenda criada por IA
       const galleryMediaId = `ai_img_${slotId}`;
       const galleryRef = adminDb.doc(`users/${userId}/mediaGallery/${galleryMediaId}`);
+
+      const socialCaption = visualPlan?.socialCaption;
+      const fullPostCaption =
+        socialCaption?.fullPostText ||
+        Gpt5PromptPlanner.generateFallbackSocialCaption({
+          userBrief: brief,
+          productHeadline,
+          objective,
+          format,
+          width: targetWidth,
+          height: targetHeight,
+          quantity: 1,
+          stylePreference: style,
+          useBrandKit,
+          brandKit: brandSnapshot
+            ? {
+                enabled: true,
+                businessName: brandSnapshot.name,
+                segment: brandSnapshot.segment,
+                primaryColors: [brandSnapshot.primaryColor || "#0083C7"],
+                secondaryColors: [brandSnapshot.secondaryColor || "#FA6305"],
+                accentColors: [],
+                hasLocalOfficialLogo: Boolean(effectiveLogoUrl),
+              }
+            : undefined,
+        }).fullPostText;
 
       const titleSummary = brief.slice(0, 60);
       await galleryRef.set({
@@ -526,7 +566,7 @@ export async function POST(request: NextRequest) {
         storagePath: storageFilePath,
         source: "ai_image_general",
         prompt: brief,
-        caption: titleSummary,
+        caption: fullPostCaption,
         type: "image",
         style,
         format,
@@ -537,12 +577,13 @@ export async function POST(request: NextRequest) {
         generationId,
         assetId: slotId,
         brandKitApplied: Boolean(useBrandKit && brandSnapshot),
+        hasPrintedLogo: Boolean(effectiveLogoUrl),
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         usedInPostId: null,
         fileName: `image_${slotId}.png`,
       });
 
-      // 8. Salvar status no aiImageAsset anotando modelUsed e plannerModelUsed na raiz e no promptMetadata
+      // 8. Salvar status no aiImageAsset anotando modelUsed, plannerModelUsed, caption gerada e hasPrintedLogo
       const readyAsset: AIImageAssetDoc = {
         id: slotId,
         generationId,
@@ -554,6 +595,9 @@ export async function POST(request: NextRequest) {
         galleryAssetId: galleryMediaId,
         modelUsed,
         plannerModelUsed,
+        caption: fullPostCaption,
+        hashtags: socialCaption?.hashtags || [],
+        hasPrintedLogo: Boolean(effectiveLogoUrl),
         promptMetadata: {
           fullPrompt: usedPrompt,
           modelUsed,

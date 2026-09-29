@@ -219,6 +219,8 @@ export function ImageGenerationWizard() {
   // Arquivos anexos do Briefing
   const [referenceImages, setReferenceImages] = useState<{ file?: File; url: string }[]>([]);
   const [sourceImage, setSourceImage] = useState<{ file?: File; url: string } | null>(null);
+  const [logoImage, setLogoImage] = useState<{ file?: File; url: string } | null>(null);
+  const [includeLogo, setIncludeLogo] = useState<boolean>(true);
   const [isUploadingFiles, setIsUploadingFiles] = useState<boolean>(false);
 
   // BrandKit carregado do negócio
@@ -254,6 +256,14 @@ export function ImageGenerationWizard() {
       const merged = { ...profileData, ...onboardingData };
       if (onboardingSnap.exists() || profileSnap.exists()) {
         setBusinessProfile(merged);
+        const profileLogo =
+          merged.brandKit?.logoUrl ||
+          merged.logo?.url ||
+          (typeof merged.logo === "string" ? merged.logo : "");
+        if (profileLogo) {
+          setLogoImage({ url: profileLogo });
+          setIncludeLogo(true);
+        }
       }
     }).catch((err) => {
       console.warn("[IMAGE_WIZARD] Erro ao carregar perfil de marca:", err);
@@ -374,6 +384,15 @@ export function ImageGenerationWizard() {
         uploadedSourceUrl = await handleUploadImageFile(sourceImage.file);
       }
 
+      let uploadedLogoUrl = "";
+      if (includeLogo && logoImage) {
+        if (logoImage.file) {
+          uploadedLogoUrl = await handleUploadImageFile(logoImage.file);
+        } else if (logoImage.url) {
+          uploadedLogoUrl = logoImage.url;
+        }
+      }
+
       const dimensions = FORMAT_DIMENSIONS[format];
       const res = await fetch("/api/imagens/gerar", {
         method: "POST",
@@ -392,6 +411,7 @@ export function ImageGenerationWizard() {
           textOverlayMode,
           productHeadline,
           negativeInstructions,
+          logoUrl: uploadedLogoUrl || undefined,
           referenceAssetUrls: uploadedRefUrls,
           sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
         }),
@@ -451,6 +471,7 @@ export function ImageGenerationWizard() {
           textMode: textOverlayMode === "NONE" ? "none" : "editable_layers",
           textOverlayMode,
           productHeadline,
+          logoUrl: (includeLogo && logoImage?.url) || undefined,
           retryAssetId: assetId,
           existingGenerationId: generationId,
         }),
@@ -524,24 +545,85 @@ export function ImageGenerationWizard() {
     }
   };
 
-  // Ação: Usar em Post
+  // Helper para gerar legenda comercial engajadora caso o asset ainda não contenha
+  const generateClientSocialCaption = (userBrief: string, headline?: string, profile?: any): string => {
+    const brandName = profile?.name || profile?.brandKit?.name || "Nosso Negócio";
+    const segment = profile?.segment || profile?.category || "";
+    const cleanBrief = userBrief
+      .replace(
+        /^(crie|gere|faça|monte|produza)\s+(uma?\s+)?(imagem|arte|foto|post|design)?\s+(que\s+)?(contextualize|traga|mostre|apresente|com|sobre|de)?/i,
+        ""
+      )
+      .trim();
+
+    const cleanTag = (str: string) => str.replace(/[^a-zA-Z0-9À-ÿ]/g, "");
+    const tagsSet = new Set<string>();
+    if (brandName && brandName !== "Empresa" && brandName !== "Nosso Negócio") {
+      tagsSet.add(`#${cleanTag(brandName)}`);
+    }
+    if (segment) {
+      tagsSet.add(`#${cleanTag(segment)}`);
+    }
+
+    const stopWords = ["para", "com", "uma", "sobre", "mais", "trazendo", "acao", "ramo", "ideia", "negocio", "imagem"];
+    const keywords = cleanBrief
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => cleanTag(w))
+      .filter((w) => w.length > 3 && !stopWords.includes(w));
+
+    keywords.slice(0, 3).forEach((k) => {
+      tagsSet.add(`#${k.charAt(0).toUpperCase() + k.slice(1)}`);
+    });
+
+    tagsSet.add("#NegocioLocal");
+    tagsSet.add("#Qualidade");
+    tagsSet.add("#Inovacao");
+    tagsSet.add("#Empreendedorismo");
+
+    const hashtags = Array.from(tagsSet).slice(0, 7).join(" ");
+    const hook = headline?.trim()
+      ? `✨ ${headline.trim()}!`
+      : `✨ Transforme a experiência do seu dia a dia com soluções pensadas para você!`;
+
+    const body = cleanBrief
+      ? `Aqui no ${brandName}, cada detalhe é planejado com dedicação e profissionalismo para entregar o melhor para você.`
+      : `No ${brandName}, colocamos qualidade, dedicação e excelência em primeiro lugar para encantar você a cada momento!`;
+
+    const cta = `👉 Venha conferir de perto ou fale conosco pelo link da bio!`;
+    return `${hook}\n\n${body}\n\n${cta}\n\n${hashtags}`;
+  };
+
+  // Ação: Usar em Post (com legenda criada por IA e proteção de logo já impressa)
   const handleUseInPost = (asset: AIImageAssetDoc) => {
     if (!asset.originalUrl) return;
     try {
+      const generatedCaption =
+        asset.caption ||
+        generateClientSocialCaption(brief, productHeadline, businessProfile);
+
+      const hasPrintedLogo = Boolean(
+        asset.hasPrintedLogo !== undefined
+          ? asset.hasPrintedLogo
+          : (includeLogo && logoImage?.url)
+      );
+
       if (typeof window !== "undefined") {
         window.sessionStorage?.setItem(
           "preloaded_gallery_image",
           JSON.stringify({
             url: asset.originalUrl,
             prompt: brief,
-            caption: brief.slice(0, 100),
+            caption: generatedCaption,
             type: "image",
+            hasPrintedLogo,
+            skipAutoLogo: hasPrintedLogo,
           })
         );
       }
       toast({
-        title: "Imagem selecionada!",
-        description: "Abrindo o criador de post com sua imagem...",
+        title: "Legenda e imagem prontas! ✨",
+        description: "Abrindo o criador de post com sua imagem e legenda criada por IA...",
       });
       router.push("/dashboard/posts/criar?from_gallery=true");
     } catch (e) {
@@ -1076,6 +1158,92 @@ export function ImageGenerationWizard() {
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Identidade Vinculada à IA
                       </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Logomarca do Negócio com Inserção Automática */}
+                {useBrandKit && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-white p-3.5 rounded-xl border border-blue-100 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      {logoImage?.url ? (
+                        <div className="h-10 w-16 bg-slate-50 border border-slate-200 rounded-lg p-1 flex items-center justify-center shrink-0">
+                          <img
+                            src={logoImage.url}
+                            alt="Logomarca"
+                            className="h-full w-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 bg-slate-100 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
+                          <ImageIcon className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900">Logomarca do Negócio</span>
+                          {logoImage?.url && (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                              {includeLogo ? "Inserção Automática Ativa" : "Desativada"}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500">
+                          {logoImage?.url
+                            ? "A IA integrará sua logo de forma harmônica e visível na imagem solicitada."
+                            : "Nenhuma logomarca cadastrada. Envie um arquivo para que a IA insira na arte."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                      {logoImage?.url ? (
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor="includeLogoSwitch"
+                            className="text-xs font-semibold text-gray-700 cursor-pointer"
+                          >
+                            Inserir na Arte
+                          </Label>
+                          <Switch
+                            id="includeLogoSwitch"
+                            checked={includeLogo}
+                            onCheckedChange={setIncludeLogo}
+                          />
+                          <label className="text-[11px] text-primary hover:underline cursor-pointer ml-1">
+                            Trocar
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  const f = e.target.files[0];
+                                  setLogoImage({ file: f, url: URL.createObjectURL(f) });
+                                  setIncludeLogo(true);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <label className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-primary border border-blue-200 rounded-lg font-bold text-xs cursor-pointer flex items-center gap-1.5 transition-all">
+                          <UploadCloud className="h-3.5 w-3.5" />
+                          <span>Enviar Logomarca</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                const f = e.target.files[0];
+                                setLogoImage({ file: f, url: URL.createObjectURL(f) });
+                                setIncludeLogo(true);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
                   </div>
                 )}

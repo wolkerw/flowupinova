@@ -66,9 +66,25 @@ export class ReferenceContextBuilder {
       }
     }
 
-    // NOTA MANDATÓRIA: NÃO injetamos arquivos de logotipo como referência de imagem para os motores de IA.
-    // Conforme especificação do usuário, a IA é proibida de desenhar logotipos (pois distorce e inventa marcas fictícias).
-    // O espaço para a logomarca oficial é deixado limpo e reservado para sobreposição manual do PNG no editor.
+    // 3. Logomarca Oficial do Negócio enviada ou cadastrada no BrandKit
+    if (params.logoUrl) {
+      try {
+        const res = await fetch(params.logoUrl);
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          const buf = Buffer.from(ab);
+          references.push({
+            url: params.logoUrl,
+            mimeType: this.detectMimeType(params.logoUrl, buf),
+            base64: buf.toString("base64"),
+            role: "business_logo",
+            description: "Logomarca oficial do negócio que DEVE ser inserida e visível na imagem solicitada de forma nítida e integrada",
+          });
+        }
+      } catch (e) {
+        console.warn("[ReferenceContextBuilder] Erro ao carregar logomarca do negócio:", e);
+      }
+    }
 
     return references;
   }

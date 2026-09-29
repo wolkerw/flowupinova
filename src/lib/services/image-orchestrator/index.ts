@@ -38,6 +38,7 @@ export interface OrchestratorRunParams {
   textOverlayMode?: AIImageTextOverlayMode;
   productHeadline?: string;
   negativeInstructions?: string;
+  logoUrl?: string;
   sourceAssetUrls?: string[];
   referenceAssetUrls?: string[];
 }
@@ -77,10 +78,11 @@ export class ImageGenerationOrchestrator {
     );
 
     // 3. Mapear e carregar referências e logos
+    const effectiveLogoUrl = params.logoUrl || brandContext.logoUrl;
     const references: ReferenceInput[] = await ReferenceContextBuilder.buildReferences({
       sourceAssetUrls: params.sourceAssetUrls,
       referenceAssetUrls: params.referenceAssetUrls,
-      logoUrl: brandContext.logoUrl,
+      logoUrl: effectiveLogoUrl,
       businessName: brandContext.businessName,
       brief: normalized.cleanedBrief,
     });

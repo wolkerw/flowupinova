@@ -148,6 +148,9 @@ export interface AIImageAssetDoc {
     visualDirection?: VisualDirectionResponse;
   };
   altText?: string;
+  caption?: string;
+  hashtags?: string[];
+  hasPrintedLogo?: boolean;
   galleryAssetId?: string;
   derivedFromAssetId?: string | null;
   error?: string | null;
