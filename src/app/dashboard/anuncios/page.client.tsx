@@ -5584,7 +5584,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <td className="px-5 py-3.5">
                                   <span className="text-xs font-semibold text-slate-800">
                                     R$ {c.budget?.amount?.toFixed(2) || "0.00"}/
-                                    {c.budget?.type === "daily" ? "dia" : "total"}
+                                    {c.budget?.type === "total" || c.budget?.type === "lifetime" ? "total" : "dia"}
                                   </span>
                                 </td>
 
