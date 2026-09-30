@@ -238,10 +238,10 @@ describe("AnunciosPageClient", () => {
     const boostButton = screen.getByRole("button", { name: /^Impulsionar$/i });
     fireEvent.click(boostButton);
 
-    // O modal com a pergunta de objetivo do Copiloto de IA deve aparecer
+    // O assistente em tela cheia com a pergunta de objetivo deve aparecer
     await waitFor(
       () => {
-        expect(screen.getByText("Qual o seu objetivo com este anúncio?")).toBeInTheDocument();
+        expect(screen.getByText(/objetivo do seu impulsionamento/i)).toBeInTheDocument();
       },
       { timeout: 5000 }
     );
