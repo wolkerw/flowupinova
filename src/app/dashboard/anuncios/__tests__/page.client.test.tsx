@@ -238,13 +238,10 @@ describe("AnunciosPageClient", () => {
     const boostButton = screen.getByRole("button", { name: /^Impulsionar$/i });
     fireEvent.click(boostButton);
 
-    // O cabeçalho do wizard e o passo 1 devem aparecer
+    // O assistente em tela cheia com a pergunta de objetivo deve aparecer
     await waitFor(
       () => {
-        expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
-        expect(
-          screen.getByText("1. Qual é o objetivo do seu impulsionamento?")
-        ).toBeInTheDocument();
+        expect(screen.getByText(/objetivo do seu impulsionamento/i)).toBeInTheDocument();
       },
       { timeout: 5000 }
     );

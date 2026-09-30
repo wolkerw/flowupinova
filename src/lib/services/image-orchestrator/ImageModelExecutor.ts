@@ -114,13 +114,19 @@ export class ImageModelExecutor {
           const isGptImage = cfg.model.startsWith("gpt-image-");
           const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 
-          // Se houver foto do sujeito (pessoa ou produto) da Etapa 5, tentar Image-to-Image / Edits da OpenAI
-          if (subjectRef && subjectRef.base64) {
+          // Se houver foto do sujeito (pessoa ou produto) da Etapa 5 OU Logomarca oficial, usar Image-to-Image / Edits da OpenAI
+          const primaryReference = subjectRef?.base64 ? subjectRef : logoRef?.base64 ? logoRef : null;
+
+          if (primaryReference && primaryReference.base64) {
             try {
-              const imageBuf = Buffer.from(subjectRef.base64, "base64");
-              const subjectBlob = new Blob([imageBuf], { type: subjectRef.mimeType || "image/png" });
+              const imageBuf = Buffer.from(primaryReference.base64, "base64");
+              const refBlob = new Blob([imageBuf], { type: primaryReference.mimeType || "image/png" });
               const editsFormData = new FormData();
-              editsFormData.append("image", subjectBlob, "subject.png");
+              editsFormData.append(
+                "image",
+                refBlob,
+                primaryReference.role === "product_subject" ? "subject.png" : "logo.png"
+              );
               editsFormData.append("model", cfg.model);
               editsFormData.append("prompt", openaiPrompt);
               editsFormData.append("n", "1");

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const cleanAdAccountId = adAccountId.replace("act_", "");
 
     // 1. Buscar todas as campanhas da conta de anúncios na Meta com dados de conjunto (destino e meta de otimização)
-    const campaignsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,created_time,start_time,stop_time,adsets{optimization_goal,destination_type}&limit=100&access_token=${accessToken}`;
+    const campaignsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,created_time,start_time,stop_time,adsets{optimization_goal,destination_type}&limit=100&access_token=${accessToken}`;
     const campaignsRes = await fetch(campaignsUrl);
     const campaignsData = await campaignsRes.json();
 
@@ -341,11 +341,52 @@ export async function GET(request: NextRequest) {
       const destinationType = (adset?.destination_type || "").toUpperCase();
       const optimizationGoal = (adset?.optimization_goal || "").toUpperCase();
 
+      // Cálculo preciso do status real da Meta (considering effective_status, stop_time and local duration)
+      const rawEffectiveStatus = (metaCamp.effective_status || metaCamp.status || "").toUpperCase();
+      const stopTime = metaCamp.stop_time ? new Date(metaCamp.stop_time) : null;
+      const isEndedByTime = stopTime && stopTime.getTime() <= Date.now();
+
+      let resolvedStatus: "active" | "paused" | "completed" | "failed" = "active";
+
+      if (
+        rawEffectiveStatus === "COMPLETED" ||
+        rawEffectiveStatus === "FINISHED" ||
+        rawEffectiveStatus === "ARCHIVED" ||
+        rawEffectiveStatus === "DELETED" ||
+        rawEffectiveStatus === "CAMPAIGN_PAUSED" ||
+        isEndedByTime
+      ) {
+        resolvedStatus = "completed";
+      } else if (rawEffectiveStatus === "PAUSED" || metaCamp.status === "PAUSED") {
+        resolvedStatus = "paused";
+      } else if (
+        rawEffectiveStatus.includes("ERROR") ||
+        rawEffectiveStatus === "DISAPPROVED" ||
+        rawEffectiveStatus === "WITH_ERRORS"
+      ) {
+        resolvedStatus = "failed";
+      } else if (rawEffectiveStatus === "ACTIVE") {
+        resolvedStatus = "active";
+      } else {
+        resolvedStatus = metaCamp.status?.toLowerCase() === "paused" ? "paused" : "active";
+      }
+
+      // Validação de tempo decorrido do Firestore como segurança secundária
+      if (resolvedStatus === "active" && firestoreData?.createdAt && totalDays) {
+        const createdDate = firestoreData.createdAt.toDate
+          ? firestoreData.createdAt.toDate()
+          : new Date(firestoreData.createdAt);
+        const durationMs = totalDays * 24 * 60 * 60 * 1000;
+        if (Date.now() - createdDate.getTime() >= durationMs) {
+          resolvedStatus = "completed";
+        }
+      }
+
       return {
         id: firestoreData?.firestoreId || metaCamp.id,
         metaCampaignId: metaCamp.id,
         name: metaCamp.name || firestoreData?.name || "Campanha Meta Ads",
-        status: metaCamp.status ? metaCamp.status.toLowerCase() : "active",
+        status: resolvedStatus,
         objective: metaCamp.objective || "OUTCOME_TRAFFIC",
         destinationType,
         optimizationGoal,

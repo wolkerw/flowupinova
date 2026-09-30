@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { parseMetaError, getAccountStatusInfo, type AccountStatusInfo } from "@/lib/utils/meta-error-mapper";
 import { MetaConnectionGuideModal } from "@/components/modals/MetaConnectionGuideModal";
+import { BoostPostModal } from "@/components/dashboard/boost-post-modal";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,10 @@ import {
   ArrowLeft,
   CheckCircle2,
   Lightbulb,
+  Bot,
+  User,
+  Send,
+  Sliders,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -269,6 +274,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [instagramFeedPosts, setInstagramFeedPosts] = useState<any[]>([]);
   const [loadingInstagramPosts, setLoadingInstagramPosts] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState<"numvapt" | "instagram">("numvapt");
+  const [isBoostPostModalOpen, setIsBoostPostModalOpen] = useState(false);
+  const [boostPostData, setBoostPostData] = useState<any>(null);
   const [campaigns, setCampaigns] = useState<AdCampaignData[]>([]);
   const [activeDashboardTab, setActiveDashboardTab] = useState<"active" | "history">("active");
   const [currentPage, setCurrentPage] = useState(1);
@@ -331,6 +338,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isChoosePostModalOpen, setIsChoosePostModalOpen] = useState(false);
+
+  // Estados do Copiloto IA Inline
+  const [aiMessages, setAiMessages] = useState<Array<{ id: string; sender: "ai" | "user"; text: string; timestamp: string }>>([]);
+  const [aiChatInput, setAiChatInput] = useState("");
+  const [isAiChatReplying, setIsAiChatReplying] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState("");
+  const [isSuggestingAi, setIsSuggestingAi] = useState(false);
+  const [rightColumnTab, setRightColumnTab] = useState<"chat" | "preview">("chat");
+  const [showManualWizardForms, setShowManualWizardForms] = useState(false);
 
   // Inputs do Formulário
   const [adName, setAdName] = useState("");
@@ -1732,18 +1748,164 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setIsChoosePostModalOpen(true);
   };
 
-  // Preenche dados ao selecionar um post para impulsionar
+  // Preenche dados ao selecionar um post para impulsionar em tela cheia
   const handleSelectPostToBoost = (post: any) => {
     setSelectedPost(post);
-    setHeadline("Aproveite nossa oferta especial!");
-    setBodyText(post.text);
-    const cleanText = post.text.replace(/[\n\r]+/g, " ");
-    const startDesc = cleanText.length > 25 ? `${cleanText.substring(0, 25)}...` : cleanText;
-    setAdName(`[NUMVAPT] ${startDesc}`);
-    setAiSuggestions([]);
+    setBoostPostData(post);
+    setIsChoosePostModalOpen(false);
+    setIsBoostPostModalOpen(false);
     setCurrentStep(1);
     setIsCreating(true);
-    setIsChoosePostModalOpen(false);
+  };
+
+  // Seleção de Objetivo com chamada da IA nativa Gemini
+  const handleSelectObjectiveWithAi = async (selectedObj: "WHATSAPP" | "TRAFFIC" | "REACH") => {
+    setCampaignObjective(selectedObj);
+    setIsSuggestingAi(true);
+
+    try {
+      const response = await fetch("/api/ai/suggest-audience", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postText: selectedPost?.text || "",
+          postImageUrl: selectedPost?.imageUrl || selectedPost?.imageUrls?.[0] || "",
+          businessAddress: (selectedLocations[0]?.name) || businessProfile?.address || "Sua região local",
+          businessCategory: businessProfile?.category || "",
+          objective: selectedObj,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.audience) {
+        const aud = data.audience;
+        setAgeRange([aud.ageMin || 20, aud.ageMax || 55]);
+        setRadius(aud.radiusKm || 10);
+        setDailyBudget(aud.suggestedBudgetDaily || 15);
+        setDuration(aud.suggestedDurationDays || 3);
+        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
+        setAiExplanation(aud.explanation || "Campanha configurada pelo Agente de IA para alta conversão.");
+        if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
+          setSelectedInterests(aud.metaInterests);
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const namesList = (aud.metaInterests || []).map((i: any) => i.name).join(", ");
+        setAiMessages([
+          {
+            id: "msg-init",
+            sender: "ai",
+            text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${aud.explanation}\n\n📍 **Raio de Alcance:** ${aud.radiusKm}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${aud.ageMin || 18} a ${aud.ageMax || 65} anos\n💰 **Orçamento Sugerido:** R$ ${aud.suggestedBudgetDaily}/dia (${aud.suggestedDurationDays} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
+            timestamp: timeStr,
+          },
+        ]);
+      }
+    } catch (err) {
+      console.warn("[ANUNCIOS_PAGE] Erro ao carregar sugestão da IA:", err);
+    } finally {
+      setIsSuggestingAi(false);
+      setCurrentStep(2);
+    }
+  };
+
+  // Enviar mensagem no Chat do Copiloto IA Inline
+  const handleSendAiChatMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = aiChatInput.trim();
+    if (!query || isAiChatReplying) return;
+
+    const userTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const userMsg = {
+      id: `user-${Date.now()}`,
+      sender: "user" as const,
+      text: query,
+      timestamp: userTime,
+    };
+
+    setAiMessages((prev) => [...prev, userMsg]);
+    setAiChatInput("");
+    setIsAiChatReplying(true);
+
+    try {
+      const response = await fetch("/api/ai/suggest-audience", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postText: bodyText || selectedPost?.text || "",
+          businessAddress: (selectedLocations[0]?.name) || businessProfile?.address || "Sua região",
+          businessCategory: businessProfile?.category || "",
+          objective: campaignObjective,
+          userQuery: query,
+          currentAudience: {
+            ageMin: ageRange[0],
+            ageMax: ageRange[1],
+            radiusKm: radius,
+            interests: selectedInterests.map((i) => i.name).join(", "),
+            suggestedBudgetDaily: dailyBudget,
+            suggestedDurationDays: duration,
+            headline,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      const aiTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+      if (data.success && data.audience) {
+        const aud = data.audience;
+        if (aud.ageMin && aud.ageMax) setAgeRange([aud.ageMin, aud.ageMax]);
+        if (aud.radiusKm) setRadius(aud.radiusKm);
+        if (aud.suggestedBudgetDaily) setDailyBudget(aud.suggestedBudgetDaily);
+        if (aud.suggestedDurationDays) setDuration(aud.suggestedDurationDays);
+        if (aud.headline) setHeadline(aud.headline);
+        if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
+          setSelectedInterests(aud.metaInterests);
+        }
+        if (aud.explanation) setAiExplanation(aud.explanation);
+
+        setAiMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-${Date.now()}`,
+            sender: "ai",
+            text: aud.explanation || "Entendi seu pedido e ajustei as configurações da campanha na Meta!",
+            timestamp: aiTime,
+          },
+        ]);
+      }
+    } catch (err) {
+      console.warn("[ANUNCIOS_PAGE] Erro no chat da IA:", err);
+    } finally {
+      setIsAiChatReplying(false);
+    }
+  };
+
+  // Transita do Modal de IA para o Wizard Manual Clássico de 5 Passos (com Mapa Leaflet)
+  const handleSwitchFromAiToManual = (prefilledData: any) => {
+    setIsBoostPostModalOpen(false);
+    if (boostPostData) {
+      setSelectedPost(boostPostData);
+    }
+    if (prefilledData) {
+      if (prefilledData.radiusKm) setRadius(prefilledData.radiusKm);
+      if (prefilledData.ageMin && prefilledData.ageMax) {
+        setAgeRange([prefilledData.ageMin, prefilledData.ageMax]);
+      }
+      if (prefilledData.suggestedBudgetDaily) setDailyBudget(prefilledData.suggestedBudgetDaily);
+      if (prefilledData.suggestedDurationDays) setDuration(prefilledData.suggestedDurationDays);
+      if (prefilledData.headline) setHeadline(prefilledData.headline);
+      if (prefilledData.objective) {
+        let backendObj = "WHATSAPP";
+        if (prefilledData.objective === "LINK_CLICKS") backendObj = "TRAFFIC";
+        else if (prefilledData.objective === "PROFILE_VISITS" || prefilledData.objective === "LOCAL_REACH") backendObj = "REACH";
+        setCampaignObjective(backendObj);
+      }
+      if (Array.isArray(prefilledData.metaInterests) && prefilledData.metaInterests.length > 0) {
+        setSelectedInterests(prefilledData.metaInterests);
+      }
+    }
+    setCurrentStep(1);
+    setIsCreating(true);
   };
 
   // Confirma e envia para o Firestore
@@ -3431,12 +3593,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               <Button
                                 type="button"
                                 onClick={() => {
-                                  setTutorialRedirectUrl(
-                                    whatsAppSettingsUrl ||
-                                      (metaConnection?.pageId
-                                        ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp`
-                                        : "https://www.facebook.com")
-                                  );
+                                  setTutorialRedirectUrl("https://www.facebook.com/settings/?tab=linked_whatsapp");
                                   setIsProfileSwitchTutorialOpen(true);
                                 }}
                                 className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border-0 bg-amber-500 px-4 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-95"
@@ -3461,18 +3618,215 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   )}
                 </div>
               )}
-              {/* PASSO 2: EDITAR CONTEÚDO E ASSISTENTE DE IA */}
-              {currentStep === 2 && (
+              {/* PASSO 2: PAINEL DO AGENTE DE IA OU CONFIGURAÇÃO MANUAL */}
+              {currentStep === 2 && !showManualWizardForms && (
                 <div className="space-y-6">
-                  <div>
-                    <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      2. O que seu anúncio vai dizer?
-                    </h4>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Escreva ou use nossa inteligência artificial para criar legendas de alta
-                      performance que engajam moradores locais!
-                    </p>
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5 rounded-full bg-[#0083C7]/10 px-3 py-1 text-xs font-bold text-[#0083C7] border border-[#0083C7]/20">
+                          <Sparkles className="h-3.5 w-3.5" /> Recomendação do Copiloto IA Meta Ads
+                        </span>
+                      </div>
+                      <h4 className="font-poppins text-lg font-bold text-slate-900 mt-2">
+                        Campanha Configurada Pelo Agente de IA
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Analisamos seu negócio, a publicação e o objetivo selecionado para gerar a audiência de maior engajamento.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card de Resumo da Sugestão da IA */}
+                  <div className="space-y-4 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/80 to-blue-50/20 p-5 shadow-xs">
+                    {/* Título & Legenda */}
+                    <div className="space-y-1 rounded-lg border bg-white p-3.5 shadow-2xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">📝 Criativo e Título Magnético</span>
+                      <p className="text-sm font-bold text-slate-800">{headline || "Aproveite nossa oferta especial!"}</p>
+                      <p className="text-xs text-slate-600 line-clamp-2">{bodyText || selectedPost?.text || "Publicação promocional do negócio"}</p>
+                    </div>
+
+                    {/* Público & Localização */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Alcance
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">
+                          {(selectedLocations[0]?.name) || addressInput || businessProfile?.address || "Sua Região Local"} (+{radius}km)
+                        </p>
+                        <p className="text-[11px] text-slate-500">Idade: {ageRange[0]} a {ageRange[1]} anos</p>
+                      </div>
+
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-green-600" /> Orçamento & Duração
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">R$ {dailyBudget}/dia ({duration} dias)</p>
+                        <p className="text-[11px] text-slate-500">Total: R$ {dailyBudget * duration}</p>
+                      </div>
+                    </div>
+
+                    {/* Interesses Meta */}
+                    <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                        <Target className="h-3 w-3 text-[#FA6305]" /> Interesses Meta Oficiais
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {selectedInterests.length > 0 ? (
+                          selectedInterests.map((interest) => (
+                            <Badge key={interest.id} variant="secondary" className="text-[11px] font-semibold bg-slate-100 text-slate-800 border">
+                              {interest.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-500">Interesses locais recomendados</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Racional da IA */}
+                    {aiExplanation && (
+                      <div className="rounded-lg bg-amber-50/80 border border-amber-200/60 p-3.5 text-xs text-amber-900 leading-relaxed font-medium">
+                        💡 <strong>Racional do Copiloto:</strong> {aiExplanation}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botões de Ação Direta em Destaque */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                    <Button
+                      type="button"
+                      onClick={
+                        billingStatus && !billingStatus.hasPaymentMethod
+                          ? () => {
+                              setIsBillingModalOpen(true);
+                              setBillingGuideActive(false);
+                              toast({
+                                variant: "destructive",
+                                title: "Faturamento necessário",
+                                description: "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                              });
+                            }
+                          : handleActivateCampaign
+                      }
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-98"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Ativando Anúncio na Meta...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Confirmar e Publicar Anúncio na Meta Ads
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowManualWizardForms(true)}
+                      className="w-full sm:w-auto h-11 rounded-xl border-2 border-slate-200 bg-white font-bold text-xs text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors"
+                    >
+                      <Sliders className="mr-1.5 h-4 w-4 text-[#0083C7]" />
+                      Configuração Manual Avançada
+                    </Button>
+                  </div>
+
+                  {/* Chat do Agente de IA Integrado na Coluna Esquerda */}
+                  <div className="mt-6 flex h-[380px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-md">
+                    {/* Header do Chat */}
+                    <div className="flex items-center gap-2 bg-[#0083C7] p-3 text-white">
+                      <div className="rounded-lg bg-white/20 p-1.5">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h5 className="font-poppins text-xs font-bold leading-tight">Agente IA Meta Ads</h5>
+                        <span className="text-[10px] text-white/80">Conectado • Peça alterações ou tire dúvidas</span>
+                      </div>
+                    </div>
+
+                    {/* Trajetória de Mensagens */}
+                    <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-3">
+                      {aiMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex items-start gap-2 ${msg.sender === "user" ? "flex-row-reverse" : ""}`}
+                        >
+                          <div
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                              msg.sender === "user" ? "bg-[#FA6305]" : "bg-[#0083C7]"
+                            }`}
+                          >
+                            {msg.sender === "user" ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
+                          </div>
+                          <div
+                            className={`max-w-[85%] rounded-xl p-2.5 text-xs leading-relaxed ${
+                              msg.sender === "user"
+                                ? "rounded-tr-none bg-[#FA6305] font-medium text-white"
+                                : "rounded-tl-none border border-slate-200 bg-white font-sans text-slate-800 shadow-2xs whitespace-pre-wrap"
+                            }`}
+                          >
+                            {msg.text}
+                          </div>
+                        </div>
+                      ))}
+
+                      {isAiChatReplying && (
+                        <div className="flex items-center gap-2 text-xs italic text-slate-400">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0083C7]" />
+                          <span>Agente IA pensando...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Input de Chat */}
+                    <form onSubmit={handleSendAiChatMessage} className="flex items-center gap-2 border-t bg-white p-2.5">
+                      <Input
+                        value={aiChatInput}
+                        onChange={(e) => setAiChatInput(e.target.value)}
+                        placeholder="Ex: 'Aumente o raio para 20km' ou 'Mude a idade'..."
+                        disabled={isAiChatReplying}
+                        className="h-8 rounded-lg font-sans text-xs"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={!aiChatInput.trim() || isAiChatReplying}
+                        size="sm"
+                        className="h-8 w-8 shrink-0 rounded-lg bg-[#0083C7] p-0 text-white hover:bg-[#0083C7]/90"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* MODO DE FORMULÁRIO MANUAL DETALHADO */}
+              {currentStep === 2 && showManualWizardForms && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div>
+                      <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
+                        <Sliders className="h-5 w-5 text-primary" />
+                        Edição Manual Avançada da Campanha
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Ajuste todos os parâmetros manuais, mapa, interesses da Meta e filtros com controle total.
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowManualWizardForms(false)}
+                      className="h-8 text-xs font-bold text-[#0083C7] hover:bg-[#0083C7]/10"
+                    >
+                      ← Voltar para Recomendação da IA
+                    </Button>
                   </div>
 
                   {/* Nome Interno */}
@@ -4485,134 +4839,134 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
             </div>
 
-            {/* COLUNA DIREITA: PREVIEW DO FEED REAL (5 colunas) */}
-            <div className="flex flex-col items-center justify-start bg-slate-50 p-6 lg:col-span-5">
-              <div className="sticky top-6 w-full max-w-[340px]">
+            {/* COLUNA DIREITA: PREVIEW DO FEED DA META EM TEMPO REAL (5 colunas) */}
+            <div className="flex flex-col items-center justify-start border-l border-slate-200 bg-slate-50 p-6 lg:col-span-5">
+              <div className="sticky top-6 w-full max-w-[360px] space-y-3">
                 <p className="mb-3 block text-center text-xs font-bold uppercase tracking-wider text-slate-400">
                   📱 Prévia em tempo real (Meta Feed)
                 </p>
 
-                {/* Card de Simulação Meta */}
-                <div className="relative">
-                  {/* Alerta de Nome da Campanha Interno e Privado */}
-                  {focusedField === "adName" && (
-                    <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] font-medium text-amber-800 shadow-sm duration-200 animate-in slide-in-from-top-2">
-                      <span>
-                        O <strong>Nome da Campanha</strong> é 100% privado. Ele serve apenas para
-                        você se organizar e nunca será visto pelos seus clientes nas redes sociais.
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white text-left shadow-md">
-                    {/* Topo do Post */}
-                    <div className="flex items-center justify-between p-3">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar className="h-9 w-9 border border-slate-100">
-                          <AvatarImage src={businessProfile?.logo?.url || ""} />
-                          <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                            {getAvatarFallback()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <span className="block text-xs font-bold leading-tight text-slate-900">
-                            {instagramConnection?.instagramUsername
-                              ? `@${instagramConnection.instagramUsername}`
-                              : metaConnection?.pageName || businessProfile?.name || "Meu Negócio"}
+                    {/* Card de Simulação Meta */}
+                    <div className="relative">
+                      {/* Alerta de Nome da Campanha Interno e Privado */}
+                      {focusedField === "adName" && (
+                        <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] font-medium text-amber-800 shadow-sm duration-200 animate-in slide-in-from-top-2">
+                          <span>
+                            O <strong>Nome da Campanha</strong> é 100% privado. Ele serve apenas para
+                            você se organizar e nunca será visto pelos seus clientes nas redes sociais.
                           </span>
-                          <span className="mt-0.5 block text-[10px] font-semibold leading-tight text-primary">
-                            Patrocinado
-                          </span>
-                        </div>
-                      </div>
-                      <span className="cursor-default text-sm font-bold text-slate-400">•••</span>
-                    </div>
-
-                    {/* Foto do Post */}
-                    <div className="relative aspect-square w-full border-y border-slate-100 bg-slate-100">
-                      {selectedPost.imageUrl || selectedPost.imageUrls?.[0] ? (
-                        <Image
-                          src={selectedPost.imageUrl || selectedPost.imageUrls?.[0]}
-                          alt="Criativo Anúncio"
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-slate-300">
-                          <Eye className="h-10 w-10" />
                         </div>
                       )}
-                    </div>
 
-                    {/* Barra de Ação de Conversão (CTA) */}
-                    {(hasDestination ||
-                      campaignObjective === "TRAFFIC" ||
-                      campaignObjective === "WHATSAPP") && (
-                      <div
-                        className={`relative flex items-center justify-between gap-3 border-b border-slate-100 bg-[#F2F4F7] px-3.5 py-2.5 transition-all duration-300 ${focusedField === "headline" || focusedField === "destinationUrl" ? "z-10 scale-[1.01] bg-primary/5 ring-2 ring-primary/50" : ""}`}
-                      >
-                        {focusedField === "headline" && (
-                          <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
-                            Título do Anúncio
-                          </span>
-                        )}
-                        {focusedField === "destinationUrl" && (
-                          <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
-                            Link do Site (Botão)
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <span className="block truncate text-[9px] font-semibold uppercase leading-none tracking-wide text-slate-500">
-                            {campaignObjective === "WHATSAPP"
-                              ? "WHATSAPP"
-                              : customDestination
-                                ? customDestination
-                                    .replace(/^(https?:\/\/)?(www\.)?/, "")
-                                    .split("/")[0]
-                                    .toUpperCase()
-                                : "SEUSITE.COM.BR"}
-                          </span>
-                          <span className="mt-1 block truncate text-xs font-bold leading-snug text-slate-800">
-                            {headline ||
-                              (campaignObjective === "WHATSAPP"
-                                ? "Fale conosco pelo WhatsApp!"
-                                : "Aproveite nossa oferta local!")}
-                          </span>
+                      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white text-left shadow-md">
+                        {/* Topo do Post */}
+                        <div className="flex items-center justify-between p-3">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="h-9 w-9 border border-slate-100">
+                              <AvatarImage src={businessProfile?.logo?.url || ""} />
+                              <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                                {getAvatarFallback()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <span className="block text-xs font-bold leading-tight text-slate-900">
+                                {instagramConnection?.instagramUsername
+                                  ? `@${instagramConnection.instagramUsername}`
+                                  : metaConnection?.pageName || businessProfile?.name || "Meu Negócio"}
+                              </span>
+                              <span className="mt-0.5 block text-[10px] font-semibold leading-tight text-primary">
+                                Patrocinado
+                              </span>
+                            </div>
+                          </div>
+                          <span className="cursor-default text-sm font-bold text-slate-400">•••</span>
                         </div>
-                        <Button
-                          size="sm"
-                          className={`${campaignObjective === "WHATSAPP" ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary"} pointer-events-none h-7 rounded px-3 text-[10px] font-bold text-white`}
+
+                        {/* Foto do Post */}
+                        <div className="relative aspect-square w-full border-y border-slate-100 bg-slate-100">
+                          {selectedPost.imageUrl || selectedPost.imageUrls?.[0] ? (
+                            <Image
+                              src={selectedPost.imageUrl || selectedPost.imageUrls?.[0]}
+                              alt="Criativo Anúncio"
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-slate-300">
+                              <Eye className="h-10 w-10" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Barra de Ação de Conversão (CTA) */}
+                        {(hasDestination ||
+                          campaignObjective === "TRAFFIC" ||
+                          campaignObjective === "WHATSAPP") && (
+                          <div
+                            className={`relative flex items-center justify-between gap-3 border-b border-slate-100 bg-[#F2F4F7] px-3.5 py-2.5 transition-all duration-300 ${focusedField === "headline" || focusedField === "destinationUrl" ? "z-10 scale-[1.01] bg-primary/5 ring-2 ring-primary/50" : ""}`}
+                          >
+                            {focusedField === "headline" && (
+                              <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
+                                Título do Anúncio
+                              </span>
+                            )}
+                            {focusedField === "destinationUrl" && (
+                              <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
+                                Link do Site (Botão)
+                              </span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <span className="block truncate text-[9px] font-semibold uppercase leading-none tracking-wide text-slate-500">
+                                {campaignObjective === "WHATSAPP"
+                                  ? "WHATSAPP"
+                                  : customDestination
+                                    ? customDestination
+                                        .replace(/^(https?:\/\/)?(www\.)?/, "")
+                                        .split("/")[0]
+                                        .toUpperCase()
+                                    : "SEUSITE.COM.BR"}
+                              </span>
+                              <span className="mt-1 block truncate text-xs font-bold leading-snug text-slate-800">
+                                {headline ||
+                                  (campaignObjective === "WHATSAPP"
+                                    ? "Fale conosco pelo WhatsApp!"
+                                    : "Aproveite nossa oferta local!")}
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              className={`${campaignObjective === "WHATSAPP" ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary"} pointer-events-none h-7 rounded px-3 text-[10px] font-bold text-white`}
+                            >
+                              {campaignObjective === "WHATSAPP" ? "Enviar mensagem" : "Saiba Mais"}
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Legenda/Corpo */}
+                        <div
+                          className={`relative p-3 transition-all duration-300 ${focusedField === "bodyText" ? "z-10 scale-[1.01] bg-primary/5 ring-2 ring-primary/50" : ""}`}
                         >
-                          {campaignObjective === "WHATSAPP" ? "Enviar mensagem" : "Saiba Mais"}
-                        </Button>
+                          {focusedField === "bodyText" && (
+                            <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
+                              Texto Principal (Legenda)
+                            </span>
+                          )}
+                          <p className="font-inter line-clamp-4 text-xs leading-relaxed text-slate-700">
+                            <span className="mr-1.5 font-bold text-slate-900">
+                              {instagramConnection?.instagramUsername
+                                ? `@${instagramConnection.instagramUsername}`
+                                : metaConnection?.pageName || businessProfile?.name || "Meu Negócio"}
+                            </span>
+                            {bodyText || selectedPost.text}
+                          </p>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Legenda/Corpo */}
-                    <div
-                      className={`relative p-3 transition-all duration-300 ${focusedField === "bodyText" ? "z-10 scale-[1.01] bg-primary/5 ring-2 ring-primary/50" : ""}`}
-                    >
-                      {focusedField === "bodyText" && (
-                        <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
-                          Texto Principal (Legenda)
-                        </span>
-                      )}
-                      <p className="font-inter line-clamp-4 text-xs leading-relaxed text-slate-700">
-                        <span className="mr-1.5 font-bold text-slate-900">
-                          {instagramConnection?.instagramUsername
-                            ? `@${instagramConnection.instagramUsername}`
-                            : metaConnection?.pageName || businessProfile?.name || "Meu Negócio"}
-                        </span>
-                        {bodyText || selectedPost.text}
-                      </p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
       {/* DASHBOARD PRINCIPAL (MÉTRICAS E LISTAS) */}
       {!isCreating && (isMetaActive || isGoogleActive) && (
@@ -5332,6 +5686,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL DE IMPULSIONAMENTO DE POST COM COPILOTO IA */}
+      <BoostPostModal
+        isOpen={isBoostPostModalOpen}
+        onClose={() => setIsBoostPostModalOpen(false)}
+        post={boostPostData}
+        businessProfile={businessProfile}
+        onBoostSuccess={fetchData}
+        onSwitchToManualWizard={handleSwitchFromAiToManual}
+      />
 
       {/* MODAL DE SELEÇÃO DE CONTA DO GOOGLE ADS */}
       <Dialog

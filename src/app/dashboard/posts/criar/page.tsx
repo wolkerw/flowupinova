@@ -308,7 +308,7 @@ const adaptImageToStory = (
   logoUrl?: string | null,
   logoPosition: LogoPosition = "bottom-right",
   logoScale: number = 30,
-  logoOpacity: number = 80
+  logoOpacity: number = 100
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
@@ -502,7 +502,7 @@ const mergeLogoWithFeedImage = (
   logoUrl?: string | null,
   logoPosition: LogoPosition = "bottom-right",
   logoScale: number = 30,
-  logoOpacity: number = 80
+  logoOpacity: number = 100
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
@@ -1839,7 +1839,7 @@ export default function CriarConteudoPage() {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
   const [logoScale, setLogoScale] = useState(30);
-  const [logoOpacity, setLogoOpacity] = useState(80);
+  const [logoOpacity, setLogoOpacity] = useState(100);
 
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [storyAdaptationMode, setStoryAdaptationMode] = useState<"blur" | "crop" | "solid">("blur");
@@ -1951,6 +1951,7 @@ export default function CriarConteudoPage() {
       // Carregar automaticamente a logomarca do Brand Kit se existir, nenhuma estiver selecionada e a imagem não possuir logo impressa por IA
       if (profile?.logo?.url && !logoPreviewUrlRef.current && !skipAutoLogoRef.current) {
         setLogoPreviewUrl(profile.logo.url);
+        setLogoOpacity(100);
 
         const logoUrlToFetch = profile.logo.url.startsWith("http")
           ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(profile.logo.url)}`
@@ -2181,6 +2182,7 @@ export default function CriarConteudoPage() {
       setLogoFile(null);
       return;
     }
+    setLogoOpacity(100);
 
     try {
       let blob: Blob | null = null;
@@ -2823,6 +2825,7 @@ export default function CriarConteudoPage() {
       reader.onloadend = () => {
         setLogoPreviewUrl(reader.result as string);
         setLogoFile(file);
+        setLogoOpacity(100);
       };
       reader.readAsDataURL(file);
     }
