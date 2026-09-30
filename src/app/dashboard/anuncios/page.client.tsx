@@ -3847,24 +3847,73 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                   {/* Card de Resumo das Configurações Ativas (Sem duplicar a prévia do criativo) */}
                   <div className="space-y-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/80 to-blue-50/20 p-4 shadow-xs">
-                    {/* Público & Localização */}
+                    {/* Grid de 4 Cards: Local, Faixa Etária, Orçamento & Destino */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Card 1: Local & Alcance */}
                       <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Alcance
+                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Raio
                         </span>
-                        <p className="text-xs font-bold text-slate-800">
+                        <p className="text-xs font-bold text-slate-800 line-clamp-2">
                           {(selectedLocations[0]?.name) || addressInput || businessProfile?.address || "Sua Região Local"} (+{radius}km)
                         </p>
-                        <p className="text-[11px] text-slate-500">Idade: {ageRange[0]} a {ageRange[1]} anos</p>
                       </div>
 
+                      {/* Card 2: Faixa Etária (Separada) */}
                       <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-green-600" /> Orçamento & Duração
+                          <Users className="h-3 w-3 text-indigo-600" /> Faixa Etária
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">
+                          {ageRange[0]} a {ageRange[1]} anos
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {gender === "ALL" ? "Todos os gêneros" : gender === "MALE" ? "Homens" : "Mulheres"}
+                        </p>
+                      </div>
+
+                      {/* Card 3: Orçamento & Duração */}
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-emerald-600" /> Orçamento & Duração
                         </span>
                         <p className="text-xs font-bold text-slate-800">R$ {dailyBudget}/dia ({duration} dias)</p>
                         <p className="text-[11px] text-slate-500">Total: R$ {dailyBudget * duration}</p>
+                      </div>
+
+                      {/* Card 4: Destino Dinâmico (URL do Site ou Número do WhatsApp) */}
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        {campaignObjective === "WHATSAPP" ? (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3 text-emerald-500" /> Número do WhatsApp
+                            </span>
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              {businessProfile?.phone || initialProfile?.phone || "(Conectado na Página)"}
+                            </p>
+                            <p className="text-[11px] text-slate-500">Mensagem direta no aplicativo</p>
+                          </>
+                        ) : campaignObjective === "TRAFFIC" ? (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                              <Globe className="h-3 w-3 text-sky-600" /> URL do Site (Destino)
+                            </span>
+                            <p className="text-xs font-bold text-slate-800 truncate" title={customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com.br"}>
+                              {customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com.br"}
+                            </p>
+                            <p className="text-[11px] text-slate-500">Redirecionamento ao clicar</p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                              <Megaphone className="h-3 w-3 text-amber-500" /> Objetivo da Campanha
+                            </span>
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              Alcance & Reconhecimento Local
+                            </p>
+                            <p className="text-[11px] text-slate-500">Máxima visibilidade na região</p>
+                          </>
+                        )}
                       </div>
                     </div>
 
