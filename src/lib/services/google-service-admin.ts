@@ -1,7 +1,9 @@
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin";
+import { admin, adminDb } from "@/lib/firebase-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { google } from "googleapis";
+import crypto from "crypto";
 import type { BusinessProfileData } from "./business-profile-service";
 import type { GoogleConnectionData } from "./google-service";
 
@@ -74,3 +76,62 @@ export async function getGoogleBusinessProfile(userId: string): Promise<Business
 
   return docSnap.data() as BusinessProfileData;
 }
+
+/**
+ * Realiza upload direto e nativo para o Firebase Storage, retornando uma URL pública acessível para a API do Google My Business.
+ * @param file O arquivo File recebido no FormData.
+ * @param userId UID do usuário.
+ * @param subfolder Subpasta de organização (ex: 'cover', 'logo', 'gallery').
+ * @returns URL pública permanente no Firebase Storage.
+ */
+export async function uploadGoogleMediaToStorage(
+  file: File,
+  userId: string,
+  subfolder: string = "google"
+): Promise<string> {
+  let buffer: Buffer;
+  if (typeof file.arrayBuffer === "function") {
+    buffer = Buffer.from(await file.arrayBuffer());
+  } else if (typeof (file as any).bytes === "function") {
+    buffer = Buffer.from(await (file as any).bytes());
+  } else if (typeof (file as any).text === "function") {
+    buffer = Buffer.from(await (file as any).text());
+  } else {
+    buffer = Buffer.from(file as any);
+  }
+  const userStoragePath = await getUserStoragePathAdmin(userId);
+  const dateStr = new Date()
+    .toISOString()
+    .replace(/T/, "_")
+    .replace(/\..+/, "")
+    .replace(/[^0-9_]/g, "");
+
+  const bucket = admin.storage().bucket();
+  const ext = file.type?.includes("png") ? "png" : "jpg";
+  const filename = `${userStoragePath}/google/${subfolder}/${dateStr}_${crypto.randomUUID().substring(0, 8)}.${ext}`;
+  const fileRef = bucket.file(filename);
+  const downloadToken = crypto.randomUUID();
+
+  const savePromise = fileRef.save(buffer, {
+    metadata: {
+      contentType: file.type || "image/jpeg",
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken,
+        userId,
+        source: "google_my_business",
+        subfolder,
+      },
+    },
+  });
+
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Storage upload timeout")), 15000)
+  );
+
+  await Promise.race([savePromise, timeoutPromise]);
+
+  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+  console.log(`[GOOGLE_STORAGE_UPLOAD] Foto do Google salva com sucesso no Storage: ${publicUrl}`);
+  return publicUrl;
+}
+

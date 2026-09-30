@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie, adminDb } from "@/lib/firebase-admin";
-import { getAuthenticatedGoogleClient } from "@/lib/services/google-service-admin";
+import {
+  getAuthenticatedGoogleClient,
+  uploadGoogleMediaToStorage,
+} from "@/lib/services/google-service-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,26 +18,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Proxy the file to the external webhook to get a public URL
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
-    const webhookFormData = new FormData();
-    webhookFormData.append("file", file);
-
-    const webhookResponse = await fetch(webhookUrl, {
-      method: "POST",
-      body: webhookFormData,
-    });
-
-    if (!webhookResponse.ok) {
-      const errorText = await webhookResponse.text();
-      throw new Error(`O serviço de upload de imagem falhou: ${errorText}`);
+    // 1. Upload direto e nativo para o Firebase Storage com fallback para webhook se necessário
+    let publicUrl = "";
+    try {
+      publicUrl = await uploadGoogleMediaToStorage(file, uid, "gallery");
+    } catch (storageErr: any) {
+      console.warn("[GOOGLE_UPLOAD_GALLERY] Falha no upload Storage, tentando webhook:", storageErr?.message);
+      try {
+        const webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+        const webhookFormData = new FormData();
+        webhookFormData.append("file", file);
+        const webhookResponse = await fetch(webhookUrl, {
+          method: "POST",
+          body: webhookFormData,
+        });
+        if (webhookResponse.ok) {
+          const webhookResult = await webhookResponse.json();
+          publicUrl = webhookResult?.[0]?.url_post;
+        }
+      } catch (webhookErr) {
+        console.warn("[GOOGLE_UPLOAD_GALLERY] Fallback webhook também falhou:", webhookErr);
+      }
     }
 
-    const webhookResult = await webhookResponse.json();
-    const publicUrl = webhookResult?.[0]?.url_post;
-
     if (!publicUrl) {
-      throw new Error("A resposta do serviço de upload não continha uma URL válida.");
+      throw new Error("Não foi possível gerar a URL pública da foto para envio ao Google.");
     }
 
     // 2. Fetch connection and profile data to build the parent path
