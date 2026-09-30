@@ -1883,13 +1883,37 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     } catch (err) {
       console.warn("[ANUNCIOS_PAGE] Erro ao carregar sugestão da IA:", err);
     } finally {
+      // Se for Tráfego, auto-preenche a URL de destino com o site do negócio
+      let targetDestination = customDestination.trim();
+      if (selectedObj === "TRAFFIC" || campaignObjective === "TRAFFIC") {
+        if (!targetDestination) {
+          targetDestination =
+            businessProfile?.website ||
+            businessProfile?.instagram ||
+            initialProfile?.website ||
+            "";
+          if (targetDestination) {
+            if (!/^https?:\/\//i.test(targetDestination)) {
+              targetDestination = `https://${targetDestination}`;
+            }
+            setCustomDestination(targetDestination);
+          }
+        }
+      }
+
+      const destText = (selectedObj === "TRAFFIC" || campaignObjective === "TRAFFIC")
+        ? targetDestination
+          ? `\n🌐 **Link de Destino:** ${targetDestination}`
+          : `\n🌐 **Link de Destino:** *Pendente* (Se desejar um link específico, basta digitá-lo aqui no chat!)`
+        : "";
+
       const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       const namesList = (activeInterests || []).map((i: any) => i.name).join(", ") || "Público Local Relevante";
       setAiMessages([
         {
           id: "msg-init",
           sender: "ai",
-          text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${currentExp}\n\n📍 **Raio de Alcance:** ${currentRad}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${currentAgeMin} a ${currentAgeMax} anos\n💰 **Orçamento Sugerido:** R$ ${currentBudget}/dia (${currentDuration} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
+          text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${currentExp}\n\n📍 **Raio de Alcance:** ${currentRad}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${currentAgeMin} a ${currentAgeMax} anos\n💰 **Orçamento Sugerido:** R$ ${currentBudget}/dia (${currentDuration} dias)${destText}\n\nSe você quiser fazer qualquer alteração (ex: "Mude o site para www.loja.com", "Aumente o raio para 20km" ou "Mude a idade para 25 a 45 anos"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
           timestamp: timeStr,
         },
       ]);
@@ -1915,6 +1939,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setAiMessages((prev) => [...prev, userMsg]);
     setAiChatInput("");
     setIsAiChatReplying(true);
+
+    const urlMatch = query.match(/(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(?:com|br|net|org|site|store|app|io)[^\s]*)/i);
+    let extractedUrl: string | null = null;
+    if (urlMatch) {
+      extractedUrl = urlMatch[0];
+      if (!/^https?:\/\//i.test(extractedUrl)) {
+        extractedUrl = `https://${extractedUrl}`;
+      }
+      setCustomDestination(extractedUrl);
+    }
 
     try {
       const response = await fetch("/api/ai/suggest-audience", {
@@ -1963,12 +1997,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         }
         if (aud.explanation) setAiExplanation(aud.explanation);
 
+        const responseText = extractedUrl
+          ? `Perfeito! Atualizei o link de destino da sua campanha para: **${extractedUrl}** 🌐`
+          : (aud.explanation || "Entendi seu pedido e ajustei as configurações da campanha na Meta!");
+
         setAiMessages((prev) => [
           ...prev,
           {
             id: `ai-${Date.now()}`,
             sender: "ai",
-            text: aud.explanation || "Entendi seu pedido e ajustei as configurações da campanha na Meta!",
+            text: responseText,
             timestamp: aiTime,
           },
         ]);
@@ -2040,22 +2078,21 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       if (campaignObjective === "TRAFFIC" || hasDestination) {
         backendCtaType = "LEARN_MORE"; // Padronizado em Saiba Mais
-        backendCtaLink = customDestination ? customDestination.trim() : "";
-        if (backendCtaLink && !/^https?:\/\//i.test(backendCtaLink)) {
-          backendCtaLink = `https://${backendCtaLink}`;
+        let linkToUse = customDestination ? customDestination.trim() : "";
+        if (!linkToUse) {
+          linkToUse =
+            businessProfile?.website ||
+            businessProfile?.instagram ||
+            initialProfile?.website ||
+            "https://numvapt.com.br";
         }
-      }
-
-      // Validação prévia de URL obrigatória para campanhas de Tráfego
-      if (campaignObjective === "TRAFFIC" && !backendCtaLink) {
-        toast({
-          variant: "destructive",
-          title: "URL do site necessária",
-          description:
-            "Para campanhas de Tráfego (Mais cliques no link), informe a URL do seu site.",
-        });
-        setIsSubmitting(false);
-        return;
+        if (!/^https?:\/\//i.test(linkToUse)) {
+          linkToUse = `https://${linkToUse}`;
+        }
+        backendCtaLink = linkToUse;
+        if (!customDestination) {
+          setCustomDestination(linkToUse);
+        }
       }
 
       // WhatsApp: sobrescreve CTA independente do estado de hasDestination
