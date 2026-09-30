@@ -4808,7 +4808,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   {currentStep === 1 ? "Cancelar" : "Voltar"}
                 </Button>
 
-                {currentStep < 5 ? (
+                {currentStep < 5 && (currentStep !== 2 || showManualWizardForms) ? (
                   <Button
                     type="button"
                     onClick={() => {
@@ -4889,40 +4889,74 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       setCurrentStep((prev) => prev + 1);
                     }}
                     disabled={
-                      currentStep === 1 &&
-                      campaignObjective === "WHATSAPP" &&
-                      hasWhatsAppConnected !== true
+                      isSuggestingAi ||
+                      (currentStep === 1 &&
+                        campaignObjective === "WHATSAPP" &&
+                        hasWhatsAppConnected !== true)
                     }
                     className={`rounded-lg px-6 py-2 text-xs font-bold ${
-                      currentStep === 1 &&
-                      campaignObjective === "WHATSAPP" &&
-                      hasWhatsAppConnected !== true
+                      isSuggestingAi ||
+                      (currentStep === 1 &&
+                        campaignObjective === "WHATSAPP" &&
+                        hasWhatsAppConnected !== true)
                         ? "cursor-not-allowed border-none bg-slate-200 text-slate-400"
                         : "active:scale-98 bg-primary text-white shadow-sm hover:bg-primary/95"
                     }`}
                   >
-                    Próximo Passo
-                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    {isSuggestingAi ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Analisando com IA...
+                      </>
+                    ) : (
+                      <>
+                        Próximo Passo
+                        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Button
                     type="button"
-                    onClick={
-                      billingStatus && !billingStatus.hasPaymentMethod
-                        ? () => {
-                            setIsBillingModalOpen(true);
-                            setBillingGuideActive(false);
+                    onClick={() => {
+                      if (currentStep === 2 && !showManualWizardForms) {
+                        if (!adName.trim()) {
+                          const snippet = selectedPost?.text
+                            ? selectedPost.text.length > 25
+                              ? `${selectedPost.text.slice(0, 25)}...`
+                              : selectedPost.text
+                            : "Impulsionamento";
+                          setAdName(`[NUMVAPT] ${snippet}`);
+                        }
+                        if (!bodyText.trim()) {
+                          if (selectedPost?.text) {
+                            setBodyText(selectedPost.text);
+                          } else {
                             toast({
                               variant: "destructive",
-                              title: "Faturamento necessário",
+                              title: "Legenda obrigatória",
                               description:
-                                "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                                "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
                             });
+                            return;
                           }
-                        : handleActivateCampaign
-                    }
+                        }
+                      }
+                      if (billingStatus && !billingStatus.hasPaymentMethod) {
+                        setIsBillingModalOpen(true);
+                        setBillingGuideActive(false);
+                        toast({
+                          variant: "destructive",
+                          title: "Faturamento necessário",
+                          description:
+                            "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                        });
+                        return;
+                      }
+                      handleActivateCampaign();
+                    }}
                     disabled={isSubmitting}
-                    className="rounded-lg bg-primary px-8 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary/95 active:scale-95"
+                    className="rounded-lg bg-emerald-600 px-8 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
                   >
                     {isSubmitting ? (
                       <>
