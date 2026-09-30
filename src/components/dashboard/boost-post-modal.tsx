@@ -47,6 +47,7 @@ interface BoostPostModalProps {
   post: NonNullable<PostDataOutput["post"]> | null;
   businessProfile: BusinessProfileData | null;
   onBoostSuccess?: () => void;
+  onSwitchToManualWizard?: (prefilledData: any) => void;
 }
 
 interface MetaInterestObject {
@@ -68,6 +69,7 @@ export function BoostPostModal({
   post,
   businessProfile,
   onBoostSuccess,
+  onSwitchToManualWizard,
 }: BoostPostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -574,11 +576,27 @@ export function BoostPostModal({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowManualEdit(!showManualEdit)}
+                  onClick={() => {
+                    if (onSwitchToManualWizard) {
+                      onSwitchToManualWizard({
+                        ageMin,
+                        ageMax,
+                        radiusKm,
+                        suggestedBudgetDaily: budgetDaily,
+                        suggestedDurationDays: durationDays,
+                        headline,
+                        objective,
+                        metaInterests,
+                        locationAddress,
+                      });
+                    } else {
+                      setShowManualEdit(!showManualEdit);
+                    }
+                  }}
                   className="h-7 text-xs text-[#0083C7] hover:bg-[#0083C7]/10 font-semibold"
                 >
                   <Sliders className="h-3.5 w-3.5 mr-1" />
-                  {showManualEdit ? "Ver Resumo da IA" : "⚙️ Editar Manualmente"}
+                  {showManualEdit ? "Ver Resumo da IA" : "🗺️ Editar no Modo Avançado"}
                 </Button>
               </div>
 
