@@ -5430,17 +5430,42 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         <tbody className="divide-slate-150/40 font-inter text-slate-650 divide-y text-xs">
                           {paginatedCampaigns.map((c) => {
                             const totalDays = c.durationDays || 7;
-                            let daysPassed = 1;
+                            const totalMs = totalDays * 24 * 60 * 60 * 1000;
+
+                            let elapsedMs = 0;
+                            let remainingMs = totalMs;
+                            let endDateFormatted = "";
+
                             if (c.createdAt) {
                               const createdDate = (c.createdAt as any).toDate
                                 ? (c.createdAt as any).toDate()
                                 : new Date(c.createdAt as any);
-                              const diffTime = Math.abs(Date.now() - createdDate.getTime());
-                              daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              const now = Date.now();
+                              elapsedMs = Math.max(0, Math.min(totalMs, now - createdDate.getTime()));
+                              remainingMs = Math.max(0, totalMs - elapsedMs);
+
+                              const endDate = new Date(createdDate.getTime() + totalMs);
+                              const dayStr = String(endDate.getDate()).padStart(2, "0");
+                              const monthStr = String(endDate.getMonth() + 1).padStart(2, "0");
+                              const hoursStr = String(endDate.getHours()).padStart(2, "0");
+                              const minStr = String(endDate.getMinutes()).padStart(2, "0");
+                              endDateFormatted = `${dayStr}/${monthStr} às ${hoursStr}:${minStr}`;
                             }
-                            if (daysPassed > totalDays) daysPassed = totalDays;
-                            if (daysPassed < 1) daysPassed = 1;
-                            const progressPercentage = Math.round((daysPassed / totalDays) * 100);
+
+                            const progressPercentage = Math.round((elapsedMs / totalMs) * 100);
+                            const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+                            const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+
+                            let remainingText = "";
+                            if (remainingMs <= 0 || progressPercentage >= 100) {
+                              remainingText = "Concluído";
+                            } else if (remainingDays > 1) {
+                              remainingText = `Faltam ${remainingDays} dias`;
+                            } else if (remainingHours > 1) {
+                              remainingText = `Faltam ${remainingHours}h`;
+                            } else {
+                              remainingText = `Falta 1h`;
+                            }
 
                             return (
                               <tr key={c.id} className="transition-colors hover:bg-slate-50/30">
@@ -5527,16 +5552,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 {/* DURAÇÃO PROGRESSO */}
                                 <td className="px-5 py-3.5">
                                   {c.status === "active" ? (
-                                    <div className="min-w-[120px] max-w-[150px] space-y-1">
-                                      <div className="flex justify-between text-[10px] font-medium leading-none text-slate-500">
-                                        <span>
-                                          Dia {daysPassed}/{totalDays}
-                                        </span>
-                                        <span>{progressPercentage}%</span>
+                                    <div className="min-w-[130px] max-w-[170px] space-y-1">
+                                      <div className="flex justify-between text-[10px] font-medium leading-none text-slate-700">
+                                        <span>{remainingText}</span>
+                                        <span className="font-semibold text-slate-500">{progressPercentage}%</span>
                                       </div>
-                                      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100/70">
+                                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                                         <div
-                                          className={`h-1 rounded-full transition-all duration-500 ${
+                                          className={`h-1.5 rounded-full transition-all duration-500 ${
                                             activePlatformTab === "meta"
                                               ? "bg-[#1877F2]"
                                               : "bg-[#4285F4]"
@@ -5544,6 +5567,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                           style={{ width: `${progressPercentage}%` }}
                                         ></div>
                                       </div>
+                                      {endDateFormatted && (
+                                        <span className="block text-[9px] font-medium text-slate-400">
+                                          Término em {endDateFormatted}
+                                        </span>
+                                      )}
                                     </div>
                                   ) : (
                                     <span className="font-poppins px-2 text-xs font-medium text-slate-400">
