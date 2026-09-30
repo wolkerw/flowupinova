@@ -570,9 +570,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [campaignObjective, hasWhatsAppConnected]);
 
-  // 1. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
+  // 1. Tenta geocodificar o endereço do perfil de negócios assim que a criação inicia sem coordenadas selecionadas
   useEffect(() => {
-    if (currentStep === 3 && selectedLocations.length === 0 && businessProfile?.address) {
+    if ((isCreating || currentStep >= 1) && selectedLocations.length === 0 && businessProfile?.address) {
       const geocodeProfileAddress = async () => {
         try {
           const res = await fetch(
@@ -602,7 +602,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       };
       geocodeProfileAddress();
     }
-  }, [currentStep, businessProfile, selectedLocations]);
+  }, [isCreating, currentStep, businessProfile, selectedLocations]);
 
   // 2. Inicializa e sincroniza o mapa Leaflet de forma autônoma e local
   useEffect(() => {
@@ -1756,6 +1756,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setIsBoostPostModalOpen(false);
     setCurrentStep(1);
     setIsCreating(true);
+
+    if (post?.text) {
+      setBodyText(post.text);
+    }
+
+    const snippet = post?.text
+      ? post.text.length > 25
+        ? `${post.text.slice(0, 25)}...`
+        : post.text
+      : "Impulsionamento";
+    setAdName(`[NUMVAPT] ${snippet}`);
   };
 
   // Seleção de Objetivo com chamada da IA nativa Gemini
@@ -1763,14 +1774,67 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setCampaignObjective(selectedObj);
     setIsSuggestingAi(true);
 
+    if ((!bodyText || !bodyText.trim()) && selectedPost?.text) {
+      setBodyText(selectedPost.text);
+    }
+
+    if (!adName || !adName.trim()) {
+      const snippet = selectedPost?.text
+        ? selectedPost.text.length > 25
+          ? `${selectedPost.text.slice(0, 25)}...`
+          : selectedPost.text
+        : "Impulsionamento";
+      setAdName(`[NUMVAPT] ${snippet}`);
+    }
+
+    let activeLocations = selectedLocations;
+    if (activeLocations.length === 0 && businessProfile?.address) {
+      try {
+        const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`);
+        if (res.ok) {
+          const locData = await res.json();
+          if (locData.locations && locData.locations.length > 0) {
+            const firstLoc = locData.locations[0];
+            const newLoc = {
+              name: firstLoc.name,
+              type: firstLoc.type,
+              key: firstLoc.key || "",
+              latitude: firstLoc.latitude,
+              longitude: firstLoc.longitude,
+              boundingBox: firstLoc.boundingBox || null,
+              geoJson: null,
+            };
+            activeLocations = [newLoc];
+            setSelectedLocations([newLoc]);
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao geocodificar localização para IA:", e);
+      }
+    }
+
+    let activeInterests = selectedInterests;
+    if (activeInterests.length === 0) {
+      const presets = getCategoryPresets(businessProfile?.category || initialProfile?.category);
+      activeInterests = presets;
+      setSelectedInterests(presets);
+    }
+
+    let currentExp = aiExplanation || "Campanha configurada pelo Agente de IA para alta conversão e visibilidade local.";
+    let currentRad = radius || 10;
+    let currentAgeMin = ageRange[0] || 18;
+    let currentAgeMax = ageRange[1] || 65;
+    let currentBudget = dailyBudget || 15;
+    let currentDuration = duration || 7;
+
     try {
       const response = await fetch("/api/ai/suggest-audience", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          postText: selectedPost?.text || "",
+          postText: bodyText || selectedPost?.text || "",
           postImageUrl: selectedPost?.imageUrl || selectedPost?.imageUrls?.[0] || "",
-          businessAddress: (selectedLocations[0]?.name) || businessProfile?.address || "Sua região local",
+          businessAddress: (activeLocations[0]?.name) || businessProfile?.address || "Sua região local",
           businessCategory: businessProfile?.category || "",
           objective: selectedObj,
         }),
@@ -1779,30 +1843,51 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       const data = await response.json();
       if (data.success && data.audience) {
         const aud = data.audience;
-        setAgeRange([aud.ageMin || 20, aud.ageMax || 55]);
-        setRadius(aud.radiusKm || 10);
-        setDailyBudget(aud.suggestedBudgetDaily || 15);
-        setDuration(aud.suggestedDurationDays || 3);
-        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
-        setAiExplanation(aud.explanation || "Campanha configurada pelo Agente de IA para alta conversão.");
+        currentAgeMin = aud.ageMin || 20;
+        currentAgeMax = aud.ageMax || 55;
+        currentRad = aud.radiusKm || 10;
+        currentBudget = aud.suggestedBudgetDaily || 15;
+        currentDuration = aud.suggestedDurationDays || 3;
+        currentExp = aud.explanation || currentExp;
+
         if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
+          activeInterests = aud.metaInterests;
           setSelectedInterests(aud.metaInterests);
+        } else if (typeof aud.interests === "string" && aud.interests.trim().length > 0) {
+          const parsed = aud.interests
+            .split(",")
+            .map((name: string, index: number) => ({
+              id: `ai-interest-${index}-${Date.now()}`,
+              name: name.trim(),
+              type: "interests",
+            }))
+            .filter((i: any) => i.name.length > 0);
+          if (parsed.length > 0) {
+            activeInterests = parsed;
+            setSelectedInterests(parsed);
+          }
         }
 
-        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        const namesList = (aud.metaInterests || []).map((i: any) => i.name).join(", ");
-        setAiMessages([
-          {
-            id: "msg-init",
-            sender: "ai",
-            text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${aud.explanation}\n\n📍 **Raio de Alcance:** ${aud.radiusKm}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${aud.ageMin || 18} a ${aud.ageMax || 65} anos\n💰 **Orçamento Sugerido:** R$ ${aud.suggestedBudgetDaily}/dia (${aud.suggestedDurationDays} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
-            timestamp: timeStr,
-          },
-        ]);
+        setAgeRange([currentAgeMin, currentAgeMax]);
+        setRadius(currentRad);
+        setDailyBudget(currentBudget);
+        setDuration(currentDuration);
+        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
+        setAiExplanation(currentExp);
       }
     } catch (err) {
       console.warn("[ANUNCIOS_PAGE] Erro ao carregar sugestão da IA:", err);
     } finally {
+      const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const namesList = (activeInterests || []).map((i: any) => i.name).join(", ") || "Público Local Relevante";
+      setAiMessages([
+        {
+          id: "msg-init",
+          sender: "ai",
+          text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${currentExp}\n\n📍 **Raio de Alcance:** ${currentRad}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${currentAgeMin} a ${currentAgeMax} anos\n💰 **Orçamento Sugerido:** R$ ${currentBudget}/dia (${currentDuration} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
+          timestamp: timeStr,
+        },
+      ]);
       setIsSuggestingAi(false);
       setCurrentStep(2);
     }
@@ -1860,6 +1945,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         if (aud.headline) setHeadline(aud.headline);
         if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
           setSelectedInterests(aud.metaInterests);
+        } else if (typeof aud.interests === "string" && aud.interests.trim().length > 0) {
+          const parsed = aud.interests
+            .split(",")
+            .map((name: string, index: number) => ({
+              id: `ai-interest-${index}-${Date.now()}`,
+              name: name.trim(),
+              type: "interests",
+            }))
+            .filter((i: any) => i.name.length > 0);
+          if (parsed.length > 0) setSelectedInterests(parsed);
         }
         if (aud.explanation) setAiExplanation(aud.explanation);
 
@@ -4717,37 +4812,43 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <Button
                     type="button"
                     onClick={() => {
-                      if (
-                        currentStep === 1 &&
-                        campaignObjective === "WHATSAPP" &&
-                        !hasWhatsAppConnected
-                      ) {
-                        toast({
-                          variant: "destructive",
-                          title: "WhatsApp não conectado",
-                          description:
-                            "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
-                        });
+                      if (currentStep === 1) {
+                        if (
+                          campaignObjective === "WHATSAPP" &&
+                          !hasWhatsAppConnected
+                        ) {
+                          toast({
+                            variant: "destructive",
+                            title: "WhatsApp não conectado",
+                            description:
+                              "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
+                          });
+                          return;
+                        }
+                        handleSelectObjectiveWithAi(campaignObjective);
                         return;
                       }
                       if (currentStep === 2) {
                         if (!adName.trim()) {
-                          toast({
-                            variant: "destructive",
-                            title: "Nome da campanha obrigatório",
-                            description:
-                              "Por favor, informe o nome da campanha antes de avançar.",
-                          });
-                          return;
+                          const snippet = selectedPost?.text
+                            ? selectedPost.text.length > 25
+                              ? `${selectedPost.text.slice(0, 25)}...`
+                              : selectedPost.text
+                            : "Impulsionamento";
+                          setAdName(`[NUMVAPT] ${snippet}`);
                         }
                         if (!bodyText.trim()) {
-                          toast({
-                            variant: "destructive",
-                            title: "Legenda obrigatória",
-                            description:
-                              "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
-                          });
-                          return;
+                          if (selectedPost?.text) {
+                            setBodyText(selectedPost.text);
+                          } else {
+                            toast({
+                              variant: "destructive",
+                              title: "Legenda obrigatória",
+                              description:
+                                "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
+                            });
+                            return;
+                          }
                         }
                         if (
                           (campaignObjective === "TRAFFIC" || hasDestination) &&
