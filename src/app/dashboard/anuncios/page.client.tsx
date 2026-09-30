@@ -1756,12 +1756,35 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setIsBoostPostModalOpen(false);
     setCurrentStep(1);
     setIsCreating(true);
+    const snippet = post?.text
+      ? post.text.length > 25
+        ? `${post.text.slice(0, 25)}...`
+        : post.text
+      : "Impulsionamento";
+    setAdName(`[NUMVAPT] ${snippet}`);
   };
 
   // Seleção de Objetivo com chamada da IA nativa Gemini
   const handleSelectObjectiveWithAi = async (selectedObj: "WHATSAPP" | "TRAFFIC" | "REACH") => {
     setCampaignObjective(selectedObj);
     setIsSuggestingAi(true);
+
+    if (!adName || !adName.trim()) {
+      const snippet = selectedPost?.text
+        ? selectedPost.text.length > 25
+          ? `${selectedPost.text.slice(0, 25)}...`
+          : selectedPost.text
+        : "Impulsionamento";
+      setAdName(`[NUMVAPT] ${snippet}`);
+    }
+
+    let currentExp = aiExplanation || "Campanha configurada pelo Agente de IA para alta conversão e visibilidade local.";
+    let currentRad = radius || 10;
+    let currentAgeMin = ageRange[0] || 18;
+    let currentAgeMax = ageRange[1] || 65;
+    let currentBudget = dailyBudget || 15;
+    let currentDuration = duration || 7;
+    let currentInterests = selectedInterests;
 
     try {
       const response = await fetch("/api/ai/suggest-audience", {
@@ -1779,30 +1802,37 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       const data = await response.json();
       if (data.success && data.audience) {
         const aud = data.audience;
-        setAgeRange([aud.ageMin || 20, aud.ageMax || 55]);
-        setRadius(aud.radiusKm || 10);
-        setDailyBudget(aud.suggestedBudgetDaily || 15);
-        setDuration(aud.suggestedDurationDays || 3);
-        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
-        setAiExplanation(aud.explanation || "Campanha configurada pelo Agente de IA para alta conversão.");
+        currentAgeMin = aud.ageMin || 20;
+        currentAgeMax = aud.ageMax || 55;
+        currentRad = aud.radiusKm || 10;
+        currentBudget = aud.suggestedBudgetDaily || 15;
+        currentDuration = aud.suggestedDurationDays || 3;
+        currentExp = aud.explanation || currentExp;
         if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
+          currentInterests = aud.metaInterests;
           setSelectedInterests(aud.metaInterests);
         }
 
-        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        const namesList = (aud.metaInterests || []).map((i: any) => i.name).join(", ");
-        setAiMessages([
-          {
-            id: "msg-init",
-            sender: "ai",
-            text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${aud.explanation}\n\n📍 **Raio de Alcance:** ${aud.radiusKm}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${aud.ageMin || 18} a ${aud.ageMax || 65} anos\n💰 **Orçamento Sugerido:** R$ ${aud.suggestedBudgetDaily}/dia (${aud.suggestedDurationDays} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
-            timestamp: timeStr,
-          },
-        ]);
+        setAgeRange([currentAgeMin, currentAgeMax]);
+        setRadius(currentRad);
+        setDailyBudget(currentBudget);
+        setDuration(currentDuration);
+        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
+        setAiExplanation(currentExp);
       }
     } catch (err) {
       console.warn("[ANUNCIOS_PAGE] Erro ao carregar sugestão da IA:", err);
     } finally {
+      const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const namesList = (currentInterests || []).map((i: any) => i.name).join(", ") || "Público Local Relevante";
+      setAiMessages([
+        {
+          id: "msg-init",
+          sender: "ai",
+          text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${currentExp}\n\n📍 **Raio de Alcance:** ${currentRad}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${currentAgeMin} a ${currentAgeMax} anos\n💰 **Orçamento Sugerido:** R$ ${currentBudget}/dia (${currentDuration} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
+          timestamp: timeStr,
+        },
+      ]);
       setIsSuggestingAi(false);
       setCurrentStep(2);
     }
@@ -4717,28 +4747,30 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <Button
                     type="button"
                     onClick={() => {
-                      if (
-                        currentStep === 1 &&
-                        campaignObjective === "WHATSAPP" &&
-                        !hasWhatsAppConnected
-                      ) {
-                        toast({
-                          variant: "destructive",
-                          title: "WhatsApp não conectado",
-                          description:
-                            "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
-                        });
+                      if (currentStep === 1) {
+                        if (
+                          campaignObjective === "WHATSAPP" &&
+                          !hasWhatsAppConnected
+                        ) {
+                          toast({
+                            variant: "destructive",
+                            title: "WhatsApp não conectado",
+                            description:
+                              "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
+                          });
+                          return;
+                        }
+                        handleSelectObjectiveWithAi(campaignObjective);
                         return;
                       }
                       if (currentStep === 2) {
                         if (!adName.trim()) {
-                          toast({
-                            variant: "destructive",
-                            title: "Nome da campanha obrigatório",
-                            description:
-                              "Por favor, informe o nome da campanha antes de avançar.",
-                          });
-                          return;
+                          const snippet = selectedPost?.text
+                            ? selectedPost.text.length > 25
+                              ? `${selectedPost.text.slice(0, 25)}...`
+                              : selectedPost.text
+                            : "Impulsionamento";
+                          setAdName(`[NUMVAPT] ${snippet}`);
                         }
                         if (!bodyText.trim()) {
                           toast({
