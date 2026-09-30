@@ -3943,46 +3943,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     )}
                   </div>
 
-                  {/* Botões de Ação Direta em Destaque */}
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
-                    <Button
-                      type="button"
-                      onClick={
-                        billingStatus && !billingStatus.hasPaymentMethod
-                          ? () => {
-                              setIsBillingModalOpen(true);
-                              setBillingGuideActive(false);
-                              toast({
-                                variant: "destructive",
-                                title: "Faturamento necessário",
-                                description: "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
-                              });
-                            }
-                          : handleActivateCampaign
-                      }
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-98"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Ativando Anúncio na Meta...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Confirmar e Publicar Anúncio na Meta Ads
-                        </>
-                      )}
-                    </Button>
-
+                  {/* Opção para alternar para a Configuração Manual Avançada */}
+                  <div className="flex justify-end pt-1">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setShowManualWizardForms(true)}
-                      className="w-full sm:w-auto h-11 rounded-xl border-2 border-slate-200 bg-white font-bold text-xs text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors"
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
                     >
-                      <Sliders className="mr-1.5 h-4 w-4 text-[#0083C7]" />
+                      <Sliders className="mr-1.5 h-3.5 w-3.5 text-[#0083C7]" />
                       Configuração Manual Avançada
                     </Button>
                   </div>
