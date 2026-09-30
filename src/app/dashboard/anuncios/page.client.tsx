@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { parseMetaError, getAccountStatusInfo, type AccountStatusInfo } from "@/lib/utils/meta-error-mapper";
 import { MetaConnectionGuideModal } from "@/components/modals/MetaConnectionGuideModal";
+import { BoostPostModal } from "@/components/dashboard/boost-post-modal";
 import {
   Dialog,
   DialogContent,
@@ -269,6 +270,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [instagramFeedPosts, setInstagramFeedPosts] = useState<any[]>([]);
   const [loadingInstagramPosts, setLoadingInstagramPosts] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState<"numvapt" | "instagram">("numvapt");
+  const [isBoostPostModalOpen, setIsBoostPostModalOpen] = useState(false);
+  const [boostPostData, setBoostPostData] = useState<any>(null);
   const [campaigns, setCampaigns] = useState<AdCampaignData[]>([]);
   const [activeDashboardTab, setActiveDashboardTab] = useState<"active" | "history">("active");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1734,15 +1737,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   // Preenche dados ao selecionar um post para impulsionar
   const handleSelectPostToBoost = (post: any) => {
-    setSelectedPost(post);
-    setHeadline("Aproveite nossa oferta especial!");
-    setBodyText(post.text);
-    const cleanText = post.text.replace(/[\n\r]+/g, " ");
-    const startDesc = cleanText.length > 25 ? `${cleanText.substring(0, 25)}...` : cleanText;
-    setAdName(`[NUMVAPT] ${startDesc}`);
-    setAiSuggestions([]);
-    setCurrentStep(1);
-    setIsCreating(true);
+    setBoostPostData(post);
+    setIsBoostPostModalOpen(true);
     setIsChoosePostModalOpen(false);
   };
 
@@ -5332,6 +5328,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL DE IMPULSIONAMENTO DE POST COM COPILOTO IA */}
+      <BoostPostModal
+        isOpen={isBoostPostModalOpen}
+        onClose={() => setIsBoostPostModalOpen(false)}
+        post={boostPostData}
+        businessProfile={businessProfile}
+        onBoostSuccess={fetchData}
+      />
 
       {/* MODAL DE SELEÇÃO DE CONTA DO GOOGLE ADS */}
       <Dialog
