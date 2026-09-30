@@ -1788,9 +1788,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
 
     let activeLocations = selectedLocations;
-    if (activeLocations.length === 0 && businessProfile?.address) {
+    if (activeLocations.length === 0) {
+      const targetQuery =
+        businessProfile?.address ||
+        (businessProfile?.city ? `${businessProfile.city}, Brasil` : "") ||
+        (initialProfile?.city ? `${initialProfile.city}, Brasil` : "") ||
+        "São Paulo, Brasil";
       try {
-        const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`);
+        const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(targetQuery)}`);
         if (res.ok) {
           const locData = await res.json();
           if (locData.locations && locData.locations.length > 0) {
@@ -2085,6 +2090,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             ageMin: ageRange[0],
             ageMax: ageRange[1],
             gender,
+            latitude: selectedLocations[0]?.latitude ?? null,
+            longitude: selectedLocations[0]?.longitude ?? null,
             interests: selectedInterests.map((i) => ({
               id: i.id,
               name: i.name,

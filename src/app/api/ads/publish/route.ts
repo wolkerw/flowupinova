@@ -226,12 +226,28 @@ export async function POST(request: NextRequest) {
       return null;
     }
 
+    const hasLocationsArray = locations && Array.isArray(locations) && locations.length > 0;
+
+    // Se latitude e longitude não foram informados na raiz, tenta resgatar do array de localizações
+    if ((latitude === null || longitude === null) && hasLocationsArray) {
+      const locWithCoords = locations.find(
+        (l: any) => typeof l.latitude === "number" && typeof l.longitude === "number"
+      );
+      if (locWithCoords) {
+        latitude = locWithCoords.latitude;
+        longitude = locWithCoords.longitude;
+        console.log(
+          `[ORQUESTRADOR] Coordenadas recuperadas do array de localizações: Lat: ${latitude}, Lng: ${longitude}`
+        );
+      }
+    }
+
     if (latitude !== null && longitude !== null) {
       console.log(
-        `[ORQUESTRADOR] Utilizando coordenadas pré-selecionadas pelo autocomplete: Lat: ${latitude}, Lng: ${longitude}`
+        `[ORQUESTRADOR] Utilizando coordenadas pré-selecionadas: Lat: ${latitude}, Lng: ${longitude}`
       );
     } else {
-      // 1. Tenta geocodificar o endereço customizado enviado
+      // 1. Tenta geocodificar o endereço enviado
       let coords = await geocodeAddress(address);
       if (coords) {
         latitude = coords.lat;
@@ -240,7 +256,7 @@ export async function POST(request: NextRequest) {
           `[ORQUESTRADOR] Geocodificação customizada com sucesso: ${address} -> Lat: ${latitude}, Lng: ${longitude}`
         );
       } else {
-        // 2. Se falhar e o endereço oficial do perfil for diferente, tenta o endereço oficial
+        // 2. Se falhar, tenta o endereço oficial do perfil
         if (profileAddress && profileAddress !== address) {
           console.log(
             `[ORQUESTRADOR] Falha no endereço customizado. Tentando endereço oficial do perfil: ${profileAddress}`
@@ -254,31 +270,50 @@ export async function POST(request: NextRequest) {
             );
           }
         }
+        // 3. Se falhar, tenta a cidade ou estado do perfil
+        if (!coords && profileData?.city) {
+          coords = await geocodeAddress(`${profileData.city}, Brasil`);
+          if (coords) {
+            latitude = coords.lat;
+            longitude = coords.lon;
+            console.log(
+              `[ORQUESTRADOR] Geocodificação da cidade do perfil com sucesso (${profileData.city}) -> Lat: ${latitude}, Lng: ${longitude}`
+            );
+          }
+        }
+        if (!coords && profileData?.state) {
+          coords = await geocodeAddress(`${profileData.state}, Brasil`);
+          if (coords) {
+            latitude = coords.lat;
+            longitude = coords.lon;
+            console.log(
+              `[ORQUESTRADOR] Geocodificação do estado do perfil com sucesso (${profileData.state}) -> Lat: ${latitude}, Lng: ${longitude}`
+            );
+          }
+        }
+        // 4. Fallback padrão seguro (São Paulo/BR) se todos os provedores falharem
+        if (!coords) {
+          latitude = -23.5505;
+          longitude = -46.6333;
+          console.log(
+            `[ORQUESTRADOR] Utilizando coordenadas padrão de fallback (São Paulo/BR) -> Lat: ${latitude}, Lng: ${longitude}`
+          );
+        }
       }
     }
 
-    const hasLocationsArray = locations && Array.isArray(locations) && locations.length > 0;
-    const isAreaTarget =
-      locType === "País" ||
-      locType === "Estado" ||
-      (hasLocationsArray && locations.some((l: any) => l.type === "País" || l.type === "Estado"));
-
+    // Garante que todas as localizações locais recebam coordenadas válidas para aprovação da Meta
     if (hasLocationsArray) {
-      const hasValidTarget = locations.some(
-        (l: any) =>
-          l.type === "País" ||
-          l.type === "Estado" ||
-          (typeof l.latitude === "number" && typeof l.longitude === "number")
-      );
-      if (!hasValidTarget) {
-        throw new Error(
-          "Nenhuma das localizações selecionadas possui coordenadas ou região válida."
-        );
+      for (const loc of locations) {
+        if (
+          loc.type !== "País" &&
+          loc.type !== "Estado" &&
+          (typeof loc.latitude !== "number" || typeof loc.longitude !== "number")
+        ) {
+          loc.latitude = latitude;
+          loc.longitude = longitude;
+        }
       }
-    } else if (!isAreaTarget && (latitude === null || longitude === null)) {
-      throw new Error(
-        "Não conseguimos localizar o endereço de referência no mapa. Por favor, forneça um endereço mais detalhado contendo cidade e estado (Ex: Av. Paulista, 1000, São Paulo - SP)."
-      );
     }
 
     // Configura a segmentação de geo-locations da Meta dinamicamente
