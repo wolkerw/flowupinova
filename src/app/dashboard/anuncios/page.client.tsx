@@ -3759,133 +3759,35 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               )}
               {/* PASSO 2: PAINEL DO AGENTE DE IA OU CONFIGURAÇÃO MANUAL */}
               {currentStep === 2 && !showManualWizardForms && (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   <div className="flex items-center justify-between border-b pb-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1.5 rounded-full bg-[#0083C7]/10 px-3 py-1 text-xs font-bold text-[#0083C7] border border-[#0083C7]/20">
-                          <Sparkles className="h-3.5 w-3.5" /> Recomendação do Copiloto IA Meta Ads
+                          <Sparkles className="h-3.5 w-3.5" /> Copiloto IA Meta Ads
                         </span>
                       </div>
-                      <h4 className="font-poppins text-lg font-bold text-slate-900 mt-2">
+                      <h4 className="font-poppins text-lg font-bold text-slate-900 mt-1.5">
                         Campanha Configurada Pelo Agente de IA
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Analisamos seu negócio, a publicação e o objetivo selecionado para gerar a audiência de maior engajamento.
+                        Converse com a IA para ajustar público, raio, orçamento ou tire dúvidas em tempo real.
                       </p>
                     </div>
                   </div>
 
-                  {/* Card de Resumo da Sugestão da IA */}
-                  <div className="space-y-4 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/80 to-blue-50/20 p-5 shadow-xs">
-                    {/* Título & Legenda */}
-                    <div className="space-y-1 rounded-lg border bg-white p-3.5 shadow-2xs">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">📝 Criativo e Título Magnético</span>
-                      <p className="text-sm font-bold text-slate-800">{headline || "Aproveite nossa oferta especial!"}</p>
-                      <p className="text-xs text-slate-600 line-clamp-2">{bodyText || selectedPost?.text || "Publicação promocional do negócio"}</p>
-                    </div>
-
-                    {/* Público & Localização */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Alcance
-                        </span>
-                        <p className="text-xs font-bold text-slate-800">
-                          {(selectedLocations[0]?.name) || addressInput || businessProfile?.address || "Sua Região Local"} (+{radius}km)
-                        </p>
-                        <p className="text-[11px] text-slate-500">Idade: {ageRange[0]} a {ageRange[1]} anos</p>
-                      </div>
-
-                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-green-600" /> Orçamento & Duração
-                        </span>
-                        <p className="text-xs font-bold text-slate-800">R$ {dailyBudget}/dia ({duration} dias)</p>
-                        <p className="text-[11px] text-slate-500">Total: R$ {dailyBudget * duration}</p>
-                      </div>
-                    </div>
-
-                    {/* Interesses Meta */}
-                    <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                        <Target className="h-3 w-3 text-[#FA6305]" /> Interesses Meta Oficiais
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
-                        {selectedInterests.length > 0 ? (
-                          selectedInterests.map((interest) => (
-                            <Badge key={interest.id} variant="secondary" className="text-[11px] font-semibold bg-slate-100 text-slate-800 border">
-                              {interest.name}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-500">Interesses locais recomendados</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Racional da IA */}
-                    {aiExplanation && (
-                      <div className="rounded-lg bg-amber-50/80 border border-amber-200/60 p-3.5 text-xs text-amber-900 leading-relaxed font-medium">
-                        💡 <strong>Racional do Copiloto:</strong> {aiExplanation}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Botões de Ação Direta em Destaque */}
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                    <Button
-                      type="button"
-                      onClick={
-                        billingStatus && !billingStatus.hasPaymentMethod
-                          ? () => {
-                              setIsBillingModalOpen(true);
-                              setBillingGuideActive(false);
-                              toast({
-                                variant: "destructive",
-                                title: "Faturamento necessário",
-                                description: "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
-                              });
-                            }
-                          : handleActivateCampaign
-                      }
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-98"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Ativando Anúncio na Meta...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Confirmar e Publicar Anúncio na Meta Ads
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowManualWizardForms(true)}
-                      className="w-full sm:w-auto h-11 rounded-xl border-2 border-slate-200 bg-white font-bold text-xs text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors"
-                    >
-                      <Sliders className="mr-1.5 h-4 w-4 text-[#0083C7]" />
-                      Configuração Manual Avançada
-                    </Button>
-                  </div>
-
-                  {/* Chat do Agente de IA Integrado na Coluna Esquerda */}
-                  <div className="mt-6 flex h-[380px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-md">
+                  {/* CHAT DO AGENTE DE IA EM DESTAQUE NO TOPO DA TELA */}
+                  <div className="flex h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-md">
                     {/* Header do Chat */}
-                    <div className="flex items-center gap-2 bg-[#0083C7] p-3 text-white">
-                      <div className="rounded-lg bg-white/20 p-1.5">
-                        <Bot className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h5 className="font-poppins text-xs font-bold leading-tight">Agente IA Meta Ads</h5>
-                        <span className="text-[10px] text-white/80">Conectado • Peça alterações ou tire dúvidas</span>
+                    <div className="flex items-center justify-between bg-[#0083C7] px-3.5 py-2.5 text-white">
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-lg bg-white/20 p-1.5">
+                          <Bot className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-poppins text-xs font-bold leading-tight">Agente IA Meta Ads</h5>
+                          <span className="text-[10px] text-white/80">Online • Peça alterações por texto aqui</span>
+                        </div>
                       </div>
                     </div>
 
@@ -3928,19 +3830,112 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       <Input
                         value={aiChatInput}
                         onChange={(e) => setAiChatInput(e.target.value)}
-                        placeholder="Ex: 'Aumente o raio para 20km' ou 'Mude a idade'..."
+                        placeholder="Ex: 'Aumente o raio para 20km' ou 'Mude o site para www.loja.com'..."
                         disabled={isAiChatReplying}
-                        className="h-8 rounded-lg font-sans text-xs"
+                        className="h-8.5 rounded-lg font-sans text-xs"
                       />
                       <Button
                         type="submit"
                         disabled={!aiChatInput.trim() || isAiChatReplying}
                         size="sm"
-                        className="h-8 w-8 shrink-0 rounded-lg bg-[#0083C7] p-0 text-white hover:bg-[#0083C7]/90"
+                        className="h-8.5 w-8.5 shrink-0 rounded-lg bg-[#0083C7] p-0 text-white hover:bg-[#0083C7]/90"
                       >
                         <Send className="h-3.5 w-3.5" />
                       </Button>
                     </form>
+                  </div>
+
+                  {/* Card de Resumo das Configurações Ativas (Sem duplicar a prévia do criativo) */}
+                  <div className="space-y-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/80 to-blue-50/20 p-4 shadow-xs">
+                    {/* Público & Localização */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Alcance
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">
+                          {(selectedLocations[0]?.name) || addressInput || businessProfile?.address || "Sua Região Local"} (+{radius}km)
+                        </p>
+                        <p className="text-[11px] text-slate-500">Idade: {ageRange[0]} a {ageRange[1]} anos</p>
+                      </div>
+
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-green-600" /> Orçamento & Duração
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">R$ {dailyBudget}/dia ({duration} dias)</p>
+                        <p className="text-[11px] text-slate-500">Total: R$ {dailyBudget * duration}</p>
+                      </div>
+                    </div>
+
+                    {/* Interesses do público */}
+                    <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                        <Target className="h-3 w-3 text-[#FA6305]" /> Interesses do público
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {selectedInterests.length > 0 ? (
+                          selectedInterests.map((interest) => (
+                            <Badge key={interest.id} variant="secondary" className="text-[11px] font-semibold bg-slate-100 text-slate-800 border">
+                              {interest.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-500">Interesses locais recomendados</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Racional da IA */}
+                    {aiExplanation && (
+                      <div className="rounded-lg bg-amber-50/80 border border-amber-200/60 p-3 text-xs text-amber-900 leading-relaxed font-medium">
+                        💡 <strong>Racional do Copiloto:</strong> {aiExplanation}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botões de Ação Direta em Destaque */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+                    <Button
+                      type="button"
+                      onClick={
+                        billingStatus && !billingStatus.hasPaymentMethod
+                          ? () => {
+                              setIsBillingModalOpen(true);
+                              setBillingGuideActive(false);
+                              toast({
+                                variant: "destructive",
+                                title: "Faturamento necessário",
+                                description: "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                              });
+                            }
+                          : handleActivateCampaign
+                      }
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-98"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Ativando Anúncio na Meta...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Confirmar e Publicar Anúncio na Meta Ads
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowManualWizardForms(true)}
+                      className="w-full sm:w-auto h-11 rounded-xl border-2 border-slate-200 bg-white font-bold text-xs text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors"
+                    >
+                      <Sliders className="mr-1.5 h-4 w-4 text-[#0083C7]" />
+                      Configuração Manual Avançada
+                    </Button>
                   </div>
                 </div>
               )}
