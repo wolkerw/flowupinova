@@ -372,9 +372,13 @@ describe("API /api/imagens/gerar", () => {
       }
       if (options && options.body) {
         try {
-          const parsed = JSON.parse(options.body as string);
-          if (parsed.prompt) {
-            capturedPrompt = parsed.prompt;
+          if (typeof options.body === "string") {
+            const parsed = JSON.parse(options.body as string);
+            if (parsed.prompt) {
+              capturedPrompt = parsed.prompt;
+            }
+          } else if (typeof (options.body as any).get === "function") {
+            capturedPrompt = (options.body as any).get("prompt") || "";
           }
         } catch {}
       }
