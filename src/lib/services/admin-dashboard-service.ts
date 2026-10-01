@@ -28,6 +28,7 @@ export interface UserSummary {
   subscriptionPlan?: "mensal" | "anual" | null;
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
+  canEditImages?: boolean;
   activeContract?: {
     id: string;
     modalidade: string;
@@ -321,6 +322,7 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         subscriptionPlan: subscriptionPlan ?? null,
         subscriptionExpiresAt,
         hasSignedContract: !!data.hasSignedContract || !!data.activeContract,
+        canEditImages: !!data.canEditImages,
         activeContract: data.activeContract ?? null,
       });
     })

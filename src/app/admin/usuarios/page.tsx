@@ -23,6 +23,7 @@ import {
   Phone,
   Tag,
   Crown,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -46,6 +47,7 @@ interface UserSummary {
   subscriptionPlan?: "mensal" | "anual" | null;
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
+  canEditImages?: boolean;
   activeContract?: {
     id: string;
     modalidade: string;
@@ -300,6 +302,56 @@ function UserSheet({
               <Eye className="h-3.5 w-3.5" />
               {user.hasSignedContract ? "Visualizar Contrato Assinado" : "Consultar Minuta Padrão"}
             </button>
+          </div>
+
+          {/* Recursos Especiais de IA */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Recursos Especiais de IA
+            </p>
+            <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold text-white">Editor GPT-image-2.5</h3>
+                    <p className="text-[10px] text-slate-400">Edição e ajuste de títulos/infográficos</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    doAction({ canEditImages: !user.canEditImages }, "toggle-ai-editor")
+                  }
+                  disabled={loading}
+                  aria-label="Alternar permissão do editor de imagens"
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                    user.canEditImages ? "bg-amber-500" : "bg-slate-700"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      user.canEditImages ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
+                {user.canEditImages ? (
+                  <span className="text-amber-400 font-medium">
+                    ✓ Liberado: Este usuário pode editar textos e refinar imagens com IA.
+                  </span>
+                ) : (
+                  <span>
+                    Bloqueado: Apenas administradores e usuários autorizados visualizam o editor.
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
 
           {/* Ações */}
@@ -637,7 +689,18 @@ export default function AdminUsuariosPage() {
                         <div className="flex items-center gap-3">
                           <Avatar name={user.displayName} email={user.email} />
                           <div className="min-w-0">
-                            <p className="truncate font-medium text-white">{user.displayName}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="truncate font-medium text-white">{user.displayName}</p>
+                              {user.canEditImages && (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-400"
+                                  title="Editor GPT-image-2.5 Habilitado"
+                                >
+                                  <Sparkles className="h-2.5 w-2.5" />
+                                  Editor GPT
+                                </span>
+                              )}
+                            </div>
                             <p className="truncate text-xs text-slate-500">{user.email}</p>
                           </div>
                         </div>

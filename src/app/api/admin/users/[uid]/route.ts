@@ -15,7 +15,7 @@ export async function PATCH(
 
   const { uid } = await params;
   const body = await request.json();
-  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan } = body;
+  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan, canEditImages } = body;
 
   if (!uid) {
     return NextResponse.json({ error: "UID do usuário é obrigatório." }, { status: 400 });
@@ -24,6 +24,10 @@ export async function PATCH(
   try {
     const userRef = adminDb.collection("users").doc(uid);
     const updates: Record<string, unknown> = {};
+
+    if (typeof canEditImages === "boolean") {
+      updates.canEditImages = canEditImages;
+    }
 
     if (paymentStatus) updates.paymentStatus = paymentStatus;
 

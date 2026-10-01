@@ -10,6 +10,7 @@ export interface SubscriptionGateStatus {
   isSubscribed: boolean;
   userPlan: string;
   paymentStatus: string;
+  canEditImages: boolean;
   loading: boolean;
   checkSubscriptionOrPrompt: (actionDescription?: string) => boolean;
   openSubscriptionModal: () => void;
@@ -26,6 +27,7 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
 
   const [userPlan, setUserPlan] = useState<string>("free");
   const [paymentStatus, setPaymentStatus] = useState<string>("inactive");
+  const [canEditImages, setCanEditImages] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -52,9 +54,11 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
             const data = docSnap.data();
             setUserPlan(data?.plan || "free");
             setPaymentStatus(data?.paymentStatus || "inactive");
+            setCanEditImages(Boolean(data?.canEditImages) || data?.role === "admin" || data?.plan === "admin");
           } else {
             setUserPlan("free");
             setPaymentStatus("inactive");
+            setCanEditImages(false);
           }
           setLoading(false);
         },
@@ -115,6 +119,7 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
     isSubscribed,
     userPlan,
     paymentStatus,
+    canEditImages,
     loading: authLoading || loading,
     checkSubscriptionOrPrompt,
     openSubscriptionModal,
