@@ -327,10 +327,14 @@ export async function GET(request: NextRequest) {
 
       // Orçamento real configurado (conversão de centavos)
       let budgetAmount = 0;
+      let budgetType: "daily" | "lifetime" = (firestoreData?.budget?.type as any) || "daily";
+
       if (metaCamp.daily_budget) {
         budgetAmount = Number(metaCamp.daily_budget) / 100;
+        budgetType = "daily";
       } else if (metaCamp.lifetime_budget) {
         budgetAmount = Number(metaCamp.lifetime_budget) / 100;
+        budgetType = "lifetime";
       } else if (firestoreData?.budget?.amount) {
         budgetAmount = firestoreData.budget.amount;
       }
@@ -392,6 +396,8 @@ export async function GET(request: NextRequest) {
         optimizationGoal,
         budget: {
           amount: budgetAmount,
+          type: budgetType,
+          currency: "BRL",
         },
         durationDays: totalDays,
         creative: {

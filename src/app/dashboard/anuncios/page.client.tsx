@@ -570,9 +570,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [campaignObjective, hasWhatsAppConnected]);
 
-  // 1. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
+  // 1. Tenta geocodificar o endereço do perfil de negócios assim que a criação inicia sem coordenadas selecionadas
   useEffect(() => {
-    if (currentStep === 3 && selectedLocations.length === 0 && businessProfile?.address) {
+    if ((isCreating || currentStep >= 1) && selectedLocations.length === 0 && businessProfile?.address) {
       const geocodeProfileAddress = async () => {
         try {
           const res = await fetch(
@@ -602,7 +602,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       };
       geocodeProfileAddress();
     }
-  }, [currentStep, businessProfile, selectedLocations]);
+  }, [isCreating, currentStep, businessProfile, selectedLocations]);
 
   // 2. Inicializa e sincroniza o mapa Leaflet de forma autônoma e local
   useEffect(() => {
@@ -1756,6 +1756,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setIsBoostPostModalOpen(false);
     setCurrentStep(1);
     setIsCreating(true);
+
+    if (post?.text) {
+      setBodyText(post.text);
+    }
+
+    const snippet = post?.text
+      ? post.text.length > 25
+        ? `${post.text.slice(0, 25)}...`
+        : post.text
+      : "Impulsionamento";
+    setAdName(`[NUMVAPT] ${snippet}`);
   };
 
   // Seleção de Objetivo com chamada da IA nativa Gemini
@@ -1763,14 +1774,72 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setCampaignObjective(selectedObj);
     setIsSuggestingAi(true);
 
+    if ((!bodyText || !bodyText.trim()) && selectedPost?.text) {
+      setBodyText(selectedPost.text);
+    }
+
+    if (!adName || !adName.trim()) {
+      const snippet = selectedPost?.text
+        ? selectedPost.text.length > 25
+          ? `${selectedPost.text.slice(0, 25)}...`
+          : selectedPost.text
+        : "Impulsionamento";
+      setAdName(`[NUMVAPT] ${snippet}`);
+    }
+
+    let activeLocations = selectedLocations;
+    if (activeLocations.length === 0) {
+      const targetQuery =
+        businessProfile?.address ||
+        (businessProfile?.city ? `${businessProfile.city}, Brasil` : "") ||
+        (initialProfile?.city ? `${initialProfile.city}, Brasil` : "") ||
+        "São Paulo, Brasil";
+      try {
+        const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(targetQuery)}`);
+        if (res.ok) {
+          const locData = await res.json();
+          if (locData.locations && locData.locations.length > 0) {
+            const firstLoc = locData.locations[0];
+            const newLoc = {
+              name: firstLoc.name,
+              type: firstLoc.type,
+              key: firstLoc.key || "",
+              latitude: firstLoc.latitude,
+              longitude: firstLoc.longitude,
+              boundingBox: firstLoc.boundingBox || null,
+              geoJson: null,
+            };
+            activeLocations = [newLoc];
+            setSelectedLocations([newLoc]);
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao geocodificar localização para IA:", e);
+      }
+    }
+
+    let activeInterests = selectedInterests;
+    if (activeInterests.length === 0) {
+      const presets = getCategoryPresets(businessProfile?.category || initialProfile?.category);
+      activeInterests = presets;
+      setSelectedInterests(presets);
+    }
+
+    let currentExp = aiExplanation || "Campanha configurada pelo Agente de IA para alta conversão e visibilidade local.";
+    let currentRad = radius || 10;
+    let currentAgeMin = ageRange[0] || 18;
+    let currentAgeMax = ageRange[1] || 65;
+    let currentBudget = dailyBudget || 15;
+    let currentDuration = duration || 7;
+
     try {
       const response = await fetch("/api/ai/suggest-audience", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          postText: selectedPost?.text || "",
+          postText: bodyText || selectedPost?.text || "",
           postImageUrl: selectedPost?.imageUrl || selectedPost?.imageUrls?.[0] || "",
-          businessAddress: (selectedLocations[0]?.name) || businessProfile?.address || "Sua região local",
+          businessAddress: (activeLocations[0]?.name) || businessProfile?.address || "Sua região local",
           businessCategory: businessProfile?.category || "",
           objective: selectedObj,
         }),
@@ -1779,30 +1848,75 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       const data = await response.json();
       if (data.success && data.audience) {
         const aud = data.audience;
-        setAgeRange([aud.ageMin || 20, aud.ageMax || 55]);
-        setRadius(aud.radiusKm || 10);
-        setDailyBudget(aud.suggestedBudgetDaily || 15);
-        setDuration(aud.suggestedDurationDays || 3);
-        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
-        setAiExplanation(aud.explanation || "Campanha configurada pelo Agente de IA para alta conversão.");
+        currentAgeMin = aud.ageMin || 20;
+        currentAgeMax = aud.ageMax || 55;
+        currentRad = aud.radiusKm || 10;
+        currentBudget = aud.suggestedBudgetDaily || 15;
+        currentDuration = aud.suggestedDurationDays || 3;
+        currentExp = aud.explanation || currentExp;
+
         if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
+          activeInterests = aud.metaInterests;
           setSelectedInterests(aud.metaInterests);
+        } else if (typeof aud.interests === "string" && aud.interests.trim().length > 0) {
+          const parsed = aud.interests
+            .split(",")
+            .map((name: string, index: number) => ({
+              id: `ai-interest-${index}-${Date.now()}`,
+              name: name.trim(),
+              type: "interests",
+            }))
+            .filter((i: any) => i.name.length > 0);
+          if (parsed.length > 0) {
+            activeInterests = parsed;
+            setSelectedInterests(parsed);
+          }
         }
 
-        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        const namesList = (aud.metaInterests || []).map((i: any) => i.name).join(", ");
-        setAiMessages([
-          {
-            id: "msg-init",
-            sender: "ai",
-            text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${aud.explanation}\n\n📍 **Raio de Alcance:** ${aud.radiusKm}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${aud.ageMin || 18} a ${aud.ageMax || 65} anos\n💰 **Orçamento Sugerido:** R$ ${aud.suggestedBudgetDaily}/dia (${aud.suggestedDurationDays} dias)\n\nSe você quiser fazer qualquer alteração (ex: "Aumente o raio para 20km", "Mude a idade para 25 a 45 anos" ou "Aumente o orçamento para R$ 25"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
-            timestamp: timeStr,
-          },
-        ]);
+        setAgeRange([currentAgeMin, currentAgeMax]);
+        setRadius(currentRad);
+        setDailyBudget(currentBudget);
+        setDuration(currentDuration);
+        setHeadline(aud.headline || "Aproveite nossa oferta especial!");
+        setAiExplanation(currentExp);
       }
     } catch (err) {
       console.warn("[ANUNCIOS_PAGE] Erro ao carregar sugestão da IA:", err);
     } finally {
+      // Se for Tráfego, auto-preenche a URL de destino com o site do negócio
+      let targetDestination = customDestination.trim();
+      if (selectedObj === "TRAFFIC" || campaignObjective === "TRAFFIC") {
+        if (!targetDestination) {
+          targetDestination =
+            businessProfile?.website ||
+            businessProfile?.instagram ||
+            initialProfile?.website ||
+            "";
+          if (targetDestination) {
+            if (!/^https?:\/\//i.test(targetDestination)) {
+              targetDestination = `https://${targetDestination}`;
+            }
+            setCustomDestination(targetDestination);
+          }
+        }
+      }
+
+      const destText = (selectedObj === "TRAFFIC" || campaignObjective === "TRAFFIC")
+        ? targetDestination
+          ? `\n🌐 **Link de Destino:** ${targetDestination}`
+          : `\n🌐 **Link de Destino:** *Pendente* (Se desejar um link específico, basta digitá-lo aqui no chat!)`
+        : "";
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const namesList = (activeInterests || []).map((i: any) => i.name).join(", ") || "Público Local Relevante";
+      setAiMessages([
+        {
+          id: "msg-init",
+          sender: "ai",
+          text: `👋 Olá! Sou o seu Agente de IA especialista em Meta Ads.\n\n💡 **Racional da Campanha:** ${currentExp}\n\n📍 **Raio de Alcance:** ${currentRad}km no seu endereço\n🎯 **Interesses Oficiais Meta:** ${namesList}\n👤 **Faixa Etária:** ${currentAgeMin} a ${currentAgeMax} anos\n💰 **Orçamento Sugerido:** R$ ${currentBudget}/dia (${currentDuration} dias)${destText}\n\nSe você quiser fazer qualquer alteração (ex: "Mude o site para www.loja.com", "Aumente o raio para 20km" ou "Mude a idade para 25 a 45 anos"), é só pedir aqui por mensagem! Ou se preferir, clique em "Configuração Manual Avançada".`,
+          timestamp: timeStr,
+        },
+      ]);
       setIsSuggestingAi(false);
       setCurrentStep(2);
     }
@@ -1825,6 +1939,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setAiMessages((prev) => [...prev, userMsg]);
     setAiChatInput("");
     setIsAiChatReplying(true);
+
+    const urlMatch = query.match(/(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(?:com|br|net|org|site|store|app|io)[^\s]*)/i);
+    let extractedUrl: string | null = null;
+    if (urlMatch) {
+      extractedUrl = urlMatch[0];
+      if (!/^https?:\/\//i.test(extractedUrl)) {
+        extractedUrl = `https://${extractedUrl}`;
+      }
+      setCustomDestination(extractedUrl);
+    }
 
     try {
       const response = await fetch("/api/ai/suggest-audience", {
@@ -1860,15 +1984,29 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         if (aud.headline) setHeadline(aud.headline);
         if (Array.isArray(aud.metaInterests) && aud.metaInterests.length > 0) {
           setSelectedInterests(aud.metaInterests);
+        } else if (typeof aud.interests === "string" && aud.interests.trim().length > 0) {
+          const parsed = aud.interests
+            .split(",")
+            .map((name: string, index: number) => ({
+              id: `ai-interest-${index}-${Date.now()}`,
+              name: name.trim(),
+              type: "interests",
+            }))
+            .filter((i: any) => i.name.length > 0);
+          if (parsed.length > 0) setSelectedInterests(parsed);
         }
         if (aud.explanation) setAiExplanation(aud.explanation);
+
+        const responseText = extractedUrl
+          ? `Perfeito! Atualizei o link de destino da sua campanha para: **${extractedUrl}** 🌐`
+          : (aud.explanation || "Entendi seu pedido e ajustei as configurações da campanha na Meta!");
 
         setAiMessages((prev) => [
           ...prev,
           {
             id: `ai-${Date.now()}`,
             sender: "ai",
-            text: aud.explanation || "Entendi seu pedido e ajustei as configurações da campanha na Meta!",
+            text: responseText,
             timestamp: aiTime,
           },
         ]);
@@ -1940,22 +2078,21 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       if (campaignObjective === "TRAFFIC" || hasDestination) {
         backendCtaType = "LEARN_MORE"; // Padronizado em Saiba Mais
-        backendCtaLink = customDestination ? customDestination.trim() : "";
-        if (backendCtaLink && !/^https?:\/\//i.test(backendCtaLink)) {
-          backendCtaLink = `https://${backendCtaLink}`;
+        let linkToUse = customDestination ? customDestination.trim() : "";
+        if (!linkToUse) {
+          linkToUse =
+            businessProfile?.website ||
+            businessProfile?.instagram ||
+            initialProfile?.website ||
+            "https://numvapt.com.br";
         }
-      }
-
-      // Validação prévia de URL obrigatória para campanhas de Tráfego
-      if (campaignObjective === "TRAFFIC" && !backendCtaLink) {
-        toast({
-          variant: "destructive",
-          title: "URL do site necessária",
-          description:
-            "Para campanhas de Tráfego (Mais cliques no link), informe a URL do seu site.",
-        });
-        setIsSubmitting(false);
-        return;
+        if (!/^https?:\/\//i.test(linkToUse)) {
+          linkToUse = `https://${linkToUse}`;
+        }
+        backendCtaLink = linkToUse;
+        if (!customDestination) {
+          setCustomDestination(linkToUse);
+        }
       }
 
       // WhatsApp: sobrescreve CTA independente do estado de hasDestination
@@ -1990,6 +2127,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             ageMin: ageRange[0],
             ageMax: ageRange[1],
             gender,
+            latitude: selectedLocations[0]?.latitude ?? null,
+            longitude: selectedLocations[0]?.longitude ?? null,
             interests: selectedInterests.map((i) => ({
               id: i.id,
               name: i.name,
@@ -3620,133 +3759,35 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               )}
               {/* PASSO 2: PAINEL DO AGENTE DE IA OU CONFIGURAÇÃO MANUAL */}
               {currentStep === 2 && !showManualWizardForms && (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   <div className="flex items-center justify-between border-b pb-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1.5 rounded-full bg-[#0083C7]/10 px-3 py-1 text-xs font-bold text-[#0083C7] border border-[#0083C7]/20">
-                          <Sparkles className="h-3.5 w-3.5" /> Recomendação do Copiloto IA Meta Ads
+                          <Sparkles className="h-3.5 w-3.5" /> Copiloto IA Meta Ads
                         </span>
                       </div>
-                      <h4 className="font-poppins text-lg font-bold text-slate-900 mt-2">
+                      <h4 className="font-poppins text-lg font-bold text-slate-900 mt-1.5">
                         Campanha Configurada Pelo Agente de IA
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Analisamos seu negócio, a publicação e o objetivo selecionado para gerar a audiência de maior engajamento.
+                        Converse com a IA para ajustar público, raio, orçamento ou tire dúvidas em tempo real.
                       </p>
                     </div>
                   </div>
 
-                  {/* Card de Resumo da Sugestão da IA */}
-                  <div className="space-y-4 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/80 to-blue-50/20 p-5 shadow-xs">
-                    {/* Título & Legenda */}
-                    <div className="space-y-1 rounded-lg border bg-white p-3.5 shadow-2xs">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">📝 Criativo e Título Magnético</span>
-                      <p className="text-sm font-bold text-slate-800">{headline || "Aproveite nossa oferta especial!"}</p>
-                      <p className="text-xs text-slate-600 line-clamp-2">{bodyText || selectedPost?.text || "Publicação promocional do negócio"}</p>
-                    </div>
-
-                    {/* Público & Localização */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Alcance
-                        </span>
-                        <p className="text-xs font-bold text-slate-800">
-                          {(selectedLocations[0]?.name) || addressInput || businessProfile?.address || "Sua Região Local"} (+{radius}km)
-                        </p>
-                        <p className="text-[11px] text-slate-500">Idade: {ageRange[0]} a {ageRange[1]} anos</p>
-                      </div>
-
-                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-green-600" /> Orçamento & Duração
-                        </span>
-                        <p className="text-xs font-bold text-slate-800">R$ {dailyBudget}/dia ({duration} dias)</p>
-                        <p className="text-[11px] text-slate-500">Total: R$ {dailyBudget * duration}</p>
-                      </div>
-                    </div>
-
-                    {/* Interesses Meta */}
-                    <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                        <Target className="h-3 w-3 text-[#FA6305]" /> Interesses Meta Oficiais
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
-                        {selectedInterests.length > 0 ? (
-                          selectedInterests.map((interest) => (
-                            <Badge key={interest.id} variant="secondary" className="text-[11px] font-semibold bg-slate-100 text-slate-800 border">
-                              {interest.name}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-500">Interesses locais recomendados</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Racional da IA */}
-                    {aiExplanation && (
-                      <div className="rounded-lg bg-amber-50/80 border border-amber-200/60 p-3.5 text-xs text-amber-900 leading-relaxed font-medium">
-                        💡 <strong>Racional do Copiloto:</strong> {aiExplanation}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Botões de Ação Direta em Destaque */}
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                    <Button
-                      type="button"
-                      onClick={
-                        billingStatus && !billingStatus.hasPaymentMethod
-                          ? () => {
-                              setIsBillingModalOpen(true);
-                              setBillingGuideActive(false);
-                              toast({
-                                variant: "destructive",
-                                title: "Faturamento necessário",
-                                description: "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
-                              });
-                            }
-                          : handleActivateCampaign
-                      }
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-98"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Ativando Anúncio na Meta...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Confirmar e Publicar Anúncio na Meta Ads
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowManualWizardForms(true)}
-                      className="w-full sm:w-auto h-11 rounded-xl border-2 border-slate-200 bg-white font-bold text-xs text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors"
-                    >
-                      <Sliders className="mr-1.5 h-4 w-4 text-[#0083C7]" />
-                      Configuração Manual Avançada
-                    </Button>
-                  </div>
-
-                  {/* Chat do Agente de IA Integrado na Coluna Esquerda */}
-                  <div className="mt-6 flex h-[380px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-md">
+                  {/* CHAT DO AGENTE DE IA EM DESTAQUE NO TOPO DA TELA */}
+                  <div className="flex h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-md">
                     {/* Header do Chat */}
-                    <div className="flex items-center gap-2 bg-[#0083C7] p-3 text-white">
-                      <div className="rounded-lg bg-white/20 p-1.5">
-                        <Bot className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h5 className="font-poppins text-xs font-bold leading-tight">Agente IA Meta Ads</h5>
-                        <span className="text-[10px] text-white/80">Conectado • Peça alterações ou tire dúvidas</span>
+                    <div className="flex items-center justify-between bg-[#0083C7] px-3.5 py-2.5 text-white">
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-lg bg-white/20 p-1.5">
+                          <Bot className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h5 className="font-poppins text-xs font-bold leading-tight">Agente IA Meta Ads</h5>
+                          <span className="text-[10px] text-white/80">Online • Peça alterações por texto aqui</span>
+                        </div>
                       </div>
                     </div>
 
@@ -3789,19 +3830,130 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       <Input
                         value={aiChatInput}
                         onChange={(e) => setAiChatInput(e.target.value)}
-                        placeholder="Ex: 'Aumente o raio para 20km' ou 'Mude a idade'..."
+                        placeholder="Ex: 'Aumente o raio para 20km' ou 'Mude o site para www.loja.com'..."
                         disabled={isAiChatReplying}
-                        className="h-8 rounded-lg font-sans text-xs"
+                        className="h-8.5 rounded-lg font-sans text-xs"
                       />
                       <Button
                         type="submit"
                         disabled={!aiChatInput.trim() || isAiChatReplying}
                         size="sm"
-                        className="h-8 w-8 shrink-0 rounded-lg bg-[#0083C7] p-0 text-white hover:bg-[#0083C7]/90"
+                        className="h-8.5 w-8.5 shrink-0 rounded-lg bg-[#0083C7] p-0 text-white hover:bg-[#0083C7]/90"
                       >
                         <Send className="h-3.5 w-3.5" />
                       </Button>
                     </form>
+                  </div>
+
+                  {/* Card de Resumo das Configurações Ativas (Sem duplicar a prévia do criativo) */}
+                  <div className="space-y-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/80 to-blue-50/20 p-4 shadow-xs">
+                    {/* Grid de 4 Cards: Local, Faixa Etária, Orçamento & Destino */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Card 1: Local & Alcance */}
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-[#0083C7]" /> Local & Raio
+                        </span>
+                        <p className="text-xs font-bold text-slate-800 line-clamp-2">
+                          {(selectedLocations[0]?.name) || addressInput || businessProfile?.address || "Sua Região Local"} (+{radius}km)
+                        </p>
+                      </div>
+
+                      {/* Card 2: Faixa Etária (Separada) */}
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <Users className="h-3 w-3 text-indigo-600" /> Faixa Etária
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">
+                          {ageRange[0]} a {ageRange[1]} anos
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {gender === "ALL" ? "Todos os gêneros" : gender === "MALE" ? "Homens" : "Mulheres"}
+                        </p>
+                      </div>
+
+                      {/* Card 3: Orçamento & Duração */}
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-emerald-600" /> Orçamento & Duração
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">R$ {dailyBudget}/dia ({duration} dias)</p>
+                        <p className="text-[11px] text-slate-500">Total: R$ {dailyBudget * duration}</p>
+                      </div>
+
+                      {/* Card 4: Destino Dinâmico (URL do Site ou Número do WhatsApp) */}
+                      <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1">
+                        {campaignObjective === "WHATSAPP" ? (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3 text-emerald-500" /> Número do WhatsApp
+                            </span>
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              {businessProfile?.phone || initialProfile?.phone || "(Conectado na Página)"}
+                            </p>
+                            <p className="text-[11px] text-slate-500">Mensagem direta no aplicativo</p>
+                          </>
+                        ) : campaignObjective === "TRAFFIC" ? (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                              <Globe className="h-3 w-3 text-sky-600" /> URL do Site (Destino)
+                            </span>
+                            <p className="text-xs font-bold text-slate-800 truncate" title={customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com.br"}>
+                              {customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com.br"}
+                            </p>
+                            <p className="text-[11px] text-slate-500">Redirecionamento ao clicar</p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                              <Megaphone className="h-3 w-3 text-amber-500" /> Objetivo da Campanha
+                            </span>
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              Alcance & Reconhecimento Local
+                            </p>
+                            <p className="text-[11px] text-slate-500">Máxima visibilidade na região</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Interesses do público */}
+                    <div className="rounded-lg border bg-white p-3 shadow-2xs space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                        <Target className="h-3 w-3 text-[#FA6305]" /> Interesses do público
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {selectedInterests.length > 0 ? (
+                          selectedInterests.map((interest) => (
+                            <Badge key={interest.id} variant="secondary" className="text-[11px] font-semibold bg-slate-100 text-slate-800 border">
+                              {interest.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-500">Interesses locais recomendados</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Racional da IA */}
+                    {aiExplanation && (
+                      <div className="rounded-lg bg-amber-50/80 border border-amber-200/60 p-3 text-xs text-amber-900 leading-relaxed font-medium">
+                        💡 <strong>Racional do Copiloto:</strong> {aiExplanation}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Opção para alternar para a Configuração Manual Avançada */}
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowManualWizardForms(true)}
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                    >
+                      <Sliders className="mr-1.5 h-3.5 w-3.5 text-[#0083C7]" />
+                      Configuração Manual Avançada
+                    </Button>
                   </div>
                 </div>
               )}
@@ -4713,41 +4865,47 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   {currentStep === 1 ? "Cancelar" : "Voltar"}
                 </Button>
 
-                {currentStep < 5 ? (
+                {currentStep < 5 && (currentStep !== 2 || showManualWizardForms) ? (
                   <Button
                     type="button"
                     onClick={() => {
-                      if (
-                        currentStep === 1 &&
-                        campaignObjective === "WHATSAPP" &&
-                        !hasWhatsAppConnected
-                      ) {
-                        toast({
-                          variant: "destructive",
-                          title: "WhatsApp não conectado",
-                          description:
-                            "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
-                        });
+                      if (currentStep === 1) {
+                        if (
+                          campaignObjective === "WHATSAPP" &&
+                          !hasWhatsAppConnected
+                        ) {
+                          toast({
+                            variant: "destructive",
+                            title: "WhatsApp não conectado",
+                            description:
+                              "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
+                          });
+                          return;
+                        }
+                        handleSelectObjectiveWithAi(campaignObjective);
                         return;
                       }
                       if (currentStep === 2) {
                         if (!adName.trim()) {
-                          toast({
-                            variant: "destructive",
-                            title: "Nome da campanha obrigatório",
-                            description:
-                              "Por favor, informe o nome da campanha antes de avançar.",
-                          });
-                          return;
+                          const snippet = selectedPost?.text
+                            ? selectedPost.text.length > 25
+                              ? `${selectedPost.text.slice(0, 25)}...`
+                              : selectedPost.text
+                            : "Impulsionamento";
+                          setAdName(`[NUMVAPT] ${snippet}`);
                         }
                         if (!bodyText.trim()) {
-                          toast({
-                            variant: "destructive",
-                            title: "Legenda obrigatória",
-                            description:
-                              "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
-                          });
-                          return;
+                          if (selectedPost?.text) {
+                            setBodyText(selectedPost.text);
+                          } else {
+                            toast({
+                              variant: "destructive",
+                              title: "Legenda obrigatória",
+                              description:
+                                "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
+                            });
+                            return;
+                          }
                         }
                         if (
                           (campaignObjective === "TRAFFIC" || hasDestination) &&
@@ -4788,40 +4946,74 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       setCurrentStep((prev) => prev + 1);
                     }}
                     disabled={
-                      currentStep === 1 &&
-                      campaignObjective === "WHATSAPP" &&
-                      hasWhatsAppConnected !== true
+                      isSuggestingAi ||
+                      (currentStep === 1 &&
+                        campaignObjective === "WHATSAPP" &&
+                        hasWhatsAppConnected !== true)
                     }
                     className={`rounded-lg px-6 py-2 text-xs font-bold ${
-                      currentStep === 1 &&
-                      campaignObjective === "WHATSAPP" &&
-                      hasWhatsAppConnected !== true
+                      isSuggestingAi ||
+                      (currentStep === 1 &&
+                        campaignObjective === "WHATSAPP" &&
+                        hasWhatsAppConnected !== true)
                         ? "cursor-not-allowed border-none bg-slate-200 text-slate-400"
                         : "active:scale-98 bg-primary text-white shadow-sm hover:bg-primary/95"
                     }`}
                   >
-                    Próximo Passo
-                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    {isSuggestingAi ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Analisando com IA...
+                      </>
+                    ) : (
+                      <>
+                        Próximo Passo
+                        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Button
                     type="button"
-                    onClick={
-                      billingStatus && !billingStatus.hasPaymentMethod
-                        ? () => {
-                            setIsBillingModalOpen(true);
-                            setBillingGuideActive(false);
+                    onClick={() => {
+                      if (currentStep === 2 && !showManualWizardForms) {
+                        if (!adName.trim()) {
+                          const snippet = selectedPost?.text
+                            ? selectedPost.text.length > 25
+                              ? `${selectedPost.text.slice(0, 25)}...`
+                              : selectedPost.text
+                            : "Impulsionamento";
+                          setAdName(`[NUMVAPT] ${snippet}`);
+                        }
+                        if (!bodyText.trim()) {
+                          if (selectedPost?.text) {
+                            setBodyText(selectedPost.text);
+                          } else {
                             toast({
                               variant: "destructive",
-                              title: "Faturamento necessário",
+                              title: "Legenda obrigatória",
                               description:
-                                "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                                "Por favor, preencha o texto da legenda do anúncio antes de avançar.",
                             });
+                            return;
                           }
-                        : handleActivateCampaign
-                    }
+                        }
+                      }
+                      if (billingStatus && !billingStatus.hasPaymentMethod) {
+                        setIsBillingModalOpen(true);
+                        setBillingGuideActive(false);
+                        toast({
+                          variant: "destructive",
+                          title: "Faturamento necessário",
+                          description:
+                            "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                        });
+                        return;
+                      }
+                      handleActivateCampaign();
+                    }}
                     disabled={isSubmitting}
-                    className="rounded-lg bg-primary px-8 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary/95 active:scale-95"
+                    className="rounded-lg bg-emerald-600 px-8 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
                   >
                     {isSubmitting ? (
                       <>
@@ -5238,17 +5430,42 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         <tbody className="divide-slate-150/40 font-inter text-slate-650 divide-y text-xs">
                           {paginatedCampaigns.map((c) => {
                             const totalDays = c.durationDays || 7;
-                            let daysPassed = 1;
+                            const totalMs = totalDays * 24 * 60 * 60 * 1000;
+
+                            let elapsedMs = 0;
+                            let remainingMs = totalMs;
+                            let endDateFormatted = "";
+
                             if (c.createdAt) {
                               const createdDate = (c.createdAt as any).toDate
                                 ? (c.createdAt as any).toDate()
                                 : new Date(c.createdAt as any);
-                              const diffTime = Math.abs(Date.now() - createdDate.getTime());
-                              daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              const now = Date.now();
+                              elapsedMs = Math.max(0, Math.min(totalMs, now - createdDate.getTime()));
+                              remainingMs = Math.max(0, totalMs - elapsedMs);
+
+                              const endDate = new Date(createdDate.getTime() + totalMs);
+                              const dayStr = String(endDate.getDate()).padStart(2, "0");
+                              const monthStr = String(endDate.getMonth() + 1).padStart(2, "0");
+                              const hoursStr = String(endDate.getHours()).padStart(2, "0");
+                              const minStr = String(endDate.getMinutes()).padStart(2, "0");
+                              endDateFormatted = `${dayStr}/${monthStr} às ${hoursStr}:${minStr}`;
                             }
-                            if (daysPassed > totalDays) daysPassed = totalDays;
-                            if (daysPassed < 1) daysPassed = 1;
-                            const progressPercentage = Math.round((daysPassed / totalDays) * 100);
+
+                            const progressPercentage = Math.round((elapsedMs / totalMs) * 100);
+                            const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+                            const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+
+                            let remainingText = "";
+                            if (remainingMs <= 0 || progressPercentage >= 100) {
+                              remainingText = "Concluído";
+                            } else if (remainingDays > 1) {
+                              remainingText = `Faltam ${remainingDays} dias`;
+                            } else if (remainingHours > 1) {
+                              remainingText = `Faltam ${remainingHours}h`;
+                            } else {
+                              remainingText = `Falta 1h`;
+                            }
 
                             return (
                               <tr key={c.id} className="transition-colors hover:bg-slate-50/30">
@@ -5335,16 +5552,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 {/* DURAÇÃO PROGRESSO */}
                                 <td className="px-5 py-3.5">
                                   {c.status === "active" ? (
-                                    <div className="min-w-[120px] max-w-[150px] space-y-1">
-                                      <div className="flex justify-between text-[10px] font-medium leading-none text-slate-500">
-                                        <span>
-                                          Dia {daysPassed}/{totalDays}
-                                        </span>
-                                        <span>{progressPercentage}%</span>
+                                    <div className="min-w-[130px] max-w-[170px] space-y-1">
+                                      <div className="flex justify-between text-[10px] font-medium leading-none text-slate-700">
+                                        <span>{remainingText}</span>
+                                        <span className="font-semibold text-slate-500">{progressPercentage}%</span>
                                       </div>
-                                      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100/70">
+                                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                                         <div
-                                          className={`h-1 rounded-full transition-all duration-500 ${
+                                          className={`h-1.5 rounded-full transition-all duration-500 ${
                                             activePlatformTab === "meta"
                                               ? "bg-[#1877F2]"
                                               : "bg-[#4285F4]"
@@ -5352,6 +5567,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                           style={{ width: `${progressPercentage}%` }}
                                         ></div>
                                       </div>
+                                      {endDateFormatted && (
+                                        <span className="block text-[9px] font-medium text-slate-400">
+                                          Término em {endDateFormatted}
+                                        </span>
+                                      )}
                                     </div>
                                   ) : (
                                     <span className="font-poppins px-2 text-xs font-medium text-slate-400">
@@ -5364,7 +5584,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <td className="px-5 py-3.5">
                                   <span className="text-xs font-semibold text-slate-800">
                                     R$ {c.budget?.amount?.toFixed(2) || "0.00"}/
-                                    {c.budget?.type === "daily" ? "dia" : "total"}
+                                    {c.budget?.type === "total" || c.budget?.type === "lifetime" ? "total" : "dia"}
                                   </span>
                                 </td>
 
