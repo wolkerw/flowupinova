@@ -9,6 +9,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
+import { ImageAiEditorModal } from "@/components/dashboard/ImageAiEditorModal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,9 +197,12 @@ const PLACEHOLDER_PROMPTS = [
 export function ImageGenerationWizard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { checkSubscriptionOrPrompt } = useSubscriptionGate();
+  const { checkSubscriptionOrPrompt, canEditImages } = useSubscriptionGate();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Estado para modal de edição com GPT-image-2.5
+  const [editingAsset, setEditingAsset] = useState<AIImageAssetDoc | null>(null);
 
   // Etapa atual (1 a 3)
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -1512,6 +1516,19 @@ export function ImageGenerationWizard() {
                         Usar em Post
                       </Button>
 
+                      {canEditImages && asset.originalUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          type="button"
+                          onClick={() => setEditingAsset(asset)}
+                          className="w-full rounded-xl text-xs font-bold border-amber-300 bg-amber-50/80 hover:bg-amber-100 text-amber-900 h-9 flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                        >
+                          <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                          Ajustar Título / Infográfico com IA
+                        </Button>
+                      )}
+
                       <div className="grid grid-cols-2 gap-2">
                         <Button
                           size="sm"
@@ -1639,6 +1656,30 @@ export function ImageGenerationWizard() {
             </CardContent>
           </Card>
         </motion.div>
+      )}
+
+      {/* Modal de Edição Inteligente com GPT-image-2.5 */}
+      {editingAsset && editingAsset.originalUrl && (
+        <ImageAiEditorModal
+          isOpen={!!editingAsset}
+          onClose={() => setEditingAsset(null)}
+          imageUrl={editingAsset.originalUrl}
+          format={format}
+          onSuccess={(newImageUrl) => {
+            setAssets((prev) =>
+              prev.map((a) =>
+                a.id === editingAsset.id
+                  ? { ...a, originalUrl: newImageUrl, processedUrl: newImageUrl }
+                  : a
+              )
+            );
+            setEditingAsset(null);
+            toast({
+              title: "Arte Atualizada!",
+              description: "A alteração com GPT-image-2.5 foi aplicada com sucesso.",
+            });
+          }}
+        />
       )}
     </div>
   );

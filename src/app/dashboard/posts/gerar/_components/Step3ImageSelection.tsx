@@ -15,11 +15,14 @@ import {
   Type,
   SkipForward,
   Maximize2,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { ImageInpaintModal, type EditorLayer } from "./ImageInpaintModal";
+import { ImageAiEditorModal } from "@/components/dashboard/ImageAiEditorModal";
 import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
 
 export const Step3ImageSelection = () => {
@@ -40,11 +43,14 @@ export const Step3ImageSelection = () => {
     inspirationFile,
   } = useWizard();
 
+  const { canEditImages } = useSubscriptionGate();
+
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
   const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
   const [activeSlotName, setActiveSlotName] = useState<string>("");
   const [layersMap, setLayersMap] = useState<Record<string, { originalUrl: string; layers: EditorLayer[] }>>({});
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
+  const [aiEditorImage, setAiEditorImage] = useState<{ url: string; index: number } | null>(null);
 
   const onBack = () => setStep(2);
   const onNext = () => {
@@ -129,8 +135,24 @@ export const Step3ImageSelection = () => {
                     <Check className="h-12 w-12 text-white" />
                   </div>
                 )}
-                {/* Ações de Hover (Ampliar e Baixar) */}
+                {/* Ações de Hover (Editar IA, Ampliar e Baixar) */}
                 <div className="absolute right-2 top-2 z-20 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  {canEditImages && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAiEditorImage({ url: imgSrc, index });
+                      }}
+                      title="Ajustar Título / Infográfico com GPT-image-2.5"
+                      className="h-8 px-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs backdrop-blur-sm shadow-md flex items-center gap-1"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Ajustar IA</span>
+                    </Button>
+                  )}
                   <Button
                     size="icon"
                     variant="secondary"
@@ -234,6 +256,37 @@ export const Step3ImageSelection = () => {
                 );
               })}
           </div>
+
+          {/* Banner de Ajuste Fino Inteligente com GPT-image-2.5 (Apenas para usuários autorizados no Admin) */}
+          {canEditImages && selectedImage && (
+            <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white shadow-xs">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-amber-950">
+                    Deseja ajustar o título ou texto de infográfico desta arte?
+                  </h4>
+                  <p className="text-[11px] text-amber-800">
+                    O modelo GPT-image-2.5 preserva o design e altera cirurgicamente os textos solicitados.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => {
+                  const idx = generatedImages.indexOf(selectedImage);
+                  setAiEditorImage({ url: selectedImage, index: idx >= 0 ? idx : 0 });
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl h-8 px-3.5 shadow-xs shrink-0 flex items-center gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Ajustar com IA
+              </Button>
+            </div>
+          )}
         </CardContent>
 
         <CardFooter className="flex justify-between">
@@ -308,6 +361,27 @@ export const Step3ImageSelection = () => {
         title={zoomImage?.title || "Visualização da Imagem"}
         onDownload={onDownload}
       />
+
+      {/* Modal de Edição Inteligente com GPT-image-2.5 */}
+      {aiEditorImage && (
+        <ImageAiEditorModal
+          isOpen={!!aiEditorImage}
+          onClose={() => setAiEditorImage(null)}
+          imageUrl={aiEditorImage.url}
+          format="portrait"
+          onSuccess={(newImageUrl) => {
+            setGeneratedImages((prev) => {
+              const updated = [...prev];
+              if (aiEditorImage.index >= 0 && aiEditorImage.index < updated.length) {
+                updated[aiEditorImage.index] = newImageUrl;
+              }
+              return updated;
+            });
+            onSelectedImageChange(newImageUrl);
+            setAiEditorImage(null);
+          }}
+        />
+      )}
     </motion.div>
   );
 };
