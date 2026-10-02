@@ -232,45 +232,82 @@ export function ImageGenerationWizard() {
   const [businessProfile, setBusinessProfile] = useState<any>(null);
 
   // Mapear todas as variações de logos cadastradas no negócio
-  const availableLogos = useMemo<{ id: string; url: string; label: string }[]>(() => {
+  const availableLogos = useMemo<{ id: string; url: string; label: string; isDarkBg?: boolean }[]>(() => {
     if (!businessProfile) return [];
-    const list: { id: string; url: string; label: string }[] = [];
+    const list: { id: string; url: string; label: string; isDarkBg?: boolean }[] = [];
     const seenUrls = new Set<string>();
 
-    const addLogo = (id: string, rawUrl: any, label: string) => {
+    const addLogo = (id: string, rawUrl: any, label: string, isDarkBg?: boolean) => {
       const url = typeof rawUrl === "string" ? rawUrl.trim() : rawUrl?.url ? String(rawUrl.url).trim() : "";
       if (url && !seenUrls.has(url)) {
         seenUrls.add(url);
-        list.push({ id, url, label });
+        list.push({ id, url, label, isDarkBg });
       }
     };
 
-    // 1. Logotipo Principal
+    // 1. Logotipo Principal (suporta todos os formatos salvos no negócio)
     const mainLogo =
       businessProfile.logo?.url ||
       (typeof businessProfile.logo === "string" ? businessProfile.logo : "") ||
       businessProfile.brandKit?.logoUrl ||
+      businessProfile.brandKit?.logo?.url ||
+      businessProfile.logos?.main?.url ||
       "";
     addLogo("main", mainLogo, "Principal");
 
-    // 2. Variações do BrandKit
+    // 2. Variações Padrão do BrandKit (logos colecionadas no onboarding/profile)
+    if (businessProfile.logos?.horizontal) addLogo("horizontal", businessProfile.logos.horizontal, "Horizontal");
+    if (businessProfile.logos?.vertical) addLogo("vertical", businessProfile.logos.vertical, "Vertical");
     if (businessProfile.logos?.symbol) addLogo("symbol", businessProfile.logos.symbol, "Símbolo");
     if (businessProfile.logos?.avatar) addLogo("avatar", businessProfile.logos.avatar, "Avatar");
-    if (businessProfile.logos?.dark) addLogo("dark", businessProfile.logos.dark, "Fundo Escuro");
+    if (businessProfile.logos?.dark) addLogo("dark", businessProfile.logos.dark, "Fundo Escuro", true);
     if (businessProfile.logos?.light) addLogo("light", businessProfile.logos.light, "Fundo Claro");
     if (businessProfile.logos?.secondary) addLogo("secondary", businessProfile.logos.secondary, "Secundária");
 
-    // 3. Variações Extras
+    // 3. Checar também dentro de brandKit?.logos (caso existam variações aninhadas no BrandKit)
+    if (businessProfile.brandKit?.logos) {
+      const bkLogos = businessProfile.brandKit.logos;
+      if (bkLogos.horizontal) addLogo("bk_horizontal", bkLogos.horizontal, "Horizontal");
+      if (bkLogos.vertical) addLogo("bk_vertical", bkLogos.vertical, "Vertical");
+      if (bkLogos.symbol) addLogo("bk_symbol", bkLogos.symbol, "Símbolo");
+      if (bkLogos.avatar) addLogo("bk_avatar", bkLogos.avatar, "Avatar");
+      if (bkLogos.dark) addLogo("bk_dark", bkLogos.dark, "Fundo Escuro", true);
+      if (bkLogos.light) addLogo("bk_light", bkLogos.light, "Fundo Claro");
+      if (bkLogos.secondary) addLogo("bk_secondary", bkLogos.secondary, "Secundária");
+    }
+
+    // 4. Variações Extras personalizadas cadastradas pelo lojista
     if (Array.isArray(businessProfile.logos?.extraLogos)) {
       businessProfile.logos.extraLogos.forEach((extra: any, idx: number) => {
         if (extra?.url) {
-          addLogo(extra.id || `extra_${idx}`, extra.url, extra.name || `Variação ${idx + 1}`);
+          addLogo(
+            extra.id || `extra_${idx}`,
+            extra.url,
+            extra.name || extra.label || `Variação ${idx + 1}`
+          );
         }
       });
     }
 
+    if (Array.isArray(businessProfile.brandKit?.logos?.extraLogos)) {
+      businessProfile.brandKit.logos.extraLogos.forEach((extra: any, idx: number) => {
+        if (extra?.url) {
+          addLogo(
+            extra.id || `bk_extra_${idx}`,
+            extra.url,
+            extra.name || extra.label || `Variação ${idx + 1}`
+          );
+        }
+      });
+    }
+
+    // 5. Se o usuário enviou uma logo avulsa pelo botão Upload nesta sessão
+    if (logoImage?.file && logoImage?.url) {
+      addLogo("custom_upload", logoImage.url, "Enviada");
+    }
+
     return list;
-  }, [businessProfile]);
+  }, [businessProfile, logoImage?.file, logoImage?.url]);
 
   // Estados da Geração (Etapa 2)
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -289,7 +326,7 @@ export function ImageGenerationWizard() {
     return () => clearInterval(interval);
   }, []);
 
-  // 1. Carregar perfil de BrandKit do negócio (lê tanto de onboarding quanto de profile)
+  // 1. Carregar perfil de BrandKit do negócio com DEEP MERGE de todas as variações de logos
   useEffect(() => {
     if (!user) return;
 
@@ -297,9 +334,42 @@ export function ImageGenerationWizard() {
       getDoc(doc(db, "users", user.uid, "business", "onboarding")),
       getDoc(doc(db, "users", user.uid, "business", "profile")),
     ]).then(([onboardingSnap, profileSnap]) => {
-      const onboardingData = onboardingSnap.exists() ? onboardingSnap.data() : {};
-      const profileData = profileSnap.exists() ? profileSnap.data() : {};
-      const merged = { ...profileData, ...onboardingData };
+      const onboardingData = onboardingSnap.exists() ? (onboardingSnap.data() as any) : {};
+      const profileData = profileSnap.exists() ? (profileSnap.data() as any) : {};
+
+      // Deep merge cuidadoso para não perder nenhuma variação de logotipo cadastrada
+      const mergedLogos = {
+        ...(profileData.logos || {}),
+        ...(onboardingData.logos || {}),
+        horizontal: onboardingData.logos?.horizontal || profileData.logos?.horizontal || onboardingData.brandKit?.logos?.horizontal || profileData.brandKit?.logos?.horizontal,
+        vertical: onboardingData.logos?.vertical || profileData.logos?.vertical || onboardingData.brandKit?.logos?.vertical || profileData.brandKit?.logos?.vertical,
+        symbol: onboardingData.logos?.symbol || profileData.logos?.symbol || onboardingData.brandKit?.logos?.symbol || profileData.brandKit?.logos?.symbol,
+        avatar: onboardingData.logos?.avatar || profileData.logos?.avatar || onboardingData.brandKit?.logos?.avatar || profileData.brandKit?.logos?.avatar,
+        dark: onboardingData.logos?.dark || profileData.logos?.dark || onboardingData.brandKit?.logos?.dark || profileData.brandKit?.logos?.dark,
+        light: onboardingData.logos?.light || profileData.logos?.light || onboardingData.brandKit?.logos?.light || profileData.brandKit?.logos?.light,
+        secondary: onboardingData.logos?.secondary || profileData.logos?.secondary || onboardingData.brandKit?.logos?.secondary || profileData.brandKit?.logos?.secondary,
+        extraLogos: [
+          ...(Array.isArray(profileData.logos?.extraLogos) ? profileData.logos.extraLogos : []),
+          ...(Array.isArray(onboardingData.logos?.extraLogos) ? onboardingData.logos.extraLogos : []),
+          ...(Array.isArray(profileData.brandKit?.logos?.extraLogos) ? profileData.brandKit.logos.extraLogos : []),
+          ...(Array.isArray(onboardingData.brandKit?.logos?.extraLogos) ? onboardingData.brandKit.logos.extraLogos : []),
+        ].filter((item: any, idx: number, arr: any[]) =>
+          arr.findIndex((t: any) => (t?.id && t.id === item?.id) || (t?.url && t.url === item?.url)) === idx
+        ),
+      };
+
+      const mergedBrandKit = {
+        ...(profileData.brandKit || {}),
+        ...(onboardingData.brandKit || {}),
+      };
+
+      const merged = {
+        ...profileData,
+        ...onboardingData,
+        logos: mergedLogos,
+        brandKit: mergedBrandKit,
+      };
+
       if (onboardingSnap.exists() || profileSnap.exists()) {
         setBusinessProfile(merged);
       }
@@ -460,6 +530,7 @@ export function ImageGenerationWizard() {
           productHeadline,
           negativeInstructions,
           logoUrl: uploadedLogoUrl || undefined,
+          includeLogo: Boolean(includeLogo && uploadedLogoUrl),
           referenceAssetUrls: uploadedRefUrls,
           sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
         }),
@@ -520,6 +591,7 @@ export function ImageGenerationWizard() {
           textOverlayMode,
           productHeadline,
           logoUrl: (includeLogo && logoImage?.url) || undefined,
+          includeLogo: Boolean(includeLogo && logoImage?.url),
           retryAssetId: assetId,
           existingGenerationId: generationId,
         }),
@@ -1216,7 +1288,15 @@ export function ImageGenerationWizard() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         {logoImage?.url ? (
-                          <div className="h-10 w-16 bg-slate-50 border border-slate-200 rounded-lg p-1 flex items-center justify-center shrink-0">
+                          <div
+                            className={`h-10 w-16 rounded-lg p-1 flex items-center justify-center shrink-0 border ${
+                              availableLogos.find(
+                                (l) => l.id === selectedLogoId || (!logoImage?.file && logoImage?.url === l.url)
+                              )?.isDarkBg
+                                ? "bg-slate-900 border-slate-700"
+                                : "bg-slate-50 border-slate-200"
+                            }`}
+                          >
                             <img
                               src={logoImage.url}
                               alt="Logomarca"
@@ -1229,8 +1309,13 @@ export function ImageGenerationWizard() {
                           </div>
                         )}
                         <div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-bold text-gray-900">Logomarca do Negócio</span>
+                            {availableLogos.find((l) => l.id === selectedLogoId || (!logoImage?.file && logoImage?.url === l.url))?.label && (
+                              <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                                {availableLogos.find((l) => l.id === selectedLogoId || (!logoImage?.file && logoImage?.url === l.url))?.label}
+                              </span>
+                            )}
                             {logoImage?.url && (
                               <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
                                 {includeLogo ? "Inserção Automática Ativa" : "Desativada"}
@@ -1298,12 +1383,17 @@ export function ImageGenerationWizard() {
                       </div>
                     </div>
 
-                    {/* Seletor de Variações de Logomarcas do Negócio */}
-                    {availableLogos.length > 1 && (
+                    {/* Seletor de Todas as Variações de Logomarcas do BrandKit */}
+                    {availableLogos.length > 0 && (
                       <div className="mt-1 pt-2.5 border-t border-slate-100">
-                        <span className="text-[11px] font-semibold text-slate-700 block mb-2">
-                          Selecione qual logomarca do seu negócio aplicar nesta arte:
-                        </span>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[11px] font-semibold text-slate-700">
+                            Selecione qual logomarca do seu negócio aplicar nesta arte:
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {availableLogos.length} {availableLogos.length === 1 ? "opção disponível" : "opções disponíveis"}
+                          </span>
+                        </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {availableLogos.map((item) => {
                             const isSelected = selectedLogoId === item.id || (!logoImage?.file && logoImage?.url === item.url);
@@ -1322,7 +1412,13 @@ export function ImageGenerationWizard() {
                                     : "border-slate-200 bg-slate-50/80 hover:bg-slate-100 text-slate-700"
                                 }`}
                               >
-                                <div className="h-5 w-7 bg-white border border-slate-200 rounded p-0.5 flex items-center justify-center shrink-0">
+                                <div
+                                  className={`h-6 w-9 rounded p-0.5 flex items-center justify-center shrink-0 overflow-hidden ${
+                                    item.isDarkBg
+                                      ? "bg-slate-900 border border-slate-700"
+                                      : "bg-white border border-slate-200"
+                                  }`}
+                                >
                                   <img
                                     src={item.url}
                                     alt={item.label}

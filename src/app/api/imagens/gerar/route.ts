@@ -71,12 +71,14 @@ export async function POST(request: NextRequest) {
       negativeInstructions = "",
       visualDirection,
       logoUrl = "",
+      includeLogo = true,
       referenceAssetUrls = [],
       sourceAssetUrls = [],
       retryAssetId = null,
       existingGenerationId = null,
     } = body as AIImageGenerationRequest & {
       logoUrl?: string;
+      includeLogo?: boolean;
       retryAssetId?: string | null;
       existingGenerationId?: string | null;
     };
@@ -122,8 +124,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 1.1 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit)
-    const effectiveLogoUrl = logoUrl || (useBrandKit ? brandSnapshot?.logoUrl || "" : "");
+    // 1.1 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit, a menos que includeLogo seja false)
+    const effectiveLogoUrl =
+      includeLogo === false
+        ? ""
+        : logoUrl || (useBrandKit ? brandSnapshot?.logoUrl || "" : "");
 
     // 2. Criar ou reutilizar entidade aiImageGeneration no Firestore
     const generationId =

@@ -32,7 +32,18 @@ vi.mock("firebase/firestore", () => ({
     data: () => ({
       name: "NumVapt Store",
       primaryColor: "#0083C7",
-      brandKit: { visualGuidelines: "Design limpo e moderno" },
+      logo: { url: "https://example.com/logo-principal.png" },
+      logos: {
+        horizontal: { url: "https://example.com/logo-horizontal.png" },
+        vertical: { url: "https://example.com/logo-vertical.png" },
+        symbol: { url: "https://example.com/logo-simbolo.png" },
+        avatar: { url: "https://example.com/logo-avatar.png" },
+        dark: { url: "https://example.com/logo-dark.png" },
+      },
+      brandKit: {
+        visualGuidelines: "Design limpo e moderno",
+        logoUrl: "https://example.com/logo-principal.png",
+      },
     }),
   }),
   onSnapshot: vi.fn((_docRef, onNext) => {
@@ -248,6 +259,26 @@ describe("ImageGenerationWizard", () => {
     await waitFor(() => {
       expect(screen.getByText(/Tudo Pronto! Sua imagem já está salva na Galeria/i)).toBeInTheDocument();
     });
+  });
+
+  it("renderiza opções para escolher entre todas as logomarcas cadastradas no BrandKit", async () => {
+    render(<ImageGenerationWizard />);
+
+    expect(
+      await screen.findByText(/Selecione qual logomarca do seu negócio aplicar nesta arte:/i)
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Principal").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Horizontal")).toBeInTheDocument();
+    expect(screen.getByText("Vertical")).toBeInTheDocument();
+    expect(screen.getByText("Símbolo")).toBeInTheDocument();
+    expect(screen.getByText("Avatar")).toBeInTheDocument();
+    expect(screen.getByText("Fundo Escuro")).toBeInTheDocument();
+
+    // Clica na opção "Avatar"
+    const avatarButton = screen.getByRole("button", { name: /Avatar/i });
+    fireEvent.click(avatarButton);
+
+    expect(avatarButton).toBeInTheDocument();
   });
 });
 
