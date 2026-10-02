@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import {
   Dialog,
@@ -29,6 +29,9 @@ import {
   Crosshair,
   X,
   Maximize2,
+  Layers,
+  RotateCcw,
+  History,
 } from "lucide-react";
 import type { AIImageFormat } from "@/lib/types/ai-image-general";
 
@@ -119,6 +122,26 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [editedUrl, setEditedUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"after" | "before">("after");
+
+  // Imagem base atual e histórico para novos ajustes
+  const [currentBaseUrl, setCurrentBaseUrl] = useState<string>(imageUrl);
+  const [currentBaseType, setCurrentBaseType] = useState<"original" | "edited">("original");
+  const [lastEditedUrl, setLastEditedUrl] = useState<string | null>(null);
+  const [editCount, setEditCount] = useState<number>(0);
+
+  // Sincroniza sempre que imageUrl mudar via prop
+  useEffect(() => {
+    setCurrentBaseUrl(imageUrl);
+    setCurrentBaseType("original");
+    setEditedUrl(null);
+    setLastEditedUrl(null);
+    setEditCount(0);
+    setInstruction("");
+    setSelectedBox(null);
+    setIsSelectingArea(false);
+    setAreaAction(null);
+    setError(null);
+  }, [imageUrl]);
 
   // Estados de Seleção de Área (Inpainting)
   const [isSelectingArea, setIsSelectingArea] = useState<boolean>(false);
@@ -272,7 +295,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imageUrl,
+          imageUrl: currentBaseUrl,
           instruction: instruction.trim(),
           format,
           selectedArea:
@@ -295,6 +318,8 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
 
       if (data.url) {
         setEditedUrl(data.url);
+        setLastEditedUrl(data.url);
+        setEditCount((prev) => prev + 1);
         setActiveTab("after");
         setIsSelectingArea(false);
       } else {
@@ -315,13 +340,34 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
     }
   };
 
-  const handleReset = () => {
+  // Prepara o editor para um novo ajuste sobre a arte recém-editada (nova versão)
+  const handleNewAdjustmentOnEdited = () => {
+    if (editedUrl) {
+      setCurrentBaseUrl(editedUrl);
+      setCurrentBaseType("edited");
+    }
     setEditedUrl(null);
     setInstruction("");
     setError(null);
     setSelectedBox(null);
     setIsSelectingArea(false);
     setAreaAction(null);
+  };
+
+  // Prepara o editor para um novo ajuste sobre a arte original
+  const handleNewAdjustmentOnOriginal = () => {
+    setCurrentBaseUrl(imageUrl);
+    setCurrentBaseType("original");
+    setEditedUrl(null);
+    setInstruction("");
+    setError(null);
+    setSelectedBox(null);
+    setIsSelectingArea(false);
+    setAreaAction(null);
+  };
+
+  const handleReset = () => {
+    handleNewAdjustmentOnOriginal();
   };
 
   return (
@@ -373,7 +419,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                       : "text-gray-500 hover:text-gray-900"
                   }`}
                 >
-                  Original
+                  {currentBaseType === "edited" ? "Versão Anterior" : "Original"}
                 </button>
               </div>
             )}
@@ -423,7 +469,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                 <div className="relative w-full h-full flex items-center justify-center">
                   <img
                     ref={imageRef}
-                    src={editedUrl && activeTab === "after" ? editedUrl : imageUrl}
+                    src={editedUrl && activeTab === "after" ? editedUrl : currentBaseUrl}
                     alt="Pré-visualização da imagem"
                     className="w-full h-full object-contain pointer-events-none"
                     draggable={false}
@@ -458,6 +504,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                 </div>
               )}
 
+              {/* Badges de Estado no Preview */}
               {editedUrl && !loading && (
                 <div className="absolute top-2.5 left-2.5">
                   <Badge
@@ -467,7 +514,27 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                         : "bg-slate-700 text-white text-xs font-bold border-none"
                     }
                   >
-                    {activeTab === "after" ? "✓ Versão Nova" : "Original"}
+                    {activeTab === "after"
+                      ? "✓ Nova Versão"
+                      : currentBaseType === "edited"
+                        ? "Versão Anterior"
+                        : "Original"}
+                  </Badge>
+                </div>
+              )}
+
+              {!editedUrl && !loading && lastEditedUrl && (
+                <div className="absolute top-2.5 left-2.5">
+                  <Badge
+                    className={
+                      currentBaseType === "edited"
+                        ? "bg-primary text-white text-[11px] font-bold border-none shadow-xs"
+                        : "bg-slate-700 text-white text-[11px] font-bold border-none shadow-xs"
+                    }
+                  >
+                    {currentBaseType === "edited"
+                      ? `✨ Base: Arte Editada (v${editCount})`
+                      : "🖼️ Base: Arte Original"}
                   </Badge>
                 </div>
               )}
@@ -521,6 +588,57 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
             {!editedUrl ? (
               <>
                 <div className="space-y-3">
+                  {/* Seletor de Base: Arte Editada vs Arte Original */}
+                  {lastEditedUrl && (
+                    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <Layers className="h-3.5 w-3.5 text-primary" />
+                          Base para este novo ajuste:
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          {currentBaseType === "edited"
+                            ? "Ajustando sobre a versão anterior"
+                            : "Ajustando sobre a original"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentBaseUrl(lastEditedUrl);
+                            setCurrentBaseType("edited");
+                            setSelectedBox(null);
+                          }}
+                          className={`px-2 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                            currentBaseType === "edited"
+                              ? "bg-primary text-white shadow-xs"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          <span>Arte Editada (v{editCount})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentBaseUrl(imageUrl);
+                            setCurrentBaseType("original");
+                            setSelectedBox(null);
+                          }}
+                          className={`px-2 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                            currentBaseType === "original"
+                              ? "bg-slate-800 text-white shadow-xs"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          <span>Arte Original</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="text-xs font-bold text-gray-800 flex items-center justify-between">
                       <span>O que você deseja alterar nesta arte?</span>
@@ -558,8 +676,10 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                             className={`flex items-center gap-1.5 p-2 rounded-lg border text-left transition-colors text-xs ${
                               isAreaBtnActive
                                 ? sug.actionType === "erase"
-                                  ? "border-rose-300 bg-rose-50 text-rose-800 font-bold ring-1 ring-rose-400"
-                                  : "border-sky-300 bg-sky-50 text-sky-800 font-bold ring-1 ring-sky-400"
+                                : false
+                                ? "border-rose-300 bg-rose-50 text-rose-800 font-bold ring-1 ring-rose-400"
+                                : isAreaBtnActive
+                                ? "border-sky-300 bg-sky-50 text-sky-800 font-bold ring-1 ring-sky-400"
                                 : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-gray-700 font-medium"
                             }`}
                           >
@@ -602,26 +722,69 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                     Edição concluída com sucesso!
                   </div>
                   <p className="text-xs text-emerald-700 leading-relaxed">
-                    A imagem foi refinada pelo GPT-image-2.5 com base na sua instrução. Compare com a versão original no alternador acima.
+                    A imagem foi refinada pelo GPT-image-2.5 com base na sua instrução. Compare com a versão anterior no alternador acima.
                   </p>
                 </div>
 
-                <div className="space-y-2 text-xs text-slate-600">
+                <div className="space-y-1.5 text-xs text-slate-600">
                   <p className="font-semibold text-slate-800">Instrução aplicada:</p>
-                  <p className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 italic">
+                  <p className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 italic text-slate-700">
                     "{instruction}"
                   </p>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleReset}
-                  className="w-full text-xs rounded-xl font-semibold border-slate-200"
-                >
-                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />
-                  Fazer outro ajuste nesta arte
-                </Button>
+                {/* Card de Escolha para Novo Ajuste */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <History className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold text-gray-900">
+                      Deseja fazer outro ajuste nesta arte?
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-normal">
+                    Escolha se deseja continuar aprimorando sobre esta arte recém-editada ou recomeçar um novo ajuste a partir da imagem original:
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={handleNewAdjustmentOnEdited}
+                      className="w-full justify-start text-xs rounded-xl font-semibold bg-primary hover:bg-blue-600 text-white h-auto py-2.5 px-3 shadow-xs"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2 shrink-0 text-amber-300" />
+                      <div className="text-left">
+                        <div className="font-bold">Ajustar sobre a Arte Editada (Nova Versão)</div>
+                        <div className="text-[10px] text-blue-100 font-normal">
+                          Preserva o que já foi alterado e aplica um novo ajuste por cima
+                        </div>
+                      </div>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleNewAdjustmentOnOriginal}
+                      className="w-full justify-start text-xs rounded-xl font-semibold border-slate-200 hover:bg-slate-100 text-slate-700 h-auto py-2.5 px-3"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2 shrink-0 text-slate-500" />
+                      <div className="text-left">
+                        <div className="font-bold">Ajustar sobre a Arte Original</div>
+                        <div className="text-[10px] text-slate-500 font-normal">
+                          Volta à imagem original para tentar outro ajuste
+                        </div>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Aviso de Preservação e Salvamento na Galeria */}
+                <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 text-[11px] text-blue-900 flex items-start gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Galeria protegida:</strong> Todas as versões geradas ficam salvas na sua Galeria de Mídia, para que você nunca perca nenhuma criação.
+                  </span>
+                </div>
               </div>
             )}
           </div>

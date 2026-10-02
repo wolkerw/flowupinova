@@ -144,4 +144,122 @@ describe("ImageAiEditorModal", () => {
 
     expect(textarea.value).toContain("substitua o conteúdo atual por");
   });
+
+  it("permite escolher fazer novo ajuste sobre a arte editada (nova versão)", async () => {
+    const fakeEditedUrl1 = "https://example.com/edited-v1.png";
+    const fakeEditedUrl2 = "https://example.com/edited-v2.png";
+
+    const fetchMock = vi.fn().mockImplementation((url, options) => {
+      const parsedBody = JSON.parse(options.body);
+      const isSecondCall = parsedBody.imageUrl === fakeEditedUrl1;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            url: isSecondCall ? fakeEditedUrl2 : fakeEditedUrl1,
+            originalUrl: parsedBody.imageUrl,
+            modelUsed: "gpt-image-2.5-sunburst",
+          }),
+      });
+    });
+    global.fetch = fetchMock;
+
+    render(
+      <ImageAiEditorModal
+        isOpen={true}
+        onClose={mockOnClose}
+        imageUrl={testImageUrl}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    // 1ª Edição
+    const textarea = screen.getByPlaceholderText(/Altere o título principal para/i);
+    fireEvent.change(textarea, { target: { value: "Primeiro ajuste" } });
+    fireEvent.click(screen.getByText("Aplicar Alteração com IA"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Edição concluída com sucesso!")).toBeInTheDocument();
+      expect(screen.getByText(/Ajustar sobre a Arte Editada \(Nova Versão\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ajustar sobre a Arte Original/i)).toBeInTheDocument();
+    });
+
+    // Usuário clica em 'Ajustar sobre a Arte Editada (Nova Versão)'
+    const editOnEditedBtn = screen.getByText(/Ajustar sobre a Arte Editada \(Nova Versão\)/i);
+    fireEvent.click(editOnEditedBtn);
+
+    // Verifica que voltou ao formulário de edição com indicador de que a base é a Arte Editada
+    await waitFor(() => {
+      expect(screen.getByText(/Base para este novo ajuste:/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Arte Editada \(v1\)/i).length).toBeGreaterThanOrEqual(1);
+    });
+
+    // 2ª Edição (agora com a base sendo a editada)
+    const textarea2 = screen.getByPlaceholderText(/Altere o título principal para/i);
+    fireEvent.change(textarea2, { target: { value: "Segundo ajuste cumulativo" } });
+    fireEvent.click(screen.getByText("Aplicar Alteração com IA"));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const secondCallBody = JSON.parse(fetchMock.mock.calls[1][1].body);
+      expect(secondCallBody.imageUrl).toBe(fakeEditedUrl1);
+      expect(secondCallBody.instruction).toBe("Segundo ajuste cumulativo");
+    });
+  });
+
+  it("permite escolher fazer novo ajuste sobre a arte original", async () => {
+    const fakeEditedUrl1 = "https://example.com/edited-v1.png";
+
+    const fetchMock = vi.fn().mockImplementation((url, options) => {
+      const parsedBody = JSON.parse(options.body);
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            url: fakeEditedUrl1,
+            originalUrl: parsedBody.imageUrl,
+            modelUsed: "gpt-image-2.5-sunburst",
+          }),
+      });
+    });
+    global.fetch = fetchMock;
+
+    render(
+      <ImageAiEditorModal
+        isOpen={true}
+        onClose={mockOnClose}
+        imageUrl={testImageUrl}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    // 1ª Edição
+    const textarea = screen.getByPlaceholderText(/Altere o título principal para/i);
+    fireEvent.change(textarea, { target: { value: "Primeiro ajuste" } });
+    fireEvent.click(screen.getByText("Aplicar Alteração com IA"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Edição concluída com sucesso!")).toBeInTheDocument();
+    });
+
+    // Usuário clica em 'Ajustar sobre a Arte Original'
+    const editOnOriginalBtn = screen.getByText(/Ajustar sobre a Arte Original/i);
+    fireEvent.click(editOnOriginalBtn);
+
+    // 2ª Edição (com base na original)
+    const textarea2 = screen.getByPlaceholderText(/Altere o título principal para/i);
+    fireEvent.change(textarea2, { target: { value: "Novo ajuste da original" } });
+    fireEvent.click(screen.getByText("Aplicar Alteração com IA"));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const secondCallBody = JSON.parse(fetchMock.mock.calls[1][1].body);
+      expect(secondCallBody.imageUrl).toBe(testImageUrl);
+      expect(secondCallBody.instruction).toBe("Novo ajuste da original");
+    });
+  });
 });
