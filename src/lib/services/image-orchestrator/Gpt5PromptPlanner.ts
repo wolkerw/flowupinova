@@ -21,7 +21,9 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    [6. LIGHTING & COLOR]: Iluminação profissional e paleta cromática harmônica inspirada nas cores da marca.
    [7. TEXTURES & FINISH]: Acabamentos de estúdio de alta fidelidade e realismo.
    [8. VISUAL STYLE]: Fotografia comercial moderna de alto padrão.
-   [9. LOGO DIRECTIVE]: Se o usuário tiver fornecido a logomarca do negócio, a IA DEVE OBRIGATORIAMENTE exibir e integrar a logomarca oficial de forma visível, nítida e harmoniosa na arte (no canto superior, cabeçalho ou badge de marca). Se NENHUMA logomarca tiver sido fornecida, é expressamente PROIBIDO inventar, criar ou simular logotipos fictícios.
+   [9. LOGO DIRECTIVE]: REGRA CRÍTICA INVIOLÁVEL SOBRE LOGOMARCAS — dois cenários possíveis:
+   CENÁRIO A — SE a logomarca oficial foi fornecida como imagem de referência: o "imagePrompt" gerado DEVE instrução explícita de integrar APENAS essa logomarca (da imagem de referência fornecida), de forma visível, nítida e posicionada no canto superior. É PROIBIDO criar ou inventar qualquer outra marca.
+   CENÁRIO B — SE NENHUMA logomarca foi fornecida: o "imagePrompt" gerado DEVE incluir instrução EXPLÍCITA proibindo: logos, emblemas, badges, marcas d'água, mascotes, foguetes, caricaturas, texto estilizado de nome de empresa, monogramas, selos, escudos, brasões, círculos com letras ou qualquer símbolo interpretável como marca registrada. O canto superior DEVE ficar COMPLETAMENTE VAZIO e limpo.
    [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas.
 
 DIRETRIZES DE TEXTO / INFOGRÁFICO:
@@ -40,6 +42,7 @@ No campo "socialCaption", crie um copywriting persuasivo e engajador em portugu�
 REGRAS DE CONFORMIDADE:
 - Responda OBRIGATORIAMENTE em formato JSON válido respeitando o schema solicitado.
 - Não inclua markdown adicional ou texto fora do JSON.
+- O campo "imagePrompt" (prompt em inglês para o gpt-image) DEVE SEMPRE conter a diretiva de logo — proibição explícita (Cenário B) ou mandato de integração (Cenário A). Nunca omita ou deixe essa diretiva vaga.
 `;
 
   public static async plan(input: Gpt5PlannerInput): Promise<OrchestratorPlanResult> {
@@ -171,16 +174,19 @@ INSTRUÇÃO OBRIGATÓRIA:
         ? "FOTO DE ESTILO/INSPIRAÇÃO ANEXADA: Utilize a paleta de cores e atmosfera da imagem como referência de luz."
         : "Nenhuma foto externa anexada na Etapa 5.";
 
+    // REGRA INVIOLÁVEL: hasLogo é TRUE apenas se a imagem da logo foi EFETIVAMENTE
+    // carregada como referência real (base64 presente). A URL do brandKit não é suficiente —
+    // se o fetch falhou ou a imagem não chegou, hasLogo = false e a proibição de logos é aplicada.
     const logoRef = input.referenceImages?.find(
-      (r) => r.role === "business_logo" || r.role === "official_logo"
+      (r) => (r.role === "business_logo" || r.role === "official_logo") && Boolean(r.base64)
     );
-    const hasLogo = Boolean(logoRef || brand?.logoUrl);
+    const hasLogo = Boolean(logoRef);
 
     const logoDirectiveText = hasLogo
-      ? `REGRA MANDATÓRIA DE LOGOMARCA:
-A logomarca oficial do negócio foi fornecida pelo usuário. A IA DEVE OBRIGATORIAMENTE inserir a logomarca oficial de forma visível, destacada e elegante na arte (no canto superior, cabeçalho ou badge de marca), respeitando suas formas e cores originais sem distorção.`
-      : `REGRA CRÍTICA DE LOGOMARCAS:
-Nenhuma logomarca foi fornecida. É TERMINANTEMENTE PROIBIDO inventar ou desenhar qualquer logotipo fictício na imagem. Deixe o canto superior limpo para inserção manual se desejado.`;
+      ? `REGRA MANDATÓRIA DE LOGOMARCA (INVIOLÁVEL):
+A imagem da logomarca oficial do negócio foi anexada como referência visual. Você DEVE OBRIGATORIAMENTE integrar APENAS essa logomarca exata (fornecida na imagem de referência) na arte final, posicionada de forma visível e destacada no canto superior ou cabeçalho, respeitando suas cores, formas e proporções originais sem qualquer distorção. É PROIBIDO criar, desenhar ou inventar qualquer outro logo ou símbolo de marca — use somente a logomarca da referência anexada.`
+      : `REGRA ABSOLUTA E INVIOLÁVEL — PROIBIÇÃO TOTAL DE LOGOMARCAS FICTÍCIAS:
+NENHUMA logomarca foi fornecida pelo usuário. É TERMINANTEMENTE PROIBIDO desenhar, gerar, renderizar, simular ou inventar qualquer logotipo, símbolo de empresa, ícone corporativo, badge de marca, texto estilizado de nome de empresa, foguete, mascote ou qualquer elemento visual que possa ser interpretado como logomarca. Deixe o canto superior da imagem COMPLETAMENTE LIMPO — esse espaço fica reservado para inserção manual da logo real pelo usuário. NÃO crie qualquer substituto visual para a logo ausente.`;
 
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
@@ -208,9 +214,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const brand = input.brandKit;
     const safeAspect = input.format === "portrait" ? "1024x1280" : input.format === "story" ? "864x1536" : "1024x1024";
     const logoRef = input.referenceImages?.find(
-      (r) => r.role === "business_logo" || r.role === "official_logo"
+      (r) => (r.role === "business_logo" || r.role === "official_logo") && Boolean(r.base64)
     );
-    const hasLogo = Boolean(logoRef || brand?.logoUrl);
+    // REGRA: hasLogo é verdadeiro apenas se a imagem foi carregada como referência real (base64 disponível)
+    const hasLogo = Boolean(logoRef);
 
     return {
       schemaVersion: "1.0",
@@ -272,7 +279,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         raw.negativePrompt ||
         (hasLogo
           ? "distorted logo, warped branding, competitor trademarks, fake text, cropped headline, cut off borders, low quality, artifacts"
-          : "logo, brand emblem, corporate symbol, fake logo, watermark, signature, mascot, cartoon rocket, invented branding, badge, emblem, arbitrary logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts"),
+          : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts"),
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto do sujeito da Etapa 5", "Margens seguras"]
         : ["Foto do sujeito da Etapa 5", "Espaço limpo para logo manual", "Margens seguras"],
@@ -294,9 +301,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const brand = input.brandKit;
     const safeAspect = input.format === "portrait" ? "1024x1280" : input.format === "story" ? "864x1536" : "1024x1024";
     const logoRef = input.referenceImages?.find(
-      (r) => r.role === "business_logo" || r.role === "official_logo"
+      (r) => (r.role === "business_logo" || r.role === "official_logo") && Boolean(r.base64)
     );
-    const hasLogo = Boolean(logoRef || brand?.logoUrl);
+    // REGRA: hasLogo é verdadeiro apenas se a imagem foi carregada como referência real (base64 disponível)
+    const hasLogo = Boolean(logoRef);
 
     return {
       schemaVersion: "1.0",
@@ -337,7 +345,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       imagePrompt: this.buildFallbackImagePrompt(input),
       negativePrompt: hasLogo
         ? "distorted logo, warped branding, competitor trademarks, fake text, cropped typography, text touching borders, amateur framing"
-        : "logo, brand emblem, corporate symbol, fake logo, watermark, signature, mascot, cartoon rocket, invented branding, badge, emblem, arbitrary logo, distorted text logo, cropped typography, text touching borders, amateur framing",
+        : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped typography, text touching borders, amateur framing",
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto do sujeito da Etapa 5", "Margem segura de 20%"]
         : ["Foto do sujeito da Etapa 5", "Espaço para logo manual", "Margem segura de 20%"],
@@ -361,9 +369,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       input.textOverlayMode === "INFOGRAPHIC" || input.textOverlayMode === "BOTH";
     const isTitle = input.textOverlayMode === "TITLE_ONLY";
     const logoRef = input.referenceImages?.find(
-      (r) => r.role === "business_logo" || r.role === "official_logo"
+      (r) => (r.role === "business_logo" || r.role === "official_logo") && Boolean(r.base64)
     );
-    const hasLogo = Boolean(logoRef || brand?.logoUrl);
+    // REGRA: hasLogo é verdadeiro apenas se a imagem foi carregada como referência real (base64 disponível)
+    const hasLogo = Boolean(logoRef);
 
     let textInstruction =
       "[CRITICAL MANDATE — ZERO TEXT: Clean photography with zero typography, letters or watermarks.]";
@@ -381,8 +390,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         : "";
 
     const logoMandate = hasLogo
-      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo has been supplied by the user. You MUST visibly and prominently integrate the exact business logo into the artwork (positioned at top corner or header badge) with crisp clarity and harmonious contrast, faithfully representing the brand.]"
-      : "[CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE: Absolutely DO NOT draw, generate, invent, or render any logos, brand emblems, corporate icons, or badges. Leave a clean, open breathing space in the top corner specifically reserved for manual logo overlay.]";
+      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo has been supplied by the user as a reference image. You MUST visibly and prominently integrate ONLY this exact logo into the artwork (positioned at top corner or header badge) with crisp clarity and harmonious contrast, faithfully representing the brand. Do NOT invent any other logo or brand symbol.]"
+      : "[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, company logo, brand emblem, badge, watermark, mascot, rocket icon, cartoon character, monogram, seal, crest, shield, stylized company name, circle with letters, brand symbol, or any graphic element resembling a trademark must appear anywhere in the image. The top corner MUST remain completely empty and clean — this space is deliberately reserved for the client to manually add their real logo. Do NOT place any decorative placeholder in this area.]";
 
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
     const subjectMandate = subjectRef
@@ -392,14 +401,15 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     if (input.compiledPrompt) {
       let p = input.compiledPrompt;
       if (hasLogo) {
-        // Se houver diretiva antiga de ZERO LOGOS mas a logo foi enviada, substituir por diretiva mandatória
-        if (p.includes("ZERO LOGOS")) {
-          p = p.replace(/\[CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE:[^\]]+\]/g, logoMandate);
+        // Se houver diretiva de proibição de logos mas a logo foi enviada, substituir por mandato
+        if (p.includes("ZERO LOGOS") || p.includes("ABSOLUTE PROHIBITION")) {
+          p = p.replace(/\[(CRITICAL MANDATE — ZERO LOGOS|ABSOLUTE PROHIBITION) [^\]]+\]/g, logoMandate);
         } else if (!p.includes("MANDATORY LOGO")) {
           p += ` ${logoMandate}`;
         }
       } else {
-        if (!p.includes("ZERO LOGOS")) {
+        // Sem logo: garantir que a proibição esteja presente
+        if (!p.includes("ZERO LOGOS") && !p.includes("ABSOLUTE PROHIBITION")) {
           p += ` ${logoMandate}`;
         }
       }

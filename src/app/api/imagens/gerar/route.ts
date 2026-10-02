@@ -246,11 +246,11 @@ export async function POST(request: NextRequest) {
       // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
       if (effectiveLogoUrl) {
         brandDirectives.push(
-          `INCLUSÃO OBRIGATÓRIA DA LOGOMARCA DO NEGÓCIO: A logomarca oficial da empresa foi fornecida. A imagem gerada DEVE OBRIGATORIAMENTE conter e exibir a logomarca oficial de forma nítida, destacada e elegante (no topo, canto superior ou cabeçalho harmônico), com excelente contraste e legibilidade, respeitando fielmente a identidade visual da marca.`
+          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo has been supplied. The generated image MUST visibly and prominently display the exact official business logo (placed at the top corner or header) with crisp clarity, excellent contrast, and faithful brand identity.]`
         );
       } else {
         brandDirectives.push(
-          `PROIBIÇÃO DE LOGOMARCAS FICTÍCIAS: Nenhuma logo oficial foi fornecida. Não invente ou desenhe marcas ou logotipos fictícios. Deixe o canto superior da imagem limpo.`
+          `[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: No official logo was provided. It is STRICTLY FORBIDDEN to invent, draw, or render any logos, brand emblems, company icons, badges, mascots, rocket icons, monograms, seals, or any symbol resembling a trademark. Leave the top corner of the image completely empty and clean for manual logo insertion.]`
         );
       }
 
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
     if (effectiveOverlayMode === "NONE") {
       compiledPrompt += effectiveLogoUrl
         ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays, featuring the official business logo cleanly integrated.]"
-        : " [CRITICAL MANDATE — ZERO TEXT: Do not draw or render any text, typography, watermarks or logos on the image. Pristine photography only.]";
+        : " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: Do not draw, render, or invent any logos, emblems, badges, watermarks, mascots, or brand symbols. Pristine photography only. Top corner must remain completely empty and clean.]";
     } else if (effectiveOverlayMode === "TITLE_ONLY") {
       const headlineDirective = productHeadline?.trim()
         ? `with the exact headline: "${productHeadline.trim()}"`

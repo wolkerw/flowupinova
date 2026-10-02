@@ -165,6 +165,16 @@ describe("Image Orchestrator Suite", () => {
           hasLocalOfficialLogo: true,
           logoUrl: "https://example.com/logo.png",
         },
+        // REGRA: hasLogo só é true se a imagem foi carregada com base64 real
+        referenceImages: [
+          {
+            role: "business_logo",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/logo.png",
+            description: "Logomarca de teste",
+          },
+        ],
       });
 
       expect(planResult.visualPlan.brandApplication.useLogo).toBe(true);

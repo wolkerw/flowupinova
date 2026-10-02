@@ -57,12 +57,14 @@ export class ImageModelExecutor {
     );
     const hasLogo = Boolean(logoRef);
 
-    // Diretiva estrita de proibição de logomarca gerada (apenas se NENHUMA logo foi fornecida)
+    // REGRA INVIOLÁVEL: PROIBIÇÃO ABSOLUTA DE LOGOS quando nenhuma foi fornecida.
+    // A diretiva lista EXPLICITAMENTE todos os elementos proibidos para não deixar margem
+    // para o modelo "interpretar" que pode criar um símbolo de marca.
     const zeroLogoDirective =
-      " [CRITICAL MANDATE — ZERO LOGOS & CLEAN LOGO SPACE: Absolutely DO NOT draw, invent, or render any logos, brand emblems, corporate icons, or badges. Leave a clean, open space in the top corner specifically reserved for manual logo overlay.]";
+      " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, brand emblem, company icon, badge, watermark, signature, mascot, rocket icon, cartoon character, stylized company name, monogram, seal, shield, crest, or any symbol that could be interpreted as a brand mark must appear anywhere in the image. The top-left or top-right corner MUST remain completely empty, clean and free — this white space is deliberately reserved for the client to manually overlay their real logo later. Do NOT fill this space with decorative elements, gradients, or placeholder graphics of any kind.]";
 
     const logoDirective =
-      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO: The user has supplied their official business logo image. Seamlessly and prominently integrate this exact official logo into the generated artwork (placed cleanly at the top corner or header badge) with crisp clarity and harmonious contrast, faithfully representing the brand.]";
+      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: The user has supplied their official business logo as a reference image. You MUST faithfully and prominently integrate this exact logo — and ONLY this logo — into the generated artwork, placed cleanly at the top corner or header badge area, with crisp clarity and harmonious contrast. Do NOT invent, alter, or replace this logo with any other symbol. Faithfully represent the brand using only the provided reference.]";
 
     const subjectDirective = subjectRef
       ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
@@ -96,13 +98,15 @@ export class ImageModelExecutor {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
           if (hasLogo) {
-            if (openaiPrompt.includes("ZERO LOGOS")) {
-              openaiPrompt = openaiPrompt.replace(/\[CRITICAL MANDATE — ZERO LOGOS[^\]]+\]/g, logoDirective);
-            } else if (!openaiPrompt.includes("MANDATORY")) {
+            // Substituir qualquer diretiva de proibição existente pela de mandato (logo foi fornecida)
+            if (openaiPrompt.includes("ZERO LOGOS") || openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
+              openaiPrompt = openaiPrompt.replace(/\[(CRITICAL MANDATE — ZERO LOGOS|ABSOLUTE PROHIBITION)[^\]]+\]/g, logoDirective);
+            } else if (!openaiPrompt.includes("MANDATORY LOGO")) {
               openaiPrompt += logoDirective;
             }
           } else {
-            if (!openaiPrompt.includes("ZERO LOGOS")) {
+            // Sem logo: garantir proibição absoluta no prompt final
+            if (!openaiPrompt.includes("ZERO LOGOS") && !openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
               openaiPrompt += zeroLogoDirective;
             }
           }
@@ -226,13 +230,15 @@ export class ImageModelExecutor {
           
           let geminiPrompt = params.prompt;
           if (hasLogo) {
-            if (geminiPrompt.includes("ZERO LOGOS")) {
-              geminiPrompt = geminiPrompt.replace(/\[CRITICAL MANDATE — ZERO LOGOS[^\]]+\]/g, logoDirective);
-            } else if (!geminiPrompt.includes("MANDATORY")) {
+            // Substituir qualquer diretiva de proibição existente pela de mandato (logo foi fornecida)
+            if (geminiPrompt.includes("ZERO LOGOS") || geminiPrompt.includes("ABSOLUTE PROHIBITION")) {
+              geminiPrompt = geminiPrompt.replace(/\[(CRITICAL MANDATE — ZERO LOGOS|ABSOLUTE PROHIBITION)[^\]]+\]/g, logoDirective);
+            } else if (!geminiPrompt.includes("MANDATORY LOGO")) {
               geminiPrompt = `${logoDirective}\n\n${geminiPrompt}`;
             }
           } else {
-            if (!geminiPrompt.includes("ZERO LOGOS")) {
+            // Sem logo: garantir proibição absoluta no prompt final
+            if (!geminiPrompt.includes("ZERO LOGOS") && !geminiPrompt.includes("ABSOLUTE PROHIBITION")) {
               geminiPrompt += zeroLogoDirective;
             }
           }
