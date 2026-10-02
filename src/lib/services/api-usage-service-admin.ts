@@ -32,12 +32,12 @@ export async function logApiUsage(input: ApiUsageLogInput): Promise<void> {
       type: input.type,
       provider: input.provider,
       model: input.model,
-      costUsd: input.costUsd,
+      costUsd: input.costUsd ?? 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       ...(input.tokens ? { tokens: input.tokens } : {}),
     });
     console.log(
-      `[API_USAGE_LOG] Registrado com sucesso: ${input.type} (${input.model}) para o usuário ${input.userId}. Custo: $${input.costUsd.toFixed(6)}`
+      `[API_USAGE_LOG] Registrado com sucesso: ${input.type} (${input.model}) para o usuário ${input.userId}. Custo: $${(input.costUsd ?? 0).toFixed(6)}`
     );
   } catch (error) {
     console.error("[API_USAGE_LOG_ERROR] Falha ao registrar log de consumo:", error);
