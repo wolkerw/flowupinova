@@ -57,14 +57,14 @@ export class ImageModelExecutor {
     );
     const hasLogo = Boolean(logoRef);
 
-    // REGRA INVIOLÁVEL: PROIBIÇÃO ABSOLUTA DE LOGOS quando nenhuma foi fornecida.
-    // A diretiva lista EXPLICITAMENTE todos os elementos proibidos para não deixar margem
-    // para o modelo "interpretar" que pode criar um símbolo de marca.
+    // REGRA INVIOLÁVEL: PROIBIÇÃO ABSOLUTA DE LOGOS geradas por difusão/IA.
+    // O modelo de difusão NUNCA deve inventar logomarcas, ícones de sol/flor, símbolos em celulares ou caricaturas.
+    // O espaço superior deve vir sempre limpo e reservado para a aplicação digital da logo oficial.
     const zeroLogoDirective =
-      " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, brand emblem, company icon, badge, watermark, signature, mascot, rocket icon, cartoon character, stylized company name, monogram, seal, shield, crest, or any symbol that could be interpreted as a brand mark must appear anywhere in the image. The top-left or top-right corner MUST remain completely empty, clean and free — this white space is deliberately reserved for the client to manually overlay their real logo later. Do NOT fill this space with decorative elements, gradients, or placeholder graphics of any kind.]";
+      " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, brand emblem, company icon, badge, watermark, signature, mascot, rocket icon, cartoon character, stylized company name, monogram, seal, shield, crest, flower icon, sun icon, or any symbol that could be interpreted as a brand mark must appear anywhere in the image or on gadgets. The top corner MUST remain completely empty, clean and free — this negative space is deliberately reserved for the official brand logo. Do NOT draw any placeholder graphics or logos.]";
 
     const logoDirective =
-      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: The user has supplied their official business logo as a reference image. You MUST faithfully and prominently integrate this exact logo — and ONLY this logo — into the generated artwork, placed cleanly at the top corner or header badge area, with crisp clarity and harmonious contrast. Do NOT invent, alter, or replace this logo with any other symbol. Faithfully represent the brand using only the provided reference.]";
+      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: Do NOT draw, invent or paint any random logos, flower icons, sun icons or stylized text. The designated top corner MUST remain clean, clear and open for the official brand logo overlay. Absolutely no arbitrary brand icons.]";
 
     const subjectDirective = subjectRef
       ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
@@ -98,10 +98,7 @@ export class ImageModelExecutor {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
           if (hasLogo) {
-            // Substituir qualquer diretiva de proibição existente pela de mandato (logo foi fornecida)
-            if (openaiPrompt.includes("ZERO LOGOS") || openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
-              openaiPrompt = openaiPrompt.replace(/\[(CRITICAL MANDATE — ZERO LOGOS|ABSOLUTE PROHIBITION)[^\]]+\]/g, logoDirective);
-            } else if (!openaiPrompt.includes("MANDATORY LOGO")) {
+            if (!openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               openaiPrompt += logoDirective;
             }
           } else {
@@ -118,8 +115,8 @@ export class ImageModelExecutor {
           const isGptImage = cfg.model.startsWith("gpt-image-");
           const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 
-          // Se houver foto do sujeito (pessoa ou produto) da Etapa 5 OU Logomarca oficial, usar Image-to-Image / Edits da OpenAI
-          const primaryReference = subjectRef?.base64 ? subjectRef : logoRef?.base64 ? logoRef : null;
+          // Apenas fotos reais de sujeito/produto (pessoa ou produto) vão para edits. Logomarcas NUNCA são enviadas como base para edits.
+          const primaryReference = subjectRef?.base64 ? subjectRef : null;
 
           if (primaryReference && primaryReference.base64) {
             try {
@@ -129,7 +126,7 @@ export class ImageModelExecutor {
               editsFormData.append(
                 "image",
                 refBlob,
-                primaryReference.role === "product_subject" ? "subject.png" : "logo.png"
+                "subject.png"
               );
               editsFormData.append("model", cfg.model);
               editsFormData.append("prompt", openaiPrompt);
@@ -230,10 +227,7 @@ export class ImageModelExecutor {
           
           let geminiPrompt = params.prompt;
           if (hasLogo) {
-            // Substituir qualquer diretiva de proibição existente pela de mandato (logo foi fornecida)
-            if (geminiPrompt.includes("ZERO LOGOS") || geminiPrompt.includes("ABSOLUTE PROHIBITION")) {
-              geminiPrompt = geminiPrompt.replace(/\[(CRITICAL MANDATE — ZERO LOGOS|ABSOLUTE PROHIBITION)[^\]]+\]/g, logoDirective);
-            } else if (!geminiPrompt.includes("MANDATORY LOGO")) {
+            if (!geminiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               geminiPrompt = `${logoDirective}\n\n${geminiPrompt}`;
             }
           } else {
@@ -248,13 +242,12 @@ export class ImageModelExecutor {
 
           const parts: any[] = [{ text: geminiPrompt }];
 
-          // Anexar imagem do sujeito e/ou logomarca oficial como partes multimodais diretas
+          // Anexar imagem do sujeito e referências de estilo como partes multimodais
           if (params.references && params.references.length > 0) {
             const prioritizedRefs = [
               ...params.references.filter((r) => r.role === "product_subject"),
-              ...params.references.filter((r) => r.role === "business_logo" || r.role === "official_logo"),
               ...params.references.filter((r) => r.role === "style_reference"),
-            ].slice(0, 3);
+            ].slice(0, 2);
 
             for (const ref of prioritizedRefs) {
               if (ref.base64 && ref.mimeType) {

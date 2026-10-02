@@ -251,11 +251,11 @@ export async function POST(request: NextRequest) {
       // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
       if (effectiveLogoUrl) {
         brandDirectives.push(
-          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo has been supplied. The generated image MUST visibly and prominently display the exact official business logo (placed at the top corner or header) with crisp clarity, excellent contrast, and faithful brand identity.]`
+          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Keep the designated top corner clean and open for the official brand overlay. It is STRICTLY FORBIDDEN to invent, draw, or render any arbitrary logos, flower icons, sun icons, or fake brand symbols.]`
         );
       } else {
         brandDirectives.push(
-          `[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: No official logo was provided. It is STRICTLY FORBIDDEN to invent, draw, or render any logos, brand emblems, company icons, badges, mascots, rocket icons, monograms, seals, or any symbol resembling a trademark. Leave the top corner of the image completely empty and clean for manual logo insertion.]`
+          `[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: No official logo was provided. It is STRICTLY FORBIDDEN to invent, draw, or render any logos, brand emblems, company icons, badges, mascots, rocket icons, monograms, seals, flower icons, sun icons, or any symbol resembling a trademark. Leave the top corner of the image completely empty and clean for manual logo insertion.]`
         );
       }
 
@@ -282,8 +282,8 @@ export async function POST(request: NextRequest) {
     // Diretivas de Diagramação, Textos e Infográficos
     if (effectiveOverlayMode === "NONE") {
       compiledPrompt += effectiveLogoUrl
-        ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays, featuring the official business logo cleanly integrated.]"
-        : " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: Do not draw, render, or invent any logos, emblems, badges, watermarks, mascots, or brand symbols. Pristine photography only. Top corner must remain completely empty and clean.]";
+        ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays. Keep the top corner clean and open for the official brand overlay, do not invent random brand marks.]"
+        : " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: Do not draw, render, or invent any logos, emblems, badges, watermarks, mascots, flower icons, sun icons, or brand symbols. Pristine photography only. Top corner must remain completely empty and clean.]";
     } else if (effectiveOverlayMode === "TITLE_ONLY") {
       const headlineDirective = productHeadline?.trim()
         ? `with the exact headline: "${productHeadline.trim()}"`
@@ -400,9 +400,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Fallback inteligente: Logomarca Oficial NumVapt local do sistema
-    // Se a marca for NumVapt (ou o briefing citar NumVapt) e nenhuma logo foi carregada até aqui
+    // Apenas carrega se o usuário autorizou a inclusão de logo E uma logo foi requerida
     const hasSourceOrLogo = inputImages.some((img) => img.role === "source_or_logo");
     if (
+      includeLogo !== false &&
+      Boolean(effectiveLogoUrl) &&
       !hasSourceOrLogo &&
       ((brandSnapshot?.name && brandSnapshot.name.toLowerCase().includes("numvapt")) ||
         brief.toLowerCase().includes("numvapt"))
@@ -469,6 +471,7 @@ export async function POST(request: NextRequest) {
           productHeadline,
           negativeInstructions,
           logoUrl: effectiveLogoUrl,
+          includeLogo: Boolean(effectiveLogoUrl && includeLogo !== false),
           sourceAssetUrls,
           referenceAssetUrls,
         });

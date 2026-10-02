@@ -9,6 +9,7 @@ vi.mock("jimp", () => ({
       height: 1350,
       crop: vi.fn(),
       resize: vi.fn(),
+      composite: vi.fn(),
       getBuffer: vi.fn().mockResolvedValue(Buffer.from("processed-image-bytes")),
     }),
   },

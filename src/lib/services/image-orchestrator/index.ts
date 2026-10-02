@@ -5,6 +5,7 @@ export * from "./ReferenceContextBuilder";
 export * from "./Gpt5PromptPlanner";
 export * from "./ImageModelExecutor";
 export * from "./ImageResultValidator";
+export * from "./BrandLogoApplier";
 export * from "./GenerationTelemetry";
 
 import { BriefNormalizer } from "./BriefNormalizer";
@@ -13,6 +14,7 @@ import { ReferenceContextBuilder } from "./ReferenceContextBuilder";
 import { Gpt5PromptPlanner } from "./Gpt5PromptPlanner";
 import { ImageModelExecutor } from "./ImageModelExecutor";
 import { ImageResultValidator } from "./ImageResultValidator";
+import { BrandLogoApplier } from "./BrandLogoApplier";
 import { GenerationTelemetry } from "./GenerationTelemetry";
 import type {
   AIImageFormat,
@@ -39,6 +41,7 @@ export interface OrchestratorRunParams {
   productHeadline?: string;
   negativeInstructions?: string;
   logoUrl?: string;
+  includeLogo?: boolean;
   sourceAssetUrls?: string[];
   referenceAssetUrls?: string[];
 }
@@ -78,7 +81,12 @@ export class ImageGenerationOrchestrator {
     );
 
     // 3. Mapear e carregar referências e logos
-    const effectiveLogoUrl = params.logoUrl || brandContext.logoUrl;
+    // Se o usuário optou por não incluir logo ou includeLogo for falso, respeitar sem forçar
+    const effectiveLogoUrl =
+      params.includeLogo === false
+        ? undefined
+        : params.logoUrl || (params.useBrandKit !== false ? brandContext.logoUrl : undefined);
+
     const references: ReferenceInput[] = await ReferenceContextBuilder.buildReferences({
       sourceAssetUrls: params.sourceAssetUrls,
       referenceAssetUrls: params.referenceAssetUrls,
@@ -125,6 +133,12 @@ export class ImageGenerationOrchestrator {
       format
     );
 
+    // 6.1 Aplicação digital cirúrgica da logomarca oficial do BrandKit via Jimp (canal alfa preservado)
+    let finalBuffer = validated.buffer;
+    if (effectiveLogoUrl) {
+      finalBuffer = await BrandLogoApplier.applyLogo(finalBuffer, effectiveLogoUrl);
+    }
+
     // 7. Registro de Telemetria e Auditoria
     await GenerationTelemetry.record({
       generationId: params.generationId,
@@ -142,7 +156,7 @@ export class ImageGenerationOrchestrator {
     });
 
     return {
-      imageBuffer: validated.buffer,
+      imageBuffer: finalBuffer,
       width: validated.width,
       height: validated.height,
       plannerModelUsed: planResult.plannerModelUsed,

@@ -85,21 +85,26 @@ REGRAS DE CONFORMIDADE:
 
         for (const model of modelsToTry) {
           try {
+            const bodyPayload: Record<string, any> = {
+              model,
+              messages: [
+                { role: "system", content: this.SYSTEM_PROMPT },
+                { role: "user", content: contentParts.length > 1 ? contentParts : userPrompt },
+              ],
+              response_format: { type: "json_object" },
+            };
+            // gpt-5 e modelos da série 'o' da OpenAI não aceitam temperature diferente do padrão (1)
+            if (!model.startsWith("gpt-5") && !model.startsWith("o1") && !model.startsWith("o3")) {
+              bodyPayload.temperature = 0.7;
+            }
+
             const res = await fetch("https://api.openai.com/v1/chat/completions", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${openaiKey}`,
               },
-              body: JSON.stringify({
-                model,
-                messages: [
-                  { role: "system", content: this.SYSTEM_PROMPT },
-                  { role: "user", content: contentParts.length > 1 ? contentParts : userPrompt },
-                ],
-                response_format: { type: "json_object" },
-                temperature: 0.7,
-              }),
+              body: JSON.stringify(bodyPayload),
             });
 
             if (res && res.ok) {
