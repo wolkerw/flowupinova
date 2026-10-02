@@ -119,4 +119,29 @@ describe("ImageAiEditorModal", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it("permite ativar as sugestões de apagar ou substituir área selecionada na imagem", () => {
+    render(
+      <ImageAiEditorModal
+        isOpen={true}
+        onClose={mockOnClose}
+        imageUrl={testImageUrl}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    // Clica na sugestão de apagar área
+    const eraseAreaBtn = screen.getByText("Apagar Área Selecionada");
+    fireEvent.click(eraseAreaBtn);
+
+    const textarea = screen.getByPlaceholderText(/Altere o título principal para/i) as HTMLTextAreaElement;
+    expect(textarea.value).toContain("Remova e apague completamente o elemento");
+    expect(screen.getByText(/Clique e arraste na imagem para marcar a área/i)).toBeInTheDocument();
+
+    // Clica na sugestão de substituir área
+    const replaceAreaBtn = screen.getByText("Substituir Área Selecionada");
+    fireEvent.click(replaceAreaBtn);
+
+    expect(textarea.value).toContain("substitua o conteúdo atual por");
+  });
 });

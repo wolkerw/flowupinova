@@ -236,4 +236,66 @@ describe("POST /api/imagens/editar (GPT-image-2.5 Edition)", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
   });
+
+  it("deve processar com sucesso a edição com selectedArea e máscara de inpainting", async () => {
+    const { getAuthenticatedUser } = await import("@/lib/api-auth");
+    (getAuthenticatedUser as any).mockResolvedValueOnce({
+      uid: "user-area-123",
+      email: "area@numvapt.com.br",
+    });
+
+    mockUserData = {
+      canEditImages: true,
+      role: "user",
+    };
+
+    const fakeImageBuffer = Buffer.from("fake-image-bytes");
+    const fakeEditedB64 = Buffer.from("edited-area-bytes").toString("base64");
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === "https://example.com/original.png") {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer),
+        });
+      }
+      if (url.includes("api.openai.com/v1/images/edits")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              data: [{ b64_json: fakeEditedB64 }],
+            }),
+        });
+      }
+      return Promise.reject(new Error("URL desconhecida"));
+    });
+
+    const fakeMaskBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/editar", {
+      method: "POST",
+      body: JSON.stringify({
+        imageUrl: "https://example.com/original.png",
+        instruction: "Apagar elemento na área selecionada",
+        format: "portrait",
+        selectedArea: {
+          x: 10,
+          y: 15,
+          width: 30,
+          height: 20,
+          action: "erase",
+          description: "canto superior esquerdo",
+        },
+        maskDataUrl: fakeMaskBase64,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
 });

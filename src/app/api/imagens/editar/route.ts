@@ -44,10 +44,21 @@ export async function POST(request: NextRequest) {
       imageUrl,
       instruction,
       format = "portrait",
+      selectedArea,
+      maskDataUrl,
     } = body as {
       imageUrl: string;
       instruction: string;
       format?: AIImageFormat;
+      selectedArea?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        action: "erase" | "replace";
+        description?: string;
+      };
+      maskDataUrl?: string;
     };
 
     if (!imageUrl || !imageUrl.trim()) {
@@ -89,6 +100,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Processar máscara PNG se enviada pelo cliente (formato Data URL base64)
+    let maskBuffer: Buffer | null = null;
+    if (maskDataUrl && typeof maskDataUrl === "string" && maskDataUrl.startsWith("data:image")) {
+      try {
+        const base64Data = maskDataUrl.replace(/^data:image\/\w+;base64,/, "");
+        maskBuffer = Buffer.from(base64Data, "base64");
+      } catch (maskErr) {
+        console.warn("[IMAGENS_EDITAR] Falha ao decodificar máscara:", maskErr);
+      }
+    }
+
     // 3. Definir resolução nativa compatível
     const nativeSize =
       format === "portrait"
@@ -101,15 +123,25 @@ export async function POST(request: NextRequest) {
               ? "1200x624"
               : "1792x1024";
 
+    let areaDirective = "";
+    if (selectedArea) {
+      const actionText =
+        selectedArea.action === "erase"
+          ? "SURGICAL INPAINTING — ERASE & RECONSTRUCT: Completely remove and eliminate the element in the targeted area. Seamlessly inpaint and reconstruct the background with natural textures, lighting, and ambient shadows, making it look as if the element was never there."
+          : "SURGICAL INPAINTING — REPLACE CONTENT: Replace the content inside the targeted region with the newly requested text/graphic. Ensure the new element fits seamlessly with surrounding typography and colors.";
+      areaDirective = `[TARGET REGION: ${selectedArea.description || `bounding area approx. (${Math.round(selectedArea.x)}%, ${Math.round(selectedArea.y)}%) to (${Math.round(selectedArea.x + selectedArea.width)}%, ${Math.round(selectedArea.y + selectedArea.height)}%)`}] [DIRECTIVE: ${actionText}]`;
+    }
+
     const refinedPrompt = [
       "The uploaded image is the baseline master design.",
+      areaDirective,
       `USER EDIT INSTRUCTION: "${instruction.trim()}"`,
       "STRICT DIRECTIVES:",
-      "- Seamlessly apply the requested edits (such as changing titles, infographic copy, metrics, or specific visual accents).",
+      "- Seamlessly apply the requested edits (such as erasing elements, changing titles, infographic copy, metrics, or specific visual accents).",
       "- Faithfully maintain the overall artistic aesthetic, color palette, lighting, branding, background elements, and layout harmony.",
       "- All modified typography or numbers must be razor-sharp, cleanly rendered with correct Brazilian Portuguese grammar/spelling, perfectly legible, and properly aligned.",
       "- Do not change other unrelated components, faces, or product logos.",
-    ].join(" ");
+    ].filter(Boolean).join(" ");
 
     // 4. Modelos a tentar em ordem de preferência
     const modelsToTry = [
@@ -126,21 +158,36 @@ export async function POST(request: NextRequest) {
 
     for (const model of modelsToTry) {
       try {
-        const formData = new FormData();
-        formData.append("image", refBlob, "original.png");
-        formData.append("model", model);
-        formData.append("prompt", refinedPrompt);
-        formData.append("n", "1");
-        formData.append("size", nativeSize);
-        formData.append("quality", "auto");
+        const createFormData = (includeMask: boolean) => {
+          const fd = new FormData();
+          fd.append("image", refBlob, "original.png");
+          if (includeMask && maskBuffer) {
+            const maskBlob = new Blob([maskBuffer], { type: "image/png" });
+            fd.append("mask", maskBlob, "mask.png");
+          }
+          fd.append("model", model);
+          fd.append("prompt", refinedPrompt);
+          fd.append("n", "1");
+          fd.append("size", nativeSize);
+          fd.append("quality", "auto");
+          return fd;
+        };
 
-        const editRes = await fetch("https://api.openai.com/v1/images/edits", {
+        // Tenta primeiro com máscara se disponível; se falhar com 400, faz fallback imediato sem máscara
+        let editRes = await fetch("https://api.openai.com/v1/images/edits", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${openaiKey}`,
-          },
-          body: formData,
+          headers: { Authorization: `Bearer ${openaiKey}` },
+          body: createFormData(Boolean(maskBuffer)),
         });
+
+        if (!editRes.ok && maskBuffer) {
+          console.warn(`[IMAGENS_EDITAR] Tentativa com máscara falhou (${editRes.status}). Retentando sem máscara com prompt localizado...`);
+          editRes = await fetch("https://api.openai.com/v1/images/edits", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${openaiKey}` },
+            body: createFormData(false),
+          });
+        }
 
         if (editRes.ok) {
           const data = await editRes.json();
