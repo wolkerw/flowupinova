@@ -1,5 +1,9 @@
-import { Jimp } from "jimp";
 import { FORMAT_DIMENSIONS, type AIImageFormat } from "@/lib/types/ai-image-general";
+
+async function getJimpInstance() {
+  const mod: any = await import("jimp");
+  return mod.Jimp || mod.default?.Jimp || mod.default || mod;
+}
 
 export class ImageResultValidator {
   public static async validateAndNormalize(
@@ -19,6 +23,7 @@ export class ImageResultValidator {
     const targetHeight = targetDims.height;
 
     try {
+      const Jimp = await getJimpInstance();
       const jimpImage = await Jimp.read(buffer);
       // Redimensionamento direto e suave sem crop destrutivo
       jimpImage.resize({ w: targetWidth, h: targetHeight });

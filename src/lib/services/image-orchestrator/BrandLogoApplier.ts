@@ -1,9 +1,12 @@
-import { Jimp } from "jimp";
-
 export interface ApplyLogoOptions {
   position?: "top-left" | "top-right" | "top-center";
   maxScale?: number; // Padrão: 0.20 (20% da largura da imagem)
   marginRatio?: number; // Padrão: 0.04 (4% de margem segura)
+}
+
+async function getJimpInstance() {
+  const mod: any = await import("jimp");
+  return mod.Jimp || mod.default?.Jimp || mod.default || mod;
 }
 
 /**
@@ -38,6 +41,7 @@ export class BrandLogoApplier {
 
       if (!logoBuf || logoBuf.length === 0) return imageBuffer;
 
+      const Jimp = await getJimpInstance();
       const mainImage = await Jimp.read(imageBuffer);
       const logoImage = await Jimp.read(logoBuf);
 

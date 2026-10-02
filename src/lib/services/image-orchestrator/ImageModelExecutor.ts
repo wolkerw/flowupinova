@@ -61,10 +61,10 @@ export class ImageModelExecutor {
     // O modelo de difusão NUNCA deve inventar logomarcas, ícones de sol/flor, símbolos em celulares ou caricaturas.
     // O espaço superior deve vir sempre limpo e reservado para a aplicação digital da logo oficial.
     const zeroLogoDirective =
-      " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, brand emblem, company icon, badge, watermark, signature, mascot, rocket icon, cartoon character, stylized company name, monogram, seal, shield, crest, flower icon, sun icon, or any symbol that could be interpreted as a brand mark must appear anywhere in the image or on gadgets. The top corner MUST remain completely empty, clean and free — this negative space is deliberately reserved for the official brand logo. Do NOT draw any placeholder graphics or logos.]";
+      " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, brand emblem, company icon, badge, watermark, signature, mascot, rocket icon, cartoon character, stylized company name, monogram, seal, shield, crest, flower icon, sun icon, or any symbol that could be interpreted as a brand mark must appear anywhere in the image or on gadgets. The top-left corner MUST remain completely empty, clean and free blank negative space. Do NOT draw any placeholder graphics, brand pills or logos.]";
 
     const logoDirective =
-      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: Do NOT draw, invent or paint any random logos, flower icons, sun icons or stylized text. The designated top corner MUST remain clean, clear and open for the official brand logo overlay. Absolutely no arbitrary brand icons.]";
+      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: The official logo is added digitally in post-processing. The top-left corner MUST remain 100% BLANK, EMPTY and UNBRANDED negative space. Do NOT draw, invent or paint any random logos, flower icons, sun icons, brand pills, or stylized brand text anywhere in the scene. Absolutely zero logos drawn by AI.]";
 
     const subjectDirective = subjectRef
       ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
@@ -110,6 +110,8 @@ export class ImageModelExecutor {
           if (subjectRef && !openaiPrompt.includes("HERO SUBJECT PRESERVATION")) {
             openaiPrompt += subjectDirective;
           }
+          // Regra mandatória reforçada no início e no final: topo esquerdo 100% limpo e sem logos
+          openaiPrompt = `[MANDATORY ZERO-LOGO DIRECTIVE: Top-left corner must be completely blank, unbranded negative space. Do NOT draw any company logos or brand names anywhere.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw or paint any brand logos, flower/sun icons, or company names as logos.]`;
 
           const isGpt25 = cfg.model.includes("2.5");
           const isGptImage = cfg.model.startsWith("gpt-image-");

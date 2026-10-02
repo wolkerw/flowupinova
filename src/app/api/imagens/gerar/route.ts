@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       const brandDirectives: string[] = [];
 
       if (brandSnapshot.name && brandSnapshot.name !== "Empresa") {
-        brandDirectives.push(`Marca/Empresa: "${brandSnapshot.name}"`);
+        brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". AVISO MANDATÓRIO: NUNCA desenhar, pintar, estampar ou renderizar o nome "${brandSnapshot.name}" como logotipo na imagem, nem no cabeçalho nem no rodapé nem em gadgets. O canto superior deve permanecer 100% limpo.`);
       }
       if (brandSnapshot.segment) {
         brandDirectives.push(`Segmento/Nicho: ${brandSnapshot.segment}`);
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
       // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
       if (effectiveLogoUrl) {
         brandDirectives.push(
-          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Keep the designated top corner clean and open for the official brand overlay. It is STRICTLY FORBIDDEN to invent, draw, or render any arbitrary logos, flower icons, sun icons, or fake brand symbols.]`
+          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Leave the top-left corner 100% CLEAN, BLANK and EMPTY for external overlay. It is STRICTLY FORBIDDEN to draw, paint, or render any logos, flower icons, sun icons, stylized company names, or brand badges anywhere in the image.]`
         );
       } else {
         brandDirectives.push(
@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
         ? `with the main headline: "${productHeadline.trim()}"`
         : "with an impactful context-tailored commercial headline in Portuguese (pt-BR)";
       compiledPrompt +=
-        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC ADVERTISING DIRECTIVE: The AI has full creative freedom to decide the most fitting, modern infographic composition in Portuguese (pt-BR) tailored dynamically to the subject and briefing. Do NOT force a repetitive rigid template (do NOT force a mandatory warranty seal or a fixed row of 4 bottom cards). Instead, adapt the layout organically: (a) Floating feature callout tags with clean pointers to product/subject details, (b) A sleek modern sidebar or clean list of 2-4 key benefits with minimalist line icons, (c) Glassmorphic stat badges, step-by-step points, or comparative visual highlights, or (d) Integrated editorial typography harmonized naturally with the scene. Include: ${headlineDirective} in bold high-contrast Portuguese typography, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders.]`;
+        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC ADVERTISING DIRECTIVE: The AI has full creative freedom to decide the most fitting, modern infographic composition in Portuguese (pt-BR) tailored dynamically to the subject and briefing. Do NOT force a repetitive rigid template (do NOT force a mandatory warranty seal or a fixed row of 4 bottom cards). Instead, adapt the layout organically: (a) Floating feature callout tags with clean pointers to product/subject details, (b) A sleek modern sidebar or clean list of 2-4 key benefits with minimalist line icons, (c) Glassmorphic stat badges, step-by-step points, or comparative visual highlights, or (d) Integrated editorial typography harmonized naturally with the scene. Include: ${headlineDirective} in bold high-contrast Portuguese typography, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. MANDATÓRIO: Deixar o canto superior esquerdo 100% livre e limpo para inserção da logomarca. JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
     }
 
     if (negativeInstructions) {
@@ -507,9 +507,13 @@ export async function POST(request: NextRequest) {
       const targetHeight = targetDims.height;
 
       try {
-        const jimpImage = await Jimp.read(imageBuffer);
-        jimpImage.resize({ w: targetWidth, h: targetHeight });
-        imageBuffer = await jimpImage.getBuffer("image/png");
+        const { Jimp: JimpClass } = await import("jimp");
+        const JimpModule = JimpClass || Jimp;
+        const jimpImage = await JimpModule.read(imageBuffer);
+        if (jimpImage.width !== targetWidth || jimpImage.height !== targetHeight) {
+          jimpImage.resize({ w: targetWidth, h: targetHeight });
+          imageBuffer = await jimpImage.getBuffer("image/png");
+        }
       } catch (jimpErr) {
         console.warn("[IMAGENS_GERAR] Aviso no ajuste de dimensões via Jimp:", jimpErr);
       }

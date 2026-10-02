@@ -21,9 +21,11 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    [6. LIGHTING & COLOR]: Iluminação profissional e paleta cromática harmônica inspirada nas cores da marca.
    [7. TEXTURES & FINISH]: Acabamentos de estúdio de alta fidelidade e realismo.
    [8. VISUAL STYLE]: Fotografia comercial moderna de alto padrão.
-   [9. LOGO DIRECTIVE]: REGRA CRÍTICA INVIOLÁVEL SOBRE LOGOMARCAS — dois cenários possíveis:
-   CENÁRIO A — SE a logomarca oficial foi fornecida como imagem de referência: o "imagePrompt" gerado DEVE instrução explícita de integrar APENAS essa logomarca (da imagem de referência fornecida), de forma visível, nítida e posicionada no canto superior. É PROIBIDO criar ou inventar qualquer outra marca.
-   CENÁRIO B — SE NENHUMA logomarca foi fornecida: o "imagePrompt" gerado DEVE incluir instrução EXPLÍCITA proibindo: logos, emblemas, badges, marcas d'água, mascotes, foguetes, caricaturas, texto estilizado de nome de empresa, monogramas, selos, escudos, brasões, círculos com letras ou qualquer símbolo interpretável como marca registrada. O canto superior DEVE ficar COMPLETAMENTE VAZIO e limpo.
+   [9. LOGO DIRECTIVE]: REGRA PROIBITIVA ABSOLUTA DE LOGOMARCAS (INVIOLÁVEL):
+   A IA generativa JAMAIS deve desenhar, pintar, renderizar, gerar ou inventar qualquer logomarca, logotipo, texto estilizado de nome de empresa (como NumVapt ou qualquer outro), símbolo, brasão, florzinha, solzinho, mascote ou ícone de marca registrada.
+   O canto superior (área destinada à marca) DEVE SEMPRE permanecer 100% LIMPO, VAZIO e LIVRE de qualquer elemento gráfico ou texto (espaço negativo reservado).
+   A logomarca oficial do cliente é SEMPRE inserida digitalmente pela nossa camada de software em pós-processamento, portanto o modelo de difusão DEVE deixar o fundo perfeitamente limpo nessa área.
+   No "imagePrompt", inclua OBRIGATORIAMENTE a instrução: "The top corner must remain completely clean, empty negative space with zero text and zero logos. It is strictly forbidden to draw any logos, emblems, stylized company names, flower/sun icons, or brand marks anywhere in the artwork."
    [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas.
 
 DIRETRIZES DE TEXTO / INFOGRÁFICO:
@@ -189,9 +191,9 @@ INSTRUÇÃO OBRIGATÓRIA:
 
     const logoDirectiveText = hasLogo
       ? `REGRA MANDATÓRIA DE LOGOMARCA (INVIOLÁVEL):
-A imagem da logomarca oficial do negócio foi anexada como referência visual. Você DEVE OBRIGATORIAMENTE integrar APENAS essa logomarca exata (fornecida na imagem de referência) na arte final, posicionada de forma visível e destacada no canto superior ou cabeçalho, respeitando suas cores, formas e proporções originais sem qualquer distorção. É PROIBIDO criar, desenhar ou inventar qualquer outro logo ou símbolo de marca — use somente a logomarca da referência anexada.`
+A imagem da logomarca oficial do negócio foi anexada como referência visual. A logomarca oficial é aplicada DIGITALMENTE no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A DEIXAR O CANTO SUPERIOR 100% LIMPO E VAZIO, e PROIBIR TOTALMENTE que a IA desenhe, estilize ou invente qualquer logotipo, símbolo, florzinha, solzinho ou o nome da empresa como logo. O canto superior deve ser negative space livre.`
       : `REGRA ABSOLUTA E INVIOLÁVEL — PROIBIÇÃO TOTAL DE LOGOMARCAS FICTÍCIAS:
-NENHUMA logomarca foi fornecida pelo usuário. É TERMINANTEMENTE PROIBIDO desenhar, gerar, renderizar, simular ou inventar qualquer logotipo, símbolo de empresa, ícone corporativo, badge de marca, texto estilizado de nome de empresa, foguete, mascote ou qualquer elemento visual que possa ser interpretado como logomarca. Deixe o canto superior da imagem COMPLETAMENTE LIMPO — esse espaço fica reservado para inserção manual da logo real pelo usuário. NÃO crie qualquer substituto visual para a logo ausente.`;
+NENHUMA logomarca foi fornecida pelo usuário. É TERMINANTEMENTE PROIBIDO desenhar, gerar, renderizar, simular ou inventar qualquer logotipo, símbolo de empresa, ícone corporativo, badge de marca, texto estilizado de nome de empresa, foguete, mascote, florzinha, solzinho ou qualquer elemento visual que possa ser interpretado como logomarca. Deixe o canto superior da imagem COMPLETAMENTE LIMPO — esse espaço fica reservado para inserção manual da logo real pelo usuário. NÃO crie qualquer substituto visual para a logo ausente.`;
 
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
@@ -395,8 +397,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         : "";
 
     const logoMandate = hasLogo
-      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo has been supplied by the user as a reference image. You MUST visibly and prominently integrate ONLY this exact logo into the artwork (positioned at top corner or header badge) with crisp clarity and harmonious contrast, faithfully representing the brand. Do NOT invent any other logo or brand symbol.]"
-      : "[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, company logo, brand emblem, badge, watermark, mascot, rocket icon, cartoon character, monogram, seal, crest, shield, stylized company name, circle with letters, brand symbol, or any graphic element resembling a trademark must appear anywhere in the image. The top corner MUST remain completely empty and clean — this space is deliberately reserved for the client to manually add their real logo. Do NOT place any decorative placeholder in this area.]";
+      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo is composited digitally. The diffusion AI MUST keep the top-left corner 100% CLEAN, BLANK and EMPTY. ABSOLUTE PROHIBITION: Do NOT draw, render, paint or invent any company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges anywhere in the scene.]"
+      : "[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, company logo, brand emblem, badge, watermark, mascot, rocket icon, cartoon character, monogram, seal, crest, shield, stylized company name, circle with letters, brand symbol, flower icon, sun icon, or any graphic element resembling a trademark must appear anywhere in the image. The top corner MUST remain completely empty and clean — this space is deliberately reserved for the client to manually add their real logo. Do NOT place any decorative placeholder in this area.]";
 
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
     const subjectMandate = subjectRef
