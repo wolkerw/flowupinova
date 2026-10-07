@@ -50,6 +50,8 @@ function deepSanitizeFirestoreData(data: any): any {
   return data;
 }
 
+import type { PostApprovalData, PostApprovalStatus } from "@/lib/types/concierge";
+
 // Interface for data stored in Firestore
 export interface PostData {
   id?: string;
@@ -60,7 +62,14 @@ export interface PostData {
   imageUrls: string[];
   isCarousel: boolean;
   platforms: Array<"instagram" | "facebook" | "google" | "linkedin" | "tiktok">;
-  status: "scheduled" | "publishing" | "published" | "failed";
+  status:
+    | "scheduled"
+    | "publishing"
+    | "published"
+    | "failed"
+    | "pending_approval"
+    | "changes_requested"
+    | "rejected";
   scheduledAt: Timestamp;
   mediaFiles?: { url: string; type?: string }[];
   connections: {
@@ -80,6 +89,7 @@ export interface PostData {
   mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
   isStory?: boolean;
   postType?: "feed" | "story" | "reel";
+  approval?: PostApprovalData;
 }
 
 export interface MediaFileInput {
@@ -107,6 +117,7 @@ export type PostDataInput = {
   isStory?: boolean;
   postType?: "feed" | "story" | "reel";
   mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
+  requireApproval?: boolean;
 };
 
 // Interface for data being sent to the client from the service
@@ -499,14 +510,34 @@ export async function schedulePost(
       postData.postType === "story" ||
       (postData.text && postData.text.toLowerCase().includes("#story"));
 
+    const isPendingApproval = Boolean(postData.requireApproval);
+
+    let approvalData: PostApprovalData | undefined = undefined;
+    if (isPendingApproval) {
+      const cryptoRandom =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 14); // 14 dias de validade
+      approvalData = {
+        approvalToken: cryptoRandom,
+        tokenExpiresAt: expires.toISOString(),
+        status: "pending_approval",
+        requestedAt: new Date().toISOString(),
+      };
+    }
+
     const postToSave: any = {
       text: postData.text,
       imageUrls: imageUrls,
       isCarousel: postData.isCarousel,
       platforms: postData.platforms,
       scheduledAt: Timestamp.fromDate(postData.scheduledAt),
-      status: isImmediate ? "publishing" : "scheduled",
+      createdAt: serverTimestamp(),
+      status: isPendingApproval ? "pending_approval" : isImmediate ? "publishing" : "scheduled",
       connections: connectionsToSave,
+      ...(approvalData ? { approval: approvalData } : {}),
       ...(postData.collaborators ? { collaborators: postData.collaborators } : {}),
       ...(postData.userTags ? { userTags: postData.userTags } : {}),
       isStory: isStory,
@@ -523,6 +554,22 @@ export async function schedulePost(
     const sanitizedPostToSave = deepSanitizeFirestoreData(postToSave);
     const docRef = await addDoc(getPostsCollectionRef(userId), sanitizedPostToSave);
     console.log(`Post ${docRef.id} document created with status: ${postToSave.status}.`);
+
+    if (isPendingApproval) {
+      return {
+        success: true,
+        post: {
+          id: docRef.id,
+          text: postToSave.text,
+          scheduledAt: postData.scheduledAt.toISOString(),
+          imageUrls: postToSave.imageUrls,
+          isCarousel: postToSave.isCarousel,
+          platforms: postToSave.platforms,
+          status: "pending_approval",
+          approval: approvalData,
+        } as any,
+      };
+    }
 
     if (isImmediate) {
       // Re-add imageUrls for immediate publishing logic, which expects it.

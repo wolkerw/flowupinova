@@ -20,6 +20,7 @@ import {
   Lightbulb,
   FlaskConical,
   Sparkles,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -37,6 +38,11 @@ const navItems = [
     title: "Usuários",
     href: "/admin/usuarios",
     icon: Users,
+  },
+  {
+    title: "Concierge & Aprovações",
+    href: "/admin/concierge",
+    icon: CheckSquare,
   },
   {
     title: "Atendimento WhatsApp",
