@@ -10,11 +10,18 @@ service cloud.firestore {
 
     // Permite que o próprio usuário leia seu perfil principal
     match /users/{userId} {
-      allow read: if isSignedIn() && isOwner(userId);
+      allow read: if isSignedIn() && (isOwner(userId) || isLinkedApprover(userId));
       // Impede que o cliente sobrescreva atributos protegidos de plano ou role
       allow create, update: if isSignedIn() && isOwner(userId)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdmin', 'isSuperAdmin', 'tier', 'plan', 'status']));
       allow delete: if false;
+    }
+
+    // Permite que o cliente aprovador vinculado acesse e atualize a subcoleção posts do workspace
+    match /users/{userId}/posts/{postId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isLinkedApprover(userId));
+      allow update: if isSignedIn() && (isOwner(userId) || isLinkedApprover(userId));
+      allow create, delete: if isSignedIn() && isOwner(userId);
     }
 
     // Permite que usuários autenticados acessem suas próprias subcoleções autorizadas
@@ -34,6 +41,11 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return request.auth.uid == userId;
+    }
+
+    function isLinkedApprover(userId) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.linkedWorkspaceId == userId;
     }
     
     function isAllowedCollection(collection) {

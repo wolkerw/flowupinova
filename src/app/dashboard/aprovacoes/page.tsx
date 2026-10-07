@@ -145,12 +145,33 @@ export default function ClientApprovalsPage() {
   // Índices de carrossel por post
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
 
+  // Busca segura de posts via API (Admin SDK) garantindo entrega mesmo para o aprovador
+  const fetchPostsViaApi = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/concierge/posts");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.posts && Array.isArray(json.posts)) {
+          setPosts(json.posts);
+          if (json.targetWorkspaceId) setEffectiveWorkspaceId(json.targetWorkspaceId);
+          if (typeof json.isApprover === "boolean") setIsApproverRole(json.isApprover);
+          setLoading(false);
+        }
+      }
+    } catch (err) {
+      console.warn("[ClientApprovalsPage] Falha na busca via API, usando Firestore:", err);
+    }
+  }, []);
+
   // Carregar posts em tempo real do workspace correto
   useEffect(() => {
     if (!user || !user.uid) {
       setLoading(false);
       return;
     }
+
+    // Busca imediata e garantida via API
+    fetchPostsViaApi();
 
     try {
       let unsubscribePosts: (() => void) | null = null;
@@ -184,12 +205,15 @@ export default function ClientApprovalsPage() {
                 id: docSnap.id,
               });
             });
-            setPosts(loadedPosts);
+            if (loadedPosts.length > 0 || !isApprover) {
+              setPosts(loadedPosts);
+            }
             setLoading(false);
           },
           (error) => {
-            console.error("Erro ao carregar posts para aprovação:", error);
-            setLoading(false);
+            console.warn("Listener do Firestore limitado, usando posts da API:", error);
+            // Em caso de restrição do Firestore, a API garante os dados
+            fetchPostsViaApi();
           }
         );
       });
@@ -200,9 +224,9 @@ export default function ClientApprovalsPage() {
       };
     } catch (err) {
       console.error("Erro ao conectar listener:", err);
-      setLoading(false);
+      fetchPostsViaApi();
     }
-  }, [user]);
+  }, [user, fetchPostsViaApi]);
 
   // Contadores por aba
   const pendingPosts = useMemo(() => {
@@ -257,6 +281,7 @@ export default function ClientApprovalsPage() {
         title: "Postagem Aprovada!",
         description: "A postagem foi confirmada e será publicada automaticamente no horário agendado.",
       });
+      fetchPostsViaApi();
     } catch (error) {
       console.error(error);
       toast({
@@ -282,6 +307,7 @@ export default function ClientApprovalsPage() {
         title: "Todas as postagens foram aprovadas!",
         description: `${pendingPosts.length} postagens foram confirmadas no seu cronograma.`,
       });
+      fetchPostsViaApi();
     } catch (error) {
       console.error(error);
       toast({
@@ -316,6 +342,7 @@ export default function ClientApprovalsPage() {
       });
       setSelectedPostForChanges(null);
       setChangeNotes("");
+      fetchPostsViaApi();
     } catch (error) {
       console.error(error);
       toast({
@@ -408,8 +435,8 @@ export default function ClientApprovalsPage() {
             </Button>
           )}
 
-          {/* Botão de aprovação em lote para pendentes */}
-          {activeTab === "pending" && pendingPosts.length > 0 && (
+          {/* Botão de aprovação em lote para pendentes (Exclusivo do Cliente Aprovador) */}
+          {activeTab === "pending" && pendingPosts.length > 0 && isApproverRole && (
             <Button
               onClick={handleApproveAll}
               disabled={bulkApproving}
@@ -663,35 +690,50 @@ export default function ClientApprovalsPage() {
                   {/* Ações do Card */}
                   <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
                     {post.status === "pending_approval" || post.approval?.status === "pending" ? (
-                      <>
-                        <Button
-                          onClick={() => handleApprove(post)}
-                          disabled={submittingAction === `approve-${post.id}`}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-9 rounded-lg gap-1.5"
-                        >
-                          {submittingAction === `approve-${post.id}` ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          )}
-                          <span>Aprovar Post</span>
-                        </Button>
+                      isApproverRole ? (
+                        <>
+                          <Button
+                            onClick={() => handleApprove(post)}
+                            disabled={submittingAction === `approve-${post.id}`}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-9 rounded-lg gap-1.5"
+                          >
+                            {submittingAction === `approve-${post.id}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>Aprovar Post</span>
+                          </Button>
 
-                        <Button
-                          onClick={() => {
-                            setSelectedPostForChanges(post);
-                            setChangeNotes(post.approval?.reviewNotes || "");
-                          }}
-                          variant="outline"
-                          className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-9 rounded-lg gap-1.5"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5 text-[#FA6305]" />
-                          <span>Pedir Ajuste</span>
-                        </Button>
-                      </>
+                          <Button
+                            onClick={() => {
+                              setSelectedPostForChanges(post);
+                              setChangeNotes(post.approval?.reviewNotes || "");
+                            }}
+                            disabled={submittingAction === `approve-${post.id}`}
+                            variant="outline"
+                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-9 rounded-lg gap-1.5"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-[#FA6305]" />
+                            <span>Pedir Ajuste</span>
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="w-full py-2.5 px-3 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs font-medium flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 font-semibold">
+                            <Clock className="w-3.5 h-3.5 text-sky-400" />
+                            Aguardando Aprovação do Cliente
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Ação exclusiva do cliente
+                          </span>
+                        </div>
+                      )
                     ) : post.status === "changes_requested" || post.approval?.status === "changes_requested" ? (
                       <div className="w-full py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium text-center">
-                        ⏳ Aguardando revisão do Gestor
+                        {isApproverRole
+                          ? "⏳ Aguardando revisão do Gestor"
+                          : "⚠️ Ajustes solicitados pelo Cliente"}
                       </div>
                     ) : post.status === "scheduled" ? (
                       <div className="w-full py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium text-center flex items-center justify-center gap-1.5">

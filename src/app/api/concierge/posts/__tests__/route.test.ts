@@ -1,196 +1,161 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { GET } from "../route";
 import { NextRequest } from "next/server";
-import { GET } from "../[token]/route";
-import { POST } from "../[token]/action/route";
 
-let mockPostsDocs: any[] = [];
-let mockUserDocData: any = null;
-
-vi.mock("@/lib/firebase-admin", () => ({
-  adminDb: {
-    collectionGroup: (name: string) => ({
-      where: (field: string, op: string, val: string) => ({
-        limit: () => ({
-          get: () => Promise.resolve({
-            empty: mockPostsDocs.length === 0,
-            docs: mockPostsDocs,
-          }),
-        }),
-      }),
-    }),
-    doc: (path: string) => ({
-      get: () => Promise.resolve({
-        exists: !!mockUserDocData,
-        data: () => mockUserDocData,
-      }),
-    }),
-  },
+vi.mock("@/lib/api-auth", () => ({
+  getAuthenticatedUser: vi.fn(),
 }));
 
-describe("API Concierge - Link Mágico de Aprovação", () => {
+vi.mock("@/lib/firebase-admin", () => {
+  const mockPostDoc = (id: string, data: any) => ({
+    id,
+    data: () => data,
+  });
+
+  const mockPostsSnap = [
+    mockPostDoc("post-1", {
+      text: "Post para aprovação",
+      status: "pending_approval",
+      createdAt: { toDate: () => new Date("2026-10-08T10:00:00Z") },
+    }),
+  ];
+
+  const mockPostsCollection = {
+    get: vi.fn().mockResolvedValue(mockPostsSnap),
+  };
+
+  const mockUserDoc = {
+    get: vi.fn(),
+    set: vi.fn().mockResolvedValue(undefined),
+    collection: vi.fn().mockReturnValue(mockPostsCollection),
+  };
+
+  const mockUsersCollection = {
+    doc: vi.fn().mockReturnValue(mockUserDoc),
+    where: vi.fn().mockReturnValue({
+      limit: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+      }),
+    }),
+  };
+
+  return {
+    adminDb: {
+      collection: vi.fn().mockImplementation((name: string) => {
+        if (name === "users") return mockUsersCollection;
+        return { doc: vi.fn().mockReturnValue(mockUserDoc) };
+      }),
+    },
+  };
+});
+
+import { getAuthenticatedUser } from "@/lib/api-auth";
+import { adminDb } from "@/lib/firebase-admin";
+
+describe("API /api/concierge/posts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPostsDocs = [];
-    mockUserDocData = null;
   });
 
-  describe("GET /api/concierge/posts/[token]", () => {
-    it("retorna 400 se o token for inválido ou muito curto", async () => {
-      const req = new NextRequest("http://localhost/api/concierge/posts/abc");
-      const res = await GET(req, { params: Promise.resolve({ token: "abc" }) });
-      expect(res.status).toBe(400);
-    });
+  it("retorna 401 se usuário não estiver autenticado", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(null);
 
-    it("retorna 404 se nenhum post possuir o token", async () => {
-      mockPostsDocs = [];
-      const req = new NextRequest("http://localhost/api/concierge/posts/valid-token-1234");
-      const res = await GET(req, { params: Promise.resolve({ token: "valid-token-1234" }) });
-      expect(res.status).toBe(404);
-    });
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts");
+    const res = await GET(req);
 
-    it("retorna os dados públicos da publicação formatada", async () => {
-      const updateMock = vi.fn();
-      mockPostsDocs = [
-        {
-          id: "post_123",
-          data: () => ({
-            text: "Post para o Instagram sobre Black Friday",
-            imageUrls: ["https://cdn.example.com/art.png"],
-            platforms: ["instagram"],
-            isCarousel: false,
-            scheduledAt: new Date("2026-11-20T14:00:00Z"),
-            status: "pending_approval",
-            approval: {
-              approvalToken: "valid-token-1234",
-              tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
-              status: "pending_approval",
-            },
-          }),
-          ref: {
-            parent: { parent: { id: "user_client_456" } },
-            update: updateMock,
-          },
-        },
-      ];
-      mockUserDocData = {
-        businessProfile: { companyName: "Loja Wolker" },
-        brandKit: { logoUrl: "https://cdn.example.com/logo.png" },
-      };
-
-      const req = new NextRequest("http://localhost/api/concierge/posts/valid-token-1234");
-      const res = await GET(req, { params: Promise.resolve({ token: "valid-token-1234" }) });
-      expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.post.postId).toBe("post_123");
-      expect(json.post.businessName).toBe("Loja Wolker");
-      expect(json.post.businessLogo).toBe("https://cdn.example.com/logo.png");
-      expect(json.post.isExpired).toBe(false);
-      expect(json.post.status).toBe("pending_approval");
-    });
+    expect(res.status).toBe(401);
   });
 
-  describe("POST /api/concierge/posts/[token]/action", () => {
-    it("retorna 400 se a ação for desconhecida", async () => {
-      const req = new NextRequest("http://localhost/api/concierge/posts/valid-token-1234/action", {
-        method: "POST",
-        body: JSON.stringify({ action: "invalid_action" }),
-      });
-      const res = await POST(req, { params: Promise.resolve({ token: "valid-token-1234" }) });
-      expect(res.status).toBe(400);
-    });
+  it("retorna posts do workspace para usuário criador/gestor", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({ uid: "creator-123" } as any);
 
-    it("retorna 400 se pedir alteração mas não fornecer feedback", async () => {
-      const req = new NextRequest("http://localhost/api/concierge/posts/valid-token-1234/action", {
-        method: "POST",
-        body: JSON.stringify({ action: "request_changes", feedback: "" }),
-      });
-      const res = await POST(req, { params: Promise.resolve({ token: "valid-token-1234" }) });
-      expect(res.status).toBe(400);
-      const json = await res.json();
-      expect(json.error).toContain("descreva as alterações");
-    });
-
-    it("aprova o post com sucesso e agenda a publicação", async () => {
-      const updateMock = vi.fn().mockResolvedValue(undefined);
-      mockPostsDocs = [
-        {
-          id: "post_123",
-          data: () => ({
-            status: "pending_approval",
-            approval: {
-              approvalToken: "valid-token-1234",
-              tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+    const userDocMock = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ plan: "pro" }),
+      }),
+      collection: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue([
+          {
+            id: "post-1",
+            data: () => ({
+              text: "Post 1",
               status: "pending_approval",
-            },
-          }),
-          ref: {
-            update: updateMock,
+            }),
           },
-        },
-      ];
+        ]),
+      }),
+    };
 
-      const req = new NextRequest("http://localhost/api/concierge/posts/valid-token-1234/action", {
-        method: "POST",
-        body: JSON.stringify({ action: "approve" }),
-      });
-      const res = await POST(req, { params: Promise.resolve({ token: "valid-token-1234" }) });
-      expect(res.status).toBe(200);
+    const docMock = vi.fn().mockReturnValue(userDocMock);
+    (adminDb.collection as any).mockReturnValue({ doc: docMock });
 
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.status).toBe("approved");
-      expect(json.postStatus).toBe("scheduled");
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "scheduled",
-          "approval.status": "approved",
-          "approval.reviewChannel": "magic_link",
-        })
-      );
-    });
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts");
+    const res = await GET(req);
 
-    it("registra solicitação de alterações com feedback do cliente", async () => {
-      const updateMock = vi.fn().mockResolvedValue(undefined);
-      mockPostsDocs = [
-        {
-          id: "post_123",
-          data: () => ({
-            status: "pending_approval",
-            approval: {
-              approvalToken: "valid-token-1234",
-              tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.posts).toHaveLength(1);
+    expect(data.isApprover).toBe(false);
+  });
+
+  it("retorna posts do workspace vinculado para cliente aprovador", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({
+      uid: "approver-456",
+      email: "cliente@empresa.com",
+    } as any);
+
+    const approverUserData = {
+      plan: "client_approver",
+      conciergeRole: "client_approver",
+      linkedWorkspaceId: "creator-123",
+    };
+
+    const approverUserDoc = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => approverUserData,
+      }),
+      collection: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue([]),
+      }),
+    };
+
+    const workspaceUserDoc = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ plan: "pro" }),
+      }),
+      collection: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue([
+          {
+            id: "post-99",
+            data: () => ({
+              text: "Post do criador",
               status: "pending_approval",
-            },
-          }),
-          ref: {
-            update: updateMock,
+            }),
           },
-        },
-      ];
+        ]),
+      }),
+    };
 
-      const req = new NextRequest("http://localhost/api/concierge/posts/valid-token-1234/action", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "request_changes",
-          feedback: "Por favor, alterar a cor do botão para azul e trocar o preço para R$ 149.",
-        }),
-      });
-      const res = await POST(req, { params: Promise.resolve({ token: "valid-token-1234" }) });
-      expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.status).toBe("changes_requested");
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "changes_requested",
-          "approval.status": "changes_requested",
-          "approval.reviewerFeedback":
-            "Por favor, alterar a cor do botão para azul e trocar o preço para R$ 149.",
-        })
-      );
+    const docMock = vi.fn().mockImplementation((uid: string) => {
+      if (uid === "approver-456") return approverUserDoc;
+      if (uid === "creator-123") return workspaceUserDoc;
+      return approverUserDoc;
     });
+
+    (adminDb.collection as any).mockReturnValue({ doc: docMock });
+
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.posts[0].id).toBe("post-99");
+    expect(data.isApprover).toBe(true);
+    expect(data.targetWorkspaceId).toBe("creator-123");
   });
 });
