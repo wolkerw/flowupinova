@@ -187,8 +187,8 @@ export default function ClientApprovalsPage() {
       });
 
       return () => {
-        unsubscribeUser();
-        if (unsubscribePosts) unsubscribePosts();
+        if (typeof unsubscribeUser === "function") unsubscribeUser();
+        if (typeof unsubscribePosts === "function") unsubscribePosts();
       };
     } catch (err) {
       console.error("Erro ao conectar listener:", err);

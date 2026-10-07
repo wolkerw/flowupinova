@@ -279,9 +279,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       });
 
       return () => {
-        unsubscribeUser();
-        unsubscribePosts();
-        unsubscribeOnboarding();
+        if (typeof unsubscribeUser === "function") {
+          unsubscribeUser();
+        }
+        if (typeof unsubscribePosts === "function") {
+          unsubscribePosts();
+        }
+        if (typeof unsubscribeOnboarding === "function") {
+          unsubscribeOnboarding();
+        }
       };
     }
   }, [user, fetchAndProcessNotifications]);
