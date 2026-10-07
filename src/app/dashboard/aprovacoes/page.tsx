@@ -26,6 +26,8 @@ import {
   Key,
   Copy,
   Check,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -35,7 +37,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { approvePostByClient, requestPostChangesByClient, type PostData } from "@/lib/services/posts-service";
 import type { ClientApproverAccount } from "@/lib/types/concierge";
-import { cn } from "@/lib/utils";
+import { cn, isVideoMedia } from "@/lib/utils";
 
 type TabType = "pending" | "changes" | "approved" | "published";
 
@@ -59,6 +61,7 @@ export default function ClientApprovalsPage() {
   const [approverForm, setApproverForm] = useState({ name: "", email: "", password: "" });
   const [savingApprover, setSavingApprover] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [selectedImageToView, setSelectedImageToView] = useState<string | null>(null);
 
   // Buscar aprovador vinculado
   const fetchApprover = React.useCallback(async () => {
@@ -328,6 +331,10 @@ export default function ClientApprovalsPage() {
   const getImages = (post: ClientPostItem): string[] => {
     if (post.imageUrls && post.imageUrls.length > 0) return post.imageUrls;
     if (post.imageUrl) return [post.imageUrl];
+    if (post.videoUrl) return [post.videoUrl];
+    if (post.mediaFiles && post.mediaFiles.length > 0) {
+      return post.mediaFiles.map((m: any) => m.url || m).filter(Boolean);
+    }
     return [];
   };
 
@@ -569,13 +576,37 @@ export default function ClientApprovalsPage() {
                 </div>
 
                 {/* Visualizador de Imagem / Carrossel */}
-                <div className="relative aspect-square bg-slate-950 flex items-center justify-center overflow-hidden group">
+                <div className="relative w-full aspect-[4/5] bg-slate-950 flex items-center justify-center overflow-hidden group">
                   {images.length > 0 ? (
-                    <img
-                      src={images[currentImgIndex]}
-                      alt="Arte do post"
-                      className="w-full h-full object-cover select-none"
-                    />
+                    <>
+                      {isVideoMedia(images[currentImgIndex]) ? (
+                        <video
+                          src={images[currentImgIndex]}
+                          controls
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <img
+                          src={images[currentImgIndex]}
+                          alt="Arte do post"
+                          className="w-full h-full object-contain select-none cursor-pointer transition-transform duration-200 hover:scale-[1.01]"
+                          onClick={() => setSelectedImageToView(images[currentImgIndex])}
+                        />
+                      )}
+
+                      {/* Botão de Expandir / Ver Imagem Completa */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImageToView(images[currentImgIndex]);
+                        }}
+                        className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
+                        title="Visualizar imagem completa em tamanho real"
+                      >
+                        <Maximize2 className="w-4 h-4" />
+                      </button>
+                    </>
                   ) : (
                     <div className="text-slate-600 text-xs flex flex-col items-center gap-2">
                       <Sparkles className="w-6 h-6" />
@@ -588,19 +619,19 @@ export default function ClientApprovalsPage() {
                     <>
                       <button
                         onClick={() => prevImage(post.id, images.length)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-10"
                         aria-label="Imagem anterior"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => nextImage(post.id, images.length)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-10"
                         aria-label="Próxima imagem"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
-                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 text-[11px] font-semibold text-white">
+                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 text-[11px] font-semibold text-white z-10">
                         {currentImgIndex + 1} / {images.length}
                       </div>
                     </>
@@ -826,6 +857,43 @@ export default function ClientApprovalsPage() {
               <span>{approverData ? "Atualizar Acesso" : "Criar Acesso"}</span>
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Visualização da Imagem/Vídeo em Tela Cheia */}
+      <Dialog open={!!selectedImageToView} onOpenChange={(open) => !open && setSelectedImageToView(null)}>
+        <DialogContent className="max-w-5xl p-0 overflow-hidden bg-transparent border-none shadow-2xl">
+          <DialogTitle className="sr-only">Visualizar Imagem Completa</DialogTitle>
+          <DialogDescription className="sr-only">
+            Visualização em alta resolução da mídia completa com todos os textos e títulos.
+          </DialogDescription>
+          {selectedImageToView && (
+            <div className="relative w-full h-[88vh] flex items-center justify-center bg-black/95 rounded-xl backdrop-blur-md overflow-hidden p-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4 z-50 h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80"
+                onClick={() => setSelectedImageToView(null)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              {isVideoMedia(selectedImageToView) ? (
+                <video
+                  src={selectedImageToView}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-full max-w-full rounded-md object-contain shadow-2xl"
+                />
+              ) : (
+                <img
+                  src={selectedImageToView}
+                  alt="Arte completa em alta resolução"
+                  className="max-h-full max-w-full object-contain rounded-md shadow-2xl"
+                />
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
