@@ -680,35 +680,38 @@ export async function approvePostByClient(userId: string, postId: string): Promi
     throw new Error("UserID e PostID são obrigatórios para aprovar a publicação.");
   }
   try {
-    const res = await fetch(`/api/concierge/posts/${postId}/action`, {
+    const res = await fetch("/api/concierge/posts/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "approve" }),
+      body: JSON.stringify({ postId, workspaceId: userId, action: "approve" }),
     });
 
     if (res.ok) {
       return;
     }
 
-    // Fallback direto via Firestore
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    // Se for erro de validação da API, repassa
+    if (error?.message && !error.message.includes("fetch") && !error.message.includes("URL") && !error.message.includes("network")) {
+      throw error;
+    }
+  }
+
+  // Fallback direto via Firestore se aplicável
+  try {
     const postDocRef = doc(db, "users", userId, "posts", postId);
     await updateDoc(postDocRef, {
       status: "scheduled",
       "approval.status": "approved",
       "approval.reviewedAt": Timestamp.now(),
     });
-  } catch (error: any) {
-    try {
-      const postDocRef = doc(db, "users", userId, "posts", postId);
-      await updateDoc(postDocRef, {
-        status: "scheduled",
-        "approval.status": "approved",
-        "approval.reviewedAt": Timestamp.now(),
-      });
-    } catch (fallbackErr: any) {
-      console.error(`Error approving post ${postId} for user ${userId}:`, fallbackErr);
-      throw new Error("Não foi possível aprovar a publicação.");
-    }
+  } catch (fallbackErr: any) {
+    console.error(`Error approving post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível aprovar a publicação.");
   }
 }
 
@@ -721,17 +724,29 @@ export async function requestPostChangesByClient(
     throw new Error("UserID e PostID são obrigatórios para solicitar ajustes.");
   }
   try {
-    const res = await fetch(`/api/concierge/posts/${postId}/action`, {
+    const res = await fetch("/api/concierge/posts/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "request_changes", notes }),
+      body: JSON.stringify({ postId, workspaceId: userId, action: "request_changes", notes }),
     });
 
     if (res.ok) {
       return;
     }
 
-    // Fallback direto via Firestore
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    // Se for erro de validação da API, repassa
+    if (error?.message && !error.message.includes("fetch") && !error.message.includes("URL") && !error.message.includes("network")) {
+      throw error;
+    }
+  }
+
+  // Fallback direto via Firestore
+  try {
     const postDocRef = doc(db, "users", userId, "posts", postId);
     await updateDoc(postDocRef, {
       status: "changes_requested",
@@ -739,19 +754,9 @@ export async function requestPostChangesByClient(
       "approval.reviewNotes": notes,
       "approval.reviewedAt": Timestamp.now(),
     });
-  } catch (error: any) {
-    try {
-      const postDocRef = doc(db, "users", userId, "posts", postId);
-      await updateDoc(postDocRef, {
-        status: "changes_requested",
-        "approval.status": "changes_requested",
-        "approval.reviewNotes": notes,
-        "approval.reviewedAt": Timestamp.now(),
-      });
-    } catch (fallbackErr: any) {
-      console.error(`Error requesting changes for post ${postId} for user ${userId}:`, fallbackErr);
-      throw new Error("Não foi possível enviar a solicitação de ajustes.");
-    }
+  } catch (fallbackErr: any) {
+    console.error(`Error requesting changes for post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível enviar a solicitação de ajustes.");
   }
 }
 
