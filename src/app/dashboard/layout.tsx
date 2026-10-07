@@ -171,9 +171,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
 
-  // Redirecionamento automático APENAS para o login do Cliente Aprovador
+  // Redirecionamento estrito APENAS para a Central de Aprovações para o Cliente Aprovador
   useEffect(() => {
-    if (isClientApprover && pathname === "/dashboard") {
+    if (isClientApprover && pathname !== "/dashboard/aprovacoes") {
       router.replace("/dashboard/aprovacoes");
     }
   }, [isClientApprover, pathname, router]);
@@ -205,7 +205,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (docSnap.exists()) {
           const uData = docSnap.data();
           setUserPlan(uData.plan || "free");
-          const clientApproverMode = uData.conciergeRole === "client_approver";
+          const clientApproverMode = Boolean(
+            uData.conciergeRole === "client_approver" ||
+            uData.plan === "client_approver" ||
+            uData.role === "client_approver" ||
+            String(uData.plan || "").toLowerCase() === "client_approver"
+          );
           setIsClientApprover(clientApproverMode);
           setIsConcierge(
             Boolean(uData.isConcierge || uData.managedService?.serviceMode === "concierge" || clientApproverMode)
@@ -325,23 +330,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return "U";
   };
 
-  const navigationItems = useMemo(() => {
+  const navigationItems = useMemo<
+    {
+      title: string;
+      url: string;
+      icon: React.ComponentType<any>;
+      disabled?: boolean;
+    }[]
+  >(() => {
     if (isClientApprover) {
       return [
         {
           title: "Aprovações",
           url: "/dashboard/aprovacoes",
           icon: CheckSquare,
-        },
-        {
-          title: "Meu Negócio",
-          url: "/dashboard/meu-negocio",
-          icon: Building2,
-        },
-        {
-          title: "Relatórios",
-          url: "/dashboard/relatorios",
-          icon: BarChart3,
         },
       ];
     }
@@ -422,20 +424,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      className="transition-colors hover:bg-primary/10 hover:text-primary"
-                    >
-                      <Link
-                        href="/dashboard/configuracoes"
-                        className="flex w-full items-center gap-3"
+                  {!isClientApprover && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        className="transition-colors hover:bg-primary/10 hover:text-primary"
                       >
-                        <Settings2 className="h-4 w-4" />
-                        <span>Configurações</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                        <Link
+                          href="/dashboard/configuracoes"
+                          className="flex w-full items-center gap-3"
+                        >
+                          <Settings2 className="h-4 w-4" />
+                          <span>Configurações</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -474,7 +478,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
-                {!isConcierge &&
+                {!isConcierge && !isClientApprover &&
                   (userPlan === "trial" || userPlan === "free" || userPlan === "unsubscribed") && (
                     <Button
                       onClick={() => setShowSubscriptionModal(true)}
@@ -573,24 +577,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/dashboard/minha-conta"
-                        className="flex w-full cursor-pointer items-center"
-                      >
-                        <User className="mr-2 h-4 w-4" />
-                        Minha Conta
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/dashboard/configuracoes"
-                        className="flex w-full cursor-pointer items-center"
-                      >
-                        <Settings2 className="mr-2 h-4 w-4" />
-                        Configurações do Negócio
-                      </Link>
-                    </DropdownMenuItem>
+                    {!isClientApprover && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/dashboard/minha-conta"
+                            className="flex w-full cursor-pointer items-center"
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            Minha Conta
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/dashboard/configuracoes"
+                            className="flex w-full cursor-pointer items-center"
+                          >
+                            <Settings2 className="mr-2 h-4 w-4" />
+                            Configurações do Negócio
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuItem onSelect={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Sair
@@ -602,7 +610,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           <div className="flex-1 overflow-auto">
-            {isClientApprover && pathname === "/dashboard" ? (
+            {isClientApprover && pathname !== "/dashboard/aprovacoes" ? (
               <div className="flex h-full w-full flex-col items-center justify-center p-8 text-slate-400">
                 <Loader2 className="h-8 w-8 animate-spin text-[#0083C7] mb-2" />
                 <p className="text-sm">Redirecionando para a Central de Aprovações...</p>

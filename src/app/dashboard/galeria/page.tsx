@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { db, storage } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, deleteDoc, addDoc, Timestamp } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,11 +30,17 @@ import {
   Play,
   Film,
   Video,
+  CheckSquare,
+  Instagram,
+  Facebook,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, isVideoMedia } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface GalleryMediaItem {
   id: string;
@@ -62,6 +68,13 @@ export default function GaleriaPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [selectedImageToView, setSelectedImageToView] = useState<string | null>(null);
+
+  // Estados para envio de mídia para aprovação do cliente
+  const [selectedItemForApproval, setSelectedItemForApproval] = useState<GalleryMediaItem | null>(null);
+  const [approvalCaption, setApprovalCaption] = useState<string>("");
+  const [approvalScheduleDate, setApprovalScheduleDate] = useState<string>("");
+  const [approvalPlatforms, setApprovalPlatforms] = useState<string[]>(["instagram", "facebook"]);
+  const [isSubmittingApproval, setIsSubmittingApproval] = useState<boolean>(false);
 
   // Escutar tanto a subcoleção mediaGallery quanto os posts publicados do usuário em tempo real
   useEffect(() => {
@@ -314,6 +327,101 @@ export default function GaleriaPage() {
     }
   };
 
+  const handleOpenApprovalModal = (item: GalleryMediaItem) => {
+    setSelectedItemForApproval(item);
+    setApprovalCaption(item.caption || item.prompt || "");
+
+    // Data padrão: amanhã às 10:00 local
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+    const day = String(tomorrow.getDate()).padStart(2, "0");
+    const hours = String(tomorrow.getHours()).padStart(2, "0");
+    const minutes = String(tomorrow.getMinutes()).padStart(2, "0");
+    setApprovalScheduleDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+    setApprovalPlatforms(["instagram", "facebook"]);
+  };
+
+  const handleSendToApproval = async () => {
+    if (!user) return;
+    if (!selectedItemForApproval) return;
+
+    if (!approvalCaption.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Legenda necessária",
+        description: "Por favor, preencha ou revise a legenda antes de enviar para aprovação.",
+      });
+      return;
+    }
+
+    if (!approvalScheduleDate) {
+      toast({
+        variant: "destructive",
+        title: "Data e horário necessários",
+        description: "Selecione a data e o horário previstos para a publicação.",
+      });
+      return;
+    }
+
+    if (approvalPlatforms.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Selecione uma rede",
+        description: "Escolha pelo menos uma rede social para a publicação.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingApproval(true);
+      const isVideo = selectedItemForApproval.type === "video" || isVideoMedia(selectedItemForApproval.url);
+      const scheduledDateTime = new Date(approvalScheduleDate);
+
+      const postDocData = {
+        text: approvalCaption.trim(),
+        caption: approvalCaption.trim(),
+        imageUrl: isVideo ? null : selectedItemForApproval.url,
+        videoUrl: isVideo ? selectedItemForApproval.url : null,
+        imageUrls: isVideo ? [] : [selectedItemForApproval.url],
+        mediaFiles: [{ url: selectedItemForApproval.url, type: isVideo ? "video" : "image" }],
+        mediaType: isVideo ? "video" : "image",
+        platforms: approvalPlatforms,
+        scheduledAt: Timestamp.fromDate(scheduledDateTime),
+        status: "pending_approval",
+        approval: {
+          status: "pending",
+          requestedAt: Timestamp.now(),
+          requestedBy: user.email || user.uid,
+        },
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      const postsCol = collection(db, "users", user.uid, "posts");
+      await addDoc(postsCol, postDocData);
+
+      toast({
+        variant: "success",
+        title: "Enviado para Aprovação!",
+        description: "O post foi enviado com sucesso para a Central de Aprovações do seu cliente.",
+      });
+
+      setSelectedItemForApproval(null);
+    } catch (err: any) {
+      console.error("Erro ao enviar post para aprovação:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Enviar",
+        description: "Não foi possível enviar para aprovação: " + (err?.message || "Tente novamente"),
+      });
+    } finally {
+      setIsSubmittingApproval(false);
+    }
+  };
+
   const handleDeleteItem = async (item: GalleryMediaItem) => {
     if (!user) return;
 
@@ -553,11 +661,19 @@ export default function GaleriaPage() {
                       </div>
 
                       {/* Overlays rápidos de Hover */}
-                      <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 p-2">
+                        <Button
+                          size="sm"
+                          className="flex items-center gap-1.5 rounded-full text-xs font-bold shadow-md bg-[#0083C7] hover:bg-[#006ea8] text-white h-8 px-3"
+                          onClick={() => handleOpenApprovalModal(item)}
+                        >
+                          <CheckSquare className="h-3.5 w-3.5" />
+                          Aprovação
+                        </Button>
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="flex items-center gap-1.5 rounded-full text-xs font-bold shadow-md hover:bg-white"
+                          className="flex items-center gap-1.5 rounded-full text-xs font-bold shadow-md hover:bg-white h-8 px-3"
                           onClick={() => handleCreatePost(item)}
                         >
                           <Send className="h-3.5 w-3.5" />
@@ -639,39 +755,50 @@ export default function GaleriaPage() {
                       </div>
 
                       {/* Botões de Ação na base */}
-                      <div className="flex w-full gap-2">
+                      <div className="flex flex-col w-full gap-2 pt-1">
                         <Button
-                          variant="outline"
                           size="sm"
-                          className="flex-1 border-gray-200 text-xs font-semibold transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                          onClick={() => handleCreatePost(item)}
+                          className="w-full bg-[#0083C7] hover:bg-[#0072ad] text-white text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 rounded-lg h-9 transition-colors"
+                          onClick={() => handleOpenApprovalModal(item)}
                         >
-                          <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                          Usar em Post
+                          <CheckSquare className="h-4 w-4 text-white" />
+                          Enviar para Aprovação
                         </Button>
 
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 shrink-0 border-gray-200 text-gray-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                                disabled={isDownloading === item.url}
-                                onClick={() => handleDownloadImage(item.url, item.fileName)}
-                              >
-                                {isDownloading === item.url ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                                ) : (
-                                  <Download className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="rounded border-none bg-slate-950 px-2 py-1 text-[10px] text-white shadow">
-                              Baixar imagem
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <div className="flex w-full gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 border-gray-200 text-xs font-semibold transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 h-8"
+                            onClick={() => handleCreatePost(item)}
+                          >
+                            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                            Criar Post
+                          </Button>
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0 border-gray-200 text-gray-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                                  disabled={isDownloading === item.url}
+                                  onClick={() => handleDownloadImage(item.url, item.fileName)}
+                                >
+                                  {isDownloading === item.url ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                  ) : (
+                                    <Download className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="rounded border-none bg-slate-950 px-2 py-1 text-[10px] text-white shadow">
+                                Baixar imagem
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -717,6 +844,149 @@ export default function GaleriaPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Envio para Aprovação do Cliente */}
+      <Dialog
+        open={!!selectedItemForApproval}
+        onOpenChange={(open) => !open && setSelectedItemForApproval(null)}
+      >
+        <DialogContent className="max-w-lg bg-white border border-slate-200 rounded-xl shadow-xl p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <CheckSquare className="h-5 w-5 text-[#0083C7]" />
+              Enviar para Aprovação do Cliente
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Configure a legenda e a data prevista. O cliente verá este post na Central de Aprovações dele para revisar e aprovar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedItemForApproval && (
+            <div className="space-y-4 py-2">
+              {/* Prévia da mídia selecionada */}
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-slate-200 shrink-0">
+                  {selectedItemForApproval.type === "video" || isVideoMedia(selectedItemForApproval.url) ? (
+                    <video src={selectedItemForApproval.url} className="w-full h-full object-cover" />
+                  ) : (
+                    <Image
+                      src={selectedItemForApproval.url}
+                      alt="Prévia da imagem"
+                      layout="fill"
+                      objectFit="cover"
+                      unoptimized
+                    />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-800 truncate">
+                    {selectedItemForApproval.fileName || "Mídia selecionada"}
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    {selectedItemForApproval.type === "video" || isVideoMedia(selectedItemForApproval.url)
+                      ? "Vídeo da Galeria"
+                      : "Imagem da Galeria"}
+                  </p>
+                  <Badge variant="secondary" className="mt-1 text-[10px] bg-blue-50 text-[#0083C7] border-blue-200 font-medium">
+                    Ficará com status Pendente de Aprovação
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Legenda da Publicação */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Legenda da Publicação</Label>
+                <Textarea
+                  value={approvalCaption}
+                  onChange={(e) => setApprovalCaption(e.target.value)}
+                  placeholder="Escreva ou ajuste a legenda da postagem que o cliente irá avaliar..."
+                  rows={4}
+                  className="text-xs resize-none"
+                />
+              </div>
+
+              {/* Data e Horário Previstos */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Data e Horário Previstos</Label>
+                <Input
+                  type="datetime-local"
+                  value={approvalScheduleDate}
+                  onChange={(e) => setApprovalScheduleDate(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              {/* Redes Sociais */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Canais de Publicação</Label>
+                <div className="flex items-center gap-4 pt-1">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={approvalPlatforms.includes("instagram")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setApprovalPlatforms([...approvalPlatforms, "instagram"]);
+                        } else {
+                          setApprovalPlatforms(approvalPlatforms.filter((p) => p !== "instagram"));
+                        }
+                      }}
+                      className="rounded border-slate-300 text-[#0083C7] focus:ring-[#0083C7]"
+                    />
+                    <Instagram className="h-4 w-4 text-pink-600" />
+                    Instagram
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={approvalPlatforms.includes("facebook")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setApprovalPlatforms([...approvalPlatforms, "facebook"]);
+                        } else {
+                          setApprovalPlatforms(approvalPlatforms.filter((p) => p !== "facebook"));
+                        }
+                      }}
+                      className="rounded border-slate-300 text-[#0083C7] focus:ring-[#0083C7]"
+                    />
+                    <Facebook className="h-4 w-4 text-blue-600" />
+                    Facebook
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedItemForApproval(null)}
+              disabled={isSubmittingApproval}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="bg-[#0083C7] hover:bg-[#0072ad] text-white font-bold"
+              onClick={handleSendToApproval}
+              disabled={isSubmittingApproval}
+            >
+              {isSubmittingApproval ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-1.5 h-3.5 w-3.5" />
+                  Enviar para Aprovação
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

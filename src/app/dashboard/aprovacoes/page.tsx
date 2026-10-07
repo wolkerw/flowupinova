@@ -156,7 +156,12 @@ export default function ClientApprovalsPage() {
       const unsubscribeUser = onSnapshot(userDocRef, (userSnap) => {
         const uData = userSnap.data();
         const workspaceId = uData?.linkedWorkspaceId || user.uid;
-        const isApprover = uData?.conciergeRole === "client_approver";
+        const isApprover = Boolean(
+          uData?.conciergeRole === "client_approver" ||
+          uData?.plan === "client_approver" ||
+          uData?.role === "client_approver" ||
+          String(uData?.plan || "").toLowerCase() === "client_approver"
+        );
         setEffectiveWorkspaceId(workspaceId);
         setIsApproverRole(isApprover);
 

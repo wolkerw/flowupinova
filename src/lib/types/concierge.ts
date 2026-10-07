@@ -14,6 +14,7 @@ export interface ClientApproverAccount {
 export type PostApprovalStatus =
   | "not_required"
   | "pending_approval"
+  | "pending"
   | "approved"
   | "changes_requested"
   | "rejected";
@@ -28,12 +29,14 @@ export interface ManagedServiceConfig {
 }
 
 export interface PostApprovalData {
-  approvalToken: string;
-  tokenExpiresAt: string; // ISO String
+  approvalToken?: string;
+  tokenExpiresAt?: string; // ISO String
   status: PostApprovalStatus;
-  requestedAt?: string;
+  requestedAt?: any;
+  requestedBy?: string;
   reviewedAt?: string | null;
   reviewerFeedback?: string | null;
+  reviewNotes?: string | null;
   reviewChannel?: "magic_link" | "dashboard" | null;
 }
 
