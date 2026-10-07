@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -156,6 +156,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -163,10 +164,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userPlan, setUserPlan] = useState<string>("free");
+  const [isConcierge, setIsConcierge] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
+
+  // Redirecionamento automático de clientes Concierge / Aprovações
+  useEffect(() => {
+    if (isConcierge && pathname === "/dashboard") {
+      router.replace("/dashboard/aprovacoes");
+    }
+  }, [isConcierge, pathname, router]);
 
   const fetchAndProcessNotifications = useCallback(async () => {
     if (!user) return;
@@ -191,7 +200,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const userDocRef = doc(db, `users/${user.uid}`);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-          setUserPlan(docSnap.data().plan || "free");
+          const uData = docSnap.data();
+          setUserPlan(uData.plan || "free");
+          setIsConcierge(
+            Boolean(uData.isConcierge || uData.managedService?.serviceMode === "concierge")
+          );
         }
       });
 
@@ -297,6 +310,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return "U";
   };
 
+  const navigationItems = useMemo(() => {
+    if (isConcierge) {
+      return [
+        {
+          title: "Aprovações",
+          url: "/dashboard/aprovacoes",
+          icon: CheckSquare,
+        },
+        {
+          title: "Meu Negócio",
+          url: "/dashboard/meu-negocio",
+          icon: Building2,
+        },
+        {
+          title: "Relatórios",
+          url: "/dashboard/relatorios",
+          icon: BarChart3,
+        },
+      ];
+    }
+    return allNavigationItems;
+  }, [isConcierge]);
+
   return (
     <div className="flex min-h-screen w-full bg-muted/50">
       <SubscriptionModal
@@ -307,7 +343,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <OnboardingWizard
         userId={user.uid}
         initialData={businessProfile}
-        isOpen={showOnboarding}
+        isOpen={!isConcierge && showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onComplete={() => {
           console.log("Onboarding complete!");
@@ -338,7 +374,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {allNavigationItems.map((item) => (
+                  {navigationItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
@@ -414,18 +450,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
+                {isConcierge && (
+                  <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FA6305]/10 text-[#FA6305] border border-[#FA6305]/20">
+                    <Crown className="w-3.5 h-3.5" />
+                    NumVapt Concierge
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
-                {(userPlan === "trial" || userPlan === "free" || userPlan === "unsubscribed") && (
-                  <Button
-                    onClick={() => setShowSubscriptionModal(true)}
-                    className="hidden h-9 gap-2 rounded-xl border-0 bg-gradient-to-r from-orange-500 to-orange-400 px-4 font-bold text-white shadow-sm transition-opacity hover:opacity-90 sm:flex"
-                  >
-                    <Crown className="h-4 w-4 fill-white text-white" />
-                    Fazer Upgrade PRO
-                  </Button>
-                )}
+                {!isConcierge &&
+                  (userPlan === "trial" || userPlan === "free" || userPlan === "unsubscribed") && (
+                    <Button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="hidden h-9 gap-2 rounded-xl border-0 bg-gradient-to-r from-orange-500 to-orange-400 px-4 font-bold text-white shadow-sm transition-opacity hover:opacity-90 sm:flex"
+                    >
+                      <Crown className="h-4 w-4 fill-white text-white" />
+                      Fazer Upgrade PRO
+                    </Button>
+                  )}
 
                 <DropdownMenu onOpenChange={handleOpenNotifications}>
                   <DropdownMenuTrigger asChild>
@@ -544,15 +587,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           <div className="flex-1 overflow-auto">
-            <React.Suspense
-              fallback={
-                <div className="flex h-full w-full items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              }
-            >
-              {children}
-            </React.Suspense>
+            {isConcierge && pathname === "/dashboard" ? (
+              <div className="flex h-full w-full flex-col items-center justify-center p-8 text-slate-400">
+                <Loader2 className="h-8 w-8 animate-spin text-[#0083C7] mb-2" />
+                <p className="text-sm">Redirecionando para a Central de Aprovações...</p>
+              </div>
+            ) : (
+              <React.Suspense
+                fallback={
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                }
+              >
+                {children}
+              </React.Suspense>
+            )}
           </div>
         </main>
       </SidebarProvider>

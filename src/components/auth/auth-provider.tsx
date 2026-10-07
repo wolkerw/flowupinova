@@ -126,9 +126,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthPage || pathname === "/" || pathname === "/termos" || pathname === "/privacidade";
 
     if (user) {
-      // Se o usuário está logado e em uma página de autenticação, redireciona para o dashboard
+      // Se o usuário está logado e em uma página de autenticação, redireciona para o dashboard adequado
       if (isAuthPage) {
-        router.push("/dashboard");
+        import("@/lib/firebase").then(({ db }) => {
+          import("firebase/firestore").then(({ doc, getDoc }) => {
+            getDoc(doc(db, "users", user.uid))
+              .then((docSnap) => {
+                if (
+                  docSnap.exists() &&
+                  (docSnap.data().isConcierge ||
+                    docSnap.data().managedService?.serviceMode === "concierge")
+                ) {
+                  router.push("/dashboard/aprovacoes");
+                } else {
+                  router.push("/dashboard");
+                }
+              })
+              .catch(() => {
+                router.push("/dashboard");
+              });
+          });
+        });
       }
     } else {
       // Se o usuário não está logado, redireciona para la página de acesso,
