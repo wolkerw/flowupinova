@@ -15,7 +15,7 @@ export async function PATCH(
 
   const { uid } = await params;
   const body = await request.json();
-  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan, canEditImages } = body;
+  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan, canEditImages, isConcierge } = body;
 
   if (!uid) {
     return NextResponse.json({ error: "UID do usuário é obrigatório." }, { status: 400 });
@@ -27,6 +27,23 @@ export async function PATCH(
 
     if (typeof canEditImages === "boolean") {
       updates.canEditImages = canEditImages;
+    }
+
+    if (typeof isConcierge === "boolean") {
+      updates.isConcierge = isConcierge;
+      updates.managedService = isConcierge
+        ? {
+            enabled: true,
+            serviceMode: "concierge",
+            status: "active",
+            updatedAt: new Date(),
+          }
+        : {
+            enabled: false,
+            serviceMode: "self_service",
+            status: "disabled",
+            updatedAt: new Date(),
+          };
     }
 
     if (paymentStatus) updates.paymentStatus = paymentStatus;

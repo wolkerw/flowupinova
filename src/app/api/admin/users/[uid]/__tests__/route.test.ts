@@ -25,6 +25,7 @@ vi.mock("@/lib/firebase-admin", () => {
       firestore: {
         Timestamp: {
           fromDate: vi.fn().mockReturnValue("mock-timestamp"),
+          now: vi.fn().mockReturnValue("mock-timestamp"),
         },
       },
     },
@@ -96,6 +97,63 @@ describe("PATCH /api/admin/users/[uid]", () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         canEditImages: false,
+      })
+    );
+  });
+
+  it("atualiza o modo NumVapt Concierge ativando a flag isConcierge e managedService", async () => {
+    vi.mocked(validateAdminToken).mockResolvedValue({ email: "admin@numvapt.com.br" } as any);
+
+    const mockUpdate = vi.fn().mockResolvedValue(undefined);
+    const mockDoc = vi.fn().mockReturnValue({ update: mockUpdate });
+    vi.mocked(adminDb.collection).mockReturnValue({ doc: mockDoc } as any);
+
+    const req = new NextRequest("http://localhost:9002/api/admin/users/user-123", {
+      method: "PATCH",
+      body: JSON.stringify({ isConcierge: true }),
+    });
+
+    const res = await PATCH(req, { params: Promise.resolve({ uid: "user-123" }) });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+
+    expect(mockDoc).toHaveBeenCalledWith("user-123");
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isConcierge: true,
+        managedService: expect.objectContaining({
+          enabled: true,
+          serviceMode: "concierge",
+          status: "active",
+        }),
+      })
+    );
+  });
+
+  it("permite desativar o NumVapt Concierge definindo isConcierge como false", async () => {
+    vi.mocked(validateAdminToken).mockResolvedValue({ email: "admin@numvapt.com.br" } as any);
+
+    const mockUpdate = vi.fn().mockResolvedValue(undefined);
+    const mockDoc = vi.fn().mockReturnValue({ update: mockUpdate });
+    vi.mocked(adminDb.collection).mockReturnValue({ doc: mockDoc } as any);
+
+    const req = new NextRequest("http://localhost:9002/api/admin/users/user-123", {
+      method: "PATCH",
+      body: JSON.stringify({ isConcierge: false }),
+    });
+
+    const res = await PATCH(req, { params: Promise.resolve({ uid: "user-123" }) });
+    expect(res.status).toBe(200);
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isConcierge: false,
+        managedService: expect.objectContaining({
+          enabled: false,
+          serviceMode: "self_service",
+          status: "disabled",
+        }),
       })
     );
   });

@@ -29,6 +29,7 @@ export interface UserSummary {
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
   canEditImages?: boolean;
+  isConcierge?: boolean;
   activeContract?: {
     id: string;
     modalidade: string;
@@ -323,6 +324,7 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         subscriptionExpiresAt,
         hasSignedContract: !!data.hasSignedContract || !!data.activeContract,
         canEditImages: !!data.canEditImages,
+        isConcierge: Boolean(data.isConcierge || data.managedService?.serviceMode === "concierge"),
         activeContract: data.activeContract ?? null,
       });
     })

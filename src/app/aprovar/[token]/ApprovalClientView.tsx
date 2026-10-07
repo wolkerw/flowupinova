@@ -186,14 +186,14 @@ export function ApprovalClientView({ initialPost }: ApprovalClientViewProps) {
                     <img src={post.businessLogo} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[10px] font-bold text-white">
-                      {post.businessName.substring(0, 2).toUpperCase()}
+                      {(post.businessName || "NV").substring(0, 2).toUpperCase()}
                     </span>
                   )}
                 </div>
               </div>
               <div>
                 <span className="text-xs font-bold text-white block leading-tight">
-                  {post.businessName}
+                  {post.businessName || "Sua Marca"}
                 </span>
                 <span className="text-[10px] text-slate-400 flex items-center gap-1">
                   <Calendar className="w-2.5 h-2.5 text-[#0083C7]" />

@@ -11,6 +11,7 @@ export interface SubscriptionGateStatus {
   userPlan: string;
   paymentStatus: string;
   canEditImages: boolean;
+  isConcierge: boolean;
   loading: boolean;
   checkSubscriptionOrPrompt: (actionDescription?: string) => boolean;
   openSubscriptionModal: () => void;
@@ -28,12 +29,14 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
   const [userPlan, setUserPlan] = useState<string>("free");
   const [paymentStatus, setPaymentStatus] = useState<string>("inactive");
   const [canEditImages, setCanEditImages] = useState<boolean>(false);
+  const [isConcierge, setIsConcierge] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (!user || !user.uid) {
       setUserPlan("free");
       setPaymentStatus("inactive");
+      setIsConcierge(false);
       setLoading(false);
       return;
     }
@@ -42,6 +45,7 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
       if (!db || typeof doc !== "function" || typeof onSnapshot !== "function") {
         setUserPlan("free");
         setPaymentStatus("inactive");
+        setIsConcierge(false);
         setLoading(false);
         return;
       }
@@ -55,10 +59,19 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
             setUserPlan(data?.plan || "free");
             setPaymentStatus(data?.paymentStatus || "inactive");
             setCanEditImages(Boolean(data?.canEditImages) || data?.role === "admin" || data?.plan === "admin");
+            setIsConcierge(
+              Boolean(
+                data?.isConcierge ||
+                  data?.managedService?.serviceMode === "concierge" ||
+                  data?.role === "admin" ||
+                  data?.plan === "admin"
+              )
+            );
           } else {
             setUserPlan("free");
             setPaymentStatus("inactive");
             setCanEditImages(false);
+            setIsConcierge(false);
           }
           setLoading(false);
         },
@@ -120,6 +133,7 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
     userPlan,
     paymentStatus,
     canEditImages,
+    isConcierge,
     loading: authLoading || loading,
     checkSubscriptionOrPrompt,
     openSubscriptionModal,

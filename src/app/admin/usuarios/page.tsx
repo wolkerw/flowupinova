@@ -48,6 +48,7 @@ interface UserSummary {
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
   canEditImages?: boolean;
+  isConcierge?: boolean;
   activeContract?: {
     id: string;
     modalidade: string;
@@ -213,7 +214,7 @@ function UserSheet({
           </p>
           <div className="grid grid-cols-2 gap-2">
             {(() => {
-              const cards = [
+              const cards: Array<{ label: string; value: string | number; icon: React.ElementType }> = [
                 { label: "Posts Criados", value: user.postsCount, icon: FileText },
                 { label: "Imagens Geradas", value: user.imagesCount, icon: ImageIcon },
               ];
@@ -304,10 +305,10 @@ function UserSheet({
             </button>
           </div>
 
-          {/* Recursos Especiais de IA */}
-          <div className="space-y-2">
+          {/* Recursos Especiais de IA e Modos de Operação */}
+          <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              Recursos Especiais de IA
+              Recursos Especiais & Modos de Operação
             </p>
             <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
               <div className="flex items-center justify-between">
@@ -348,6 +349,51 @@ function UserSheet({
                 ) : (
                   <span>
                     Bloqueado: Apenas administradores e usuários autorizados visualizam o editor.
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* NumVapt Concierge */}
+            <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FA6305]/10 text-[#FA6305] border border-[#FA6305]/20">
+                    <Crown className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold text-white">NumVapt Concierge</h3>
+                    <p className="text-[10px] text-slate-400">Modo Done-For-You com Link de Aprovação</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    doAction({ isConcierge: !user.isConcierge }, "toggle-concierge")
+                  }
+                  disabled={loading}
+                  aria-label="Alternar modo NumVapt Concierge"
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                    user.isConcierge ? "bg-[#FA6305]" : "bg-slate-700"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      user.isConcierge ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
+                {user.isConcierge ? (
+                  <span className="text-[#FA6305] font-medium">
+                    ✓ Ativado: Gestão terceirizada ativa com aprovação por Link Mágico.
+                  </span>
+                ) : (
+                  <span>
+                    Padrão: Autoatendimento com criação e agendamento pelo próprio cliente.
                   </span>
                 )}
               </p>
@@ -698,6 +744,15 @@ export default function AdminUsuariosPage() {
                                 >
                                   <Sparkles className="h-2.5 w-2.5" />
                                   Editor GPT
+                                </span>
+                              )}
+                              {user.isConcierge && (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded bg-[#FA6305]/10 border border-[#FA6305]/30 px-1.5 py-0.5 text-[10px] font-medium text-[#FA6305]"
+                                  title="NumVapt Concierge Habilitado"
+                                >
+                                  <Crown className="h-2.5 w-2.5" />
+                                  Concierge
                                 </span>
                               )}
                             </div>
