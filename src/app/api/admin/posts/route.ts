@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { validateAdminToken } from "@/lib/admin-auth";
 import { adminDb } from "@/lib/firebase-admin";
+import { isE2ETestContent, toIsoDate } from "@/lib/admin/generated-content-utils";
 
 export const maxDuration = 120; // 2 minutos máximo
+
+const MAX_RESULTS = 100;
 
 function extractPromptFromDoc(data: any): string | null {
   if (!data) return null;
@@ -40,6 +43,56 @@ function extractPromptFromDoc(data: any): string | null {
   return null;
 }
 
+function mapPostDoc(doc: any, userId: string) {
+  const data = doc.data() || {};
+  return {
+    id: doc.id,
+    userId,
+    text: data.text || "",
+    imageUrl: data.imageUrl || null,
+    imageUrls: data.imageUrls || [],
+    conceptUrls: data.conceptUrls || [],
+    promptUsed: extractPromptFromDoc(data),
+    status: data.status || "completed",
+    platforms: data.platforms || [],
+    createdAt: toIsoDate(data.createdAt),
+    scheduledAt: toIsoDate(data.scheduledAt),
+    publishedAt: toIsoDate(data.publishedAt),
+    failureReason: data.failureReason || null,
+  };
+}
+
+function mapMediaDoc(doc: any, userId: string, fallbackText: string) {
+  const data = doc.data() || {};
+  const imgUrl = data.url || data.imageUrl || data.supabaseUrl;
+  if (!imgUrl) return null;
+  return {
+    id: `media_${doc.id}`,
+    userId,
+    text: data.caption || data.prompt || fallbackText,
+    imageUrl: imgUrl,
+    imageUrls: [imgUrl],
+    conceptUrls: [],
+    promptUsed: extractPromptFromDoc(data),
+    status: "completed",
+    platforms: [],
+    createdAt: toIsoDate(data.createdAt),
+    scheduledAt: null,
+    publishedAt: null,
+    failureReason: null,
+    isDraftMedia: true,
+    source: data.source || "n8n_supabase",
+  };
+}
+
+function collectUrls(items: any[]): Set<string> {
+  return new Set(
+    items
+      .flatMap((p) => [p.imageUrl, ...(p.imageUrls || []), ...(p.conceptUrls || [])])
+      .filter(Boolean)
+  );
+}
+
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("firebase-id-token")?.value ?? null;
   const admin = await validateAdminToken(token);
@@ -72,23 +125,8 @@ export async function GET(request: NextRequest) {
 
       const snapshot = await postsQuery.get();
       snapshot.docs.forEach((doc: any) => {
-        const data = doc.data();
         const parentUser = doc.ref.parent.parent;
-        posts.push({
-          id: doc.id,
-          userId: parentUser ? parentUser.id : "",
-          text: data.text || "",
-          imageUrl: data.imageUrl || null,
-          imageUrls: data.imageUrls || [],
-          conceptUrls: data.conceptUrls || [],
-          promptUsed: extractPromptFromDoc(data),
-          status: data.status || "completed",
-          platforms: data.platforms || [],
-          createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-          scheduledAt: data.scheduledAt ? data.scheduledAt.toDate().toISOString() : null,
-          publishedAt: data.publishedAt ? data.publishedAt.toDate().toISOString() : null,
-          failureReason: data.failureReason || null,
-        });
+        posts.push(mapPostDoc(doc, parentUser ? parentUser.id : ""));
       });
 
       // Também buscar imagens avulsas/geradas na mediaGallery
@@ -99,34 +137,19 @@ export async function GET(request: NextRequest) {
         }
         mediaQuery = mediaQuery.limit(50);
         const mediaSnapshot = await mediaQuery.get();
-        
-        const existingUrls = new Set(
-          posts.flatMap((p) => [p.imageUrl, ...(p.imageUrls || []), ...(p.conceptUrls || [])]).filter(Boolean)
-        );
+
+        const existingUrls = collectUrls(posts);
 
         mediaSnapshot.docs.forEach((doc: any) => {
-          const data = doc.data();
           const parentUser = doc.ref.parent.parent;
-          const imgUrl = data.url || data.imageUrl || data.supabaseUrl;
-          if (imgUrl && !existingUrls.has(imgUrl)) {
-            posts.push({
-              id: `media_${doc.id}`,
-              userId: parentUser ? parentUser.id : "",
-              text: data.caption || data.prompt || "Imagem Gerada (Galeria de Mídia)",
-              imageUrl: imgUrl,
-              imageUrls: [imgUrl],
-              conceptUrls: [],
-              promptUsed: extractPromptFromDoc(data),
-              status: "completed",
-              platforms: [],
-              createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-              scheduledAt: null,
-              publishedAt: null,
-              failureReason: null,
-              isDraftMedia: true,
-              source: data.source || "n8n_supabase",
-            });
-            existingUrls.add(imgUrl);
+          const item = mapMediaDoc(
+            doc,
+            parentUser ? parentUser.id : "",
+            "Imagem Gerada (Galeria de Mídia)"
+          );
+          if (item && !existingUrls.has(item.imageUrl)) {
+            posts.push(item);
+            existingUrls.add(item.imageUrl);
           }
         });
       } catch (mediaErr) {
@@ -141,6 +164,7 @@ export async function GET(request: NextRequest) {
       );
 
       // Método 2 (Fallback): Buscar usuários e ler subcoleções posts e mediaGallery de cada um
+      posts = [];
       const usersSnapshot = await adminDb.collection("users").get();
       const userDocs = usersSnapshot.docs;
 
@@ -152,56 +176,37 @@ export async function GET(request: NextRequest) {
         try {
           const [userPostsSnap, userMediaSnap] = await Promise.all([
             userDoc.ref.collection("posts").orderBy("createdAt", "desc").limit(20).get(),
-            userDoc.ref.collection("mediaGallery").orderBy("createdAt", "desc").limit(20).get().catch(() => ({ docs: [] })),
+            userDoc.ref
+              .collection("mediaGallery")
+              .orderBy("createdAt", "desc")
+              .limit(30)
+              .get()
+              .catch(() => ({ docs: [] as any[] })),
           ]);
 
-          const userPosts = userPostsSnap.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              userId: userDoc.id,
-              text: data.text || "",
-              imageUrl: data.imageUrl || null,
-              imageUrls: data.imageUrls || [],
-              conceptUrls: data.conceptUrls || [],
-              promptUsed: extractPromptFromDoc(data),
-              status: data.status || "completed",
-              platforms: data.platforms || [],
-              createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-              scheduledAt: data.scheduledAt ? data.scheduledAt.toDate().toISOString() : null,
-              publishedAt: data.publishedAt ? data.publishedAt.toDate().toISOString() : null,
-              failureReason: data.failureReason || null,
-            };
+          // Mapeamento tolerante por documento: um registro com data em formato
+          // inesperado não pode mais descartar todas as gerações do usuário.
+          const userPosts: any[] = [];
+          userPostsSnap.docs.forEach((doc) => {
+            try {
+              userPosts.push(mapPostDoc(doc, userDoc.id));
+            } catch (docErr) {
+              console.warn(`[ADMIN_POSTS_WARN] Post ${doc.id} ignorado:`, docErr);
+            }
           });
 
-          const postUrls = new Set(
-            userPosts.flatMap((p) => [p.imageUrl, ...(p.imageUrls || []), ...(p.conceptUrls || [])]).filter(Boolean)
-          );
-
-          const userMediaPosts = userMediaSnap.docs
-            .map((doc: any) => {
-              const data = doc.data();
-              const imgUrl = data.url || data.imageUrl || data.supabaseUrl;
-              if (!imgUrl || postUrls.has(imgUrl)) return null;
-              return {
-                id: `media_${doc.id}`,
-                userId: userDoc.id,
-                text: data.caption || data.prompt || "Imagem Gerada (Galeria / Supabase)",
-                imageUrl: imgUrl,
-                imageUrls: [imgUrl],
-                conceptUrls: [],
-                promptUsed: extractPromptFromDoc(data),
-                status: "completed",
-                platforms: [],
-                createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-                scheduledAt: null,
-                publishedAt: null,
-                failureReason: null,
-                isDraftMedia: true,
-                source: data.source || "n8n_supabase",
-              };
-            })
-            .filter(Boolean);
+          const postUrls = collectUrls(userPosts);
+          const userMediaPosts: any[] = [];
+          userMediaSnap.docs.forEach((doc: any) => {
+            try {
+              const item = mapMediaDoc(doc, userDoc.id, "Imagem Gerada (Galeria / Supabase)");
+              if (item && !postUrls.has(item.imageUrl)) {
+                userMediaPosts.push(item);
+              }
+            } catch (docErr) {
+              console.warn(`[ADMIN_POSTS_WARN] Mídia ${doc.id} ignorada:`, docErr);
+            }
+          });
 
           return [...userPosts, ...userMediaPosts];
         } catch (subErr) {
@@ -214,26 +219,29 @@ export async function GET(request: NextRequest) {
       });
 
       const resolvedPostsArray = await Promise.all(userPostsPromises);
-      let allPosts = resolvedPostsArray.flat();
-
-      if (sinceDate) {
-        allPosts = allPosts.filter((p: any) => {
-          const createdAtDate = p?.createdAt ? new Date(p.createdAt) : null;
-          return createdAtDate && createdAtDate >= sinceDate!;
-        });
-      }
-
-      // Ordenar e pegar os últimos 100
-      posts = allPosts
-        .sort((a: any, b: any) => {
-          const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        })
-        .slice(0, 100);
-
-      console.log(`[ADMIN_POSTS] Fallback concluído. ${posts.length} posts/gerações mescladas com sucesso.`);
+      posts = resolvedPostsArray.flat();
     }
+
+    // Remover gerações criadas pelos testes automatizados (E2E/Playwright)
+    posts = posts.filter((p: any) => !isE2ETestContent(p));
+
+    if (sinceDate) {
+      posts = posts.filter((p: any) => {
+        const createdAtDate = p?.createdAt ? new Date(p.createdAt) : null;
+        return createdAtDate && createdAtDate >= sinceDate!;
+      });
+    }
+
+    // Ordenar e pegar os mais recentes
+    posts = posts
+      .sort((a: any, b: any) => {
+        const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, MAX_RESULTS);
+
+    console.log(`[ADMIN_POSTS] ${posts.length} posts/gerações retornados.`);
 
     return NextResponse.json({ posts }, { status: 200 });
   } catch (err: any) {

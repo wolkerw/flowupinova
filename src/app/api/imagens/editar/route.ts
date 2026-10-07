@@ -265,8 +265,9 @@ export async function POST(request: NextRequest) {
       prompt: instruction,
       modelUsed,
       type: "image-edit",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      // Date é persistido como Timestamp pelo Admin SDK (não usar string ISO: quebra ordenação/leitura no admin)
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     // 7. Telemetria e Registro de Custo
