@@ -27,6 +27,7 @@ import {
   Images,
   User,
   Crown,
+  CheckSquare,
 } from "lucide-react";
 import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
 import {
@@ -67,7 +68,7 @@ import {
 } from "@/lib/services/onboarding-service";
 import { Badge } from "@/components/ui/badge";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const allNavigationItems: {
@@ -85,6 +86,11 @@ const allNavigationItems: {
     title: "Posts",
     url: "/dashboard/posts",
     icon: FileText,
+  },
+  {
+    title: "Aprovações",
+    url: "/dashboard/aprovacoes",
+    icon: CheckSquare,
   },
   {
     title: "Meu Negócio",
@@ -158,6 +164,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userPlan, setUserPlan] = useState<string>("free");
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
 
@@ -187,6 +194,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setUserPlan(docSnap.data().plan || "free");
         }
       });
+
+      const postsColRef = collection(db, `users/${user.uid}/posts`);
+      const unsubscribePosts = onSnapshot(
+        postsColRef,
+        (snap) => {
+          let count = 0;
+          snap.forEach((d) => {
+            const data = d.data();
+            if (data.status === "pending_approval" || data.approval?.status === "pending") {
+              count++;
+            }
+          });
+          setPendingApprovalsCount(count);
+        },
+        (err) => {
+          console.warn("[DashboardLayout] Erro ao carregar contagem de aprovações:", err);
+        }
+      );
 
       const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
       const unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
@@ -233,6 +258,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       return () => {
         unsubscribeUser();
+        unsubscribePosts();
         unsubscribeOnboarding();
       };
     }
@@ -331,6 +357,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <item.icon className="h-5 w-5" />
                             <span className="font-medium">{item.title}</span>
                           </div>
+                          {item.url === "/dashboard/aprovacoes" && pendingApprovalsCount > 0 && (
+                            <span className="inline-flex items-center justify-center rounded-full bg-[#FA6305] px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                              {pendingApprovalsCount}
+                            </span>
+                          )}
                           {item.disabled && (
                             <Badge variant="secondary" className="text-xs">
                               Em breve

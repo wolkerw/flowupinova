@@ -1,0 +1,606 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import {
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Calendar,
+  MessageSquare,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Loader2,
+  CheckCheck,
+  Instagram,
+  Facebook,
+  ExternalLink,
+  ShieldCheck,
+  Crown,
+  FileCheck2,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { approvePostByClient, requestPostChangesByClient, type PostData } from "@/lib/services/posts-service";
+import { cn } from "@/lib/utils";
+
+type TabType = "pending" | "changes" | "approved" | "published";
+
+interface ClientPostItem extends PostData {
+  id: string;
+}
+
+export default function ClientApprovalsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [posts, setPosts] = useState<ClientPostItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<TabType>("pending");
+
+  // Estado para modal de solicitação de ajuste
+  const [selectedPostForChanges, setSelectedPostForChanges] = useState<ClientPostItem | null>(null);
+  const [changeNotes, setChangeNotes] = useState<string>("");
+  const [submittingAction, setSubmittingAction] = useState<string | null>(null);
+  const [bulkApproving, setBulkApproving] = useState<boolean>(false);
+
+  // Índices de carrossel por post
+  const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
+
+  // Carregar posts em tempo real
+  useEffect(() => {
+    if (!user || !user.uid) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const postsCol = collection(db, "users", user.uid, "posts");
+      const q = query(postsCol, orderBy("scheduledAt", "asc"));
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const loadedPosts: ClientPostItem[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as PostData;
+            loadedPosts.push({
+              ...data,
+              id: docSnap.id,
+            });
+          });
+          setPosts(loadedPosts);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Erro ao carregar posts para aprovação:", error);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.error("Erro ao conectar listener:", err);
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Contadores por aba
+  const pendingPosts = useMemo(() => {
+    return posts.filter(
+      (p) => p.status === "pending_approval" || p.approval?.status === "pending"
+    );
+  }, [posts]);
+
+  const changesPosts = useMemo(() => {
+    return posts.filter(
+      (p) => p.status === "changes_requested" || p.approval?.status === "changes_requested"
+    );
+  }, [posts]);
+
+  const approvedPosts = useMemo(() => {
+    return posts.filter(
+      (p) =>
+        p.status === "scheduled" &&
+        p.approval?.status !== "pending" &&
+        p.approval?.status !== "changes_requested"
+    );
+  }, [posts]);
+
+  const publishedPosts = useMemo(() => {
+    return posts.filter((p) => p.status === "published");
+  }, [posts]);
+
+  // Posts da aba ativa
+  const currentTabPosts = useMemo(() => {
+    switch (activeTab) {
+      case "pending":
+        return pendingPosts;
+      case "changes":
+        return changesPosts;
+      case "approved":
+        return approvedPosts;
+      case "published":
+        return publishedPosts;
+      default:
+        return [];
+    }
+  }, [activeTab, pendingPosts, changesPosts, approvedPosts, publishedPosts]);
+
+  // Ação de aprovação individual
+  const handleApprove = async (post: ClientPostItem) => {
+    if (!user?.uid) return;
+    setSubmittingAction(`approve-${post.id}`);
+    try {
+      await approvePostByClient(user.uid, post.id);
+      toast({
+        title: "Postagem Aprovada!",
+        description: "A postagem foi confirmada e será publicada automaticamente no horário agendado.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao aprovar",
+        description: "Não foi possível aprovar a postagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingAction(null);
+    }
+  };
+
+  // Ação de aprovação em lote
+  const handleApproveAll = async () => {
+    if (!user?.uid || pendingPosts.length === 0) return;
+    setBulkApproving(true);
+    try {
+      for (const post of pendingPosts) {
+        await approvePostByClient(user.uid, post.id);
+      }
+      toast({
+        title: "Todas as postagens foram aprovadas!",
+        description: `${pendingPosts.length} postagens foram confirmadas no seu cronograma.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro na aprovação em lote",
+        description: "Algumas postagens podem não ter sido aprovadas.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkApproving(false);
+    }
+  };
+
+  // Enviar solicitação de alteração
+  const handleConfirmChanges = async () => {
+    if (!user?.uid || !selectedPostForChanges) return;
+    if (!changeNotes.trim()) {
+      toast({
+        title: "Descreva o ajuste",
+        description: "Por favor, informe quais alterações você gostaria que fossem feitas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmittingAction(`changes-${selectedPostForChanges.id}`);
+    try {
+      await requestPostChangesByClient(user.uid, selectedPostForChanges.id, changeNotes.trim());
+      toast({
+        title: "Solicitação Enviada",
+        description: "Seu feedback foi registrado e o gestor fará as alterações solicitadas.",
+      });
+      setSelectedPostForChanges(null);
+      setChangeNotes("");
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao enviar solicitação",
+        description: "Não foi possível registrar o ajuste. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingAction(null);
+    }
+  };
+
+  const getImages = (post: ClientPostItem): string[] => {
+    if (post.imageUrls && post.imageUrls.length > 0) return post.imageUrls;
+    if (post.imageUrl) return [post.imageUrl];
+    return [];
+  };
+
+  const nextImage = (postId: string, total: number) => {
+    setCarouselIndexes((prev) => ({
+      ...prev,
+      [postId]: ((prev[postId] || 0) + 1) % total,
+    }));
+  };
+
+  const prevImage = (postId: string, total: number) => {
+    setCarouselIndexes((prev) => ({
+      ...prev,
+      [postId]: ((prev[postId] || 0) - 1 + total) % total,
+    }));
+  };
+
+  const formatScheduledDate = (timestamp: Timestamp | any) => {
+    try {
+      const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString("pt-BR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Data a definir";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 space-y-8">
+      {/* Header Executivo */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FA6305]/10 text-[#FA6305] border border-[#FA6305]/30">
+              <Crown className="w-3.5 h-3.5" />
+              NumVapt Concierge
+            </span>
+            <span className="text-xs text-slate-400">• Painel do Cliente</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-['Poppins']">
+            Central de Aprovações
+          </h1>
+          <p className="text-sm text-slate-400 mt-1 max-w-2xl font-['Inter']">
+            Revise e valide com 1 clique as postagens preparadas pelo seu gestor de marketing antes de serem publicadas nas suas redes sociais.
+          </p>
+        </div>
+
+        {/* Botão de aprovação em lote para pendentes */}
+        {activeTab === "pending" && pendingPosts.length > 0 && (
+          <Button
+            onClick={handleApproveAll}
+            disabled={bulkApproving}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm flex items-center gap-2 transition-all self-start md:self-auto"
+          >
+            {bulkApproving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCheck className="w-4 h-4" />
+            )}
+            <span>Aprovar Todos ({pendingPosts.length})</span>
+          </Button>
+        )}
+      </div>
+
+      {/* Abas de Navegação */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800">
+        <button
+          onClick={() => setActiveTab("pending")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+            activeTab === "pending"
+              ? "bg-[#0083C7] text-white shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          )}
+        >
+          <Clock className="w-4 h-4" />
+          <span>Aguardando Aprovação</span>
+          {pendingPosts.length > 0 && (
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full text-xs font-bold",
+                activeTab === "pending"
+                  ? "bg-white text-[#0083C7]"
+                  : "bg-[#FA6305] text-white"
+              )}
+            >
+              {pendingPosts.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("changes")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+            activeTab === "changes"
+              ? "bg-[#0083C7] text-white shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          )}
+        >
+          <AlertCircle className="w-4 h-4" />
+          <span>Em Ajuste</span>
+          {changesPosts.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              {changesPosts.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("approved")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+            activeTab === "approved"
+              ? "bg-[#0083C7] text-white shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          )}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          <span>Aprovados & Agendados</span>
+          {approvedPosts.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium text-slate-400">
+              {approvedPosts.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("published")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+            activeTab === "published"
+              ? "bg-[#0083C7] text-white shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          )}
+        >
+          <FileCheck2 className="w-4 h-4" />
+          <span>Publicados</span>
+          {publishedPosts.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium text-slate-400">
+              {publishedPosts.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Conteúdo Principal */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0083C7] mb-3" />
+          <p className="text-sm">Carregando postagens para aprovação...</p>
+        </div>
+      ) : currentTabPosts.length === 0 ? (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-12 text-center max-w-lg mx-auto">
+          <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4 text-slate-400">
+            {activeTab === "pending" ? (
+              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+            ) : activeTab === "changes" ? (
+              <AlertCircle className="w-6 h-6 text-amber-400" />
+            ) : (
+              <Calendar className="w-6 h-6 text-[#0083C7]" />
+            )}
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            {activeTab === "pending"
+              ? "Tudo em dia!"
+              : activeTab === "changes"
+              ? "Nenhum post em ajuste"
+              : activeTab === "approved"
+              ? "Nenhum post agendado no momento"
+              : "Nenhum histórico publicado ainda"}
+          </h3>
+          <p className="text-sm text-slate-400">
+            {activeTab === "pending"
+              ? "Você não possui postagens pendentes de aprovação neste momento. Assim que seu gestor criar novos conteúdos, eles aparecerão aqui."
+              : activeTab === "changes"
+              ? "Não há solicitações de alteração em andamento."
+              : "As postagens aprovadas e publicadas serão listadas nesta área."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {currentTabPosts.map((post) => {
+            const images = getImages(post);
+            const currentImgIndex = carouselIndexes[post.id] || 0;
+            const isSingle = images.length <= 1;
+
+            return (
+              <div
+                key={post.id}
+                className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden flex flex-col shadow-sm transition-all hover:border-slate-700"
+              >
+                {/* Cabeçalho do Card */}
+                <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                      <Calendar className="w-3.5 h-3.5 text-[#0083C7]" />
+                      <span className="font-medium text-slate-200">
+                        {formatScheduledDate(post.scheduledAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {post.platforms?.includes("instagram") && (
+                      <Instagram className="w-4 h-4 text-pink-400" />
+                    )}
+                    {post.platforms?.includes("facebook") && (
+                      <Facebook className="w-4 h-4 text-blue-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Visualizador de Imagem / Carrossel */}
+                <div className="relative aspect-square bg-slate-950 flex items-center justify-center overflow-hidden group">
+                  {images.length > 0 ? (
+                    <img
+                      src={images[currentImgIndex]}
+                      alt="Arte do post"
+                      className="w-full h-full object-cover select-none"
+                    />
+                  ) : (
+                    <div className="text-slate-600 text-xs flex flex-col items-center gap-2">
+                      <Sparkles className="w-6 h-6" />
+                      <span>Sem imagem anexada</span>
+                    </div>
+                  )}
+
+                  {/* Controles de Carrossel */}
+                  {!isSingle && (
+                    <>
+                      <button
+                        onClick={() => prevImage(post.id, images.length)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        aria-label="Imagem anterior"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => nextImage(post.id, images.length)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        aria-label="Próxima imagem"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 text-[11px] font-semibold text-white">
+                        {currentImgIndex + 1} / {images.length}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Conteúdo / Legenda */}
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      Legenda do Post
+                    </p>
+                    <p className="text-sm text-slate-200 line-clamp-4 hover:line-clamp-none transition-all whitespace-pre-line leading-relaxed">
+                      {post.text || "Sem legenda informada."}
+                    </p>
+                  </div>
+
+                  {/* Alerta de solicitação de ajuste anterior */}
+                  {post.approval?.reviewNotes && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-200">
+                      <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-400">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        Ajuste Solicitado ao Gestor:
+                      </p>
+                      <p className="italic">{post.approval.reviewNotes}</p>
+                    </div>
+                  )}
+
+                  {/* Ações do Card */}
+                  <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+                    {post.status === "pending_approval" || post.approval?.status === "pending" ? (
+                      <>
+                        <Button
+                          onClick={() => handleApprove(post)}
+                          disabled={submittingAction === `approve-${post.id}`}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-9 rounded-lg gap-1.5"
+                        >
+                          {submittingAction === `approve-${post.id}` ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>Aprovar Post</span>
+                        </Button>
+
+                        <Button
+                          onClick={() => {
+                            setSelectedPostForChanges(post);
+                            setChangeNotes(post.approval?.reviewNotes || "");
+                          }}
+                          variant="outline"
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-9 rounded-lg gap-1.5"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-[#FA6305]" />
+                          <span>Pedir Ajuste</span>
+                        </Button>
+                      </>
+                    ) : post.status === "changes_requested" || post.approval?.status === "changes_requested" ? (
+                      <div className="w-full py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium text-center">
+                        ⏳ Aguardando revisão do Gestor
+                      </div>
+                    ) : post.status === "scheduled" ? (
+                      <div className="w-full py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium text-center flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Aprovado e Agendado</span>
+                      </div>
+                    ) : (
+                      <div className="w-full py-2 px-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-medium text-center">
+                        ✓ Publicado com Sucesso
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal de Solicitação de Ajustes */}
+      <Dialog
+        open={!!selectedPostForChanges}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedPostForChanges(null);
+            setChangeNotes("");
+          }
+        }}
+      >
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-[#FA6305]" />
+              Solicitar Ajuste ao Gestor
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Escreva o que você gostaria de mudar na arte, na legenda ou no horário antes de aprovar este post.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-3 space-y-3">
+            <Textarea
+              value={changeNotes}
+              onChange={(e) => setChangeNotes(e.target.value)}
+              placeholder="Exemplo: Por favor, altere o valor para R$ 99 na arte e inclua o telefone na legenda..."
+              className="min-h-[120px] bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500 text-sm focus:border-[#FA6305]"
+            />
+          </div>
+
+          <DialogFooter className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSelectedPostForChanges(null);
+                setChangeNotes("");
+              }}
+              className="text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmChanges}
+              disabled={submittingAction?.startsWith("changes-")}
+              className="bg-[#FA6305] hover:bg-[#e05804] text-white font-medium gap-1.5"
+            >
+              {submittingAction?.startsWith("changes-") ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              <span>Enviar Pedido de Ajuste</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

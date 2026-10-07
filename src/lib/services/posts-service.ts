@@ -663,6 +663,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
           scheduledAt: data.scheduledAt.toDate().toISOString(),
           instagramUsername: data.connections?.instagramUsername || undefined,
           pageName: data.connections?.pageName || undefined,
+          approval: data.approval || undefined,
         },
       });
     });
@@ -671,6 +672,45 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
   } catch (error: any) {
     console.error(`Error fetching posts for user ${userId}:`, error);
     return [{ success: false, error: error.message }];
+  }
+}
+
+export async function approvePostByClient(userId: string, postId: string): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para aprovar a publicação.");
+  }
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    await updateDoc(postDocRef, {
+      status: "scheduled",
+      "approval.status": "approved",
+      "approval.reviewedAt": Timestamp.now(),
+    });
+  } catch (error: any) {
+    console.error(`Error approving post ${postId} for user ${userId}:`, error);
+    throw new Error("Não foi possível aprovar a publicação.");
+  }
+}
+
+export async function requestPostChangesByClient(
+  userId: string,
+  postId: string,
+  notes: string
+): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para solicitar ajustes.");
+  }
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    await updateDoc(postDocRef, {
+      status: "changes_requested",
+      "approval.status": "changes_requested",
+      "approval.reviewNotes": notes,
+      "approval.reviewedAt": Timestamp.now(),
+    });
+  } catch (error: any) {
+    console.error(`Error requesting changes for post ${postId} for user ${userId}:`, error);
+    throw new Error("Não foi possível enviar a solicitação de ajustes.");
   }
 }
 
