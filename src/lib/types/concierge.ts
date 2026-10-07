@@ -1,5 +1,16 @@
 export type ServiceMode = "self_service" | "concierge";
 
+export type ConciergeRole = "creator" | "client_approver";
+
+export interface ClientApproverAccount {
+  approverUid: string;
+  approverEmail: string;
+  approverName: string;
+  status: "active" | "inactive";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type PostApprovalStatus =
   | "not_required"
   | "pending_approval"

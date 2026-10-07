@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, Timestamp, doc } from "firebase/firestore";
 import {
   CheckCircle2,
   Clock,
@@ -22,12 +22,19 @@ import {
   ShieldCheck,
   Crown,
   FileCheck2,
+  UserPlus,
+  Key,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { approvePostByClient, requestPostChangesByClient, type PostData } from "@/lib/services/posts-service";
+import type { ClientApproverAccount } from "@/lib/types/concierge";
 import { cn } from "@/lib/utils";
 
 type TabType = "pending" | "changes" | "approved" | "published";
@@ -43,6 +50,88 @@ export default function ClientApprovalsPage() {
   const [posts, setPosts] = useState<ClientPostItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [effectiveWorkspaceId, setEffectiveWorkspaceId] = useState<string | null>(null);
+  const [isApproverRole, setIsApproverRole] = useState<boolean>(false);
+
+  // Estados para gerenciar o acesso do Cliente Aprovador (pelo Gestor)
+  const [approverData, setApproverData] = useState<ClientApproverAccount | null>(null);
+  const [isApproverModalOpen, setIsApproverModalOpen] = useState<boolean>(false);
+  const [approverForm, setApproverForm] = useState({ name: "", email: "", password: "" });
+  const [savingApprover, setSavingApprover] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+
+  // Buscar aprovador vinculado
+  const fetchApprover = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/concierge/approver");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.approver) {
+          setApproverData(json.approver);
+          setApproverForm((prev) => ({
+            ...prev,
+            name: json.approver.approverName || "",
+            email: json.approver.approverEmail || "",
+          }));
+        }
+      }
+    } catch (err) {
+      console.warn("Erro ao buscar aprovador:", err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (user && !isApproverRole) {
+      fetchApprover();
+    }
+  }, [user, isApproverRole, fetchApprover]);
+
+  const handleSaveApprover = async () => {
+    if (!approverForm.email || !approverForm.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha e-mail e senha para gerar o acesso do cliente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingApprover(true);
+    try {
+      const res = await fetch("/api/concierge/approver", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(approverForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha ao salvar acesso.");
+
+      setApproverData(data.approver);
+      toast({
+        title: "Acesso Criado com Sucesso!",
+        description: "O cliente agora pode entrar com essas credenciais e aprovar os posts.",
+      });
+      setIsApproverModalOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "Erro ao criar acesso",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingApprover(false);
+    }
+  };
+
+  const handleCopyWhatsappText = () => {
+    const text = `Olá ${approverForm.name || "Cliente"}! Segue seu acesso exclusivo para aprovar as postagens da nossa empresa na plataforma NumVapt:\n\n🔗 Acesso: ${typeof window !== "undefined" ? window.location.origin : ""}/acesso/login\n📧 E-mail: ${approverForm.email}\n🔑 Senha: ${approverForm.password || "(sua senha definida)"}\n\nAo entrar, você verá a fila de postagens prontas para validar e agendar!`;
+    navigator.clipboard.writeText(text);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+    toast({
+      title: "Mensagem Copiada!",
+      description: "Cole no WhatsApp do seu cliente para enviar as credenciais de acesso.",
+    });
+  };
 
   // Estado para modal de solicitação de ajuste
   const [selectedPostForChanges, setSelectedPostForChanges] = useState<ClientPostItem | null>(null);
@@ -53,7 +142,7 @@ export default function ClientApprovalsPage() {
   // Índices de carrossel por post
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
 
-  // Carregar posts em tempo real
+  // Carregar posts em tempo real do workspace correto
   useEffect(() => {
     if (!user || !user.uid) {
       setLoading(false);
@@ -61,30 +150,46 @@ export default function ClientApprovalsPage() {
     }
 
     try {
-      const postsCol = collection(db, "users", user.uid, "posts");
-      const q = query(postsCol, orderBy("scheduledAt", "asc"));
+      let unsubscribePosts: (() => void) | null = null;
+      const userDocRef = doc(db, "users", user.uid);
 
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const loadedPosts: ClientPostItem[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data() as PostData;
-            loadedPosts.push({
-              ...data,
-              id: docSnap.id,
+      const unsubscribeUser = onSnapshot(userDocRef, (userSnap) => {
+        const uData = userSnap.data();
+        const workspaceId = uData?.linkedWorkspaceId || user.uid;
+        const isApprover = uData?.conciergeRole === "client_approver";
+        setEffectiveWorkspaceId(workspaceId);
+        setIsApproverRole(isApprover);
+
+        if (unsubscribePosts) unsubscribePosts();
+
+        const postsCol = collection(db, "users", workspaceId, "posts");
+        const q = query(postsCol, orderBy("scheduledAt", "asc"));
+
+        unsubscribePosts = onSnapshot(
+          q,
+          (snapshot) => {
+            const loadedPosts: ClientPostItem[] = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data() as PostData;
+              loadedPosts.push({
+                ...data,
+                id: docSnap.id,
+              });
             });
-          });
-          setPosts(loadedPosts);
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Erro ao carregar posts para aprovação:", error);
-          setLoading(false);
-        }
-      );
+            setPosts(loadedPosts);
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Erro ao carregar posts para aprovação:", error);
+            setLoading(false);
+          }
+        );
+      });
 
-      return () => unsubscribe();
+      return () => {
+        unsubscribeUser();
+        if (unsubscribePosts) unsubscribePosts();
+      };
     } catch (err) {
       console.error("Erro ao conectar listener:", err);
       setLoading(false);
@@ -136,9 +241,10 @@ export default function ClientApprovalsPage() {
   // Ação de aprovação individual
   const handleApprove = async (post: ClientPostItem) => {
     if (!user?.uid) return;
+    const targetWorkspaceId = effectiveWorkspaceId || user.uid;
     setSubmittingAction(`approve-${post.id}`);
     try {
-      await approvePostByClient(user.uid, post.id);
+      await approvePostByClient(targetWorkspaceId, post.id);
       toast({
         title: "Postagem Aprovada!",
         description: "A postagem foi confirmada e será publicada automaticamente no horário agendado.",
@@ -158,10 +264,11 @@ export default function ClientApprovalsPage() {
   // Ação de aprovação em lote
   const handleApproveAll = async () => {
     if (!user?.uid || pendingPosts.length === 0) return;
+    const targetWorkspaceId = effectiveWorkspaceId || user.uid;
     setBulkApproving(true);
     try {
       for (const post of pendingPosts) {
-        await approvePostByClient(user.uid, post.id);
+        await approvePostByClient(targetWorkspaceId, post.id);
       }
       toast({
         title: "Todas as postagens foram aprovadas!",
@@ -182,6 +289,7 @@ export default function ClientApprovalsPage() {
   // Enviar solicitação de alteração
   const handleConfirmChanges = async () => {
     if (!user?.uid || !selectedPostForChanges) return;
+    const targetWorkspaceId = effectiveWorkspaceId || user.uid;
     if (!changeNotes.trim()) {
       toast({
         title: "Descreva o ajuste",
@@ -193,7 +301,7 @@ export default function ClientApprovalsPage() {
 
     setSubmittingAction(`changes-${selectedPostForChanges.id}`);
     try {
-      await requestPostChangesByClient(user.uid, selectedPostForChanges.id, changeNotes.trim());
+      await requestPostChangesByClient(targetWorkspaceId, selectedPostForChanges.id, changeNotes.trim());
       toast({
         title: "Solicitação Enviada",
         description: "Seu feedback foi registrado e o gestor fará as alterações solicitadas.",
@@ -257,31 +365,53 @@ export default function ClientApprovalsPage() {
               <Crown className="w-3.5 h-3.5" />
               NumVapt Concierge
             </span>
-            <span className="text-xs text-slate-400">• Painel do Cliente</span>
+            <span className="text-xs text-slate-400">
+              {isApproverRole ? "• Portal de Aprovação do Cliente" : "• Painel do Gestor de Conteúdo"}
+            </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-['Poppins']">
             Central de Aprovações
           </h1>
-          <p className="text-sm text-slate-400 mt-1 max-w-2xl font-['Inter']">
-            Revise e valide com 1 clique as postagens preparadas pelo seu gestor de marketing antes de serem publicadas nas suas redes sociais.
-          </p>
+          {isApproverRole ? (
+            <p className="text-sm text-slate-400 mt-1 max-w-2xl font-['Inter']">
+              Revise e valide com 1 clique as postagens preparadas pelo seu gestor de marketing antes de serem publicadas nas suas redes sociais.
+            </p>
+          ) : (
+            <p className="text-sm text-slate-400 mt-1 max-w-2xl font-['Inter']">
+              Acompanhe em tempo real o que o seu cliente contratante já aprovou ou se solicitou ajustes antes da publicação oficial.
+            </p>
+          )}
         </div>
 
-        {/* Botão de aprovação em lote para pendentes */}
-        {activeTab === "pending" && pendingPosts.length > 0 && (
-          <Button
-            onClick={handleApproveAll}
-            disabled={bulkApproving}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm flex items-center gap-2 transition-all self-start md:self-auto"
-          >
-            {bulkApproving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCheck className="w-4 h-4" />
-            )}
-            <span>Aprovar Todos ({pendingPosts.length})</span>
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Botão para o Gestor gerenciar o acesso do Cliente Aprovador */}
+          {!isApproverRole && (
+            <Button
+              onClick={() => setIsApproverModalOpen(true)}
+              variant="outline"
+              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 text-xs h-10 rounded-lg gap-2"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-[#FA6305]" />
+              <span>{approverData ? "Acesso do Cliente (Ativo)" : "Criar Acesso do Cliente"}</span>
+            </Button>
+          )}
+
+          {/* Botão de aprovação em lote para pendentes */}
+          {activeTab === "pending" && pendingPosts.length > 0 && (
+            <Button
+              onClick={handleApproveAll}
+              disabled={bulkApproving}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 h-10 rounded-lg shadow-sm flex items-center gap-2 transition-all"
+            >
+              {bulkApproving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCheck className="w-4 h-4" />
+              )}
+              <span>Aprovar Todos ({pendingPosts.length})</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Abas de Navegação */}
@@ -597,6 +727,98 @@ export default function ClientApprovalsPage() {
                 <Send className="w-4 h-4" />
               )}
               <span>Enviar Pedido de Ajuste</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Gerenciamento do Acesso do Cliente Aprovador */}
+      <Dialog open={isApproverModalOpen} onOpenChange={setIsApproverModalOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-[#FA6305]" />
+              Acesso Exclusivo do Cliente Aprovador
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Cadastre ou atualize os dados de login para que o dono da empresa acesse apenas a Central de Aprovações.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-3 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-300">Nome do Cliente</Label>
+              <Input
+                value={approverForm.name}
+                onChange={(e) => setApproverForm({ ...approverForm, name: e.target.value })}
+                placeholder="Ex: Carlos Silva"
+                className="bg-slate-950 border-slate-700 text-sm text-slate-100 placeholder:text-slate-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-300">E-mail de Login do Cliente</Label>
+              <Input
+                type="email"
+                value={approverForm.email}
+                onChange={(e) => setApproverForm({ ...approverForm, email: e.target.value })}
+                placeholder="cliente@empresa.com.br"
+                className="bg-slate-950 border-slate-700 text-sm text-slate-100 placeholder:text-slate-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-300">Senha de Acesso</Label>
+              <Input
+                type="password"
+                value={approverForm.password}
+                onChange={(e) => setApproverForm({ ...approverForm, password: e.target.value })}
+                placeholder="Defina uma senha (mínimo 6 dígitos)"
+                className="bg-slate-950 border-slate-700 text-sm text-slate-100 placeholder:text-slate-500"
+              />
+            </div>
+
+            {approverData && (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-300 space-y-2">
+                <div className="flex items-center gap-1.5 font-semibold text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Acesso Ativo no Sistema</span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  E-mail atual: <strong className="text-white">{approverData.approverEmail}</strong>
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleCopyWhatsappText}
+                  variant="outline"
+                  className="w-full text-xs h-8 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 gap-1.5 mt-1"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? "Copiado!" : "Copiar Dados para WhatsApp"}</span>
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsApproverModalOpen(false)}
+              className="text-slate-400 hover:text-white"
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={handleSaveApprover}
+              disabled={savingApprover}
+              className="bg-[#FA6305] hover:bg-[#e05804] text-white font-medium gap-1.5"
+            >
+              {savingApprover ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Key className="w-4 h-4" />
+              )}
+              <span>{approverData ? "Atualizar Acesso" : "Criar Acesso"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>

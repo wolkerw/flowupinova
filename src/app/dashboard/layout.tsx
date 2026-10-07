@@ -165,17 +165,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userPlan, setUserPlan] = useState<string>("free");
   const [isConcierge, setIsConcierge] = useState<boolean>(false);
+  const [isClientApprover, setIsClientApprover] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
 
-  // Redirecionamento automático de clientes Concierge / Aprovações
+  // Redirecionamento automático APENAS para o login do Cliente Aprovador
   useEffect(() => {
-    if (isConcierge && pathname === "/dashboard") {
+    if (isClientApprover && pathname === "/dashboard") {
       router.replace("/dashboard/aprovacoes");
     }
-  }, [isConcierge, pathname, router]);
+  }, [isClientApprover, pathname, router]);
 
   const fetchAndProcessNotifications = useCallback(async () => {
     if (!user) return;
@@ -197,34 +198,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user) {
       fetchAndProcessNotifications();
 
+      let unsubscribePosts: (() => void) | null = null;
+
       const userDocRef = doc(db, `users/${user.uid}`);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const uData = docSnap.data();
           setUserPlan(uData.plan || "free");
+          const clientApproverMode = uData.conciergeRole === "client_approver";
+          setIsClientApprover(clientApproverMode);
           setIsConcierge(
-            Boolean(uData.isConcierge || uData.managedService?.serviceMode === "concierge")
+            Boolean(uData.isConcierge || uData.managedService?.serviceMode === "concierge" || clientApproverMode)
+          );
+
+          // Escuta os posts do workspace vinculado (se for aprovador) ou do próprio usuário (se for criador)
+          const targetWorkspaceUid = uData.linkedWorkspaceId || user.uid;
+          if (unsubscribePosts) unsubscribePosts();
+
+          const postsColRef = collection(db, `users/${targetWorkspaceUid}/posts`);
+          unsubscribePosts = onSnapshot(
+            postsColRef,
+            (snap) => {
+              let count = 0;
+              snap.forEach((d) => {
+                const data = d.data();
+                if (data.status === "pending_approval" || data.approval?.status === "pending") {
+                  count++;
+                }
+              });
+              setPendingApprovalsCount(count);
+            },
+            (err) => {
+              console.warn("[DashboardLayout] Erro ao carregar contagem de aprovações:", err);
+            }
           );
         }
       });
-
-      const postsColRef = collection(db, `users/${user.uid}/posts`);
-      const unsubscribePosts = onSnapshot(
-        postsColRef,
-        (snap) => {
-          let count = 0;
-          snap.forEach((d) => {
-            const data = d.data();
-            if (data.status === "pending_approval" || data.approval?.status === "pending") {
-              count++;
-            }
-          });
-          setPendingApprovalsCount(count);
-        },
-        (err) => {
-          console.warn("[DashboardLayout] Erro ao carregar contagem de aprovações:", err);
-        }
-      );
 
       const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
       const unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
@@ -311,7 +320,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const navigationItems = useMemo(() => {
-    if (isConcierge) {
+    if (isClientApprover) {
       return [
         {
           title: "Aprovações",
@@ -331,7 +340,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ];
     }
     return allNavigationItems;
-  }, [isConcierge]);
+  }, [isClientApprover]);
 
   return (
     <div className="flex min-h-screen w-full bg-muted/50">
@@ -343,7 +352,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <OnboardingWizard
         userId={user.uid}
         initialData={businessProfile}
-        isOpen={!isConcierge && showOnboarding}
+        isOpen={!isClientApprover && showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onComplete={() => {
           console.log("Onboarding complete!");
@@ -587,7 +596,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           <div className="flex-1 overflow-auto">
-            {isConcierge && pathname === "/dashboard" ? (
+            {isClientApprover && pathname === "/dashboard" ? (
               <div className="flex h-full w-full flex-col items-center justify-center p-8 text-slate-400">
                 <Loader2 className="h-8 w-8 animate-spin text-[#0083C7] mb-2" />
                 <p className="text-sm">Redirecionando para a Central de Aprovações...</p>

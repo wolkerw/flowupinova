@@ -134,8 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .then((docSnap) => {
                 if (
                   docSnap.exists() &&
-                  (docSnap.data().isConcierge ||
-                    docSnap.data().managedService?.serviceMode === "concierge")
+                  docSnap.data().conciergeRole === "client_approver"
                 ) {
                   router.push("/dashboard/aprovacoes");
                 } else {
