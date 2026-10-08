@@ -204,10 +204,9 @@ export default function ClientApprovalsPage() {
         if (unsubscribePosts) unsubscribePosts();
 
         const postsCol = collection(db, "users", workspaceId, "posts");
-        const q = query(postsCol, orderBy("scheduledAt", "asc"));
 
         unsubscribePosts = onSnapshot(
-          q,
+          postsCol,
           (snapshot) => {
             const loadedPosts: ClientPostItem[] = [];
             snapshot.forEach((docSnap) => {
@@ -216,6 +215,11 @@ export default function ClientApprovalsPage() {
                 ...data,
                 id: docSnap.id,
               });
+            });
+            loadedPosts.sort((a, b) => {
+              const timeA = new Date(a.scheduledAt || a.createdAt || 0).getTime();
+              const timeB = new Date(b.scheduledAt || b.createdAt || 0).getTime();
+              return timeB - timeA;
             });
             if (loadedPosts.length > 0 || !isApprover) {
               setPosts(loadedPosts);
@@ -243,22 +247,42 @@ export default function ClientApprovalsPage() {
   // Contadores por aba
   const pendingPosts = useMemo(() => {
     return posts.filter(
-      (p) => p.status === "pending_approval" || p.approval?.status === "pending"
+      (p) =>
+        (p.status === "pending_approval" ||
+          p.approval?.status === "pending" ||
+          p.approval?.status === "pending_approval") &&
+        p.approval?.status !== "approved" &&
+        p.status !== "approved" &&
+        p.status !== "scheduled" &&
+        p.status !== "published" &&
+        p.status !== "changes_requested" &&
+        p.approval?.status !== "changes_requested"
     );
   }, [posts]);
 
   const changesPosts = useMemo(() => {
     return posts.filter(
-      (p) => p.status === "changes_requested" || p.approval?.status === "changes_requested"
+      (p) =>
+        (p.status === "changes_requested" ||
+          p.approval?.status === "changes_requested") &&
+        p.approval?.status !== "approved" &&
+        p.status !== "approved" &&
+        p.status !== "scheduled" &&
+        p.status !== "published"
     );
   }, [posts]);
 
   const approvedPosts = useMemo(() => {
     return posts.filter(
       (p) =>
-        p.status === "scheduled" &&
+        (p.approval?.status === "approved" ||
+          p.status === "approved" ||
+          p.status === "scheduled") &&
+        p.status !== "published" &&
         p.approval?.status !== "pending" &&
-        p.approval?.status !== "changes_requested"
+        p.approval?.status !== "pending_approval" &&
+        p.approval?.status !== "changes_requested" &&
+        p.status !== "changes_requested"
     );
   }, [posts]);
 
@@ -287,11 +311,30 @@ export default function ClientApprovalsPage() {
     if (!user?.uid) return;
     const targetWorkspaceId = effectiveWorkspaceId || user.uid;
     setSubmittingAction(`approve-${post.id}`);
+
+    // Atualização otimista imediata para mover para Aprovados & Agendados
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              status: "scheduled",
+              approval: {
+                ...(p.approval || {}),
+                status: "approved",
+                reviewedAt: new Date().toISOString(),
+                reviewedBy: user.email || user.uid,
+              },
+            }
+          : p
+      )
+    );
+
     try {
       await approvePostByClient(targetWorkspaceId, post.id);
       toast({
         title: "Postagem Aprovada!",
-        description: "A postagem foi confirmada e será publicada automaticamente no horário agendado.",
+        description: "A postagem foi confirmada e movida para Aprovados & Agendados.",
       });
       fetchPostsViaApi();
     } catch (error) {
@@ -301,6 +344,7 @@ export default function ClientApprovalsPage() {
         description: "Não foi possível aprovar a postagem. Tente novamente.",
         variant: "destructive",
       });
+      fetchPostsViaApi();
     } finally {
       setSubmittingAction(null);
     }
@@ -311,6 +355,25 @@ export default function ClientApprovalsPage() {
     if (!user?.uid || pendingPosts.length === 0) return;
     const targetWorkspaceId = effectiveWorkspaceId || user.uid;
     setBulkApproving(true);
+
+    const pendingIds = new Set(pendingPosts.map((p) => p.id));
+    setPosts((prev) =>
+      prev.map((p) =>
+        pendingIds.has(p.id)
+          ? {
+              ...p,
+              status: "scheduled",
+              approval: {
+                ...(p.approval || {}),
+                status: "approved",
+                reviewedAt: new Date().toISOString(),
+                reviewedBy: user.email || user.uid,
+              },
+            }
+          : p
+      )
+    );
+
     try {
       for (const post of pendingPosts) {
         await approvePostByClient(targetWorkspaceId, post.id);
@@ -327,6 +390,7 @@ export default function ClientApprovalsPage() {
         description: "Algumas postagens podem não ter sido aprovadas.",
         variant: "destructive",
       });
+      fetchPostsViaApi();
     } finally {
       setBulkApproving(false);
     }
@@ -887,7 +951,7 @@ export default function ClientApprovalsPage() {
                           </div>
                         </div>
                       )
-                    ) : post.status === "scheduled" ? (
+                    ) : post.status === "scheduled" || post.status === "approved" || post.approval?.status === "approved" ? (
                       <div className="w-full py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium text-center flex items-center justify-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Aprovado e Agendado</span>
