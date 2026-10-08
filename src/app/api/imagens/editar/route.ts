@@ -26,7 +26,11 @@ export async function POST(request: NextRequest) {
     const isAuthorized =
       Boolean(userData?.canEditImages) ||
       userData?.role === "admin" ||
-      userData?.plan === "admin";
+      userData?.plan === "admin" ||
+      Boolean(userData?.isConcierge) ||
+      userData?.conciergeRole === "creator" ||
+      Boolean(userData?.clientApprover) ||
+      userData?.managedService?.serviceMode === "concierge";
 
     if (!isAuthorized) {
       return NextResponse.json(

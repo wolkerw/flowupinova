@@ -760,6 +760,97 @@ export async function requestPostChangesByClient(
   }
 }
 
+export async function resubmitPostByCreator(
+  userId: string,
+  postId: string,
+  newImageUrl?: string
+): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para reenviar a publicação.");
+  }
+  try {
+    const res = await fetch("/api/concierge/posts/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, workspaceId: userId, action: "resubmit", newImageUrl }),
+    });
+
+    if (res.ok) {
+      return;
+    }
+
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    if (error?.message && !error.message.includes("fetch") && !error.message.includes("URL") && !error.message.includes("network")) {
+      throw error;
+    }
+  }
+
+  // Fallback direto via Firestore
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    const updatePayload: Record<string, any> = {
+      status: "pending_approval",
+      "approval.status": "pending",
+      "approval.resubmittedAt": Timestamp.now(),
+    };
+    if (newImageUrl) {
+      updatePayload.imageUrl = newImageUrl;
+      updatePayload.imageUrls = [newImageUrl];
+    }
+    await updateDoc(postDocRef, updatePayload);
+  } catch (fallbackErr: any) {
+    console.error(`Error resubmitting post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível reenviar a publicação para aprovação.");
+  }
+}
+
+export async function updatePostImageByCreator(
+  userId: string,
+  postId: string,
+  newImageUrl: string,
+  imageIndex?: number
+): Promise<void> {
+  if (!userId || !postId || !newImageUrl) {
+    throw new Error("UserID, PostID e newImageUrl são obrigatórios para atualizar a imagem.");
+  }
+  try {
+    const res = await fetch("/api/concierge/posts/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, workspaceId: userId, action: "update_image", newImageUrl, imageIndex }),
+    });
+
+    if (res.ok) {
+      return;
+    }
+
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    if (error?.message && !error.message.includes("fetch") && !error.message.includes("URL") && !error.message.includes("network")) {
+      throw error;
+    }
+  }
+
+  // Fallback direto via Firestore
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    await updateDoc(postDocRef, {
+      imageUrl: newImageUrl,
+      imageUrls: [newImageUrl],
+    });
+  } catch (fallbackErr: any) {
+    console.error(`Error updating image for post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível atualizar a imagem da publicação.");
+  }
+}
+
 export async function deletePost(userId: string, postId: string): Promise<void> {
   if (!userId || !postId) {
     throw new Error("UserID e PostID são necessários para excluir a publicação.");

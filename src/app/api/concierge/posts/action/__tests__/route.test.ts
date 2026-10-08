@@ -136,4 +136,102 @@ describe("POST /api/concierge/posts/action", () => {
     const json = await res.json();
     expect(json.error).toContain("Apenas o cliente aprovador");
   });
+
+  it("permite que o gestor reenvie a postagem para aprovação (resubmit)", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({
+      uid: "gestor-999",
+      email: "gestor@agencia.com",
+    } as any);
+
+    const postUpdateMock = vi.fn().mockResolvedValue(undefined);
+    const userDocMock = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ plan: "pro", role: "creator" }),
+      }),
+      collection: vi.fn().mockReturnValue({
+        doc: vi.fn().mockReturnValue({
+          get: vi.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ status: "changes_requested", imageUrls: ["https://old-url.jpg"] }),
+          }),
+          update: postUpdateMock,
+        }),
+      }),
+    };
+
+    (adminDb.collection as any).mockReturnValue({
+      doc: vi.fn().mockReturnValue(userDocMock),
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts/action", {
+      method: "POST",
+      body: JSON.stringify({
+        postId: "post-1",
+        workspaceId: "gestor-999",
+        action: "resubmit",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.message).toContain("reenviada para aprovação");
+    expect(postUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "pending_approval",
+        "approval.status": "pending",
+      })
+    );
+  });
+
+  it("atualiza a imagem da postagem com sucesso (update_image)", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({
+      uid: "gestor-999",
+      email: "gestor@agencia.com",
+    } as any);
+
+    const postUpdateMock = vi.fn().mockResolvedValue(undefined);
+    const userDocMock = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ plan: "pro", role: "creator" }),
+      }),
+      collection: vi.fn().mockReturnValue({
+        doc: vi.fn().mockReturnValue({
+          get: vi.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ status: "changes_requested", imageUrls: ["https://old-url.jpg"] }),
+          }),
+          update: postUpdateMock,
+        }),
+      }),
+    };
+
+    (adminDb.collection as any).mockReturnValue({
+      doc: vi.fn().mockReturnValue(userDocMock),
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts/action", {
+      method: "POST",
+      body: JSON.stringify({
+        postId: "post-1",
+        workspaceId: "gestor-999",
+        action: "update_image",
+        newImageUrl: "https://new-edited-art.jpg",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(postUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageUrl: "https://new-edited-art.jpg",
+        imageUrls: ["https://new-edited-art.jpg"],
+      })
+    );
+  });
 });

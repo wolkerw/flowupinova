@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ID da postagem é obrigatório." }, { status: 400 });
     }
 
-    if (!["approve", "request_changes"].includes(action)) {
-      return NextResponse.json({ error: "Ação inválida. Escolha approve ou request_changes." }, { status: 400 });
+    if (!["approve", "request_changes", "resubmit", "update_image"].includes(action)) {
+      return NextResponse.json({ error: "Ação inválida. Escolha approve, request_changes, resubmit ou update_image." }, { status: 400 });
     }
 
     // Busca dados do usuário logado
@@ -130,6 +130,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "Solicitação de ajustes enviada com sucesso.",
+      });
+    }
+
+    if (action === "resubmit") {
+      const updateData: Record<string, any> = {
+        status: "pending_approval",
+        "approval.status": "pending",
+        "approval.resubmittedAt": now,
+        "approval.resubmittedBy": authUser.email || authUser.uid,
+        updatedAt: now,
+      };
+
+      if (body.newImageUrl) {
+        updateData.imageUrl = body.newImageUrl;
+        const currentData = postSnap.data();
+        let currentList = Array.isArray(currentData?.imageUrls) ? [...currentData.imageUrls] : [];
+        const idx = typeof body.imageIndex === "number" ? body.imageIndex : 0;
+        if (currentList.length > 0 && idx >= 0 && idx < currentList.length) {
+          currentList[idx] = body.newImageUrl;
+        } else {
+          currentList = [body.newImageUrl];
+        }
+        updateData.imageUrls = currentList;
+        updateData.mediaFiles = currentList.map((url: string) => ({ url, type: "image" }));
+      }
+
+      await postDocRef.update(updateData);
+
+      console.log(`[CONCIERGE_POST_ACTION] Post ${postId} reenviado para aprovação por ${authUser.email || authUser.uid}`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Postagem reenviada para aprovação do cliente com sucesso.",
+      });
+    }
+
+    if (action === "update_image") {
+      const { newImageUrl, imageIndex } = body;
+      if (!newImageUrl) {
+        return NextResponse.json({ error: "newImageUrl é obrigatório para atualizar a imagem." }, { status: 400 });
+      }
+
+      const currentData = postSnap.data();
+      const idx = typeof imageIndex === "number" ? imageIndex : 0;
+      let currentList = Array.isArray(currentData?.imageUrls) ? [...currentData.imageUrls] : [];
+      if (currentList.length > 0 && idx >= 0 && idx < currentList.length) {
+        currentList[idx] = newImageUrl;
+      } else {
+        currentList = [newImageUrl];
+      }
+
+      await postDocRef.update({
+        imageUrl: idx === 0 ? newImageUrl : (currentData?.imageUrl || newImageUrl),
+        imageUrls: currentList,
+        mediaFiles: currentList.map((url: string) => ({ url, type: "image" })),
+        updatedAt: now,
+      });
+
+      console.log(`[CONCIERGE_POST_ACTION] Imagem do post ${postId} atualizada com sucesso por ${authUser.email || authUser.uid}`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Arte da postagem atualizada com sucesso.",
       });
     }
 

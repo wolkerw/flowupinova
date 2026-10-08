@@ -35,9 +35,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { approvePostByClient, requestPostChangesByClient, type PostData } from "@/lib/services/posts-service";
+import {
+  approvePostByClient,
+  requestPostChangesByClient,
+  resubmitPostByCreator,
+  updatePostImageByCreator,
+  type PostData,
+} from "@/lib/services/posts-service";
 import type { ClientApproverAccount } from "@/lib/types/concierge";
 import { cn, isVideoMedia } from "@/lib/utils";
+import { ImageAiEditorModal } from "@/components/dashboard/ImageAiEditorModal";
 
 type TabType = "pending" | "changes" | "approved" | "published";
 
@@ -62,6 +69,11 @@ export default function ClientApprovalsPage() {
   const [savingApprover, setSavingApprover] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [selectedImageToView, setSelectedImageToView] = useState<string | null>(null);
+  const [aiEditorState, setAiEditorState] = useState<{
+    post: ClientPostItem;
+    imageUrl: string;
+    imageIndex: number;
+  } | null>(null);
 
   // Buscar aprovador vinculado
   const fetchApprover = React.useCallback(async () => {
@@ -355,6 +367,84 @@ export default function ClientApprovalsPage() {
     }
   };
 
+  const handleResubmitPost = async (post: ClientPostItem) => {
+    const targetWorkspaceId = effectiveWorkspaceId || user?.uid;
+    if (!targetWorkspaceId) return;
+
+    setSubmittingAction(`resubmit-${post.id}`);
+    try {
+      await resubmitPostByCreator(targetWorkspaceId, post.id);
+      toast({
+        title: "Post Reenviado com Sucesso!",
+        description: "A postagem foi devolvida para a lista de aprovação do cliente.",
+      });
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id
+            ? {
+                ...p,
+                status: "pending_approval",
+                approval: {
+                  ...(p.approval || { status: "pending" }),
+                  status: "pending",
+                },
+              }
+            : p
+        )
+      );
+      fetchPostsViaApi();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erro ao reenviar post",
+        description: error.message || "Não foi possível reenviar a postagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingAction(null);
+    }
+  };
+
+  const handleSaveAiEditedImage = async (newImageUrl: string) => {
+    if (!aiEditorState) return;
+    const { post, imageIndex } = aiEditorState;
+    const targetWorkspaceId = effectiveWorkspaceId || user?.uid;
+    if (!targetWorkspaceId) return;
+
+    try {
+      await updatePostImageByCreator(targetWorkspaceId, post.id, newImageUrl, imageIndex);
+      toast({
+        title: "Arte Atualizada!",
+        description: "A imagem foi editada com sucesso no editor GPT. Agora você pode reenviar para o cliente quando desejar.",
+      });
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== post.id) return p;
+          const currentImages = Array.isArray(p.imageUrls) && p.imageUrls.length > 0 ? [...p.imageUrls] : (p.imageUrl ? [p.imageUrl] : []);
+          if (currentImages.length > 0 && imageIndex >= 0 && imageIndex < currentImages.length) {
+            currentImages[imageIndex] = newImageUrl;
+          } else {
+            currentImages[0] = newImageUrl;
+          }
+          return {
+            ...p,
+            imageUrl: imageIndex === 0 ? newImageUrl : (p.imageUrl || newImageUrl),
+            imageUrls: currentImages,
+          };
+        })
+      );
+      setAiEditorState(null);
+      fetchPostsViaApi();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erro ao salvar nova arte",
+        description: error.message || "Não foi possível salvar a imagem editada. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getImages = (post: ClientPostItem): string[] => {
     if (post.imageUrls && post.imageUrls.length > 0) return post.imageUrls;
     if (post.imageUrl) return [post.imageUrl];
@@ -633,6 +723,26 @@ export default function ClientApprovalsPage() {
                       >
                         <Maximize2 className="w-4 h-4" />
                       </button>
+
+                      {/* Botão de Atalho para o Editor GPT se houver ajustes solicitados */}
+                      {!isApproverRole && (post.status === "changes_requested" || post.approval?.status === "changes_requested") && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAiEditorState({
+                              post,
+                              imageUrl: images[currentImgIndex],
+                              imageIndex: currentImgIndex,
+                            });
+                          }}
+                          className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-slate-900/90 hover:bg-[#0083C7] text-white text-[11px] font-semibold flex items-center gap-1.5 shadow-md z-10 transition-colors border border-slate-700"
+                          title="Abrir no Editor Inteligente GPT"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Editor GPT</span>
+                        </button>
+                      )}
                     </>
                   ) : (
                     <div className="text-slate-600 text-xs flex flex-col items-center gap-2">
@@ -730,11 +840,51 @@ export default function ClientApprovalsPage() {
                         </div>
                       )
                     ) : post.status === "changes_requested" || post.approval?.status === "changes_requested" ? (
-                      <div className="w-full py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium text-center">
-                        {isApproverRole
-                          ? "⏳ Aguardando revisão do Gestor"
-                          : "⚠️ Ajustes solicitados pelo Cliente"}
-                      </div>
+                      isApproverRole ? (
+                        <div className="w-full py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium text-center">
+                          ⏳ Aguardando revisão do Gestor
+                        </div>
+                      ) : (
+                        <div className="w-full flex flex-col gap-2">
+                          <div className="w-full py-1.5 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 font-semibold">
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                              Ajustes Solicitados pelo Cliente
+                            </span>
+                            <span className="text-[10px] text-amber-300">Ação necessária</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              onClick={() => {
+                                const currentImages = getImages(post);
+                                const idx = carouselIndexes[post.id] || 0;
+                                const targetUrl = currentImages[idx] || post.imageUrl || "";
+                                setAiEditorState({
+                                  post,
+                                  imageUrl: targetUrl,
+                                  imageIndex: idx,
+                                });
+                              }}
+                              className="flex-1 bg-[#0083C7] hover:bg-[#0070a8] text-white font-medium text-xs h-9 rounded-lg gap-1.5 shadow-sm"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Editar no Editor GPT</span>
+                            </Button>
+                            <Button
+                              onClick={() => handleResubmitPost(post)}
+                              disabled={submittingAction === `resubmit-${post.id}`}
+                              className="bg-[#FA6305] hover:bg-[#e05804] text-white font-medium text-xs h-9 rounded-lg gap-1.5 shadow-sm"
+                            >
+                              {submittingAction === `resubmit-${post.id}` ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5" />
+                              )}
+                              <span>Reenviar ao Cliente</span>
+                            </Button>
+                          </div>
+                        </div>
+                      )
                     ) : post.status === "scheduled" ? (
                       <div className="w-full py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium text-center flex items-center justify-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4" />
@@ -938,6 +1088,22 @@ export default function ClientApprovalsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal do Editor Inteligente de Imagens com GPT */}
+      {aiEditorState && (
+        <ImageAiEditorModal
+          isOpen={!!aiEditorState}
+          onClose={() => setAiEditorState(null)}
+          imageUrl={aiEditorState.imageUrl}
+          format="portrait"
+          title={
+            aiEditorState.post.approval?.reviewNotes
+              ? `Ajustar Arte - "${aiEditorState.post.approval.reviewNotes}"`
+              : "Editor Inteligente de Imagens GPT"
+          }
+          onSuccess={(newImageUrl) => handleSaveAiEditedImage(newImageUrl)}
+        />
+      )}
     </div>
   );
 }

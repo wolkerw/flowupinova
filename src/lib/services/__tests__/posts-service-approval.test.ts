@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { approvePostByClient, requestPostChangesByClient } from "../posts-service";
+import {
+  approvePostByClient,
+  requestPostChangesByClient,
+  resubmitPostByCreator,
+  updatePostImageByCreator,
+} from "../posts-service";
 import * as firestore from "firebase/firestore";
 
 vi.mock("@/lib/firebase", () => ({
@@ -78,6 +83,37 @@ describe("Posts Service — Aprovação e Revisão pelo Cliente", () => {
     );
     await expect(requestPostChangesByClient("user-123", "", "ajuste")).rejects.toThrow(
       "UserID e PostID são obrigatórios para solicitar ajustes."
+    );
+  });
+
+  it("deve reenviar postagem para aprovação pelo criador (resubmitPostByCreator)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+
+    await resubmitPostByCreator("user-123", "post-456");
+
+    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), "users", "user-123", "posts", "post-456");
+    expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        status: "pending_approval",
+        "approval.status": "pending",
+        "approval.resubmittedAt": "mock-timestamp-now",
+      })
+    );
+  });
+
+  it("deve atualizar imagem da postagem pelo criador (updatePostImageByCreator)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+
+    await updatePostImageByCreator("user-123", "post-456", "https://new-edited.jpg");
+
+    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), "users", "user-123", "posts", "post-456");
+    expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        imageUrl: "https://new-edited.jpg",
+        imageUrls: ["https://new-edited.jpg"],
+      })
     );
   });
 });
