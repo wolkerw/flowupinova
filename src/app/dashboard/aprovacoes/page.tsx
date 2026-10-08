@@ -81,18 +81,26 @@ export default function ClientApprovalsPage() {
   const [editingPostCaption, setEditingPostCaption] = useState<{ post: ClientPostItem; text: string } | null>(null);
   const [savingCaption, setSavingCaption] = useState<boolean>(false);
 
-  const isTechnicalInstruction = (txt: string | null | undefined): boolean =>
-    Boolean(
-      txt &&
-        (txt.includes("área selecionada") ||
-          txt.includes("Remova e apague") ||
-          txt.includes("Altere o título principal") ||
-          txt.includes("Atualize o texto/dado do infográfico") ||
-          txt.includes("Altere o valor em destaque") ||
-          txt.includes("Ajuste os tons secundários") ||
-          txt.includes("substitua o conteúdo atual") ||
-          txt.includes("inpainting"))
+  const isTechnicalInstruction = (txt: string | null | undefined): boolean => {
+    if (!txt || typeof txt !== "string") return false;
+    const s = txt.toLowerCase();
+    return (
+      s.includes("área selecionada") ||
+      s.includes("remova e apague") ||
+      s.includes("altere o título") ||
+      s.includes("atualize o texto") ||
+      s.includes("altere o valor") ||
+      s.includes("ajuste os tons") ||
+      s.includes("substitua o conteúdo atual") ||
+      s.includes("inpainting") ||
+      s.includes("topo / parte superior") ||
+      s.includes("base / rodapé") ||
+      s.includes("lado esquerdo") ||
+      s.includes("lado direito") ||
+      s.includes("preencha o espaço de forma natural") ||
+      (s.includes("largura,") && s.includes("altura)"))
     );
+  };
 
   // Buscar aprovador vinculado
   const fetchApprover = React.useCallback(async () => {
@@ -230,9 +238,13 @@ export default function ClientApprovalsPage() {
             const loadedPosts: ClientPostItem[] = [];
             snapshot.forEach((docSnap) => {
               const data = docSnap.data() as PostData;
+              const postText = isTechnicalInstruction(data.text) ? "" : (data.text || "");
+              const postCaption = isTechnicalInstruction(data.caption) ? "" : (data.caption || "");
               loadedPosts.push({
                 ...data,
                 id: docSnap.id,
+                text: postText,
+                caption: postCaption,
               });
             });
             const getTimeSafe = (val: any) => {
@@ -498,19 +510,11 @@ export default function ClientApprovalsPage() {
     const targetWorkspaceId = effectiveWorkspaceId || user?.uid;
     if (!targetWorkspaceId) return;
 
-    // Se a legenda atual contiver um prompt técnico do editor GPT, exige que o gestor defina a legenda real
-    if (isTechnicalInstruction(post.text)) {
-      setEditingPostCaption({ post, text: "" });
-      toast({
-        title: "Defina a Legenda Original",
-        description: "A legenda atual contém uma instrução técnica do editor GPT. Por favor, insira a legenda real antes de reenviar.",
-      });
-      return;
-    }
+    const cleanedText = isTechnicalInstruction(post.text) ? "" : (post.text || "");
 
     setSubmittingAction(`resubmit-${post.id}`);
     try {
-      await resubmitPostByCreator(targetWorkspaceId, post.id);
+      await resubmitPostByCreator(targetWorkspaceId, post.id, undefined, cleanedText);
       toast({
         title: "Post Reenviado com Sucesso!",
         description: "A postagem foi devolvida para a lista de aprovação do cliente.",
@@ -922,7 +926,7 @@ export default function ClientApprovalsPage() {
                       {!isApproverRole && (
                         <button
                           type="button"
-                          onClick={() => setEditingPostCaption({ post, text: post.text || "" })}
+                          onClick={() => setEditingPostCaption({ post, text: isTechnicalInstruction(post.text) ? "" : (post.text || "") })}
                           className="text-[11px] text-[#0083C7] hover:text-sky-300 font-medium flex items-center gap-1 transition-colors"
                           title="Editar legenda do post"
                         >
@@ -932,22 +936,8 @@ export default function ClientApprovalsPage() {
                       )}
                     </div>
 
-                    {!isApproverRole && isTechnicalInstruction(post.text) && (
-                      <div className="rounded-md bg-amber-500/15 border border-amber-500/30 p-2 text-[11px] text-amber-200 flex items-center justify-between gap-1.5">
-                        <span className="line-clamp-2">⚠️ Instrução do editor GPT detectada. Clique em Corrigir para restaurar a legenda real.</span>
-                        <Button
-                          size="sm"
-                          type="button"
-                          onClick={() => setEditingPostCaption({ post, text: "" })}
-                          className="h-6 px-2 text-[10px] bg-amber-500 hover:bg-amber-600 text-white shrink-0 font-medium"
-                        >
-                          Corrigir
-                        </Button>
-                      </div>
-                    )}
-
                     <div className="h-20 max-h-20 overflow-y-auto pr-1 text-xs text-slate-200 whitespace-pre-line leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-                      {post.text || "Sem legenda informada."}
+                      {isTechnicalInstruction(post.text) ? "" : (post.text || "")}
                     </div>
                   </div>
 

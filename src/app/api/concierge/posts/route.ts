@@ -50,25 +50,116 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Busca os posts do workspace alvo
-    const postsSnap = await adminDb
+    // 1. Busca galeria de mídia do workspace para permitir restaurar legendas de artes editadas
+    let gallerySnap: any = null;
+    try {
+      gallerySnap = await adminDb
+        .collection("users")
+        .doc(targetWorkspaceId)
+        .collection("mediaGallery")
+        .get();
+    } catch (e) {
+      // Coleção de galeria opcional caso não mockada
+    }
+
+    const galleryByUrl = new Map<string, any>();
+    if (gallerySnap && typeof gallerySnap.forEach === "function") {
+      gallerySnap.forEach((gDoc: any) => {
+        const gData = typeof gDoc.data === "function" ? gDoc.data() : gDoc;
+        if (gData?.url) galleryByUrl.set(gData.url, gData);
+      });
+    } else if (Array.isArray(gallerySnap)) {
+      gallerySnap.forEach((gDoc: any) => {
+        const gData = typeof gDoc.data === "function" ? gDoc.data() : gDoc;
+        if (gData?.url) galleryByUrl.set(gData.url, gData);
+      });
+    }
+
+    const isTechnicalInstruction = (txt: any): boolean => {
+      if (!txt || typeof txt !== "string") return false;
+      const s = txt.toLowerCase();
+      return (
+        s.includes("área selecionada") ||
+        s.includes("remova e apague") ||
+        s.includes("altere o título") ||
+        s.includes("atualize o texto") ||
+        s.includes("altere o valor") ||
+        s.includes("ajuste os tons") ||
+        s.includes("substitua o conteúdo atual") ||
+        s.includes("inpainting") ||
+        s.includes("topo / parte superior") ||
+        s.includes("base / rodapé") ||
+        s.includes("lado esquerdo") ||
+        s.includes("lado direito") ||
+        s.includes("preencha o espaço de forma natural") ||
+        (s.includes("largura,") && s.includes("altura)"))
+      );
+    };
+
+    // 2. Busca os posts do workspace alvo
+    const postsSnap: any = await adminDb
       .collection("users")
       .doc(targetWorkspaceId)
       .collection("posts")
       .get();
 
+    const postDocs: any[] = [];
+    if (postsSnap && typeof postsSnap.forEach === "function") {
+      postsSnap.forEach((doc: any) => postDocs.push(doc));
+    } else if (Array.isArray(postsSnap)) {
+      postDocs.push(...postsSnap);
+    } else if (postsSnap?.docs && Array.isArray(postsSnap.docs)) {
+      postDocs.push(...postsSnap.docs);
+    }
+
     const posts: any[] = [];
-    postsSnap.forEach((doc) => {
-      const data = doc.data();
+    for (const doc of postDocs) {
+      const data = typeof doc.data === "function" ? doc.data() : doc;
+      let text = data.text || data.caption || "";
+      let caption = data.caption || data.text || "";
+
+      // Se for instrução técnica, substitui pela legenda do post original ou deixa em branco ("")
+      if (isTechnicalInstruction(text) || isTechnicalInstruction(caption)) {
+        let originalCaption = "";
+        const postImgUrl = data.imageUrl || (Array.isArray(data.imageUrls) ? data.imageUrls[0] : null);
+
+        if (postImgUrl) {
+          const mediaItem = galleryByUrl.get(postImgUrl);
+          const origUrl = mediaItem?.originalUrl;
+          if (origUrl) {
+            const origMedia = galleryByUrl.get(origUrl);
+            const candidate = origMedia?.caption || "";
+            if (candidate && !isTechnicalInstruction(candidate)) {
+              originalCaption = candidate;
+            }
+          } else if (mediaItem?.caption && !isTechnicalInstruction(mediaItem.caption)) {
+            originalCaption = mediaItem.caption;
+          }
+        }
+
+        text = originalCaption;
+        caption = originalCaption;
+
+        // Auto-repara o post no Firestore para remover a instrução técnica definitivamente
+        if (doc.ref && typeof doc.ref.update === "function") {
+          doc.ref.update({
+            text: originalCaption,
+            caption: originalCaption,
+          }).catch((err: any) => console.warn("[CONCIERGE_POSTS] Erro ao limpar instrução técnica do post:", err));
+        }
+      }
+
       posts.push({
         ...data,
         id: doc.id,
+        text,
+        caption,
         // Serializa datas e Timestamps para transporte JSON seguro
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt,
         scheduledAt: data.scheduledAt?.toDate ? data.scheduledAt.toDate().toISOString() : data.scheduledAt,
       });
-    });
+    }
 
     // Ordena por data agendada ou criação
     posts.sort((a, b) => {
