@@ -5,6 +5,7 @@ import {
   resubmitPostByCreator,
   updatePostImageByCreator,
   updatePostTextByCreator,
+  scheduleApprovedPostByCreator,
 } from "../posts-service";
 import * as firestore from "firebase/firestore";
 
@@ -36,7 +37,7 @@ describe("Posts Service — Aprovação e Revisão pelo Cliente", () => {
     vi.clearAllMocks();
   });
 
-  it("deve aprovar post pelo cliente atualizando o status para scheduled e status de aprovação para approved", async () => {
+  it("deve aprovar post pelo cliente atualizando o status para approved (sem agendar automaticamente)", async () => {
     vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
 
     await approvePostByClient("user-123", "post-456");
@@ -45,9 +46,23 @@ describe("Posts Service — Aprovação e Revisão pelo Cliente", () => {
     expect(firestore.updateDoc).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        status: "scheduled",
+        status: "approved",
         "approval.status": "approved",
         "approval.reviewedAt": "mock-timestamp-now",
+      })
+    );
+  });
+
+  it("deve agendar post aprovado pelo criador/social media (scheduleApprovedPostByCreator)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+
+    await scheduleApprovedPostByCreator("user-123", "post-456");
+
+    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), "users", "user-123", "posts", "post-456");
+    expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        status: "scheduled",
       })
     );
   });

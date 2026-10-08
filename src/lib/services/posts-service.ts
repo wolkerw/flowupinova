@@ -707,7 +707,7 @@ export async function approvePostByClient(userId: string, postId: string): Promi
   try {
     const postDocRef = doc(db, "users", userId, "posts", postId);
     await updateDoc(postDocRef, {
-      status: "scheduled",
+      status: "approved",
       "approval.status": "approved",
       "approval.reviewedAt": Timestamp.now(),
     });
@@ -897,6 +897,54 @@ export async function updatePostTextByCreator(
   } catch (fallbackErr: any) {
     console.error(`Error updating text for post ${postId} for user ${userId}:`, fallbackErr);
     throw new Error("Não foi possível atualizar a legenda da publicação.");
+  }
+}
+
+export async function scheduleApprovedPostByCreator(
+  userId: string,
+  postId: string,
+  scheduledAt?: string | Date
+): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para agendar a publicação.");
+  }
+  try {
+    const res = await fetch("/api/concierge/posts/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, workspaceId: userId, action: "schedule", scheduledAt }),
+    });
+
+    if (res.ok) {
+      return;
+    }
+
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    if (error?.message && !error.message.includes("fetch") && !error.message.includes("URL") && !error.message.includes("network")) {
+      throw error;
+    }
+  }
+
+  // Fallback direto via Firestore
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    const updatePayload: Record<string, any> = {
+      status: "scheduled",
+    };
+    if (scheduledAt) {
+      updatePayload.scheduledAt =
+        scheduledAt instanceof Date
+          ? Timestamp.fromDate(scheduledAt)
+          : Timestamp.fromDate(new Date(scheduledAt));
+    }
+    await updateDoc(postDocRef, updatePayload);
+  } catch (fallbackErr: any) {
+    console.error(`Error scheduling post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível agendar a publicação.");
   }
 }
 

@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ID da postagem é obrigatório." }, { status: 400 });
     }
 
-    if (!["approve", "request_changes", "resubmit", "update_image", "update_text"].includes(action)) {
-      return NextResponse.json({ error: "Ação inválida. Escolha approve, request_changes, resubmit, update_image ou update_text." }, { status: 400 });
+    if (!["approve", "request_changes", "resubmit", "update_image", "update_text", "schedule"].includes(action)) {
+      return NextResponse.json({ error: "Ação inválida. Escolha approve, request_changes, resubmit, update_image, update_text ou schedule." }, { status: 400 });
     }
 
     // Busca dados do usuário logado
@@ -100,18 +100,18 @@ export async function POST(request: NextRequest) {
 
     if (action === "approve") {
       await postDocRef.update({
-        status: "scheduled",
+        status: "approved",
         "approval.status": "approved",
         "approval.reviewedAt": now,
         "approval.reviewedBy": authUser.email || authUser.uid,
         updatedAt: now,
       });
 
-      console.log(`[CONCIERGE_POST_ACTION] Post ${postId} aprovado com sucesso por ${authUser.email || authUser.uid}`);
+      console.log(`[CONCIERGE_POST_ACTION] Post ${postId} aprovado com sucesso por ${authUser.email || authUser.uid} (aguardando agendamento pelo social media)`);
 
       return NextResponse.json({
         success: true,
-        message: "Postagem aprovada e agendada com sucesso.",
+        message: "Postagem aprovada com sucesso pelo cliente.",
       });
     }
 
@@ -217,6 +217,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "Legenda da postagem atualizada com sucesso.",
+      });
+    }
+
+    if (action === "schedule") {
+      if (isApprover) {
+        return NextResponse.json(
+          { error: "Clientes aprovadores não podem agendar postagens. Esta ação é de responsabilidade do social media." },
+          { status: 403 }
+        );
+      }
+
+      const updateData: Record<string, any> = {
+        status: "scheduled",
+        updatedAt: now,
+      };
+
+      if (body.scheduledAt) {
+        updateData.scheduledAt = new Date(body.scheduledAt);
+      }
+
+      await postDocRef.update(updateData);
+
+      console.log(`[CONCIERGE_POST_ACTION] Post ${postId} agendado com sucesso pelo social media ${authUser.email || authUser.uid}`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Postagem agendada com sucesso pelo social media.",
       });
     }
 

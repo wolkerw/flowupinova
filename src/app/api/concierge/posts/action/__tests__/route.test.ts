@@ -234,4 +234,92 @@ describe("POST /api/concierge/posts/action", () => {
       })
     );
   });
+
+  it("permite que o social media agende a postagem aprovada (action: schedule)", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({
+      uid: "gestor-999",
+      email: "gestor@agencia.com",
+    } as any);
+
+    const postUpdateMock = vi.fn().mockResolvedValue(undefined);
+    const userDocMock = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ plan: "pro", role: "creator" }),
+      }),
+      collection: vi.fn().mockReturnValue({
+        doc: vi.fn().mockReturnValue({
+          get: vi.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ status: "approved" }),
+          }),
+          update: postUpdateMock,
+        }),
+      }),
+    };
+
+    (adminDb.collection as any).mockReturnValue({
+      doc: vi.fn().mockReturnValue(userDocMock),
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts/action", {
+      method: "POST",
+      body: JSON.stringify({
+        postId: "post-1",
+        workspaceId: "gestor-999",
+        action: "schedule",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(postUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "scheduled",
+      })
+    );
+  });
+
+  it("impede que o cliente aprovador agende a postagem (action: schedule)", async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({
+      uid: "approver-123",
+      email: "cliente@aprovador.com",
+    } as any);
+
+    const userDocMock = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ plan: "client_approver", linkedWorkspaceId: "creator-999" }),
+      }),
+      collection: vi.fn().mockReturnValue({
+        doc: vi.fn().mockReturnValue({
+          get: vi.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ status: "approved" }),
+          }),
+          update: vi.fn(),
+        }),
+      }),
+    };
+
+    (adminDb.collection as any).mockReturnValue({
+      doc: vi.fn().mockReturnValue(userDocMock),
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/concierge/posts/action", {
+      method: "POST",
+      body: JSON.stringify({
+        postId: "post-1",
+        workspaceId: "creator-999",
+        action: "schedule",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.error).toContain("Clientes aprovadores não podem agendar");
+  });
 });

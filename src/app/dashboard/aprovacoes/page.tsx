@@ -42,6 +42,7 @@ import {
   resubmitPostByCreator,
   updatePostImageByCreator,
   updatePostTextByCreator,
+  scheduleApprovedPostByCreator,
   type PostData,
 } from "@/lib/services/posts-service";
 import type { ClientApproverAccount } from "@/lib/types/concierge";
@@ -350,13 +351,13 @@ export default function ClientApprovalsPage() {
     const targetWorkspaceId = effectiveWorkspaceId || user.uid;
     setSubmittingAction(`approve-${post.id}`);
 
-    // Atualização otimista imediata para mover para Aprovados & Agendados
+    // Atualização otimista imediata para mover para Aprovados (aguardando agendamento pelo Social Media)
     setPosts((prev) =>
       prev.map((p) =>
         p.id === post.id
           ? {
               ...p,
-              status: "scheduled",
+              status: "approved",
               approval: {
                 ...(p.approval || {}),
                 status: "approved",
@@ -372,7 +373,7 @@ export default function ClientApprovalsPage() {
       await approvePostByClient(targetWorkspaceId, post.id);
       toast({
         title: "Postagem Aprovada!",
-        description: "A postagem foi confirmada e movida para Aprovados & Agendados.",
+        description: "A postagem foi aprovada pelo cliente e agora aguarda agendamento pelo Social Media.",
       });
       fetchPostsViaApi();
     } catch (error) {
@@ -380,6 +381,44 @@ export default function ClientApprovalsPage() {
       toast({
         title: "Erro ao aprovar",
         description: "Não foi possível aprovar a postagem. Tente novamente.",
+        variant: "destructive",
+      });
+      fetchPostsViaApi();
+    } finally {
+      setSubmittingAction(null);
+    }
+  };
+
+  // Ação de agendamento exclusiva do Social Media / Gestor
+  const handleSchedulePost = async (post: ClientPostItem) => {
+    if (!user?.uid) return;
+    const targetWorkspaceId = effectiveWorkspaceId || user.uid;
+    setSubmittingAction(`schedule-${post.id}`);
+
+    // Atualização otimista imediata para Agendado
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              status: "scheduled",
+            }
+          : p
+      )
+    );
+
+    try {
+      await scheduleApprovedPostByCreator(targetWorkspaceId, post.id);
+      toast({
+        title: "Post Agendado com Sucesso!",
+        description: "A publicação foi agendada no cronograma oficial pelo Social Media.",
+      });
+      fetchPostsViaApi();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erro ao agendar post",
+        description: error.message || "Não foi possível agendar a publicação. Tente novamente.",
         variant: "destructive",
       });
       fetchPostsViaApi();
@@ -400,7 +439,7 @@ export default function ClientApprovalsPage() {
         pendingIds.has(p.id)
           ? {
               ...p,
-              status: "scheduled",
+              status: "approved",
               approval: {
                 ...(p.approval || {}),
                 status: "approved",
@@ -418,7 +457,7 @@ export default function ClientApprovalsPage() {
       }
       toast({
         title: "Todas as postagens foram aprovadas!",
-        description: `${pendingPosts.length} postagens foram confirmadas no seu cronograma.`,
+        description: `${pendingPosts.length} postagens foram aprovadas e aguardam agendamento pelo Social Media.`,
       });
       fetchPostsViaApi();
     } catch (error) {
@@ -1042,10 +1081,39 @@ export default function ClientApprovalsPage() {
                           </div>
                         </div>
                       )
-                    ) : post.status === "scheduled" || post.status === "approved" || post.approval?.status === "approved" ? (
+                    ) : post.status === "approved" || (post.approval?.status === "approved" && post.status !== "scheduled" && post.status !== "published") ? (
+                      isApproverRole ? (
+                        <div className="w-full py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium text-center flex items-center justify-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span>Aprovado por você • O Social Media fará o agendamento</span>
+                        </div>
+                      ) : (
+                        <div className="w-full flex flex-col gap-2">
+                          <div className="w-full py-1.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              Aprovado pelo Cliente
+                            </span>
+                            <span className="text-[10px] text-emerald-300">Pronto para Agendar</span>
+                          </div>
+                          <Button
+                            onClick={() => handleSchedulePost(post)}
+                            disabled={submittingAction === `schedule-${post.id}`}
+                            className="w-full bg-[#0083C7] hover:bg-[#0070a8] text-white font-medium text-xs h-9 rounded-lg gap-1.5 shadow-sm"
+                          >
+                            {submittingAction === `schedule-${post.id}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Calendar className="w-3.5 h-3.5" />
+                            )}
+                            <span>Agendar Postagem</span>
+                          </Button>
+                        </div>
+                      )
+                    ) : post.status === "scheduled" ? (
                       <div className="w-full py-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium text-center flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Aprovado e Agendado</span>
+                        <Calendar className="w-4 h-4 text-emerald-400" />
+                        <span>Agendado no Cronograma</span>
                       </div>
                     ) : (
                       <div className="w-full py-2 px-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-medium text-center">
