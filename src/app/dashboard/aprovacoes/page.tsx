@@ -660,7 +660,7 @@ export default function ClientApprovalsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
           {currentTabPosts.map((post) => {
             const images = getImages(post);
             const currentImgIndex = carouselIndexes[post.id] || 0;
@@ -672,11 +672,11 @@ export default function ClientApprovalsPage() {
                 className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden flex flex-col shadow-sm transition-all hover:border-slate-700"
               >
                 {/* Cabeçalho do Card */}
-                <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+                <div className="p-3 border-b border-slate-800/80 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 text-xs text-slate-400">
                       <Calendar className="w-3.5 h-3.5 text-[#0083C7]" />
-                      <span className="font-medium text-slate-200">
+                      <span className="font-medium text-slate-200 text-xs">
                         {formatScheduledDate(post.scheduledAt)}
                       </span>
                     </div>
@@ -692,8 +692,8 @@ export default function ClientApprovalsPage() {
                   </div>
                 </div>
 
-                {/* Visualizador de Imagem / Carrossel */}
-                <div className="relative w-full aspect-[4/5] bg-slate-950 flex items-center justify-center overflow-hidden group">
+                {/* Visualizador de Imagem / Carrossel (aspect-square proporcional à galeria) */}
+                <div className="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden group">
                   {images.length > 0 ? (
                     <>
                       {isVideoMedia(images[currentImgIndex]) ? (
@@ -775,25 +775,27 @@ export default function ClientApprovalsPage() {
                   )}
                 </div>
 
-                {/* Conteúdo / Legenda */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                {/* Conteúdo / Legenda com roll vertical (sem expandir no hover) */}
+                <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                       Legenda do Post
                     </p>
-                    <p className="text-sm text-slate-200 line-clamp-4 hover:line-clamp-none transition-all whitespace-pre-line leading-relaxed">
+                    <div className="h-20 max-h-20 overflow-y-auto pr-1 text-xs text-slate-200 whitespace-pre-line leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                       {post.text || "Sem legenda informada."}
-                    </p>
+                    </div>
                   </div>
 
                   {/* Alerta de solicitação de ajuste anterior */}
                   {post.approval?.reviewNotes && (
-                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-200">
-                      <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-400">
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5 text-xs text-amber-200">
+                      <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-400 text-[11px]">
                         <MessageSquare className="w-3.5 h-3.5" />
                         Ajuste Solicitado ao Gestor:
                       </p>
-                      <p className="italic">{post.approval.reviewNotes}</p>
+                      <div className="max-h-16 overflow-y-auto pr-1 italic text-[11px] leading-snug scrollbar-thin scrollbar-thumb-amber-600/50">
+                        {post.approval.reviewNotes}
+                      </div>
                     </div>
                   )}
 
