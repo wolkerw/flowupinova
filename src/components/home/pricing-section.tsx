@@ -48,7 +48,7 @@ export const PricingSection = () => {
           </div>
         </FadeInView>
 
-        <div className="mx-auto grid max-w-7xl items-stretch gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mx-auto grid max-w-[1440px] items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {/* Mensal */}
           <FadeInView delay={0.1}>
             <div className="relative flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -234,6 +234,56 @@ export const PricingSection = () => {
                 className="h-12 w-full rounded-full bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-transform hover:scale-[1.02] hover:from-orange-600 hover:to-orange-500"
               >
                 <Link href="/acesso/cadastro">Começar Anual</Link>
+              </Button>
+            </div>
+          </FadeInView>
+
+          {/* Done For You */}
+          <FadeInView delay={0.35}>
+            <div className="relative flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <h3 className="mb-2 text-xl font-bold text-slate-900">Done For You</h3>
+              <p className="mb-6 h-10 text-sm text-slate-500">
+                Execução completa. Ideal para quem não tem tempo.
+              </p>
+
+              <div className="mb-2 flex items-baseline">
+                <span className="text-4xl font-extrabold text-slate-900">
+                  R$ 699<span className="text-xl">,00</span>
+                </span>
+                <span className="ml-1 text-sm text-slate-500">/mês</span>
+              </div>
+              <p className="mb-2 text-xs text-slate-400">Cobrança mensal</p>
+              <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-snug text-slate-600">
+                Cobrado na modalidade <strong>"Assinatura Mensal Recorrente"</strong>, sendo assim não incide no valor total no limite do cartão de crédito.
+              </div>
+
+              <ul className="mb-8 flex-1 space-y-3 text-sm">
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>
+                    <strong>Tudo do plano Mensal</strong>
+                  </span>
+                </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Você só precisa aprovar</span>
+                </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Acesso à página de aprovações e ajustes</span>
+                </li>
+                <li className="flex items-start gap-2 text-slate-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                  <span>Ideal para quem não tem tempo para executar</span>
+                </li>
+              </ul>
+
+              <Button
+                asChild
+                variant="outline"
+                className="h-12 w-full rounded-full border-slate-300 transition-transform hover:scale-[1.02] hover:bg-slate-50"
+              >
+                <Link href="/acesso/cadastro">Começar Done For You</Link>
               </Button>
             </div>
           </FadeInView>
