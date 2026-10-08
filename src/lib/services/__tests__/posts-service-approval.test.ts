@@ -4,6 +4,7 @@ import {
   requestPostChangesByClient,
   resubmitPostByCreator,
   updatePostImageByCreator,
+  updatePostTextByCreator,
 } from "../posts-service";
 import * as firestore from "firebase/firestore";
 
@@ -113,6 +114,39 @@ describe("Posts Service — Aprovação e Revisão pelo Cliente", () => {
       expect.objectContaining({
         imageUrl: "https://new-edited.jpg",
         imageUrls: ["https://new-edited.jpg"],
+      })
+    );
+  });
+
+  it("deve reenviar postagem com nova legenda (resubmitPostByCreator com newText)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+
+    await resubmitPostByCreator("user-123", "post-456", undefined, "Legenda original preservada");
+
+    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), "users", "user-123", "posts", "post-456");
+    expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        status: "pending_approval",
+        text: "Legenda original preservada",
+        caption: "Legenda original preservada",
+        "approval.status": "pending",
+        "approval.resubmittedAt": "mock-timestamp-now",
+      })
+    );
+  });
+
+  it("deve atualizar texto/legenda da postagem pelo criador (updatePostTextByCreator)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+
+    await updatePostTextByCreator("user-123", "post-456", "Nova legenda incrível");
+
+    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), "users", "user-123", "posts", "post-456");
+    expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        text: "Nova legenda incrível",
+        caption: "Nova legenda incrível",
       })
     );
   });

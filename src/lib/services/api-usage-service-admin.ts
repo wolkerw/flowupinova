@@ -5,6 +5,7 @@ export interface ApiUsageLogInput {
   userId: string;
   type:
     | "image_generation"
+    | "image_edit"
     | "avatar_generation"
     | "chat"
     | "vision_analysis"

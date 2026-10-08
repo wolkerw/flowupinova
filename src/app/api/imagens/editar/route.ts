@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
         description?: string;
       };
       maskDataUrl?: string;
+      caption?: string;
     };
 
     if (!imageUrl || !imageUrl.trim()) {
@@ -260,12 +261,29 @@ export async function POST(request: NextRequest) {
       storageFilePath
     )}?alt=media&token=${downloadToken}`;
 
-    // 6. Registrar na galeria de mídia do usuário
+    // 6. Registrar na galeria de mídia do usuário preservando a legenda original do post
+    let preservedCaption = typeof body.caption === "string" && body.caption.trim() ? body.caption.trim() : null;
+    if (!preservedCaption && imageUrl) {
+      try {
+        const origMediaSnap = await adminDb
+          .collection(`users/${userId}/mediaGallery`)
+          .where("url", "==", imageUrl)
+          .limit(1)
+          .get();
+        if (!origMediaSnap.empty) {
+          preservedCaption = origMediaSnap.docs[0].data()?.caption || null;
+        }
+      } catch (e) {
+        console.warn("[IMAGENS_EDITAR] Aviso ao buscar caption original:", e);
+      }
+    }
+
     const galleryDocId = `edit_${timestamp}_${editId}`;
     await adminDb.doc(`users/${userId}/mediaGallery/${galleryDocId}`).set({
       id: galleryDocId,
       url: publicUrl,
       originalUrl: imageUrl,
+      caption: preservedCaption,
       prompt: instruction,
       modelUsed,
       type: "image-edit",
@@ -276,16 +294,13 @@ export async function POST(request: NextRequest) {
 
     // 7. Telemetria e Registro de Custo
     try {
-      await logApiUsage(
+      await logApiUsage({
         userId,
-        "openai",
-        modelUsed,
-        0,
-        0,
-        1,
-        0.04,
-        "image_edit"
-      );
+        provider: "openai",
+        model: modelUsed,
+        costUsd: 0.04,
+        type: "image_edit",
+      });
     } catch (telemetryErr) {
       console.warn("[IMAGENS_EDITAR] Falha não crítica na telemetria:", telemetryErr);
     }

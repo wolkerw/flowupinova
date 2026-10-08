@@ -52,6 +52,7 @@ interface GalleryMediaItem {
   usedInPostId: string | null;
   fileName: string;
   caption?: string | null;
+  originalUrl?: string;
   isPublished?: boolean;
   publishedPlatforms?: string[];
   publishedAt?: any;
@@ -160,6 +161,30 @@ export default function GaleriaPage() {
           }
         }
 
+        // Se o item for uma imagem editada, herda a legenda da mídia original se disponível
+        let resolvedCaption = item.caption || postMeta?.text || null;
+        const isTechnical = (txt: string | null | undefined) =>
+          Boolean(
+            txt &&
+              (txt.includes("área selecionada") ||
+                txt.includes("Remova e apague") ||
+                txt.includes("Altere o título") ||
+                txt.includes("Atualize o texto/dado") ||
+                txt.includes("Altere o valor") ||
+                txt.includes("Ajuste os tons") ||
+                txt.includes("substitua o conteúdo atual") ||
+                txt.includes("inpainting"))
+          );
+
+        if ((!resolvedCaption || isTechnical(resolvedCaption)) && item.originalUrl) {
+          const origPostMeta = postMetaByUrl.get(item.originalUrl);
+          const origItem = rawGalleryItems.find((g) => g.url === item.originalUrl);
+          const candidate = origItem?.caption || origPostMeta?.text || null;
+          if (candidate && !isTechnical(candidate)) {
+            resolvedCaption = candidate;
+          }
+        }
+
         const isVideo = isVideoMedia(item.url) || item.fileName?.toLowerCase().endsWith(".mp4");
 
         return {
@@ -168,7 +193,7 @@ export default function GaleriaPage() {
           isPublished: isItemPub,
           publishedPlatforms: postMeta?.platforms,
           publishedAt: postMeta?.scheduledAt,
-          caption: item.caption || postMeta?.text || null,
+          caption: resolvedCaption,
           type: isVideo ? "video" : "image",
           fileName: item.fileName || (isVideo ? "video.mp4" : "imagem.jpg"),
         };
@@ -329,7 +354,39 @@ export default function GaleriaPage() {
 
   const handleOpenApprovalModal = (item: GalleryMediaItem) => {
     setSelectedItemForApproval(item);
-    setApprovalCaption(item.caption || item.prompt || "");
+
+    const isTechnical = (txt: string | null | undefined) =>
+      Boolean(
+        txt &&
+          (txt.includes("área selecionada") ||
+            txt.includes("Remova e apague") ||
+            txt.includes("Altere o título") ||
+            txt.includes("Atualize o texto/dado") ||
+            txt.includes("Altere o valor") ||
+            txt.includes("Ajuste os tons") ||
+            txt.includes("substitua o conteúdo atual") ||
+            txt.includes("inpainting"))
+      );
+
+    let initialCaption = item.caption || "";
+    if (isTechnical(initialCaption)) {
+      initialCaption = "";
+    }
+
+    // Se ainda não tiver legenda e o item veio de uma edição, tenta buscar a legenda da mídia original
+    if (!initialCaption && item.originalUrl) {
+      const origItem = mediaItems.find((m) => m.url === item.originalUrl);
+      if (origItem?.caption && !isTechnical(origItem.caption)) {
+        initialCaption = origItem.caption;
+      }
+    }
+
+    // Se ainda não tiver legenda e o prompt não for técnico (for prompt de geração de conteúdo), usa o prompt
+    if (!initialCaption && item.prompt && !isTechnical(item.prompt)) {
+      initialCaption = item.prompt;
+    }
+
+    setApprovalCaption(initialCaption);
 
     // Data padrão: amanhã às 10:00 local
     const tomorrow = new Date();

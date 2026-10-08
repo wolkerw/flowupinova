@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ID da postagem é obrigatório." }, { status: 400 });
     }
 
-    if (!["approve", "request_changes", "resubmit", "update_image"].includes(action)) {
-      return NextResponse.json({ error: "Ação inválida. Escolha approve, request_changes, resubmit ou update_image." }, { status: 400 });
+    if (!["approve", "request_changes", "resubmit", "update_image", "update_text"].includes(action)) {
+      return NextResponse.json({ error: "Ação inválida. Escolha approve, request_changes, resubmit, update_image ou update_text." }, { status: 400 });
     }
 
     // Busca dados do usuário logado
@@ -156,6 +156,14 @@ export async function POST(request: NextRequest) {
         updateData.mediaFiles = currentList.map((url: string) => ({ url, type: "image" }));
       }
 
+      if (typeof body.text === "string" && body.text.trim()) {
+        updateData.text = body.text.trim();
+        updateData.caption = body.text.trim();
+      } else if (typeof body.newText === "string" && body.newText.trim()) {
+        updateData.text = body.newText.trim();
+        updateData.caption = body.newText.trim();
+      }
+
       await postDocRef.update(updateData);
 
       console.log(`[CONCIERGE_POST_ACTION] Post ${postId} reenviado para aprovação por ${authUser.email || authUser.uid}`);
@@ -193,6 +201,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "Arte da postagem atualizada com sucesso.",
+      });
+    }
+
+    if (action === "update_text") {
+      const textToSave = String(body.text || body.newText || "").trim();
+      await postDocRef.update({
+        text: textToSave,
+        caption: textToSave,
+        updatedAt: now,
+      });
+
+      console.log(`[CONCIERGE_POST_ACTION] Legenda do post ${postId} atualizada com sucesso por ${authUser.email || authUser.uid}`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Legenda da postagem atualizada com sucesso.",
       });
     }
 

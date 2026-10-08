@@ -69,8 +69,10 @@ export interface PostData {
     | "failed"
     | "pending_approval"
     | "changes_requested"
-    | "rejected";
+    | "rejected"
+    | "approved";
   scheduledAt: Timestamp;
+  createdAt?: any;
   mediaFiles?: { url: string; type?: string }[];
   connections: {
     fbPageAccessToken?: string | null;
@@ -763,7 +765,8 @@ export async function requestPostChangesByClient(
 export async function resubmitPostByCreator(
   userId: string,
   postId: string,
-  newImageUrl?: string
+  newImageUrl?: string,
+  newText?: string
 ): Promise<void> {
   if (!userId || !postId) {
     throw new Error("UserID e PostID são obrigatórios para reenviar a publicação.");
@@ -772,7 +775,7 @@ export async function resubmitPostByCreator(
     const res = await fetch("/api/concierge/posts/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId, workspaceId: userId, action: "resubmit", newImageUrl }),
+      body: JSON.stringify({ postId, workspaceId: userId, action: "resubmit", newImageUrl, newText }),
     });
 
     if (res.ok) {
@@ -800,6 +803,10 @@ export async function resubmitPostByCreator(
     if (newImageUrl) {
       updatePayload.imageUrl = newImageUrl;
       updatePayload.imageUrls = [newImageUrl];
+    }
+    if (newText !== undefined) {
+      updatePayload.text = newText.trim();
+      updatePayload.caption = newText.trim();
     }
     await updateDoc(postDocRef, updatePayload);
   } catch (fallbackErr: any) {
@@ -848,6 +855,48 @@ export async function updatePostImageByCreator(
   } catch (fallbackErr: any) {
     console.error(`Error updating image for post ${postId} for user ${userId}:`, fallbackErr);
     throw new Error("Não foi possível atualizar a imagem da publicação.");
+  }
+}
+
+export async function updatePostTextByCreator(
+  userId: string,
+  postId: string,
+  text: string
+): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para atualizar a legenda.");
+  }
+  try {
+    const res = await fetch("/api/concierge/posts/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, workspaceId: userId, action: "update_text", text }),
+    });
+
+    if (res.ok) {
+      return;
+    }
+
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    if (error?.message && !error.message.includes("fetch") && !error.message.includes("URL") && !error.message.includes("network")) {
+      throw error;
+    }
+  }
+
+  // Fallback direto via Firestore
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    await updateDoc(postDocRef, {
+      text: text.trim(),
+      caption: text.trim(),
+    });
+  } catch (fallbackErr: any) {
+    console.error(`Error updating text for post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível atualizar a legenda da publicação.");
   }
 }
 

@@ -28,6 +28,7 @@ import {
   Check,
   Maximize2,
   X,
+  Pencil,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import {
   requestPostChangesByClient,
   resubmitPostByCreator,
   updatePostImageByCreator,
+  updatePostTextByCreator,
   type PostData,
 } from "@/lib/services/posts-service";
 import type { ClientApproverAccount } from "@/lib/types/concierge";
@@ -50,6 +52,8 @@ type TabType = "pending" | "changes" | "approved" | "published";
 
 interface ClientPostItem extends PostData {
   id: string;
+  createdAt?: any;
+  videoUrl?: string;
 }
 
 export default function ClientApprovalsPage() {
@@ -74,6 +78,21 @@ export default function ClientApprovalsPage() {
     imageUrl: string;
     imageIndex: number;
   } | null>(null);
+  const [editingPostCaption, setEditingPostCaption] = useState<{ post: ClientPostItem; text: string } | null>(null);
+  const [savingCaption, setSavingCaption] = useState<boolean>(false);
+
+  const isTechnicalInstruction = (txt: string | null | undefined): boolean =>
+    Boolean(
+      txt &&
+        (txt.includes("área selecionada") ||
+          txt.includes("Remova e apague") ||
+          txt.includes("Altere o título principal") ||
+          txt.includes("Atualize o texto/dado do infográfico") ||
+          txt.includes("Altere o valor em destaque") ||
+          txt.includes("Ajuste os tons secundários") ||
+          txt.includes("substitua o conteúdo atual") ||
+          txt.includes("inpainting"))
+    );
 
   // Buscar aprovador vinculado
   const fetchApprover = React.useCallback(async () => {
@@ -216,9 +235,16 @@ export default function ClientApprovalsPage() {
                 id: docSnap.id,
               });
             });
+            const getTimeSafe = (val: any) => {
+              if (!val) return 0;
+              if (typeof val?.toMillis === "function") return val.toMillis();
+              if (typeof val?.toDate === "function") return val.toDate().getTime();
+              if (val instanceof Date) return val.getTime();
+              return new Date(val).getTime() || 0;
+            };
             loadedPosts.sort((a, b) => {
-              const timeA = new Date(a.scheduledAt || a.createdAt || 0).getTime();
-              const timeB = new Date(b.scheduledAt || b.createdAt || 0).getTime();
+              const timeA = getTimeSafe(a.scheduledAt) || getTimeSafe(a.createdAt);
+              const timeB = getTimeSafe(b.scheduledAt) || getTimeSafe(b.createdAt);
               return timeB - timeA;
             });
             if (loadedPosts.length > 0 || !isApprover) {
@@ -431,9 +457,56 @@ export default function ClientApprovalsPage() {
     }
   };
 
+  const handleSaveEditedCaption = async () => {
+    if (!editingPostCaption) return;
+    const targetWorkspaceId = effectiveWorkspaceId || user?.uid;
+    if (!targetWorkspaceId) return;
+
+    setSavingCaption(true);
+    try {
+      await updatePostTextByCreator(targetWorkspaceId, editingPostCaption.post.id, editingPostCaption.text);
+      toast({
+        title: "Legenda Atualizada!",
+        description: "A legenda do post foi salva com sucesso.",
+      });
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === editingPostCaption.post.id
+            ? {
+                ...p,
+                text: editingPostCaption.text.trim(),
+                caption: editingPostCaption.text.trim(),
+              }
+            : p
+        )
+      );
+      setEditingPostCaption(null);
+      fetchPostsViaApi();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erro ao salvar legenda",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingCaption(false);
+    }
+  };
+
   const handleResubmitPost = async (post: ClientPostItem) => {
     const targetWorkspaceId = effectiveWorkspaceId || user?.uid;
     if (!targetWorkspaceId) return;
+
+    // Se a legenda atual contiver um prompt técnico do editor GPT, exige que o gestor defina a legenda real
+    if (isTechnicalInstruction(post.text)) {
+      setEditingPostCaption({ post, text: "" });
+      toast({
+        title: "Defina a Legenda Original",
+        description: "A legenda atual contém uma instrução técnica do editor GPT. Por favor, insira a legenda real antes de reenviar.",
+      });
+      return;
+    }
 
     setSubmittingAction(`resubmit-${post.id}`);
     try {
@@ -842,9 +915,37 @@ export default function ClientApprovalsPage() {
                 {/* Conteúdo / Legenda com roll vertical (sem expandir no hover) */}
                 <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
                   <div className="space-y-1.5">
-                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Legenda do Post
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Legenda do Post
+                      </p>
+                      {!isApproverRole && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingPostCaption({ post, text: post.text || "" })}
+                          className="text-[11px] text-[#0083C7] hover:text-sky-300 font-medium flex items-center gap-1 transition-colors"
+                          title="Editar legenda do post"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Editar</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {!isApproverRole && isTechnicalInstruction(post.text) && (
+                      <div className="rounded-md bg-amber-500/15 border border-amber-500/30 p-2 text-[11px] text-amber-200 flex items-center justify-between gap-1.5">
+                        <span className="line-clamp-2">⚠️ Instrução do editor GPT detectada. Clique em Corrigir para restaurar a legenda real.</span>
+                        <Button
+                          size="sm"
+                          type="button"
+                          onClick={() => setEditingPostCaption({ post, text: "" })}
+                          className="h-6 px-2 text-[10px] bg-amber-500 hover:bg-amber-600 text-white shrink-0 font-medium"
+                        >
+                          Corrigir
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="h-20 max-h-20 overflow-y-auto pr-1 text-xs text-slate-200 whitespace-pre-line leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                       {post.text || "Sem legenda informada."}
                     </div>
@@ -1170,6 +1271,42 @@ export default function ClientApprovalsPage() {
           onSuccess={(newImageUrl) => handleSaveAiEditedImage(newImageUrl)}
         />
       )}
+
+      {/* Modal de Edição de Legenda do Post */}
+      <Dialog open={!!editingPostCaption} onOpenChange={(open) => !open && setEditingPostCaption(null)}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-[#0083C7]" />
+              Editar Legenda do Post
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Insira a legenda real que acompanhará a publicação para aprovação do cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3">
+            <Textarea
+              value={editingPostCaption?.text || ""}
+              onChange={(e) => setEditingPostCaption((prev) => (prev ? { ...prev, text: e.target.value } : null))}
+              placeholder="Digite a legenda do post..."
+              className="min-h-[140px] bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-[#0083C7]"
+            />
+          </div>
+          <DialogFooter className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => setEditingPostCaption(null)} className="text-slate-400 hover:text-white">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveEditedCaption}
+              disabled={savingCaption}
+              className="bg-[#0083C7] hover:bg-[#0070a8] text-white font-medium gap-1.5"
+            >
+              {savingCaption ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              <span>Salvar Legenda</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
