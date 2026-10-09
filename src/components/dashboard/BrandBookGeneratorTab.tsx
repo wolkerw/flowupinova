@@ -34,9 +34,14 @@ import {
   Target,
   Camera,
   Calendar,
+  Globe,
+  Instagram,
+  Facebook,
+  ShieldCheck,
 } from "lucide-react";
 import type { BrandBookData } from "@/lib/types/brandbook";
 import type { OnboardingPersona } from "@/lib/services/onboarding-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 
 interface BrandBookGeneratorTabProps {
   onApplyToBrain: (data: {
@@ -55,13 +60,32 @@ interface BrandBookGeneratorTabProps {
   }) => Promise<void>;
   currentBrandName?: string;
   currentSegment?: string;
+  userId?: string;
+  website?: string;
 }
 
 export function BrandBookGeneratorTab({
   onApplyToBrain,
   currentBrandName = "",
   currentSegment = "",
+  userId = "",
+  website = "",
 }: BrandBookGeneratorTabProps) {
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [syncWithSettings, setSyncWithSettings] = useState(true);
+
+  React.useEffect(() => {
+    async function loadConnections() {
+      if (!userId) return;
+      try {
+        const conn = await getInstagramConnection(userId);
+        setInstagramConnection(conn);
+      } catch (err) {
+        console.warn("Erro ao buscar conexões do Instagram no BrandBook:", err);
+      }
+    }
+    loadConnections();
+  }, [userId]);
   const { toast } = useToast();
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -132,6 +156,8 @@ export function BrandBookGeneratorTab({
           mimeType: logoFile?.type || "image/png",
           brandNameHint: brandNameHint.trim() || undefined,
           segmentHint: segmentHint.trim() || undefined,
+          websiteHint: website.trim() || undefined,
+          syncBusinessSettings: syncWithSettings,
         }),
       });
 
@@ -375,6 +401,59 @@ export function BrandBookGeneratorTab({
           </div>
         </CardContent>
 
+          {/* Inteligência Digital Ativa (Pesquisa em Segundo Plano) */}
+          <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-cyan-50/60 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                  <ShieldCheck className="h-4 w-4 text-cyan-600" />
+                  Pesquisa Ativa no Ecossistema Digital
+                </span>
+                <p className="text-[11px] text-slate-600">
+                  Cruzamento automático com a presença digital da empresa para gerar o Brand Book perfeito sem esforço.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {instagramConnection?.isConnected ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800 font-medium">
+                    <Instagram className="h-3.5 w-3.5" />
+                    {instagramConnection.instagramUsername ? `@${instagramConnection.instagramUsername.replace(/^@/, "")}` : "Instagram Ativo"}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2.5 py-1 text-slate-600 font-normal">
+                    <Instagram className="h-3.5 w-3.5 text-slate-400" />
+                    Instagram Desconectado
+                  </span>
+                )}
+
+                {website ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2.5 py-1 text-cyan-800 font-medium max-w-[200px] truncate" title={website}>
+                    <Globe className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{website.replace(/^https?:\/\//, "")}</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2.5 py-1 text-slate-600 font-normal">
+                    <Globe className="h-3.5 w-3.5 text-slate-400" />
+                    Site não informado
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={syncWithSettings}
+                  onChange={(e) => setSyncWithSettings(e.target.checked)}
+                  className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Sincronizar cores e estratégia geradas automaticamente com o Perfil da Empresa</span>
+              </label>
+            </div>
+          </div>
+
         <CardFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t pt-4">
           <div className="text-xs text-muted-foreground">
             {isGenerating ? (
@@ -424,9 +503,9 @@ export function BrandBookGeneratorTab({
                     : "bg-slate-100 text-slate-400"
                 }`}
               >
-                1. Semiótica & Paleta
+                1. Redes & Web
                 <p className="text-[10px] font-normal text-muted-foreground mt-0.5">
-                  Extração de cores e formas
+                  Mapeando Instagram, Face & Site
                 </p>
               </div>
               <div
@@ -436,9 +515,9 @@ export function BrandBookGeneratorTab({
                     : "bg-slate-100 text-slate-400"
                 }`}
               >
-                2. Arquétipos & Personas
+                2. Semiótica da Logo
                 <p className="text-[10px] font-normal text-muted-foreground mt-0.5">
-                  4 perfis com dores e copys
+                  Cores hex e geometria visual
                 </p>
               </div>
               <div

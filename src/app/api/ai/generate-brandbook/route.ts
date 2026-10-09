@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAuthenticatedUser } from "@/lib/api-auth";
+import { collectSocialIntelligence } from "@/lib/services/social-intelligence-service";
+import { adminDb } from "@/lib/firebase-admin";
 import type { BrandBookData } from "@/lib/types/brandbook";
 
 export const maxDuration = 180;
@@ -198,7 +200,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageBase64, mimeType = "image/png", brandNameHint, segmentHint } = body;
+    const {
+      imageBase64,
+      mimeType = "image/png",
+      brandNameHint,
+      segmentHint,
+      websiteHint,
+      syncBusinessSettings = true,
+    } = body;
+
+    // Coleta ativa em segundo plano de redes sociais (Instagram, Facebook) e Web OSINT
+    const socialIntel = await collectSocialIntelligence(authUser.uid, websiteHint);
 
     if (!imageBase64 || typeof imageBase64 !== "string") {
       return NextResponse.json(
@@ -212,10 +224,12 @@ export async function POST(request: NextRequest) {
       : imageBase64;
 
     const userPrompt = `Analise a logomarca anexada e construa o Brand Book Estratégico Completo.
-${brandNameHint ? `Nome da empresa sugerido pelo usuário: "${brandNameHint}".` : "Deduza o nome da marca a partir da logomarca ou crie um nome executivo adequado se for apenas um símbolo."}
-${segmentHint ? `Segmento ou contexto adicional informado: "${segmentHint}".` : "Deduza o segmento com base nos elementos visuais, paleta e linguagem do logotipo."}
+${brandNameHint ? `Nome da empresa informado pelo usuário: "${brandNameHint}".` : (socialIntel.instagram?.name ? `Nome oficial obtido no perfil: "${socialIntel.instagram.name}".` : "Deduza o nome da marca a partir da logomarca ou crie um nome executivo adequado se for apenas um símbolo.")}
+${segmentHint ? `Segmento ou contexto adicional: "${segmentHint}".` : (socialIntel.facebook?.category ? `Segmento identificado na página: "${socialIntel.facebook.category}".` : "Deduza o segmento com base nos elementos visuais, paleta e ecossistema da marca.")}
 
-Certifique-se de preencher TODAS as seções com profundidade profissional incomparável, números, tabelas, personas com dores e mensagens personalizadas, paleta de cores com códigos HEX exatos e diretrizes detalhadas de fotografia e IA. Retorne estritamente o JSON válido.`;
+${socialIntel.combinedPromptContext ? `${socialIntel.combinedPromptContext}\n` : ""}
+
+Certifique-se de preencher TODAS as seções com profundidade profissional incomparável, personas detalhadas, tom de voz autêntico, paleta de cores com códigos HEX exatos extraídos da imagem e diretrizes alinhadas aos canais reais da empresa. Retorne estritamente o JSON válido.`;
 
     const contentParts = [
       { type: "text", text: userPrompt },
@@ -262,10 +276,50 @@ Certifique-se de preencher TODAS as seções com profundidade profissional incom
           const rawContent = data?.choices?.[0]?.message?.content;
           if (rawContent) {
             const parsedData: BrandBookData = JSON.parse(rawContent);
+
+            // Sincroniza automaticamente as configurações do negócio se habilitado
+            if (syncBusinessSettings && authUser.uid) {
+              try {
+                const userDocRef = adminDb.collection("users").doc(authUser.uid);
+                const updates: Record<string, any> = {
+                  updatedAt: new Date(),
+                };
+
+                if (parsedData.identidadeVisual?.paletaCores?.primaria?.hex) {
+                  updates.primaryColor = parsedData.identidadeVisual.paletaCores.primaria.hex;
+                }
+                if (parsedData.identidadeVisual?.paletaCores?.secundaria?.hex) {
+                  updates.secondaryColor = parsedData.identidadeVisual.paletaCores.secundaria.hex;
+                }
+                if (parsedData.meta?.brandName) {
+                  updates.name = parsedData.meta.brandName;
+                }
+                if (parsedData.posicionamento?.taglineRecomendada) {
+                  updates.slogan = parsedData.posicionamento.taglineRecomendada;
+                }
+                if (parsedData.meta?.segment) {
+                  updates.category = parsedData.meta.segment;
+                }
+                if (parsedData.identidadeVerbalETomDeVoz?.atributosDoTom?.[0]?.atributo) {
+                  updates.toneOfVoice = parsedData.identidadeVerbalETomDeVoz.atributosDoTom[0].atributo;
+                }
+
+                await userDocRef.set(updates, { merge: true });
+              } catch (syncErr) {
+                console.warn("[BrandBookGenerator] Aviso ao sincronizar configurações do perfil:", syncErr);
+              }
+            }
+
             return NextResponse.json({
               success: true,
               modelUsed: model,
               brandBook: parsedData,
+              socialIntelligence: {
+                hasSocialData: socialIntel.hasSocialData,
+                instagram: socialIntel.instagram?.username || null,
+                facebook: socialIntel.facebook?.pageName || null,
+                website: socialIntel.website?.url || null,
+              },
             });
           }
         } else {

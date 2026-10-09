@@ -3,6 +3,16 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrandBookGeneratorTab } from "../BrandBookGeneratorTab";
 
+// Mock do Instagram Service
+const mockGetInstagramConnection = vi.fn().mockResolvedValue({
+  isConnected: true,
+  instagramUsername: "numvapt_oficial",
+});
+
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: (...args: any[]) => mockGetInstagramConnection(...args),
+}));
+
 describe("BrandBookGeneratorTab Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,5 +54,26 @@ describe("BrandBookGeneratorTab Component", () => {
 
     expect(screen.getByLabelText(/Nome da Marca \(Opcional\)/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Segmento de Atuação \(Opcional\)/i)).toBeInTheDocument();
+  });
+
+  it("exibe indicadores de pesquisa ativa no ecossistema digital e contas conectadas", async () => {
+    const mockApply = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <BrandBookGeneratorTab
+        onApplyToBrain={mockApply}
+        currentBrandName="NumVapt"
+        currentSegment="Marketing"
+        userId="user-123"
+        website="https://numvapt.com.br"
+      />
+    );
+
+    expect(screen.getByText(/Pesquisa Ativa no Ecossistema Digital/i)).toBeInTheDocument();
+    expect(screen.getByText(/numvapt.com.br/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText(/@numvapt_oficial/i)).toBeInTheDocument();
+    });
   });
 });

@@ -6,7 +6,28 @@ vi.mock("@/lib/api-auth", () => ({
   getAuthenticatedUser: vi.fn(),
 }));
 
+vi.mock("@/lib/services/social-intelligence-service", () => ({
+  collectSocialIntelligence: vi.fn().mockResolvedValue({
+    hasSocialData: true,
+    instagram: { username: "@homeprodutora", name: "Home Produtora" },
+    facebook: { pageName: "Home Produtora Oficial" },
+    website: { url: "https://homeprodutora.com.br" },
+    combinedPromptContext: "MOCK_SOCIAL_CONTEXT",
+  }),
+}));
+
+vi.mock("@/lib/firebase-admin", () => ({
+  adminDb: {
+    collection: vi.fn().mockReturnValue({
+      doc: vi.fn().mockReturnValue({
+        set: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+  },
+}));
+
 import { getAuthenticatedUser } from "@/lib/api-auth";
+import { collectSocialIntelligence } from "@/lib/services/social-intelligence-service";
 
 describe("API /api/ai/generate-brandbook", () => {
   const originalEnv = process.env;
@@ -178,5 +199,7 @@ describe("API /api/ai/generate-brandbook", () => {
     expect(data.success).toBe(true);
     expect(data.brandBook.meta.brandName).toBe("Home Produtora");
     expect(data.brandBook.identidadeVisual.paletaCromatica[0].hex).toBe("#FFC928");
+    expect(data.socialIntelligence.instagram).toBe("@homeprodutora");
+    expect(data.socialIntelligence.hasSocialData).toBe(true);
   });
 });

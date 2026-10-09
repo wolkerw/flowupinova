@@ -2653,6 +2653,8 @@ export default function ConfiguracoesPage() {
         {/* ================= ABA 3: GERADOR DE BRAND BOOK POR IA ================= */}
         <TabsContent value="brandbook" forceMount className="space-y-8 data-[state=inactive]:hidden focus-visible:outline-none focus-visible:ring-0">
           <BrandBookGeneratorTab
+            userId={user?.uid || ""}
+            website={website}
             currentBrandName={name}
             currentSegment={category}
             onApplyToBrain={handleApplyBrandBookToBrain}
