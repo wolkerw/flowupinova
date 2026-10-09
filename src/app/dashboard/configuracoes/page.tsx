@@ -2649,6 +2649,15 @@ export default function ConfiguracoesPage() {
             </Button>
           </div>
         </TabsContent>
+
+        {/* ================= ABA 3: GERADOR DE BRAND BOOK POR IA ================= */}
+        <TabsContent value="brandbook" forceMount className="space-y-8 data-[state=inactive]:hidden focus-visible:outline-none focus-visible:ring-0">
+          <BrandBookGeneratorTab
+            currentBrandName={name}
+            currentSegment={category}
+            onApplyToBrain={handleApplyBrandBookToBrain}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* Modal Wizard de IA */}
