@@ -35,6 +35,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lock } from "lucide-react";
 import {
   Settings2,
@@ -55,6 +56,7 @@ import {
   Plus,
   Pencil,
   User,
+  Brain,
 } from "lucide-react";
 import Image from "next/image";
 import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
@@ -1095,6 +1097,55 @@ export default function ConfiguracoesPage() {
     }
   };
 
+  const brainStats = React.useMemo(() => {
+    let teoricoScore = 0;
+    const teoricoTotal = 8;
+    if (name?.trim()) teoricoScore++;
+    if (category?.trim()) teoricoScore++;
+    if (phone?.trim()) teoricoScore++;
+    if (description?.trim()) teoricoScore++;
+    if (slogan?.trim()) teoricoScore++;
+    if (targetAudience?.trim()) teoricoScore++;
+    if (toneOfVoice?.trim()) teoricoScore++;
+    if (mainBenefits && mainBenefits.length > 0) teoricoScore++;
+
+    let tecnicoScore = 0;
+    const tecnicoTotal = 6;
+    if (logoHorizontal?.url || logoVertical?.url || logoSymbol?.url) tecnicoScore++;
+    if (logoAvatar?.url) tecnicoScore++;
+    if (primaryColor) tecnicoScore++;
+    if (secondaryColor) tecnicoScore++;
+    if (primaryFont?.trim()) tecnicoScore++;
+    if (personas && personas.length > 0) tecnicoScore++;
+
+    const totalScore = Math.round(((teoricoScore + tecnicoScore) / (teoricoTotal + tecnicoTotal)) * 100);
+
+    return {
+      percentage: Math.min(100, Math.max(0, totalScore)),
+      teoricoScore,
+      teoricoTotal,
+      tecnicoScore,
+      tecnicoTotal,
+    };
+  }, [
+    name,
+    category,
+    phone,
+    description,
+    slogan,
+    targetAudience,
+    toneOfVoice,
+    mainBenefits,
+    logoHorizontal,
+    logoVertical,
+    logoSymbol,
+    logoAvatar,
+    primaryColor,
+    secondaryColor,
+    primaryFont,
+    personas,
+  ]);
+
   if (isLoading) {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center">
@@ -1105,20 +1156,30 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-6 pb-20">
-      {/* Cabeçalho */}
+      {/* Cabeçalho Cérebro da Marca */}
       <div className="flex flex-col items-start justify-between gap-4 border-b pb-6 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Configurações da Marca
-          </h1>
-          <p className="mt-1 text-gray-600">
-            Personalize a identidade visual, voz e cadastro do seu negócio
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Brain className="h-7 w-7" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                Configurações da Marca
+              </h1>
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
+                Cérebro do Negócio
+              </span>
+            </div>
+            <p className="mt-0.5 text-sm text-gray-600">
+              A base de inteligência estratégica e técnica que alimenta a criação dos seus posts com IA
+            </p>
+          </div>
         </div>
         <Button
           onClick={handleSaveAll}
           disabled={isSaving}
-          className="bg-primary text-white shadow-md hover:bg-primary/90"
+          className="bg-primary text-white shadow-md hover:bg-primary/90 h-11 px-5"
         >
           {isSaving ? (
             <>
@@ -1131,11 +1192,392 @@ export default function ConfiguracoesPage() {
         </Button>
       </div>
 
-      {/* Seções de Configurações */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Painel Esquerdo: Identidade Visual e Logos */}
-        <div className="space-y-8 lg:col-span-1">
-          {/* Módulo de Cores (Paleta e Sugestões) */}
+      {/* Card: Status da Inteligência da Marca (Brand Brain Indicator) */}
+      <Card className="border-blue-100 bg-gradient-to-br from-blue-50/60 via-white to-slate-50 shadow-sm">
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-base font-semibold text-gray-900">
+                  Índice de Inteligência da Marca: {brainStats.percentage}% Alimentado
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Quanto mais completo estiver o Cérebro do Negócio, mais assertivas, personalizadas e fiéis à sua marca serão as imagens e legendas geradas pela IA.
+              </p>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
+              <div className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 shadow-xs">
+                <span>🧠 Teórico:</span>
+                <span className="font-bold text-primary">{brainStats.teoricoScore}/{brainStats.teoricoTotal}</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 shadow-xs">
+                <span>🎨 Técnico:</span>
+                <span className="font-bold text-primary">{brainStats.tecnicoScore}/{brainStats.tecnicoTotal}</span>
+              </div>
+            </div>
+          </div>
+          {/* Barra de progresso */}
+          <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${brainStats.percentage}%` }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Abas de Configurações */}
+      <Tabs defaultValue="estrategia" className="w-full space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
+          <TabsTrigger
+            value="estrategia"
+            className="rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            🧠 Estratégia & Diretrizes
+          </TabsTrigger>
+          <TabsTrigger
+            value="identidade"
+            className="rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            🎨 Ativos & Identidade
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ================= ABA 1: ESTRATÉGIA & DIRETRIZES (TEÓRICAS) ================= */}
+        <TabsContent value="estrategia" forceMount className="space-y-8 data-[state=inactive]:hidden focus-visible:outline-none focus-visible:ring-0">
+          {/* Assistente de Marca (Banner Inteligente de IA) */}
+          <Card className="relative overflow-hidden border-none bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
+            <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-500/20 blur-xl"></div>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-white">
+                <Sparkles className="h-6 w-6 animate-pulse text-yellow-300" />
+                Assistência guiada com Inteligência Artificial
+              </CardTitle>
+              <CardDescription className="text-blue-100">
+                Deixe o assistente Vapti criar sua paleta de cores, tom de voz, slogans e público
+                através da IA.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed text-blue-50/90">
+                Se você deseja remodelar a identidade do seu negócio ou quer ajuda para extrair
+                slogans marcantes, nosso onboarding interativo pode mapear seu site ou suas
+                respostas em segundos.
+              </p>
+            </CardContent>
+            <CardFooter className="pt-2">
+              <Button
+                type="button"
+                onClick={() => setShowWizard(true)}
+                className="bg-white text-blue-700 shadow-md transition-all hover:bg-blue-50"
+              >
+                Refazer Onboarding com IA ✨
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Cadastro Geral do Negócio */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Globe className="h-5 w-5 text-primary" />
+                Dados do Negócio
+              </CardTitle>
+              <CardDescription>Configurações de cadastro e presença web</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="businessName">Nome Fantasia da Empresa (Razão Social)</Label>
+                  <Input
+                    id="businessName"
+                    placeholder="Ex: Pizzaria Forno de Ouro"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={cnpjLocked}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="cnpj">CNPJ do Cadastro</Label>
+                    {cnpjLocked && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-violet-600">
+                        <Lock className="h-3 w-3" /> Protegido
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      id="cnpj"
+                      placeholder="00.000.000/0000-00"
+                      value={cnpj}
+                      onChange={(e) => setCnpj(formatCnpjLocal(e.target.value))}
+                      disabled={cnpjLocked}
+                      className="flex-1"
+                      maxLength={18}
+                    />
+                    {cnpjLocked && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setNewCnpj(cnpj);
+                          setNewBusinessName(name);
+                          setCnpjReason("");
+                          setIsCnpjModalOpen(true);
+                        }}
+                        disabled={hasPendingCnpjRequest}
+                        className="h-10 shrink-0 border-violet-200 px-3 text-xs text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                      >
+                        Solicitar Alteração
+                      </Button>
+                    )}
+                  </div>
+                  {hasPendingCnpjRequest && (
+                    <p className="mt-1 text-[10px] font-semibold text-amber-600">
+                      ⚠️ Solicitação de alteração em análise pelo administrador.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Categoria do Negócio</Label>
+                  <Input
+                    id="category"
+                    placeholder="Ex: Restaurantes / Alimentação"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone / WhatsApp Comercial</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      placeholder="Ex: (51) 99999-9999"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
+                <div className="space-y-2">
+                  <Label htmlFor="website">Website URL</Label>
+                  <Input
+                    id="website"
+                    placeholder="Ex: www.fornodeouro.com.br"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço Comercial</Label>
+                <Input
+                  id="address"
+                  placeholder="Ex: Av. Getúlio Vargas, 1000 - Porto Alegre, RS"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="instagram">Perfil do Instagram (Sufixo / Username)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    @
+                  </span>
+                  <Input
+                    id="instagram"
+                    placeholder="pizzaria_fornodeouro"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição do Negócio / Quem Somos</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Conte o que sua empresa oferece de melhor, seus diferenciais e especialidades..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="min-h-[100px] resize-y"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Voz de Marca e Posicionamento (Brand Voice) */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Bookmark className="h-5 w-5 text-primary" />
+                Voz de Marca e Posicionamento
+              </CardTitle>
+              <CardDescription>
+                Definições de marketing que guiam a IA na criação de posts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="slogan">Slogan da Empresa</Label>
+                <div className="relative">
+                  <Compass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="slogan"
+                    placeholder="Ex: O sabor inesquecível da tradição italiana."
+                    value={slogan}
+                    onChange={(e) => setSlogan(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="targetAudience">Público-Alvo Principal</Label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="targetAudience"
+                      placeholder="Ex: Famílias, casais e jovens apaixonados por pizza gourmet."
+                      value={targetAudience}
+                      onChange={(e) => setTargetAudience(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="toneOfVoice">Tom de Voz da Marca</Label>
+                  <div className="relative">
+                    <Smile className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="toneOfVoice"
+                      placeholder="Ex: Acolhedor, apaixonado, familiar e ligeiramente bem-humorado."
+                      value={toneOfVoice}
+                      onChange={(e) => setToneOfVoice(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Benefícios da Marca */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  Principais Benefícios / Diferenciais (Tags)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Adicionar novo benefício... Ex: Ingredientes Importados"
+                    value={newBenefit}
+                    onChange={(e) => setNewBenefit(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddBenefit();
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="secondary" onClick={handleAddBenefit}>
+                    Adicionar
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {mainBenefits.length === 0 ? (
+                    <p className="text-xs italic text-muted-foreground">
+                      Nenhum benefício cadastrado. Adicione acima para orientar a IA.
+                    </p>
+                  ) : (
+                    mainBenefits.map((benefit, index) => (
+                      <span
+                        key={benefit}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                      >
+                        {benefit}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBenefit(index)}
+                          className="shrink-0 font-bold hover:text-primary/70"
+                          aria-label={`Remover benefício ${benefit}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Diretrizes de Imagem para IA */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Palette className="h-5 w-5 text-primary" />
+                Diretrizes Visuais para Geração de Fotos
+              </CardTitle>
+              <CardDescription>
+                Instruções estéticas que guiam a IA na renderização das suas imagens conceito
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="visualGuidelines">Diretrizes Fotográficas e Conceituais</Label>
+                <Textarea
+                  id="visualGuidelines"
+                  placeholder="Ex: Fotografia de produto clean em estúdio com luz suave, sombras alongadas e fundo em tons pastéis ou madeira clara. Enquadramento focado no centro."
+                  value={visualGuidelines}
+                  onChange={(e) => setVisualGuidelines(e.target.value)}
+                  className="min-h-[100px] resize-y"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se você importar um PDF de manual de marca, essas diretrizes serão extraídas
+                  automaticamente pela IA da agência. Elas ajudam o motor de imagem (Imagen) a
+                  seguir o estilo do seu designer.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end pt-4">
+            <Button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className="bg-primary text-white shadow-md hover:bg-primary/90 h-11 px-6"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar Alterações Estratégicas"
+              )}
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* ================= ABA 2: ATIVOS & IDENTIDADE (TÉCNICAS) ================= */}
+        <TabsContent value="identidade" forceMount className="space-y-8 data-[state=inactive]:hidden focus-visible:outline-none focus-visible:ring-0">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            {/* Coluna 1: Cores, Tipografia, Manual de Branding */}
+            <div className="space-y-8">
+              {/* Módulo de Cores (Paleta e Sugestões) */}
           <Card className="border-none shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -1276,7 +1718,136 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
-          {/* Módulo de Logomarcas */}
+              {/* Tipografia da Marca (Fontes) */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Bookmark className="h-5 w-5 text-primary" />
+                Tipografia do Brand Kit
+              </CardTitle>
+              <CardDescription>
+                Estilo de fontes e escritas recomendados para as imagens da marca
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="primaryFont">Fonte Primária (Títulos)</Label>
+                  <Input
+                    id="primaryFont"
+                    placeholder="Ex: Eras Light ITC, Montserrat"
+                    value={primaryFont}
+                    onChange={(e) => setPrimaryFont(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondaryFont">Fonte Secundária (Textos)</Label>
+                  <Input
+                    id="secondaryFont"
+                    placeholder="Ex: Myriad Pro, Inter"
+                    value={secondaryFont}
+                    onChange={(e) => setSecondaryFont(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fontStyle">Estilo Geral</Label>
+                  <Input
+                    id="fontStyle"
+                    placeholder="Ex: Tecnológico minimalista, serif moderno"
+                    value={fontStyle}
+                    onChange={(e) => setFontStyle(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+              {/* Módulo de Importação de Manual de Branding (PDF) */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Branding da Agência (PDF)
+              </CardTitle>
+              <CardDescription>
+                Suba o manual de identidade visual criado pela agência e a IA configurará seu Brand
+                Kit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isParsingPdf ? (
+                <div className="flex flex-col items-center justify-center space-y-3 rounded-lg border border-dashed bg-slate-50/50 p-6 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-gray-800">
+                      Processando manual de marca...
+                    </p>
+                    <p className="animate-pulse text-xs text-muted-foreground">{pdfProgressText}</p>
+                  </div>
+                </div>
+              ) : pdfManualPath ? (
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded border border-green-200 bg-white text-green-600">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-green-800">
+                        Manual de Marca Vinculado
+                      </p>
+                      {pdfManualUrl && (
+                        <a
+                          href={pdfManualUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-0.5 flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                        >
+                          Visualizar PDF
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 border-dashed px-3 text-xs"
+                    onClick={() => fileInputRefPdf.current?.click()}
+                  >
+                    Substituir PDF
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    ref={fileInputRefPdf}
+                    className="hidden"
+                    onChange={handlePdfUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex h-auto w-full flex-col items-center justify-center gap-2 border-dashed p-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => fileInputRefPdf.current?.click()}
+                  >
+                    <UploadCloud className="mr-2 h-6 w-6 text-primary" />
+                    <div className="text-center">
+                      <p className="text-sm font-semibold">Upload do Manual em PDF</p>
+                      <p className="text-xs text-muted-foreground">
+                        Identidade Visual, Cores, Tom de Voz (até 15MB)
+                      </p>
+                    </div>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+            </div>
+
+            {/* Coluna 2: Múltiplas Logomarcas */}
+            <div className="space-y-8">
+              {/* Módulo de Logomarcas */}
           <Card className="border-none shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -1798,443 +2369,10 @@ export default function ConfiguracoesPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
-          {/* Módulo de Importação de Manual de Branding (PDF) */}
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Branding da Agência (PDF)
-              </CardTitle>
-              <CardDescription>
-                Suba o manual de identidade visual criado pela agência e a IA configurará seu Brand
-                Kit.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isParsingPdf ? (
-                <div className="flex flex-col items-center justify-center space-y-3 rounded-lg border border-dashed bg-slate-50/50 p-6 text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-gray-800">
-                      Processando manual de marca...
-                    </p>
-                    <p className="animate-pulse text-xs text-muted-foreground">{pdfProgressText}</p>
-                  </div>
-                </div>
-              ) : pdfManualPath ? (
-                <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded border border-green-200 bg-white text-green-600">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-green-800">
-                        Manual de Marca Vinculado
-                      </p>
-                      {pdfManualUrl && (
-                        <a
-                          href={pdfManualUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-0.5 flex items-center gap-0.5 text-[10px] text-primary hover:underline"
-                        >
-                          Visualizar PDF
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-9 border-dashed px-3 text-xs"
-                    onClick={() => fileInputRefPdf.current?.click()}
-                  >
-                    Substituir PDF
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    ref={fileInputRefPdf}
-                    className="hidden"
-                    onChange={handlePdfUpload}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex h-auto w-full flex-col items-center justify-center gap-2 border-dashed p-8 text-muted-foreground hover:text-foreground"
-                    onClick={() => fileInputRefPdf.current?.click()}
-                  >
-                    <UploadCloud className="mr-2 h-6 w-6 text-primary" />
-                    <div className="text-center">
-                      <p className="text-sm font-semibold">Upload do Manual em PDF</p>
-                      <p className="text-xs text-muted-foreground">
-                        Identidade Visual, Cores, Tom de Voz (até 15MB)
-                      </p>
-                    </div>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tipografia da Marca (Fontes) */}
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Bookmark className="h-5 w-5 text-primary" />
-                Tipografia do Brand Kit
-              </CardTitle>
-              <CardDescription>
-                Estilo de fontes e escritas recomendados para as imagens da marca
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="primaryFont">Fonte Primária (Títulos)</Label>
-                  <Input
-                    id="primaryFont"
-                    placeholder="Ex: Eras Light ITC, Montserrat"
-                    value={primaryFont}
-                    onChange={(e) => setPrimaryFont(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryFont">Fonte Secundária (Textos)</Label>
-                  <Input
-                    id="secondaryFont"
-                    placeholder="Ex: Myriad Pro, Inter"
-                    value={secondaryFont}
-                    onChange={(e) => setSecondaryFont(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fontStyle">Estilo Geral</Label>
-                  <Input
-                    id="fontStyle"
-                    placeholder="Ex: Tecnológico minimalista, serif moderno"
-                    value={fontStyle}
-                    onChange={(e) => setFontStyle(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Painel Central e Direito: Dados do Negócio e Voz de Marca */}
-        <div className="space-y-8 lg:col-span-2">
-          {/* Assistente de Marca (Banner Inteligente de IA) */}
-          <Card className="relative overflow-hidden border-none bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
-            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-            <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-500/20 blur-xl"></div>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-xl font-bold text-white">
-                <Sparkles className="h-6 w-6 animate-pulse text-yellow-300" />
-                Assistência guiada com Inteligência Artificial
-              </CardTitle>
-              <CardDescription className="text-blue-100">
-                Deixe o assistente Vapti criar sua paleta de cores, tom de voz, slogans e público
-                através da IA.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed text-blue-50/90">
-                Se você deseja remodelar a identidade do seu negócio ou quer ajuda para extrair
-                slogans marcantes, nosso onboarding interativo pode mapear seu site ou suas
-                respostas em segundos.
-              </p>
-            </CardContent>
-            <CardFooter className="pt-2">
-              <Button
-                type="button"
-                onClick={() => setShowWizard(true)}
-                className="bg-white text-blue-700 shadow-md transition-all hover:bg-blue-50"
-              >
-                Refazer Onboarding com IA ✨
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Cadastro Geral do Negócio */}
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Globe className="h-5 w-5 text-primary" />
-                Dados do Negócio
-              </CardTitle>
-              <CardDescription>Configurações de cadastro e presença web</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="businessName">Nome Fantasia da Empresa (Razão Social)</Label>
-                  <Input
-                    id="businessName"
-                    placeholder="Ex: Pizzaria Forno de Ouro"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={cnpjLocked}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="cnpj">CNPJ do Cadastro</Label>
-                    {cnpjLocked && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold text-violet-600">
-                        <Lock className="h-3 w-3" /> Protegido
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      id="cnpj"
-                      placeholder="00.000.000/0000-00"
-                      value={cnpj}
-                      onChange={(e) => setCnpj(formatCnpjLocal(e.target.value))}
-                      disabled={cnpjLocked}
-                      className="flex-1"
-                      maxLength={18}
-                    />
-                    {cnpjLocked && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setNewCnpj(cnpj);
-                          setNewBusinessName(name);
-                          setCnpjReason("");
-                          setIsCnpjModalOpen(true);
-                        }}
-                        disabled={hasPendingCnpjRequest}
-                        className="h-10 shrink-0 border-violet-200 px-3 text-xs text-violet-700 hover:bg-violet-50 hover:text-violet-800"
-                      >
-                        Solicitar Alteração
-                      </Button>
-                    )}
-                  </div>
-                  {hasPendingCnpjRequest && (
-                    <p className="mt-1 text-[10px] font-semibold text-amber-600">
-                      ⚠️ Solicitação de alteração em análise pelo administrador.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoria do Negócio</Label>
-                  <Input
-                    id="category"
-                    placeholder="Ex: Restaurantes / Alimentação"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone / WhatsApp Comercial</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      placeholder="Ex: (51) 99999-9999"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website URL</Label>
-                  <Input
-                    id="website"
-                    placeholder="Ex: www.fornodeouro.com.br"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço Comercial</Label>
-                <Input
-                  id="address"
-                  placeholder="Ex: Av. Getúlio Vargas, 1000 - Porto Alegre, RS"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="instagram">Perfil do Instagram (Sufixo / Username)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    @
-                  </span>
-                  <Input
-                    id="instagram"
-                    placeholder="pizzaria_fornodeouro"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    className="pl-7"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição do Negócio / Quem Somos</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Conte o que sua empresa oferece de melhor, seus diferenciais e especialidades..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-[100px] resize-y"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Voz de Marca e Posicionamento (Brand Voice) */}
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Bookmark className="h-5 w-5 text-primary" />
-                Voz de Marca e Posicionamento
-              </CardTitle>
-              <CardDescription>
-                Definições de marketing que guiam a IA na criação de posts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="slogan">Slogan da Empresa</Label>
-                <div className="relative">
-                  <Compass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="slogan"
-                    placeholder="Ex: O sabor inesquecível da tradição italiana."
-                    value={slogan}
-                    onChange={(e) => setSlogan(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="targetAudience">Público-Alvo Principal</Label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="targetAudience"
-                      placeholder="Ex: Famílias, casais e jovens apaixonados por pizza gourmet."
-                      value={targetAudience}
-                      onChange={(e) => setTargetAudience(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="toneOfVoice">Tom de Voz da Marca</Label>
-                  <div className="relative">
-                    <Smile className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="toneOfVoice"
-                      placeholder="Ex: Acolhedor, apaixonado, familiar e ligeiramente bem-humorado."
-                      value={toneOfVoice}
-                      onChange={(e) => setToneOfVoice(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Benefícios da Marca */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  Principais Benefícios / Diferenciais (Tags)
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Adicionar novo benefício... Ex: Ingredientes Importados"
-                    value={newBenefit}
-                    onChange={(e) => setNewBenefit(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleAddBenefit();
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="secondary" onClick={handleAddBenefit}>
-                    Adicionar
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {mainBenefits.length === 0 ? (
-                    <p className="text-xs italic text-muted-foreground">
-                      Nenhum benefício cadastrado. Adicione acima para orientar a IA.
-                    </p>
-                  ) : (
-                    mainBenefits.map((benefit, index) => (
-                      <span
-                        key={benefit}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
-                      >
-                        {benefit}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveBenefit(index)}
-                          className="shrink-0 font-bold hover:text-primary/70"
-                          aria-label={`Remover benefício ${benefit}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Diretrizes de Imagem para IA */}
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Palette className="h-5 w-5 text-primary" />
-                Diretrizes Visuais para Geração de Fotos
-              </CardTitle>
-              <CardDescription>
-                Instruções estéticas que guiam a IA na renderização das suas imagens conceito
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="visualGuidelines">Diretrizes Fotográficas e Conceituais</Label>
-                <Textarea
-                  id="visualGuidelines"
-                  placeholder="Ex: Fotografia de produto clean em estúdio com luz suave, sombras alongadas e fundo em tons pastéis ou madeira clara. Enquadramento focado no centro."
-                  value={visualGuidelines}
-                  onChange={(e) => setVisualGuidelines(e.target.value)}
-                  className="min-h-[100px] resize-y"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Se você importar um PDF de manual de marca, essas diretrizes serão extraídas
-                  automaticamente pela IA da agência. Elas ajudam o motor de imagem (Imagen) a
-                  seguir o estilo do seu designer.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
+          {/* Personas do Negócio (Largura Total) */}
           {/* Personas do Negócio */}
           <Card className="border-none shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -2423,8 +2561,25 @@ export default function ConfiguracoesPage() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+
+          <div className="flex justify-end pt-4">
+            <Button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className="bg-primary text-white shadow-md hover:bg-primary/90 h-11 px-6"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar Ativos Técnicos"
+              )}
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Modal Wizard de IA */}
       <OnboardingWizard

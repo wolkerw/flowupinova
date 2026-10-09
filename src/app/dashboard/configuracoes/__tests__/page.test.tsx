@@ -139,4 +139,36 @@ describe("Configurações da Marca - Gestão de Personas", () => {
     expect(await screen.findByText("Adicionar Variação da Logomarca")).toBeInTheDocument();
     expect(screen.getByLabelText(/Nome \/ Etiqueta da Variação/i)).toBeInTheDocument();
   });
+
+  it("renderiza a estrutura de abas do Cérebro do Negócio e exibe seções teóricas e técnicas", async () => {
+    render(
+      <AuthProvider>
+        <ConfiguracoesPage />
+      </AuthProvider>
+    );
+
+    await screen.findByText("Configurações da Marca");
+
+    // Valida elementos do Cérebro da Marca
+    expect(screen.getByText("Cérebro do Negócio")).toBeInTheDocument();
+    expect(screen.getByText(/Índice de Inteligência da Marca/i)).toBeInTheDocument();
+
+    // Valida as duas abas
+    const tabEstrategia = screen.getByRole("tab", { name: /Estratégia & Diretrizes/i });
+    const tabIdentidade = screen.getByRole("tab", { name: /Ativos & Identidade/i });
+    expect(tabEstrategia).toBeInTheDocument();
+    expect(tabIdentidade).toBeInTheDocument();
+    expect(tabEstrategia).toHaveAttribute("data-state", "active");
+
+    // Na aba de Estratégia, verifica campos teóricos
+    expect(screen.getByText("Dados do Negócio")).toBeInTheDocument();
+    expect(screen.getByText("Voz de Marca e Posicionamento")).toBeInTheDocument();
+    expect(screen.getByText("Diretrizes Visuais para Geração de Fotos")).toBeInTheDocument();
+
+    // Verifica presença dos ativos técnicos
+    expect(screen.getByText("Identidade Visual")).toBeInTheDocument();
+    expect(screen.getByText("Tipografia do Brand Kit")).toBeInTheDocument();
+    expect(screen.getByText("Múltiplas Logomarcas")).toBeInTheDocument();
+    expect(screen.getByText("Personas da Marca")).toBeInTheDocument();
+  });
 });
