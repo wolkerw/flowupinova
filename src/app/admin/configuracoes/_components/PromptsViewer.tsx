@@ -351,6 +351,41 @@ export function PromptsViewer() {
           </AccordionContent>
         </AccordionItem>
 
+        {/* Gerador de Brand Book por IA */}
+        <AccordionItem
+          value="brandbook"
+          className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900/50 px-4"
+        >
+          <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-4 w-4 text-emerald-400" />
+              Agente: Gerador Executivo de Brand Book por IA
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-400">
+            <p className="mb-4 text-xs">
+              Instrui a IA a atuar como Diretor de Branding Sênior, analisando a imagem da logomarca do cliente para construir o Brand Book Executivo de 12 seções (propósito, valores, posicionamento, 4 personas, arquétipos, regras editoriais, campanhas e plano de 90 dias).
+            </p>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[300px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.generate_brandbook_prompt || ""}
+                onChange={(e) => handleChange("generate_brandbook_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("generate_brandbook_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
     </div>
   );

@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
+import { BrandBookGeneratorTab } from "@/components/dashboard/BrandBookGeneratorTab";
 import { motion, AnimatePresence } from "framer-motion";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -1097,6 +1098,69 @@ export default function ConfiguracoesPage() {
     }
   };
 
+  const handleApplyBrandBookToBrain = async (data: {
+    primaryColor: string;
+    secondaryColor: string;
+    primaryFont: string;
+    secondaryFont: string;
+    fontStyle: string;
+    slogan: string;
+    toneOfVoice: string;
+    targetAudience: string;
+    mainBenefits: string[];
+    visualGuidelines: string;
+    personas: OnboardingPersona[];
+    description: string;
+  }) => {
+    setPrimaryColor(data.primaryColor);
+    setSecondaryColor(data.secondaryColor);
+    setPrimaryFont(data.primaryFont);
+    setSecondaryFont(data.secondaryFont);
+    setFontStyle(data.fontStyle);
+    setSlogan(data.slogan);
+    setToneOfVoice(data.toneOfVoice);
+    setTargetAudience(data.targetAudience);
+    setMainBenefits(data.mainBenefits);
+    setVisualGuidelines(data.visualGuidelines);
+    setPersonas(data.personas);
+    if (!description.trim() && data.description) {
+      setDescription(data.description);
+    }
+
+    if (!user) return;
+    try {
+      await updateOnboardingProfile(
+        user.uid,
+        {
+          primaryColor: data.primaryColor,
+          secondaryColor: data.secondaryColor,
+          slogan: data.slogan,
+          toneOfVoice: data.toneOfVoice,
+          targetAudience: data.targetAudience,
+          mainBenefits: data.mainBenefits,
+          description: description || data.description,
+          brandKit: {
+            ...profile?.brandKit,
+            primaryColor: data.primaryColor,
+            secondaryColor: data.secondaryColor,
+            visualGuidelines: data.visualGuidelines,
+            fonts: {
+              primaryFont: data.primaryFont,
+              secondaryFont: data.secondaryFont,
+              style: data.fontStyle,
+            },
+            personas: data.personas,
+          },
+        },
+        { merge: true }
+      );
+      await loadProfile();
+    } catch (e) {
+      console.error("Erro ao persistir Brand Book no perfil:", e);
+      throw e;
+    }
+  };
+
   const brainStats = React.useMemo(() => {
     let teoricoScore = 0;
     const teoricoTotal = 8;
@@ -1230,7 +1294,7 @@ export default function ConfiguracoesPage() {
 
       {/* Abas de Configurações */}
       <Tabs defaultValue="estrategia" className="w-full space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3 h-12 bg-slate-100 p-1 rounded-xl">
           <TabsTrigger
             value="estrategia"
             className="rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
@@ -1242,6 +1306,12 @@ export default function ConfiguracoesPage() {
             className="rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
           >
             🎨 Ativos & Identidade
+          </TabsTrigger>
+          <TabsTrigger
+            value="brandbook"
+            className="rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            ✨ Brand Book por IA
           </TabsTrigger>
         </TabsList>
 
