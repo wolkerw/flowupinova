@@ -120,6 +120,18 @@ type LogoPosition =
   | "bottom-left"
   | "bottom-center"
   | "bottom-right";
+
+const LOGO_POSITION_LABELS: Record<LogoPosition, string> = {
+  "top-left": "Superior Esquerda",
+  "top-center": "Superior Centro",
+  "top-right": "Superior Direita",
+  "left-center": "Centro Esquerda",
+  "center": "Centro",
+  "right-center": "Centro Direita",
+  "bottom-left": "Inferior Esquerda",
+  "bottom-center": "Inferior Centro",
+  "bottom-right": "Inferior Direita",
+};
 type Platform = "instagram" | "facebook" | "google" | "linkedin" | "tiktok";
 
 type MediaItem = {
@@ -3695,9 +3707,9 @@ export default function CriarConteudoPage() {
                               <RadioGroupItem value={pos} id={pos} className="peer sr-only" />
                               <Label
                                 htmlFor={pos}
-                                className="flex cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover p-2 text-xs capitalize hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary"
+                                className="flex cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover p-2 text-[11px] sm:text-xs text-center leading-tight hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary"
                               >
-                                {pos.replace("-", " ")}
+                                {LOGO_POSITION_LABELS[pos]}
                               </Label>
                             </div>
                           ))}

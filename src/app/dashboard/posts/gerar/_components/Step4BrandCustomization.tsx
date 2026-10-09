@@ -26,6 +26,18 @@ import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
 
 import { useWizard } from "../context/WizardContext";
 
+const LOGO_POSITION_LABELS: Record<LogoPosition, string> = {
+  "top-left": "Superior Esquerda",
+  "top-center": "Superior Centro",
+  "top-right": "Superior Direita",
+  "left-center": "Centro Esquerda",
+  "center": "Centro",
+  "right-center": "Centro Direita",
+  "bottom-left": "Inferior Esquerda",
+  "bottom-center": "Inferior Centro",
+  "bottom-right": "Inferior Direita",
+};
+
 export const Step4BrandCustomization = () => {
   const [isZoomOpen, setIsZoomOpen] = React.useState(false);
   const {
@@ -274,9 +286,9 @@ export const Step4BrandCustomization = () => {
                             />
                             <Label
                               htmlFor={`logo-${pos}`}
-                              className="flex cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover p-2 text-xs capitalize hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary"
+                              className="flex cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover p-2 text-[11px] sm:text-xs text-center leading-tight hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary"
                             >
-                              {pos.replace("-", " ")}
+                              {LOGO_POSITION_LABELS[pos]}
                             </Label>
                           </div>
                         ))}
