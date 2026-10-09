@@ -15,6 +15,12 @@ vi.mock("@/lib/services/onboarding-service", () => ({
   updateOnboardingProfile: (...args: any[]) => mockUpdateOnboardingProfile(...args),
 }));
 
+// Mock do serviço do Instagram
+const mockGetInstagramConnection = vi.fn().mockResolvedValue({ isConnected: false });
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: (...args: any[]) => mockGetInstagramConnection(...args),
+}));
+
 // Mock do Firebase
 vi.mock("@/lib/firebase", () => ({
   db: {},
@@ -133,4 +139,55 @@ describe("OnboardingWizard - Edição de Hexadecimal das Cores da Marca", () => 
       );
     });
   });
+
+  describe("Trava de Instagram na Etapa 1 (Presença)", () => {
+    it("mantém o campo de Instagram desabilitado e mostra badge de Requer Conexão quando não conectado", async () => {
+      mockGetInstagramConnection.mockResolvedValueOnce({ isConnected: false });
+
+      render(
+        <OnboardingWizard
+          userId="user-123"
+          initialData={initialData as any}
+          isOpen={true}
+          onClose={vi.fn()}
+          onComplete={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Requer Conexão")).toBeInTheDocument();
+      });
+
+      const instagramInput = screen.getByLabelText(/Instagram Oficial/i);
+      expect(instagramInput).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Conectar Instagram/i })).toBeInTheDocument();
+    });
+
+    it("habilita o campo de Instagram e exibe badge de Conectado Oficialmente quando conectado", async () => {
+      mockGetInstagramConnection.mockResolvedValueOnce({
+        isConnected: true,
+        instagramUsername: "numvapt_oficial",
+      });
+
+      render(
+        <OnboardingWizard
+          userId="user-123"
+          initialData={initialData as any}
+          isOpen={true}
+          onClose={vi.fn()}
+          onComplete={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Conectado Oficialmente")).toBeInTheDocument();
+      });
+
+      const instagramInput = screen.getByLabelText(/Instagram Oficial/i);
+      expect(instagramInput).toBeEnabled();
+      expect(screen.queryByText("Requer Conexão")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Conectar Instagram/i })).not.toBeInTheDocument();
+    });
+  });
 });
+

@@ -25,10 +25,14 @@ import {
   Instagram,
   Sparkles,
   Search,
+  Lock,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { updateOnboardingProfile, OnboardingProfileData } from "@/lib/services/onboarding-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
+import { config } from "@/lib/config";
 import { db, storage, auth } from "@/lib/firebase";
 import { getUserStoragePathClient } from "@/lib/utils/storage-utils-client";
 import { logEvent } from "firebase/analytics";
@@ -58,6 +62,8 @@ export function OnboardingWizard({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [isLoadingInstagramConnection, setIsLoadingInstagramConnection] = useState(true);
 
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
@@ -116,6 +122,50 @@ export function OnboardingWizard({
       setLogoPreview(initialData.logo?.url || null);
     }
   }, [initialData]);
+
+  useEffect(() => {
+    async function loadInstagram() {
+      if (!userId) {
+        setIsLoadingInstagramConnection(false);
+        return;
+      }
+      try {
+        const conn = await getInstagramConnection(userId);
+        setInstagramConnection(conn);
+        if (conn?.isConnected && conn.instagramUsername) {
+          setFormData((prev) => ({
+            ...prev,
+            instagram: prev.instagram || `@${conn.instagramUsername.replace(/^@/, "")}`,
+          }));
+        }
+      } catch (err) {
+        console.error("Erro ao carregar conexão do Instagram no Onboarding:", err);
+      } finally {
+        setIsLoadingInstagramConnection(false);
+      }
+    }
+    loadInstagram();
+  }, [userId]);
+
+  const handleConnectInstagram = () => {
+    const appId = config.instagram.appId;
+    if (!appId) {
+      toast({
+        title: "Integração indisponível",
+        description: "App ID do Instagram não configurado.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const redirectUri = `${origin}/api/instagram/callback`;
+    const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement";
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=${encodeURIComponent(scope)}&response_type=code`;
+
+    window.open(authUrl, "_blank", "width=600,height=700");
+  };
 
   const handleNext = () => {
     if (step === 2) {
@@ -181,10 +231,13 @@ export function OnboardingWizard({
   };
 
   const handleAnalyzeWithIA = async () => {
-    if (!formData.website && !formData.instagram) {
+    const hasWebsite = !!formData.website?.trim();
+    const hasInstagram = !!(formData.instagram?.trim() && instagramConnection?.isConnected);
+
+    if (!hasWebsite && !hasInstagram) {
       toast({
         title: "Dados necessários",
-        description: "Insira um site ou Instagram para que a IA possa analisar.",
+        description: "Insira um site ou conecte seu Instagram oficial para que a IA possa analisar.",
         variant: "destructive",
       });
       return;
@@ -862,23 +915,70 @@ export function OnboardingWizard({
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <Label
-                          htmlFor="instagram"
-                          className="ml-1 text-sm font-bold uppercase tracking-widest text-slate-400"
-                        >
-                          Instagram (@usuario)
-                        </Label>
-                        <div className="group relative">
-                          <Instagram className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300 transition-colors group-focus-within:text-cyan-500" />
-                          <Input
-                            id="instagram"
-                            placeholder="@seuinsta"
-                            value={formData.instagram}
-                            onChange={(e) =>
-                              setFormData({ ...formData, instagram: e.target.value })
-                            }
-                            className="h-14 rounded-2xl border-slate-200 bg-white pl-14 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
-                          />
+                        <div className="flex items-center justify-between">
+                          <Label
+                            htmlFor="instagram"
+                            className="ml-1 text-sm font-bold uppercase tracking-widest text-slate-400"
+                          >
+                            Instagram Oficial
+                          </Label>
+                          {isLoadingInstagramConnection ? (
+                            <span className="flex items-center gap-1 text-xs text-slate-400">
+                              <Loader2 className="h-3 w-3 animate-spin" /> Verificando...
+                            </span>
+                          ) : instagramConnection?.isConnected ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Conectado Oficialmente
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                              <Lock className="h-3.5 w-3.5" /> Requer Conexão
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="group relative">
+                            <Instagram className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300 transition-colors group-focus-within:text-cyan-500" />
+                            <Input
+                              id="instagram"
+                              placeholder={
+                                isLoadingInstagramConnection
+                                  ? "Carregando..."
+                                  : instagramConnection?.isConnected
+                                  ? "@seuinsta"
+                                  : "Conecte sua conta para liberar"
+                              }
+                              value={formData.instagram}
+                              disabled={!instagramConnection?.isConnected}
+                              onChange={(e) =>
+                                setFormData({ ...formData, instagram: e.target.value })
+                              }
+                              className={cn(
+                                "h-14 rounded-2xl border-slate-200 pl-14 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0",
+                                !instagramConnection?.isConnected
+                                  ? "cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200"
+                                  : "bg-white"
+                              )}
+                            />
+                          </div>
+
+                          {!isLoadingInstagramConnection && !instagramConnection?.isConnected && (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-dashed border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900">
+                              <p className="leading-relaxed">
+                                Para proteger sua marca e garantir dados oficiais, a inserção do @ e a leitura do perfil exigem a conexão oficial com a Meta/Instagram.
+                              </p>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleConnectInstagram}
+                                className="shrink-0 h-9 gap-1.5 border-amber-400 bg-white font-semibold text-amber-900 hover:bg-amber-100 rounded-xl shadow-sm"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" /> Conectar Instagram
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -892,12 +992,14 @@ export function OnboardingWizard({
                           Poupe tempo com IA
                         </h4>
                         <p className="mb-4 max-w-sm text-sm leading-relaxed text-cyan-50">
-                          Nossa IA analisará seu site ou Instagram para preencher automaticamente
-                          seu nome, categoria e descrição.
+                          {instagramConnection?.isConnected
+                            ? "Nossa IA analisará seu site e Instagram conectado para preencher automaticamente seu perfil."
+                            : "Nossa IA analisará seu site institucional para preencher automaticamente seu perfil."}
                         </p>
                         <Button
                           onClick={handleAnalyzeWithIA}
-                          className="h-14 w-full gap-2 rounded-xl bg-white text-lg font-black text-cyan-600 shadow-lg hover:bg-cyan-50"
+                          disabled={!formData.website && !instagramConnection?.isConnected}
+                          className="h-14 w-full gap-2 rounded-xl bg-white text-lg font-black text-cyan-600 shadow-lg hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Zap className="h-5 w-5 fill-cyan-600" /> Analisar Agora
                         </Button>
