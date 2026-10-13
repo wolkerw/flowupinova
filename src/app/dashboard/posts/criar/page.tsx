@@ -3271,10 +3271,10 @@ export default function CriarConteudoPage() {
                                     setIsCorrectionOpen(true);
                                   }}
                                   className="flex h-6 w-full items-center justify-center gap-1 rounded-md border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
-                                  title="Editar textos específicos ou inpainting manual"
+                                  title="Editor manual com pincel e camadas"
                                 >
                                   <Paintbrush className="h-2.5 w-2.5 shrink-0 text-primary" />
-                                  <span className="truncate">Inpainting</span>
+                                  <span className="truncate">Editor Manual</span>
                                 </Button>
                               </div>
                             )}
@@ -3998,7 +3998,7 @@ export default function CriarConteudoPage() {
                         className="flex-1 rounded-lg border-primary/40 py-2 font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5 flex items-center justify-center gap-2"
                       >
                         <Paintbrush className="h-4 w-4 text-primary" />
-                        Inpainting / Pincel
+                        Editor Manual
                       </Button>
                     </div>
                   )}
