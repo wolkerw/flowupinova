@@ -25,9 +25,18 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
   });
 
   it("deve conter as diretrizes de suporte e formatação com links markdown", () => {
-    expect(PLATFORM_KNOWLEDGE_BASE).toContain("DIRETRIZES DE SUPORTE E ATENDIMENTO PARA O VAPTI");
-    expect(PLATFORM_KNOWLEDGE_BASE).toContain("link clicável em markdown");
-    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Para post manual: Oriente o usuário a acessar a aba");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("DIRETRIZES DE SUPORTE E TUTOR PASSO A PASSO PARA O VAPTI");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Links Clicáveis em Markdown");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Para post manual: SEMPRE direcione para a aba");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("[Posts](/dashboard/posts)");
+  });
+
+  it("deve conter o roteiro de etapas até a publicação final", () => {
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 1: Acessar a tela de Posts");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 2: Adicionar e Editar a Mídia");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 3: Redigir a Legenda e Hashtags");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 4: Selecionar as Redes Sociais");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 5: Publicar ou Agendar");
   });
 });
