@@ -30,6 +30,9 @@ export interface UserSummary {
   hasSignedContract?: boolean;
   canEditImages?: boolean;
   isConcierge?: boolean;
+  isClientApprover?: boolean;
+  conciergeRole?: string | null;
+  linkedWorkspaceId?: string | null;
   activeContract?: {
     id: string;
     modalidade: string;
@@ -325,6 +328,14 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         hasSignedContract: !!data.hasSignedContract || !!data.activeContract,
         canEditImages: !!data.canEditImages,
         isConcierge: Boolean(data.isConcierge || data.managedService?.serviceMode === "concierge"),
+        isClientApprover: Boolean(
+          data.conciergeRole === "client_approver" ||
+          data.plan === "client_approver" ||
+          data.role === "client_approver" ||
+          String(data.plan || "").toLowerCase() === "client_approver"
+        ),
+        conciergeRole: data.conciergeRole ?? null,
+        linkedWorkspaceId: data.linkedWorkspaceId ?? null,
         activeContract: data.activeContract ?? null,
       });
     })

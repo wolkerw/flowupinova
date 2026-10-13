@@ -48,6 +48,21 @@ const mockUsers = [
     imagesCount: 2,
     hasSignedContract: false,
   },
+  {
+    uid: "approver-789",
+    email: "aprovador.empresa@teste.com",
+    displayName: "João Aprovador",
+    plan: "client_approver",
+    paymentStatus: "active",
+    createdAt: "2026-09-12T10:00:00Z",
+    trialDaysLeft: 0,
+    trialExpired: false,
+    postsCount: 0,
+    imagesCount: 0,
+    isClientApprover: true,
+    conciergeRole: "client_approver",
+    linkedWorkspaceId: "ws_empresa_123",
+  },
 ];
 
 describe("AdminUsuariosPage", () => {
@@ -149,6 +164,29 @@ describe("AdminUsuariosPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Contrato Digital de Assinatura NumVapt/i)).toBeInTheDocument();
+    });
+  });
+
+  it("separa client_approvers dos usuarios padrao em abas dedicadas", async () => {
+    render(<AdminUsuariosPage />);
+
+    // Na aba padrão (Usuários Padrão), aparecem Empresa Assinante LTDA e Cliente Novo, mas NÃO João Aprovador
+    await waitFor(() => {
+      expect(screen.getByText("Empresa Assinante LTDA")).toBeInTheDocument();
+      expect(screen.getByText("Cliente Novo")).toBeInTheDocument();
+      expect(screen.queryByText("João Aprovador")).not.toBeInTheDocument();
+    });
+
+    // Clica na aba Aprovadores de Clientes
+    const approverTab = screen.getByRole("button", { name: /Aprovadores de Clientes/i });
+    fireEvent.click(approverTab);
+
+    // Agora deve exibir o aprovador com workspace vinculado e ocultar os usuários padrão
+    await waitFor(() => {
+      expect(screen.getByText("João Aprovador")).toBeInTheDocument();
+      expect(screen.getByText("ws_empresa_123")).toBeInTheDocument();
+      expect(screen.queryByText("Empresa Assinante LTDA")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cliente Novo")).not.toBeInTheDocument();
     });
   });
 });

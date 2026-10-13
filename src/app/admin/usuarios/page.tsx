@@ -24,6 +24,8 @@ import {
   Tag,
   Crown,
   Sparkles,
+  CheckSquare,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -36,7 +38,7 @@ interface UserSummary {
   displayName: string;
   phone?: string;
   segment?: string;
-  plan: "trial" | "standard" | "blocked";
+  plan: "trial" | "standard" | "blocked" | "client_approver" | string;
   paymentStatus: string;
   createdAt: string;
   trialDaysLeft: number;
@@ -49,6 +51,9 @@ interface UserSummary {
   hasSignedContract?: boolean;
   canEditImages?: boolean;
   isConcierge?: boolean;
+  isClientApprover?: boolean;
+  conciergeRole?: string | null;
+  linkedWorkspaceId?: string | null;
   activeContract?: {
     id: string;
     modalidade: string;
@@ -173,21 +178,27 @@ function UserSheet({
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Status badges */}
         <div className="flex flex-wrap gap-2">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
-              user.paymentStatus === "blocked"
-                ? PLAN_COLORS.blocked
-                : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
-            )}
-          >
-            {user.paymentStatus === "blocked"
-              ? "Bloqueado"
-              : user.plan === "standard"
-                ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
-                : (PLAN_LABELS[user.plan] ?? user.plan)}
-          </span>
-          {user.plan === "trial" && (
+          {user.isClientApprover ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FA6305]/30 bg-[#FA6305]/10 px-2.5 py-1 text-xs font-semibold text-[#FA6305]">
+              <CheckSquare className="h-3.5 w-3.5" /> Client Approver (Aprovador)
+            </span>
+          ) : (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+                user.paymentStatus === "blocked"
+                  ? PLAN_COLORS.blocked
+                  : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
+              )}
+            >
+              {user.paymentStatus === "blocked"
+                ? "Bloqueado"
+                : user.plan === "standard"
+                  ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
+                  : (PLAN_LABELS[user.plan] ?? user.plan)}
+            </span>
+          )}
+          {!user.isClientApprover && user.plan === "trial" && (
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
@@ -200,7 +211,7 @@ function UserSheet({
               {user.trialExpired ? "Trial Expirado" : `${user.trialDaysLeft} dias restantes`}
             </span>
           )}
-          {user.hasSignedContract && (
+          {!user.isClientApprover && user.hasSignedContract && (
             <span className="inline-flex items-center gap-1 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400">
               <CheckCircle className="h-3 w-3" /> Contrato Assinado
             </span>
@@ -305,194 +316,226 @@ function UserSheet({
             </button>
           </div>
 
-          {/* Recursos Especiais de IA e Modos de Operação */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              Recursos Especiais & Modos de Operação
-            </p>
-            <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-semibold text-white">Editor GPT-image-2.5</h3>
-                    <p className="text-[10px] text-slate-400">Edição e ajuste de títulos/infográficos</p>
-                  </div>
+          {user.isClientApprover ? (
+            /* Detalhes específicos de Client Approver */
+            <div className="space-y-3">
+              <div className="rounded-xl border border-[#FA6305]/40 bg-[#FA6305]/10 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-[#FA6305] font-semibold text-sm">
+                  <CheckSquare className="h-4 w-4" />
+                  Conta de Aprovador de Cliente (Client Approver)
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    doAction({ canEditImages: !user.canEditImages }, "toggle-ai-editor")
-                  }
-                  disabled={loading}
-                  aria-label="Alternar permissão do editor de imagens"
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                    user.canEditImages ? "bg-amber-500" : "bg-slate-700"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      user.canEditImages ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
-                {user.canEditImages ? (
-                  <span className="text-amber-400 font-medium">
-                    ✓ Liberado: Este usuário pode editar textos e refinar imagens com IA.
-                  </span>
-                ) : (
-                  <span>
-                    Bloqueado: Apenas administradores e usuários autorizados visualizam o editor.
-                  </span>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Esta conta foi criada exclusivamente para aprovação de conteúdo do modo NumVapt Concierge. O usuário possui acesso restrito apenas à Central de Aprovações para revisar e aprovar publicações.
+                </p>
+                {user.linkedWorkspaceId && (
+                  <div className="text-xs text-slate-400 pt-2 border-t border-[#FA6305]/20 flex items-center justify-between">
+                    <span>Workspace Vinculado:</span>
+                    <span className="font-mono text-white text-[11px] bg-slate-900 px-2 py-0.5 rounded border border-slate-700 select-all">
+                      {user.linkedWorkspaceId}
+                    </span>
+                  </div>
                 )}
-              </p>
+              </div>
             </div>
-
-            {/* NumVapt Concierge */}
-            <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FA6305]/10 text-[#FA6305] border border-[#FA6305]/20">
-                    <Crown className="h-4 w-4" />
+          ) : (
+            <>
+              {/* Recursos Especiais de IA e Modos de Operação */}
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  Recursos Especiais & Modos de Operação
+                </p>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-semibold text-white">Editor GPT-image-2.5</h3>
+                        <p className="text-[10px] text-slate-400">Edição e ajuste de títulos/infográficos</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        doAction({ canEditImages: !user.canEditImages }, "toggle-ai-editor")
+                      }
+                      disabled={loading}
+                      aria-label="Alternar permissão do editor de imagens"
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                        user.canEditImages ? "bg-amber-500" : "bg-slate-700"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          user.canEditImages ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
+                    </button>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-semibold text-white">NumVapt Concierge</h3>
-                    <p className="text-[10px] text-slate-400">Modo Done-For-You com Link de Aprovação</p>
-                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
+                    {user.canEditImages ? (
+                      <span className="text-amber-400 font-medium">
+                        ✓ Liberado: Este usuário pode editar textos e refinar imagens com IA.
+                      </span>
+                    ) : (
+                      <span>
+                        Bloqueado: Apenas administradores e usuários autorizados visualizam o editor.
+                      </span>
+                    )}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    doAction({ isConcierge: !user.isConcierge }, "toggle-concierge")
-                  }
-                  disabled={loading}
-                  aria-label="Alternar modo NumVapt Concierge"
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                    user.isConcierge ? "bg-[#FA6305]" : "bg-slate-700"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      user.isConcierge ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
-                {user.isConcierge ? (
-                  <span className="text-[#FA6305] font-medium">
-                    ✓ Ativado: Gestão terceirizada ativa com aprovação por Link Mágico.
-                  </span>
-                ) : (
-                  <span>
-                    Padrão: Autoatendimento com criação e agendamento pelo próprio cliente.
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
 
-          {/* Ações */}
+                {/* NumVapt Concierge */}
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FA6305]/10 text-[#FA6305] border border-[#FA6305]/20">
+                        <Crown className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-semibold text-white">NumVapt Concierge</h3>
+                        <p className="text-[10px] text-slate-400">Modo Done-For-You com Link de Aprovação</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        doAction({ isConcierge: !user.isConcierge }, "toggle-concierge")
+                      }
+                      disabled={loading}
+                      aria-label="Alternar modo NumVapt Concierge"
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                        user.isConcierge ? "bg-[#FA6305]" : "bg-slate-700"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          user.isConcierge ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
+                    {user.isConcierge ? (
+                      <span className="text-[#FA6305] font-medium">
+                        ✓ Ativado: Gestão terceirizada ativa com aprovação por Link Mágico.
+                      </span>
+                    ) : (
+                      <span>
+                        Padrão: Autoatendimento com criação e agendamento pelo próprio cliente.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Ações de Plano */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Ações de Plano</p>
+
+                {/* Ativar/Mudar para Plano Mensal */}
+                {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
+                  <button
+                    onClick={() =>
+                      doAction(
+                        { plan: "standard", subscriptionPlan: "mensal", paymentStatus: "active" },
+                        "activate-mensal"
+                      )
+                    }
+                    disabled={loading}
+                    className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "activate-mensal" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    {user.plan === "standard"
+                      ? "Mudar para Plano Mensal"
+                      : "Ativar Plano Mensal (30 dias)"}
+                  </button>
+                )}
+
+                {/* Ativar/Mudar para Plano Anual */}
+                {!(user.plan === "standard" && user.subscriptionPlan === "anual") && (
+                  <button
+                    onClick={() =>
+                      doAction(
+                        { plan: "standard", subscriptionPlan: "anual", paymentStatus: "active" },
+                        "activate-anual"
+                      )
+                    }
+                    disabled={loading}
+                    className="flex w-full items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "activate-anual" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Crown className="h-4 w-4" />
+                    )}
+                    {user.plan === "standard"
+                      ? "Mudar para Plano Anual"
+                      : "Ativar Plano Anual (365 dias)"}
+                  </button>
+                )}
+
+                {user.plan !== "trial" && (
+                  <button
+                    onClick={() => doAction({ plan: "trial", paymentStatus: "inactive" }, "trial")}
+                    disabled={loading}
+                    className="flex w-full items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "trial" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Clock className="h-4 w-4" />
+                    )}
+                    Mover para Trial
+                  </button>
+                )}
+
+                {/* Estender Trial (+7d / +30d) */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => doAction({ extendTrial: true, extendTrialDays: 7 }, "extend-7")}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 py-2.5 text-xs font-medium text-violet-400 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "extend-7" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CalendarPlus className="h-3.5 w-3.5" />
+                    )}
+                    Estender Trial (+7d)
+                  </button>
+
+                  <button
+                    onClick={() => doAction({ extendTrial: true, extendTrialDays: 30 }, "extend-30")}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 py-2.5 text-xs font-medium text-fuchsia-400 transition-colors hover:bg-fuchsia-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "extend-30" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CalendarPlus className="h-3.5 w-3.5" />
+                    )}
+                    Estender Trial (+30d)
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Ações de Conta */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Ações</p>
-
-            {/* Ativar/Mudar para Plano Mensal */}
-            {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
-              <button
-                onClick={() =>
-                  doAction(
-                    { plan: "standard", subscriptionPlan: "mensal", paymentStatus: "active" },
-                    "activate-mensal"
-                  )
-                }
-                disabled={loading}
-                className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:opacity-50"
-              >
-                {loading && action === "activate-mensal" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-4 w-4" />
-                )}
-                {user.plan === "standard"
-                  ? "Mudar para Plano Mensal"
-                  : "Ativar Plano Mensal (30 dias)"}
-              </button>
-            )}
-
-            {/* Ativar/Mudar para Plano Anual */}
-            {!(user.plan === "standard" && user.subscriptionPlan === "anual") && (
-              <button
-                onClick={() =>
-                  doAction(
-                    { plan: "standard", subscriptionPlan: "anual", paymentStatus: "active" },
-                    "activate-anual"
-                  )
-                }
-                disabled={loading}
-                className="flex w-full items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
-              >
-                {loading && action === "activate-anual" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Crown className="h-4 w-4" />
-                )}
-                {user.plan === "standard"
-                  ? "Mudar para Plano Anual"
-                  : "Ativar Plano Anual (365 dias)"}
-              </button>
-            )}
-
-            {user.plan !== "trial" && (
-              <button
-                onClick={() => doAction({ plan: "trial", paymentStatus: "inactive" }, "trial")}
-                disabled={loading}
-                className="flex w-full items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
-              >
-                {loading && action === "trial" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Clock className="h-4 w-4" />
-                )}
-                Mover para Trial
-              </button>
-            )}
-
-            {/* Estender Trial (+7d / +30d) */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => doAction({ extendTrial: true, extendTrialDays: 7 }, "extend-7")}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 py-2.5 text-xs font-medium text-violet-400 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
-              >
-                {loading && action === "extend-7" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <CalendarPlus className="h-3.5 w-3.5" />
-                )}
-                Estender Trial (+7d)
-              </button>
-
-              <button
-                onClick={() => doAction({ extendTrial: true, extendTrialDays: 30 }, "extend-30")}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 py-2.5 text-xs font-medium text-fuchsia-400 transition-colors hover:bg-fuchsia-500/20 disabled:opacity-50"
-              >
-                {loading && action === "extend-30" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <CalendarPlus className="h-3.5 w-3.5" />
-                )}
-                Estender Trial (+30d)
-              </button>
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              {user.isClientApprover ? "Controle da Conta" : "Controle de Acesso"}
+            </p>
 
             {user.paymentStatus !== "blocked" ? (
               <button
@@ -606,8 +649,14 @@ export default function AdminUsuariosPage() {
     }
   };
 
-  const filtered = useMemo(() => {
-    return users.filter((u) => {
+  type UserCategoryTab = "standard_users" | "client_approvers";
+  const [categoryTab, setCategoryTab] = useState<UserCategoryTab>("standard_users");
+
+  const standardUsers = useMemo(() => users.filter((u) => !u.isClientApprover), [users]);
+  const approverUsers = useMemo(() => users.filter((u) => !!u.isClientApprover), [users]);
+
+  const filteredStandard = useMemo(() => {
+    return standardUsers.filter((u) => {
       const matchSearch =
         !search ||
         u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -618,29 +667,41 @@ export default function AdminUsuariosPage() {
 
       return matchSearch && matchPlan;
     });
-  }, [users, search, planFilter]);
+  }, [standardUsers, search, planFilter]);
+
+  const filteredApprovers = useMemo(() => {
+    return approverUsers.filter((u) => {
+      if (!search) return true;
+      const term = search.toLowerCase();
+      return (
+        u.email.toLowerCase().includes(term) ||
+        u.displayName.toLowerCase().includes(term) ||
+        (u.linkedWorkspaceId && u.linkedWorkspaceId.toLowerCase().includes(term))
+      );
+    });
+  }, [approverUsers, search]);
 
   const filterOptions: { value: PlanFilter; label: string; count: number }[] = [
-    { value: "all", label: "Todos", count: users.length },
+    { value: "all", label: "Todos", count: standardUsers.length },
     {
       value: "trial",
       label: "Trial Ativo",
-      count: users.filter((u) => u.plan === "trial" && !u.trialExpired).length,
+      count: standardUsers.filter((u) => u.plan === "trial" && !u.trialExpired).length,
     },
     {
       value: "standard",
       label: "Standard",
-      count: users.filter((u) => u.plan === "standard").length,
+      count: standardUsers.filter((u) => u.plan === "standard").length,
     },
     {
       value: "expired",
       label: "Trial Expirado",
-      count: users.filter((u) => u.trialExpired).length,
+      count: standardUsers.filter((u) => u.trialExpired).length,
     },
     {
       value: "blocked",
       label: "Bloqueados",
-      count: users.filter((u) => u.paymentStatus === "blocked").length,
+      count: standardUsers.filter((u) => u.paymentStatus === "blocked").length,
     },
   ];
 
@@ -651,7 +712,7 @@ export default function AdminUsuariosPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Usuários</h1>
           <p className="mt-1 text-sm text-slate-400">
-            {users.length} usuário{users.length !== 1 ? "s" : ""} na plataforma
+            {users.length} usuário{users.length !== 1 ? "s" : ""} cadastrado{users.length !== 1 ? "s" : ""} no sistema
           </p>
         </div>
         <button
@@ -663,6 +724,65 @@ export default function AdminUsuariosPage() {
         </button>
       </div>
 
+      {/* Abas de Categoria de Usuários */}
+      <div className="border-b border-slate-700/60 pb-px">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryTab("standard_users");
+              setSearch("");
+            }}
+            className={cn(
+              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors",
+              categoryTab === "standard_users"
+                ? "border-violet-500 text-violet-400"
+                : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"
+            )}
+          >
+            <Users className="h-4 w-4" />
+            <span>Usuários Padrão</span>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-normal",
+                categoryTab === "standard_users"
+                  ? "bg-violet-500/20 text-violet-300"
+                  : "bg-slate-800 text-slate-400"
+              )}
+            >
+              {standardUsers.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryTab("client_approvers");
+              setSearch("");
+            }}
+            className={cn(
+              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors",
+              categoryTab === "client_approvers"
+                ? "border-teal-500 text-teal-400"
+                : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"
+            )}
+          >
+            <CheckSquare className="h-4 w-4" />
+            <span>Aprovadores de Clientes (Concierge)</span>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-normal",
+                categoryTab === "client_approvers"
+                  ? "bg-teal-500/20 text-teal-300"
+                  : "bg-slate-800 text-slate-400"
+              )}
+            >
+              {approverUsers.length}
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Filtros e Busca */}
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -671,47 +791,59 @@ export default function AdminUsuariosPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Buscar por nome ou e-mail..."
+              placeholder={
+                categoryTab === "standard_users"
+                  ? "Buscar por nome ou e-mail..."
+                  : "Buscar por nome, e-mail ou workspace..."
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-9 pr-4 text-sm text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
             />
           </div>
 
-          {/* Filtros rápidos por plano */}
-          <div className="flex flex-wrap gap-1.5">
-            {filterOptions.map(({ value, label, count }) => (
-              <button
-                key={value}
-                onClick={() => setPlanFilter(value)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  planFilter === value
-                    ? "bg-violet-600 text-white"
-                    : "border border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white"
-                )}
-              >
-                {label}
-                <span
+          {/* Filtros rápidos por plano (somente para usuários padrão) */}
+          {categoryTab === "standard_users" ? (
+            <div className="flex flex-wrap gap-1.5">
+              {filterOptions.map(({ value, label, count }) => (
+                <button
+                  key={value}
+                  onClick={() => setPlanFilter(value)}
                   className={cn(
-                    "rounded-full px-1.5 py-0.2 text-[10px]",
-                    planFilter === value ? "bg-violet-700 text-white" : "bg-slate-700 text-slate-400"
+                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    planFilter === value
+                      ? "bg-violet-600 text-white"
+                      : "border border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white"
                   )}
                 >
-                  {count}
-                </span>
-              </button>
-            ))}
-          </div>
+                  {label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.2 text-[10px]",
+                      planFilter === value ? "bg-violet-700 text-white" : "bg-slate-700 text-slate-400"
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 flex items-center gap-1.5 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700/60">
+              <span className="inline-block w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+              <span>Contas exclusivas para aprovação de conteúdo do NumVapt Concierge</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabela de Usuários */}
+      {/* Conteúdo das Tabelas */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
         </div>
-      ) : (
+      ) : categoryTab === "standard_users" ? (
+        /* TABELA DE USUÁRIOS PADRÃO */
         <div className="overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -728,14 +860,14 @@ export default function AdminUsuariosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/40 bg-slate-900">
-                {filtered.length === 0 ? (
+                {filteredStandard.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
-                      Nenhum usuário encontrado
+                      Nenhum usuário padrão encontrado
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((user) => (
+                  filteredStandard.map((user) => (
                     <tr key={user.uid} className="transition-colors hover:bg-slate-800/40">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -829,6 +961,87 @@ export default function AdminUsuariosPage() {
                         <button
                           onClick={() => setSelectedUser(user)}
                           className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-violet-500 hover:text-violet-400"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Gerenciar
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* TABELA DE APROVADORES DE CLIENTES (CLIENT APPROVERS) */
+        <div className="overflow-hidden rounded-xl border border-teal-500/30 bg-slate-900 shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs font-semibold uppercase tracking-widest text-slate-400 border-b border-slate-700/60 bg-teal-950/20">
+                  <th className="px-4 py-3">Aprovador de Conteúdo</th>
+                  <th className="px-4 py-3">Papel / Função</th>
+                  <th className="px-4 py-3">Workspace Vinculado</th>
+                  <th className="px-4 py-3">Status da Conta</th>
+                  <th className="px-4 py-3">Data de Cadastro</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/40 bg-slate-900">
+                {filteredApprovers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                      Nenhum aprovador de cliente encontrado
+                    </td>
+                  </tr>
+                ) : (
+                  filteredApprovers.map((user) => (
+                    <tr key={user.uid} className="transition-colors hover:bg-slate-800/40">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={user.displayName} email={user.email} />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-white">{user.displayName}</p>
+                            <p className="truncate text-xs text-slate-500">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-teal-500/30 bg-teal-500/10 px-2.5 py-0.5 text-xs font-medium text-teal-400">
+                          <CheckSquare className="h-3 w-3" />
+                          Client Approver
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {user.linkedWorkspaceId ? (
+                          <span className="inline-flex items-center gap-1.5 rounded bg-slate-800 border border-slate-700 px-2 py-1 font-mono text-xs text-slate-300">
+                            <Building2 className="h-3 w-3 text-slate-400" />
+                            {user.linkedWorkspaceId}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500 italic">Não vinculado</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+                            user.paymentStatus === "blocked"
+                              ? PLAN_COLORS.blocked
+                              : "border-teal-500/30 bg-teal-500/10 text-teal-300"
+                          )}
+                        >
+                          {user.paymentStatus === "blocked" ? "Bloqueado" : "Ativo"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setSelectedUser(user)}
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-teal-500 hover:text-teal-400"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           Gerenciar
