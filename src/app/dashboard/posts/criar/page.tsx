@@ -69,6 +69,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { ImageInpaintModal, type EditorLayer } from "../gerar/_components/ImageInpaintModal";
+import { ImageAiEditorModal } from "@/components/dashboard/ImageAiEditorModal";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -1054,6 +1055,25 @@ const InstagramPreview = ({
             opacity={logoOpacity}
           />
         )}
+        {currentMedia && !isFinalPreview && !isVideoMedia(currentMedia.publicUrl || currentMedia.previewUrl) && currentMedia.type !== "video" && (
+          <div className="absolute left-2.5 bottom-2.5 z-30">
+            <Button
+              size="sm"
+              type="button"
+              onClick={() => {
+                setAiEditorImage({
+                  url: currentMedia.publicUrl || currentMedia.previewUrl,
+                  index: currentSlide >= 0 && currentSlide < mediaItems.length ? currentSlide : 0,
+                });
+              }}
+              className="h-7 px-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-full shadow-md backdrop-blur-xs flex items-center gap-1.5 opacity-90 hover:opacity-100 transition-opacity"
+              title="Editar imagem com IA (Editor GPT)"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Editar com IA</span>
+            </Button>
+          </div>
+        )}
         {isCarousel && (
           <>
             <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
@@ -2014,6 +2034,9 @@ export default function CriarConteudoPage() {
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
   const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
   const [activeIndexToCorrect, setActiveIndexToCorrect] = useState<number>(-1);
+
+  // Estados para Edição Inteligente com IA (Editor GPT)
+  const [aiEditorImage, setAiEditorImage] = useState<{ url: string; index: number } | null>(null);
 
   // Buscar imagens livres da galeria no Firestore
   const fetchGalleryImages = async () => {
@@ -3190,6 +3213,22 @@ export default function CriarConteudoPage() {
                                   unoptimized
                                 />
                               )}
+                              {!isVideo && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAiEditorImage({
+                                      url: item.publicUrl || item.previewUrl,
+                                      index,
+                                    });
+                                  }}
+                                  className="absolute left-1 top-1 z-20 rounded-full bg-amber-500 p-1.5 text-white shadow-md transition-all hover:scale-110 hover:bg-amber-600"
+                                  title="Editar imagem com IA (Editor GPT)"
+                                >
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -3203,26 +3242,78 @@ export default function CriarConteudoPage() {
                               </button>
                             </div>
                             {!isVideo && (
-                              <Button
-                                variant="outline"
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveImageToCorrect(item.previewUrl);
-                                  setActiveIndexToCorrect(index);
-                                  setIsCorrectionOpen(true);
-                                }}
-                                className="flex h-auto w-full items-center justify-center gap-1.5 rounded-lg border-primary/40 px-2 py-1.5 text-xs font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5"
-                              >
-                                <Paintbrush className="h-3.5 w-3.5 text-primary" />
-                                <span className="truncate">Editar Textos</span>
-                              </Button>
+                              <div className="flex flex-col gap-1 w-full">
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAiEditorImage({
+                                      url: item.publicUrl || item.previewUrl,
+                                      index,
+                                    });
+                                  }}
+                                  className="flex h-7 w-full items-center justify-center gap-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white px-1.5 py-1 text-[11px] font-bold shadow-xs transition-all"
+                                  title="Editar imagem com IA (Editor GPT)"
+                                >
+                                  <Sparkles className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">Editar com IA</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveImageToCorrect(item.previewUrl);
+                                    setActiveIndexToCorrect(index);
+                                    setIsCorrectionOpen(true);
+                                  }}
+                                  className="flex h-6 w-full items-center justify-center gap-1 rounded-md border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+                                  title="Editar textos específicos ou inpainting manual"
+                                >
+                                  <Paintbrush className="h-2.5 w-2.5 shrink-0 text-primary" />
+                                  <span className="truncate">Inpainting</span>
+                                </Button>
+                              </div>
                             )}
                           </div>
                         );
                       })}
                     </div>
                   ) : null}
+
+                  {mediaItems.some((item) => item.type === "image") && (
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200">
+                      <div className="flex items-center gap-2 text-xs text-amber-900 font-semibold">
+                        <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>Deseja alterar títulos, cores ou elementos da arte?</span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          const activeIdx =
+                            currentSlide >= 0 && currentSlide < mediaItems.length
+                              ? currentSlide
+                              : 0;
+                          const targetItem =
+                            mediaItems[activeIdx] || mediaItems.find((m) => m.type === "image");
+                          const targetIdx = targetItem ? mediaItems.indexOf(targetItem) : 0;
+                          if (targetItem) {
+                            setAiEditorImage({
+                              url: targetItem.publicUrl || targetItem.previewUrl,
+                              index: targetIdx >= 0 ? targetIdx : 0,
+                            });
+                          }
+                        }}
+                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-7 px-3 shadow-xs rounded-md"
+                      >
+                        Abrir Editor GPT
+                      </Button>
+                    </div>
+                  )}
 
                   <p className="pt-2 text-xs text-gray-500">Faça o upload de vídeos e imagens.</p>
                   <input
@@ -3874,21 +3965,42 @@ export default function CriarConteudoPage() {
                     </TabsContent>
                   </Tabs>
                   {mediaItems.some(item => item.type === "image") && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const firstImageIndex = mediaItems.findIndex(item => item.type === "image");
-                        if (firstImageIndex !== -1) {
-                          setActiveImageToCorrect(mediaItems[firstImageIndex].previewUrl);
-                          setActiveIndexToCorrect(firstImageIndex);
-                          setIsCorrectionOpen(true);
-                        }
-                      }}
-                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border-primary/40 py-2 font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5"
-                    >
-                      <Paintbrush className="h-4 w-4 text-primary" />
-                      Escrever Textos / Editar Imagens
-                    </Button>
+                    <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          const activeIdx = currentSlide >= 0 && currentSlide < mediaItems.length ? currentSlide : 0;
+                          const targetItem = mediaItems[activeIdx] || mediaItems.find(m => m.type === "image");
+                          const targetIdx = targetItem ? mediaItems.indexOf(targetItem) : 0;
+                          if (targetItem) {
+                            setAiEditorImage({
+                              url: targetItem.publicUrl || targetItem.previewUrl,
+                              index: targetIdx >= 0 ? targetIdx : 0,
+                            });
+                          }
+                        }}
+                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Editar Imagem com IA (Editor GPT)
+                      </Button>
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => {
+                          const firstImageIndex = mediaItems.findIndex(item => item.type === "image");
+                          if (firstImageIndex !== -1) {
+                            setActiveImageToCorrect(mediaItems[firstImageIndex].previewUrl);
+                            setActiveIndexToCorrect(firstImageIndex);
+                            setIsCorrectionOpen(true);
+                          }
+                        }}
+                        className="flex-1 rounded-lg border-primary/40 py-2 font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5 flex items-center justify-center gap-2"
+                      >
+                        <Paintbrush className="h-4 w-4 text-primary" />
+                        Inpainting / Pincel
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -4418,6 +4530,43 @@ export default function CriarConteudoPage() {
             setIsCorrectionOpen(false);
             setActiveImageToCorrect(null);
             setActiveIndexToCorrect(-1);
+          }}
+        />
+      )}
+
+      {/* Modal de Edição Inteligente com IA (Editor GPT) */}
+      {aiEditorImage && (
+        <ImageAiEditorModal
+          isOpen={!!aiEditorImage}
+          onClose={() => setAiEditorImage(null)}
+          imageUrl={aiEditorImage.url}
+          format={
+            selectedType === "story" || selectedType === "reels"
+              ? "story"
+              : "portrait"
+          }
+          title="Editar Imagem com IA (Editor GPT)"
+          onSuccess={(newImageUrl) => {
+            if (aiEditorImage.index >= 0 && aiEditorImage.index < mediaItems.length) {
+              setMediaItems((prev) => {
+                const updated = [...prev];
+                const current = updated[aiEditorImage.index];
+                updated[aiEditorImage.index] = {
+                  ...current,
+                  previewUrl: newImageUrl,
+                  publicUrl: newImageUrl,
+                  originalUrl: current?.originalUrl || current?.previewUrl,
+                  file: null as any,
+                };
+                return updated;
+              });
+            }
+            toast({
+              variant: "success",
+              title: "Imagem Atualizada!",
+              description: "A imagem foi atualizada com sucesso pela IA.",
+            });
+            setAiEditorImage(null);
           }}
         />
       )}
