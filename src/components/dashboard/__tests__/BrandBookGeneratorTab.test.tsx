@@ -71,6 +71,7 @@ describe("BrandBookGeneratorTab Component", () => {
 
     expect(screen.getByText(/Pesquisa Ativa no Ecossistema Digital/i)).toBeInTheDocument();
     expect(screen.getByText(/numvapt.com.br/i)).toBeInTheDocument();
+    expect(screen.getByText(/Benchmark de Concorrentes Ativo/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText(/@numvapt_oficial/i)).toBeInTheDocument();

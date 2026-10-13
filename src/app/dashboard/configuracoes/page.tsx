@@ -1122,7 +1122,18 @@ export default function ConfiguracoesPage() {
     setTargetAudience(data.targetAudience);
     setMainBenefits(data.mainBenefits);
     setVisualGuidelines(data.visualGuidelines);
-    setPersonas(data.personas);
+
+    // Merge inteligente de personas: preserva 100% das personas existentes e soma as novas
+    const currentPersonas = personas?.length ? personas : (profile?.brandKit?.personas || []);
+    const existingNames = new Set(
+      currentPersonas.map((p) => p.name?.trim().toLowerCase()).filter(Boolean)
+    );
+    const newPersonas = (data.personas || []).filter(
+      (p) => !existingNames.has(p.name?.trim().toLowerCase())
+    );
+    const mergedPersonas = [...currentPersonas, ...newPersonas];
+    setPersonas(mergedPersonas);
+
     if (!description.trim() && data.description) {
       setDescription(data.description);
     }
@@ -1149,7 +1160,7 @@ export default function ConfiguracoesPage() {
               secondaryFont: data.secondaryFont,
               style: data.fontStyle,
             },
-            personas: data.personas,
+            personas: mergedPersonas,
           },
         },
         { merge: true }

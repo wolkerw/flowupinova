@@ -99,6 +99,7 @@ export function BrandBookGeneratorTab({
   const [brandBook, setBrandBook] = useState<BrandBookData | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
+  const [identifiedCompetitors, setIdentifiedCompetitors] = useState<string[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,9 +173,15 @@ export function BrandBookGeneratorTab({
       }
 
       setBrandBook(data.brandBook);
+      if (Array.isArray(data.socialIntelligence?.competitors)) {
+        setIdentifiedCompetitors(data.socialIntelligence.competitors);
+      }
+
       toast({
         title: "Brand Book Gerado com Sucesso!",
-        description: "A estratégia e identidade completa da sua marca foram construídas com sucesso.",
+        description: data.socialIntelligence?.competitors?.length
+          ? `Estratégia construída com sucesso, considerando ${data.socialIntelligence.competitors.length} concorrentes mapeados na web.`
+          : "A estratégia e identidade completa da sua marca foram construídas com sucesso.",
         variant: "success",
       });
     } catch (err: any) {
@@ -231,7 +238,7 @@ export function BrandBookGeneratorTab({
       toast({
         title: "Cérebro do Negócio Atualizado!",
         description:
-          "Cores, tipografia, personas, tom de voz e diretrizes foram transferidos para as configurações oficiais.",
+          "Brand Book aplicado com sucesso! Suas personas existentes foram mantidas e somadas às novas sugestões da IA.",
         variant: "success",
       });
     } catch (err: any) {
@@ -438,6 +445,11 @@ export function BrandBookGeneratorTab({
                     Site não informado
                   </span>
                 )}
+
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-violet-800 font-medium">
+                  <Target className="h-3.5 w-3.5" />
+                  Benchmark de Concorrentes Ativo
+                </span>
               </div>
             </div>
 
@@ -503,9 +515,9 @@ export function BrandBookGeneratorTab({
                     : "bg-slate-100 text-slate-400"
                 }`}
               >
-                1. Redes & Web
+                1. Redes, Web & Concorrentes
                 <p className="text-[10px] font-normal text-muted-foreground mt-0.5">
-                  Mapeando Instagram, Face & Site
+                  Mapeando presença e concorrência
                 </p>
               </div>
               <div
@@ -552,6 +564,31 @@ export function BrandBookGeneratorTab({
       {/* Visualizador do Brand Book Gerado */}
       {brandBook && (
         <div className="space-y-8 pt-4">
+          {/* Tarja de Concorrentes Identificados na Web */}
+          {identifiedCompetitors.length > 0 && (
+            <div className="rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50/80 to-indigo-50/70 p-4 text-xs text-violet-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="space-y-0.5">
+                <span className="font-bold flex items-center gap-1.5 text-violet-900">
+                  <Target className="h-4 w-4 text-violet-600" />
+                  Benchmark Competitivo Mapeado na Web:
+                </span>
+                <p className="text-[11px] text-violet-700">
+                  Concorrentes e alternativas reais analisados para calibrar os diferenciais exclusivos da sua marca:
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {identifiedCompetitors.map((comp, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-violet-800 border border-violet-200 shadow-2xs"
+                  >
+                    {comp}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Barra de Ações Rápidas do Brand Book */}
           <div className="sticky top-4 z-20 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">

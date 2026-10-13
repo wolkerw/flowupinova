@@ -1,6 +1,12 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { JSDOM } from "jsdom";
 
+export interface SocialIntelligenceCompetitor {
+  name: string;
+  snippet?: string;
+  url?: string;
+}
+
 export interface SocialIntelligenceSummary {
   hasSocialData: boolean;
   instagram?: {
@@ -27,6 +33,10 @@ export interface SocialIntelligenceSummary {
     metaDescription?: string;
     sampleText?: string;
   };
+  competitors?: {
+    queryUsed: string;
+    list: SocialIntelligenceCompetitor[];
+  };
   combinedPromptContext: string;
 }
 
@@ -36,7 +46,9 @@ export interface SocialIntelligenceSummary {
  */
 export async function collectSocialIntelligence(
   userId: string,
-  fallbackWebsite?: string
+  fallbackWebsite?: string,
+  brandNameHint?: string,
+  segmentHint?: string
 ): Promise<SocialIntelligenceSummary> {
   const summary: SocialIntelligenceSummary = {
     hasSocialData: false,
@@ -50,6 +62,9 @@ export async function collectSocialIntelligence(
   let websiteToScrape = fallbackWebsite?.trim() || "";
   let instagramAccessToken: string | null = null;
   let instagramUsername: string | null = null;
+  let registeredName = brandNameHint || "";
+  let registeredCategory = segmentHint || "";
+  let registeredLocation = "";
 
   // 1. Buscar dados no Firestore
   try {
@@ -64,6 +79,9 @@ export async function collectSocialIntelligence(
       if (!websiteToScrape && uData?.website) {
         websiteToScrape = uData.website;
       }
+      if (!registeredName && uData?.name) registeredName = uData.name;
+      if (!registeredCategory && uData?.category) registeredCategory = uData.category;
+      if (uData?.address) registeredLocation = uData.address;
     }
 
     if (igSnap.exists) {
@@ -219,7 +237,24 @@ export async function collectSocialIntelligence(
     }
   }
 
-  // 5. Montar o prompt contextual consolidado para a IA
+  // 5. Busca Ativa Nominal de Concorrentes e Similares no Google/Web
+  const targetSegment = segmentHint || summary.facebook?.category || registeredCategory || "";
+  const targetBrand = brandNameHint || summary.instagram?.name || summary.facebook?.pageName || registeredName || "";
+  const targetLoc = summary.facebook?.address || registeredLocation || "";
+
+  if (targetSegment) {
+    try {
+      const competitorsResult = await searchActiveCompetitors(targetSegment, targetBrand, targetLoc);
+      if (competitorsResult && competitorsResult.list.length > 0) {
+        summary.competitors = competitorsResult;
+        summary.hasSocialData = true;
+      }
+    } catch (compErr) {
+      console.warn("[SOCIAL_INTEL] Aviso ao buscar concorrentes na web:", compErr);
+    }
+  }
+
+  // 6. Montar o prompt contextual consolidado para a IA
   summary.combinedPromptContext = buildPromptContext(summary);
 
   return summary;
@@ -229,7 +264,7 @@ export async function collectSocialIntelligence(
  * Monta o bloco de contexto de inteligência digital para alimentar o motor de IA
  */
 function buildPromptContext(summary: SocialIntelligenceSummary): string {
-  if (!summary.hasSocialData && !summary.website && !summary.instagram && !summary.facebook) {
+  if (!summary.hasSocialData && !summary.website && !summary.instagram && !summary.facebook && !summary.competitors) {
     return "";
   }
 
@@ -272,6 +307,16 @@ function buildPromptContext(summary: SocialIntelligenceSummary): string {
     }
   }
 
+  if (summary.competitors?.list?.length) {
+    sections.push(`\n[BENCHMARK & CONCORRENTES DIRETOS/SIMILARES MAPEADOS NA WEB]:`);
+    summary.competitors.list.forEach((comp, idx) => {
+      sections.push(`  ${idx + 1}. "${comp.name}"${comp.snippet ? ` - ${comp.snippet}` : ""}`);
+    });
+    sections.push(
+      "INSTRUÇÃO DE CONTRASTE ESTRATÉGICO: Use os concorrentes reais identificados acima para enriquecer os 'Diferenciais Competitivos' e a lista de 'Posicionamentos a Evitar', deixando nítido o que diferencia nossa marca dessas alternativas reais do mercado."
+    );
+  }
+
   sections.push("=========================================================================");
   sections.push(
     "INSTRUÇÃO DE FUSÃO ESTRATÉGICA: Cruze os elementos visuais e semióticos da logomarca com o ecossistema digital real acima. Alinhe o tom de voz, público-alvo, personas, propósito, diferenciais e linhas editoriais com os temas já validados da empresa, garantindo total personalização e relevância prática."
@@ -300,3 +345,91 @@ function extractThemesFromCaptions(captions: string[]): string[] {
     .slice(0, 5)
     .map(([word]) => word);
 }
+
+/**
+ * Realiza busca ativa na web de concorrentes e referências do mesmo segmento
+ */
+async function searchActiveCompetitors(
+  segment: string,
+  brandName?: string,
+  location?: string
+): Promise<{ queryUsed: string; list: SocialIntelligenceCompetitor[] } | undefined> {
+  const cleanSegment = segment?.trim();
+  if (!cleanSegment) return undefined;
+
+  const queryParts = [cleanSegment];
+  if (location?.trim()) queryParts.push(location.trim().slice(0, 30));
+  queryParts.push("empresas concorrentes similares");
+  const query = queryParts.join(" ");
+
+  try {
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html",
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!res.ok) return undefined;
+
+    const html = await res.text();
+    const dom = new JSDOM(html);
+    const doc = dom.window.document;
+
+    const results: SocialIntelligenceCompetitor[] = [];
+    const elements = doc.querySelectorAll(".result");
+    const brandLower = brandName?.toLowerCase().trim() || "";
+
+    for (const el of Array.from(elements)) {
+      const titleLink = el.querySelector(".result__title a");
+      const snippetEl = el.querySelector(".result__snippet");
+      const rawTitle = titleLink?.textContent?.trim() || "";
+      const snippet = snippetEl?.textContent?.trim() || "";
+      const href = titleLink?.getAttribute("href") || "";
+
+      let compName = rawTitle.split(/[-|–:]/)[0].trim();
+      if (!compName || compName.length < 3 || compName.length > 50) {
+        compName = rawTitle.slice(0, 40).trim();
+      }
+
+      if (brandLower && compName.toLowerCase().includes(brandLower)) {
+        continue;
+      }
+
+      const lowerTitle = rawTitle.toLowerCase();
+      if (
+        lowerTitle.includes("wikipedia") ||
+        lowerTitle.includes("como escolher") ||
+        lowerTitle.includes("o que é") ||
+        lowerTitle.includes("significado")
+      ) {
+        continue;
+      }
+
+      if (compName && !results.some((r) => r.name.toLowerCase() === compName.toLowerCase())) {
+        results.push({
+          name: compName,
+          snippet: snippet.slice(0, 160),
+          url: href.startsWith("http") ? href : undefined,
+        });
+      }
+
+      if (results.length >= 4) break;
+    }
+
+    if (results.length > 0) {
+      return {
+        queryUsed: query,
+        list: results,
+      };
+    }
+  } catch (err) {
+    console.warn("[SOCIAL_INTEL] Falha na busca ativa de concorrentes:", err);
+  }
+
+  return undefined;
+}
+

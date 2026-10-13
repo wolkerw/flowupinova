@@ -109,6 +109,27 @@ describe("social-intelligence-service", () => {
         });
       }
 
+      if (url.includes("duckduckgo.com")) {
+        return Promise.resolve({
+          ok: true,
+          text: async () => `
+            <!DOCTYPE html>
+            <html>
+              <body>
+                <div class="result">
+                  <h2 class="result__title"><a href="https://techrival.com.br">TechRival Soluções - Concorrente</a></h2>
+                  <div class="result__snippet">Plataforma concorrente direta de automação e tecnologia corporativa.</div>
+                </div>
+                <div class="result">
+                  <h2 class="result__title"><a href="https://inovaempresas.com.br">InovaEmpresas | Líder em Inovação</a></h2>
+                  <div class="result__snippet">Serviços corporativos de consultoria e modernização.</div>
+                </div>
+              </body>
+            </html>
+          `,
+        });
+      }
+
       return Promise.resolve({ ok: false });
     }) as any;
 
@@ -124,8 +145,11 @@ describe("social-intelligence-service", () => {
     expect(result.facebook?.category).toBe("Empresa de Tecnologia");
 
     expect(result.website?.title).toContain("Empresa Oficial");
+    expect(result.competitors?.list.length).toBe(2);
+    expect(result.competitors?.list[0].name).toBe("TechRival Soluções");
     expect(result.combinedPromptContext).toContain("[INSTAGRAM OFICIAL]: @empresa_oficial");
     expect(result.combinedPromptContext).toContain("[PÁGINA OFICIAL DO FACEBOOK]: Empresa Oficial no Face");
     expect(result.combinedPromptContext).toContain("[PRESENÇA NA WEB & SITE INSTITUCIONAL]");
+    expect(result.combinedPromptContext).toContain("[BENCHMARK & CONCORRENTES DIRETOS/SIMILARES MAPEADOS NA WEB]");
   });
 });

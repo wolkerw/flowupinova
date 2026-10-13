@@ -209,8 +209,13 @@ export async function POST(request: NextRequest) {
       syncBusinessSettings = true,
     } = body;
 
-    // Coleta ativa em segundo plano de redes sociais (Instagram, Facebook) e Web OSINT
-    const socialIntel = await collectSocialIntelligence(authUser.uid, websiteHint);
+    // Coleta ativa em segundo plano de redes sociais (Instagram, Facebook), Web OSINT e concorrentes
+    const socialIntel = await collectSocialIntelligence(
+      authUser.uid,
+      websiteHint,
+      brandNameHint,
+      segmentHint
+    );
 
     if (!imageBase64 || typeof imageBase64 !== "string") {
       return NextResponse.json(
@@ -319,6 +324,7 @@ Certifique-se de preencher TODAS as seções com profundidade profissional incom
                 instagram: socialIntel.instagram?.username || null,
                 facebook: socialIntel.facebook?.pageName || null,
                 website: socialIntel.website?.url || null,
+                competitors: socialIntel.competitors?.list?.map((c) => c.name) || [],
               },
             });
           }

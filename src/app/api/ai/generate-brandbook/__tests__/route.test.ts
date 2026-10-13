@@ -12,6 +12,10 @@ vi.mock("@/lib/services/social-intelligence-service", () => ({
     instagram: { username: "@homeprodutora", name: "Home Produtora" },
     facebook: { pageName: "Home Produtora Oficial" },
     website: { url: "https://homeprodutora.com.br" },
+    competitors: {
+      queryUsed: "query",
+      list: [{ name: "Competitor A" }, { name: "Competitor B" }],
+    },
     combinedPromptContext: "MOCK_SOCIAL_CONTEXT",
   }),
 }));
@@ -201,5 +205,6 @@ describe("API /api/ai/generate-brandbook", () => {
     expect(data.brandBook.identidadeVisual.paletaCromatica[0].hex).toBe("#FFC928");
     expect(data.socialIntelligence.instagram).toBe("@homeprodutora");
     expect(data.socialIntelligence.hasSocialData).toBe(true);
+    expect(data.socialIntelligence.competitors).toEqual(["Competitor A", "Competitor B"]);
   });
 });
