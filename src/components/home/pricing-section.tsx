@@ -238,10 +238,10 @@ export const PricingSection = () => {
             </div>
           </FadeInView>
 
-          {/* Done For You */}
+          {/* Tudo Pronto */}
           <FadeInView delay={0.35}>
             <div className="relative flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <h3 className="mb-2 text-xl font-bold text-slate-900">Done For You</h3>
+              <h3 className="mb-2 text-xl font-bold text-slate-900">Tudo Pronto</h3>
               <p className="mb-6 h-10 text-sm text-slate-500">
                 Execução completa. Ideal para quem não tem tempo.
               </p>
@@ -283,7 +283,7 @@ export const PricingSection = () => {
                 variant="outline"
                 className="h-12 w-full rounded-full border-slate-300 transition-transform hover:scale-[1.02] hover:bg-slate-50"
               >
-                <Link href="/acesso/cadastro">Começar Done For You</Link>
+                <Link href="/acesso/cadastro">Começar Tudo Pronto</Link>
               </Button>
             </div>
           </FadeInView>
