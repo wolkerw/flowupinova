@@ -10,6 +10,7 @@ export interface SubscriptionGateStatus {
   isSubscribed: boolean;
   userPlan: string;
   paymentStatus: string;
+  subscriptionStatus?: string;
   canEditImages: boolean;
   isConcierge: boolean;
   loading: boolean;
@@ -28,6 +29,8 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
 
   const [userPlan, setUserPlan] = useState<string>("free");
   const [paymentStatus, setPaymentStatus] = useState<string>("inactive");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("inactive");
+  const [userRole, setUserRole] = useState<string>("free");
   const [canEditImages, setCanEditImages] = useState<boolean>(false);
   const [isConcierge, setIsConcierge] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -36,6 +39,8 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
     if (!user || !user.uid) {
       setUserPlan("free");
       setPaymentStatus("inactive");
+      setSubscriptionStatus("inactive");
+      setUserRole("free");
       setIsConcierge(false);
       setLoading(false);
       return;
@@ -45,6 +50,8 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
       if (!db || typeof doc !== "function" || typeof onSnapshot !== "function") {
         setUserPlan("free");
         setPaymentStatus("inactive");
+        setSubscriptionStatus("inactive");
+        setUserRole("free");
         setIsConcierge(false);
         setLoading(false);
         return;
@@ -58,6 +65,8 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
             const data = docSnap.data();
             setUserPlan(data?.plan || "free");
             setPaymentStatus(data?.paymentStatus || "inactive");
+            setSubscriptionStatus(data?.subscriptionStatus || "inactive");
+            setUserRole(data?.role || "free");
             setCanEditImages(Boolean(data?.canEditImages) || data?.role === "admin" || data?.plan === "admin");
             setIsConcierge(
               Boolean(
@@ -70,6 +79,8 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
           } else {
             setUserPlan("free");
             setPaymentStatus("inactive");
+            setSubscriptionStatus("inactive");
+            setUserRole("free");
             setCanEditImages(false);
             setIsConcierge(false);
           }
@@ -92,12 +103,22 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
     }
   }, [user]);
 
-  // Considera ativo se o plano for pago (pro, mensal, trimestral, semestral, anual) e o status for ativo/aprovado
+  // Considera ativo se o plano for pago (standard, pro, mensal, anual, etc) e liberado por paymentStatus, subscriptionStatus ou role
   const isSubscribed = Boolean(
-    userPlan &&
-      userPlan !== "free" &&
-      userPlan !== "unsubscribed" &&
-      (paymentStatus === "active" || paymentStatus === "approved")
+    userRole === "admin" ||
+      userPlan === "admin" ||
+      userRole === "pro" ||
+      (userPlan === "standard" &&
+        (subscriptionStatus === "active" ||
+          paymentStatus === "active" ||
+          paymentStatus === "approved")) ||
+      (userPlan &&
+        userPlan !== "free" &&
+        userPlan !== "trial" &&
+        userPlan !== "unsubscribed" &&
+        (paymentStatus === "active" ||
+          paymentStatus === "approved" ||
+          subscriptionStatus === "active"))
   );
 
   const openSubscriptionModal = useCallback(() => {

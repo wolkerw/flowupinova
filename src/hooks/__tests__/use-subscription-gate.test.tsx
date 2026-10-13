@@ -85,6 +85,20 @@ describe("useSubscriptionGate", () => {
     );
   });
 
+  it("retorna isSubscribed = true quando liberado pelo admin com standard e subscriptionStatus active", async () => {
+    mockFirestoreData = { plan: "standard", subscriptionStatus: "active", paymentStatus: "inactive", role: "pro" };
+
+    const { result } = renderHook(() => useSubscriptionGate());
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(result.current.isSubscribed).toBe(true);
+    expect(result.current.userPlan).toBe("standard");
+    expect(result.current.checkSubscriptionOrPrompt("gerar post")).toBe(true);
+  });
+
   it("retorna isSubscribed = false quando usuário não está logado", async () => {
     mockUser = null;
 

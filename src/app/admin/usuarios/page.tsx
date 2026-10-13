@@ -408,7 +408,10 @@ function UserSheet({
             {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
               <button
                 onClick={() =>
-                  doAction({ plan: "standard", subscriptionPlan: "mensal" }, "activate-mensal")
+                  doAction(
+                    { plan: "standard", subscriptionPlan: "mensal", paymentStatus: "active" },
+                    "activate-mensal"
+                  )
                 }
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:opacity-50"
@@ -428,7 +431,10 @@ function UserSheet({
             {!(user.plan === "standard" && user.subscriptionPlan === "anual") && (
               <button
                 onClick={() =>
-                  doAction({ plan: "standard", subscriptionPlan: "anual" }, "activate-anual")
+                  doAction(
+                    { plan: "standard", subscriptionPlan: "anual", paymentStatus: "active" },
+                    "activate-anual"
+                  )
                 }
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
@@ -446,7 +452,7 @@ function UserSheet({
 
             {user.plan !== "trial" && (
               <button
-                onClick={() => doAction({ plan: "trial" }, "trial")}
+                onClick={() => doAction({ plan: "trial", paymentStatus: "inactive" }, "trial")}
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
               >

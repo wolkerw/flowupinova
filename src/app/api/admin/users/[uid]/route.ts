@@ -53,6 +53,7 @@ export async function PATCH(
         updates.plan = "standard";
         updates.role = "pro";
         updates.subscriptionStatus = "active";
+        updates.paymentStatus = "active";
 
         const subPlan = subscriptionPlan === "anual" ? "anual" : "mensal";
         updates.subscriptionPlan = subPlan;
@@ -65,6 +66,7 @@ export async function PATCH(
         updates.plan = "trial";
         updates.role = "free";
         updates.subscriptionStatus = "inactive";
+        updates.paymentStatus = "inactive";
         updates.subscriptionPlan = null;
         updates.subscriptionExpiresAt = null;
       } else {
@@ -84,6 +86,7 @@ export async function PATCH(
       updates.plan = "trial";
       updates.role = "free";
       updates.subscriptionStatus = "inactive";
+      updates.paymentStatus = "inactive";
       updates.subscriptionPlan = null;
       updates.subscriptionExpiresAt = null;
     }
