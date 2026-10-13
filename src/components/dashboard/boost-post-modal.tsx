@@ -604,7 +604,7 @@ export function BoostPostModal({
               <div className="flex items-center gap-3 rounded-lg border bg-card p-3 shadow-xs">
                 {postImage ? (
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
-                    <Image src={postImage} alt="Preview" fill className="object-cover" />
+                    <Image src={postImage} alt="Preview" fill className="object-cover" unoptimized />
                   </div>
                 ) : (
                   <div className="h-16 w-16 flex-shrink-0 rounded-md bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center border">

@@ -184,7 +184,7 @@ export const Step4BrandCustomization = () => {
                               }}
                             >
                               <div className="relative w-full h-12 mb-1">
-                                <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                                <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" unoptimized />
                               </div>
                               <span
                                 className={cn(
@@ -231,7 +231,7 @@ export const Step4BrandCustomization = () => {
                                 }}
                               >
                                 <div className="relative w-full h-8 mb-1">
-                                  <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                                  <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" unoptimized />
                                 </div>
                                 <span
                                   className={cn(
@@ -256,6 +256,7 @@ export const Step4BrandCustomization = () => {
                           width={40}
                           height={40}
                           className="rounded object-contain"
+                          unoptimized
                         />
                         <span className="max-w-[150px] truncate text-sm text-gray-600">
                           {logoFile?.name || "Logomarca Selecionada"}
