@@ -8,7 +8,6 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
 
     // Rotas essenciais
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("/dashboard");
-    expect(PLATFORM_KNOWLEDGE_BASE).toContain("/dashboard/posts/criar");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("/dashboard/posts");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("/dashboard/aprovacoes");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("/dashboard/galeria");
@@ -28,5 +27,7 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
   it("deve conter as diretrizes de suporte e formatação com links markdown", () => {
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("DIRETRIZES DE SUPORTE E ATENDIMENTO PARA O VAPTI");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("link clicável em markdown");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Para post manual: Oriente o usuário a acessar a aba");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("[Posts](/dashboard/posts)");
   });
 });
