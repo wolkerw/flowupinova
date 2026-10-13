@@ -238,6 +238,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
           );
         }
+      }, (err) => {
+        console.warn("[DashboardLayout] Erro snapshot user:", err);
       });
 
       const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
@@ -281,6 +283,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
           });
         }
+      }, (err) => {
+        console.warn("[DashboardLayout] Erro snapshot onboarding:", err);
       });
 
       return () => {
@@ -326,7 +330,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const getAvatarFallback = () => {
     if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
-    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
     return "U";
   };
 
@@ -548,10 +552,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           src={
                             businessProfile?.logos?.avatar?.url ||
                             businessProfile?.logo?.url ||
-                            user.photoURL ||
+                            user?.photoURL ||
                             undefined
                           }
-                          alt={businessProfile?.name || user.displayName || ""}
+                          alt={businessProfile?.name || user?.displayName || ""}
                         />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                       </Avatar>
@@ -560,8 +564,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
                       <div className="flex flex-col gap-1">
-                        <p className="font-bold">{businessProfile?.name || user.displayName}</p>
-                        <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                        <p className="font-bold">{businessProfile?.name || user?.displayName}</p>
+                        <p className="text-xs font-normal text-muted-foreground">{user?.email}</p>
                         {businessProfile?.primaryColor && (
                           <div className="mt-2 flex gap-1">
                             <div

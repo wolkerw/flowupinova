@@ -342,16 +342,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await signOut(auth);
       eraseCookie("firebase-id-token");
-      // O useEffect cuidará do redirecionamento
+      await signOut(auth);
+      if (typeof window !== "undefined") {
+        window.location.href = "/acesso/login";
+      } else {
+        router.push("/acesso/login");
+      }
     } catch (error: any) {
       console.error("Erro ao fazer logout:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível fazer logout. Tente novamente.",
-      });
+      if (typeof window !== "undefined") {
+        window.location.href = "/acesso/login";
+      } else {
+        router.push("/acesso/login");
+      }
     }
   };
 
@@ -363,8 +367,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pathname === "/termos" ||
     pathname === "/privacidade";
 
-  // Mostra um loader em páginas protegidas enquanto o estado de auth está sendo verificado
-  if (loading && !isPublicPage) {
+  // Mostra um loader em páginas protegidas enquanto o estado de auth está sendo verificado ou quando deslogado
+  if (!isPublicPage && (loading || !user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
