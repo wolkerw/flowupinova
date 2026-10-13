@@ -356,7 +356,7 @@ export function ModelsViewer() {
               </span>
             </div>
             <p className="mb-3 text-xs text-slate-400">
-              Cérebro interativo que conversa com o usuário, extrai memórias do BrandKit e sugere pautas estratégicas.
+              Cérebro interativo que conversa com o usuário, atua como Guia e Suporte da plataforma com links diretos, extrai memórias do BrandKit e sugere pautas estratégicas.
             </p>
             <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-300">
