@@ -2960,20 +2960,20 @@ export default function ConfiguracoesPage() {
 
       {/* Modal de Adicionar / Editar Persona */}
       <Dialog open={isPersonaModalOpen} onOpenChange={setIsPersonaModalOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="w-[95vw] sm:max-w-[550px] max-h-[90dvh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 shrink-0 text-left pr-12">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg text-slate-900">
               <Users className="h-5 w-5 text-primary" />
               {editingPersonaIndex !== null ? "Editar Persona da Marca" : "Nova Persona da Marca"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm text-slate-500">
               Defina o perfil de cliente comprador ideal que orientará os textos, temas e imagens gerados pela inteligência artificial.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-3">
+          <div className="overflow-y-auto px-4 py-3 sm:px-6 sm:py-4 space-y-3.5 sm:space-y-4 flex-1 overscroll-contain">
             {/* Atalhos de Predefinições Genéricas */}
-            <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
                 Preencher com modelo abrangente sugerido:
               </span>
@@ -3005,6 +3005,7 @@ export default function ConfiguracoesPage() {
                 placeholder="Ex: Mariana Silva - Gerente de RH"
                 value={personaName}
                 onChange={(e) => setPersonaName(e.target.value)}
+                className="text-xs sm:text-sm"
               />
               <p className="text-[11px] text-muted-foreground">
                 Um nome representativo para identificar facilmente este perfil.
@@ -3020,6 +3021,7 @@ export default function ConfiguracoesPage() {
                 placeholder="Ex: Decisora B2B / Consumidor Final / Profissional Liberal"
                 value={personaProfile}
                 onChange={(e) => setPersonaProfile(e.target.value)}
+                className="text-xs sm:text-sm"
               />
             </div>
 
@@ -3032,7 +3034,8 @@ export default function ConfiguracoesPage() {
                 placeholder="Ex: Falta de tempo, processos manuais lentos, custos ocultos, insegurança..."
                 value={personaPainPoints}
                 onChange={(e) => setPersonaPainPoints(e.target.value)}
-                rows={3}
+                rows={2}
+                className="text-xs sm:text-sm min-h-[64px]"
               />
               <p className="text-[11px] text-muted-foreground">
                 O que tira o sono deste cliente e que o seu produto/serviço soluciona.
@@ -3048,7 +3051,8 @@ export default function ConfiguracoesPage() {
                 placeholder="Ex: Busca agilidade comprovada, atendimento humanizado, bom custo-benefício e segurança..."
                 value={personaBuyingMotivation}
                 onChange={(e) => setPersonaBuyingMotivation(e.target.value)}
-                rows={3}
+                rows={2}
+                className="text-xs sm:text-sm min-h-[64px]"
               />
               <p className="text-[11px] text-muted-foreground">
                 O que faz esse cliente decidir fechar negócio com a sua empresa.
@@ -3056,18 +3060,19 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="p-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/80 shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsPersonaModalOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button
               type="button"
               onClick={handleSavePersona}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="bg-primary text-white hover:bg-primary/90 w-full sm:w-auto"
             >
               {editingPersonaIndex !== null ? "Salvar Alterações" : "Adicionar Persona"}
             </Button>
@@ -3077,18 +3082,18 @@ export default function ConfiguracoesPage() {
 
       {/* Modal de Adicionar Variação Extra da Logo */}
       <Dialog open={isExtraLogoModalOpen} onOpenChange={setIsExtraLogoModalOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
+        <DialogContent className="w-[95vw] sm:max-w-[480px] max-h-[90dvh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 shrink-0 text-left pr-12">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg text-slate-900">
               <ImageIcon className="h-5 w-5 text-primary" />
               Adicionar Variação da Logomarca
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm text-slate-500">
               Cadastre uma versão específica da sua logomarca (ex: Versão Dourada, Selo 10 Anos, Logo com Slogan).
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="overflow-y-auto px-4 py-3 sm:px-6 sm:py-4 space-y-4 flex-1 overscroll-contain">
             <div className="space-y-1.5">
               <Label htmlFor="extra-logo-name" className="text-xs font-bold text-slate-700">
                 Nome / Etiqueta da Variação <span className="text-red-500">*</span>
@@ -3098,6 +3103,7 @@ export default function ConfiguracoesPage() {
                 placeholder="Ex: Selo 10 Anos / Versão Dourada / Logo com Slogan"
                 value={extraLogoName}
                 onChange={(e) => setExtraLogoName(e.target.value)}
+                className="text-xs sm:text-sm"
               />
             </div>
 
@@ -3166,7 +3172,7 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="p-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/80 shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
             <Button
               type="button"
               variant="outline"
@@ -3177,6 +3183,7 @@ export default function ConfiguracoesPage() {
                 setExtraLogoName("");
               }}
               disabled={uploadingType === "extra"}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
@@ -3184,7 +3191,7 @@ export default function ConfiguracoesPage() {
               type="button"
               onClick={handleAddExtraLogo}
               disabled={uploadingType === "extra" || !extraLogoFile || !extraLogoName.trim()}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="bg-primary text-white hover:bg-primary/90 w-full sm:w-auto"
             >
               {uploadingType === "extra" ? (
                 <>
