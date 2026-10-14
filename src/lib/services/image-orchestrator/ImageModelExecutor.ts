@@ -266,13 +266,14 @@ export class ImageModelExecutor {
             params.referenceMode === "campaign_identity" &&
             !geminiPrompt.includes("CAMPAIGN LAYOUT ARCHITECTURE")
           ) {
-            const campaignDirective = `[CRITICAL MANDATE — MASTER CAMPAIGN VISUAL IDENTITY & LAYOUT REPLICATION]:
-The attached reference image is the MASTER CAMPAIGN KEY ART for this advertising series.
-The new image you are creating MUST visually belong to the exact same campaign series:
-1. Replicate the EXACT atmospheric lighting, background environment, color temperature, and color contrast of the master reference image (e.g. dark blue studio atmosphere, cinematic lighting, and dark reflective floor).
-2. Replicate all iconic visual elements and signature graphics (e.g. 3D glowing neon light ribbons/tubes, energy trails, glassmorphic badges, or geometric borders) found in the master reference image.
-3. Mirror the composition balance, margins, spatial distribution, and layout framing of the master reference image.
-4. Adapt the subjects/characters to fulfill the user briefing while maintaining the identical photographic finish, aesthetic dignity, and campaign design system.`;
+            const campaignDirective = `[CRITICAL MANDATE — BRANDING DNA HERITAGE & FRESH CREATIVE SUBJECT]:
+The attached reference image is the BRAND GUIDELINE / MASTER KEY ART for this campaign series.
+1. DO NOT REPLICATE THE PEOPLE, CHARACTERS, OR POSES from the reference image. The characters and actions in the new image must be FRESH, ORIGINAL, and created specifically according to the user prompt.
+2. REPLICATE THE CAMPAIGN'S SIGNATURE BRANDING DNA:
+   - Incorporate the signature 3D glowing neon light ribbons/tubes (in electric blue and warm orange) swirling dynamically around the new subject.
+   - Maintain the dark cinematic studio lighting and subtle floor reflections.
+   - Maintain the clean, modern layout balance with glassmorphic translucent badges and typography on the right.
+   - Keep the top-left corner 100% clean and unbranded for post-production logo overlay.`;
             geminiPrompt = `${campaignDirective}\n\n${geminiPrompt}`;
           }
 
