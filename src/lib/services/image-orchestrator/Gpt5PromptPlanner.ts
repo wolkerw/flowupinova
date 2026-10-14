@@ -41,6 +41,14 @@ No campo "socialCaption", crie um copywriting persuasivo e engajador em portugu�
 - hashtags: array com 5 a 8 hashtags estratégicas em português (incluindo a marca, nicho e tema);
 - fullPostText: o texto completo unificado e pronto para postar, com quebras de linha e o bloco de hashtags no final. NUNCA utilize instruções ou prompts de imagem como legenda.
 
+DIRETRIZES MANDATÓRIAS DE IDENTIDADE DE CAMPANHA (SÉRIE DE POSTS / DESIGN SYSTEM):
+Quando a imagem de referência for enviada no modo "campaign_identity", ela atua como a GUIA MESTRA DA SÉRIE.
+Sua missão primordial é inspecionar minuciosamente a imagem anexada e transferir seu DNA visual para o "imagePrompt":
+1. Cenário e Luz: Inspecione o fundo, a atmosfera e o tipo de iluminação (ex: estúdio fotográfico escuro/azulado, luzes de neon brilhantes em 3D, reflexos no chão, iluminação dramática de recorte). Replique esse mesmo ambiente e clima de luz. JAMAIS troque o cenário por um ambiente genérico (como cafeterias, escritórios comuns ou paredes brancas) se a referência de campanha possui um conceito estético marcante.
+2. Elementos Gráficos de Assinatura: Se a imagem matriz possui fitas/tubos de luz neon 3D circulando os personagens, partículas brilhantes, molduras ou linhas gráficas, descreva OBRIGATORIAMENTE esses elementos para estarem presentes na nova imagem.
+3. Paleta Cromática: Mantenha com fidelidade o esquema de cores e contraste da matriz (ex: azul luminoso, laranja vibrante).
+4. Diagramação e Margens: Conserve a estrutura de enquadramento (ex: personagens agrupados, cartões/pills translúcidos e textos organizados na lateral).
+
 REGRAS DE CONFORMIDADE:
 - Responda OBRIGATORIAMENTE em formato JSON válido respeitando o schema solicitado.
 - Não inclua markdown adicional ou texto fora do JSON.
@@ -60,7 +68,7 @@ REGRAS DE CONFORMIDADE:
           : baseModels;
 
         const userPrompt = this.buildUserPrompt(input);
-        // Montar mensagem multimodal para que o GPT-5 veja a foto real do sujeito/produto
+        // Montar mensagem multimodal para que o GPT-5 veja as fotos de sujeito, estilo/campanha e logo
         const contentParts: any[] = [{ type: "text", text: userPrompt }];
         const subjectImage = input.referenceImages?.find((r) => r.role === "product_subject");
         if (subjectImage && subjectImage.base64) {
@@ -68,6 +76,16 @@ REGRAS DE CONFORMIDADE:
             type: "image_url",
             image_url: {
               url: `data:${subjectImage.mimeType};base64,${subjectImage.base64}`,
+              detail: "high",
+            },
+          });
+        }
+        const styleImage = input.referenceImages?.find((r) => r.role === "style_reference");
+        if (styleImage && styleImage.base64) {
+          contentParts.push({
+            type: "image_url",
+            image_url: {
+              url: `data:${styleImage.mimeType};base64,${styleImage.base64}`,
               detail: "high",
             },
           });
@@ -192,15 +210,14 @@ INSTRUÇÃO OBRIGATÓRIA:
       referencesSection =
         input.referenceMode === "campaign_identity"
           ? `
-FOTO DE REFERÊNCIA DE IDENTIDADE DE CAMPANHA / DESIGN SYSTEM ANEXADA:
-Esta imagem enviada na Etapa 5 é a REFERÊNCIA MESTRA DE LAYOUT E IDENTIDADE DA SÉRIE.
-DIRETRIZES MANDATÓRIAS DE IDENTIDADE DE CAMPANHA (DESIGN SYSTEM DE SÉRIE):
-1. ARQUITETURA VISUAL E LAYOUT: Examine a imagem de referência anexada com máxima atenção e replique rigorosamente sua estrutura de design:
-   - Diagramação espacial, enquadramento de cena e proporções de respiro/margens.
-   - Posição e destaque do sujeito principal em relação ao fundo.
-   - Elementos gráficos, molduras, faixas de contraste, cantos, linhas ou texturas de apoio visual.
-2. LINGUAGEM EDITORIAL DE SÉRIE: Todas as peças geradas sob esta campanha devem parecer parte da mesma série de publicidade. Mantenha a mesma assinatura estética, estilo de iluminação, textura e atmosfera gráfica da referência, adaptando harmonicamente o conteúdo conforme o briefing.
-3. HARMONIA CROMÁTICA: Preserve a paleta de cores dominante e o equilíbrio de contraste da referência.
+FOTO DE REFERÊNCIA DE IDENTIDADE DE CAMPANHA (DESIGN SYSTEM DE SÉRIE PUBLICITÁRIA) ANEXADA:
+Esta imagem enviada na Etapa 5 é a REFERÊNCIA MESTRA DE DESIGN E IDENTIDADE DA SÉRIE.
+Sua missão NÚMERO 1 é garantir que a nova arte seja imediatamente reconhecida como da MESMA CAMPANHA PUBLICITÁRIA:
+1. CENÁRIO, FUNDO E ILUMINAÇÃO: Inspecione com atenção extrema a atmosfera, profundidade e esquema de luz da imagem mestre (ex: estúdio azul/escuro com chão reflexivo, iluminação cinematográfica de recorte, contrastes marcantes). NUNCA mude para um ambiente genérico comum (como cafeterias, escritórios descaracterizados ou paredes brancas) se a referência de campanha possui um estúdio com conceito estético marcante.
+2. ELEMENTOS GRÁFICOS DE ASSINATURA: Se a imagem matriz possui elementos visuais característicos (como tubos/fitas de neon 3D brilhantes circulando os personagens, partículas de luz volumétrica, anéis luminosos, etc.), esses elementos são a MARCA REGISTRADA da campanha e DEVEM OBRIGATORIAMENTE ser descritos no imagePrompt para estarem presentes na nova imagem!
+3. PALETA CROMÁTICA: Preserve com fidelidade o esquema de cores e contraste da matriz (ex: azul luminoso, laranja vibrante, tons azuis de estúdio).
+4. DIAGRAMAÇÃO E MARGENS: Conserve a estrutura de enquadramento (ex: personagens agrupados, cartões/pills translúcidos e textos organizados na lateral).
+5. SUJEITO / PERSONAGENS: Adapte os personagens ou elementos para o briefing solicitado mantendo o mesmo estilo de pose, enquadramento e harmonia da matriz.
 `
           : "FOTO DE ESTILO/INSPIRAÇÃO ANEXADA: Utilize a paleta de cores e atmosfera da imagem como referência de luz e clima estético.";
     } else {

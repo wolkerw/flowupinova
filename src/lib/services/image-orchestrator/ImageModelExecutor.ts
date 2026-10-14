@@ -83,14 +83,31 @@ export class ImageModelExecutor {
       { provider: "openai" as const, model: "gpt-image-2" },
       { provider: "google" as const, model: "gemini-2.5-flash-image" },
       { provider: "google" as const, model: "gemini-3-pro-image" },
-      { provider: "google" as const, model: "gemini-2.0-flash-exp" },
     ];
 
-    const modelsToTry = [
-      { provider: getProvider(preferred), model: preferred },
-      { provider: getProvider(fallback), model: fallback },
-      ...defaultList.filter((d) => d.model !== preferred && d.model !== fallback),
-    ];
+    const hasStyleRef = Boolean(
+      params.references?.some((r) => r.role === "style_reference" && Boolean(r.base64))
+    );
+    const isCampaignIdentity = params.referenceMode === "campaign_identity" && hasStyleRef;
+
+    let modelsToTry: { provider: "openai" | "google"; model: string }[];
+
+    if (isCampaignIdentity) {
+      // No modo Identidade de Campanha com foto mestre anexada, o Google Gemini Multimodal é a prioridade absoluta
+      // pois é o único motor com capacidade de ingerir os pixels da imagem mestre diretamente na geração multimodal.
+      modelsToTry = [
+        { provider: "google" as const, model: "gemini-2.5-flash-image" },
+        { provider: "google" as const, model: "gemini-3-pro-image" },
+        { provider: "openai" as const, model: "gpt-image-2.5-sunburst" },
+        { provider: "openai" as const, model: "gpt-image-2" },
+      ];
+    } else {
+      modelsToTry = [
+        { provider: getProvider(preferred), model: preferred },
+        { provider: getProvider(fallback), model: fallback },
+        ...defaultList.filter((d) => d.model !== preferred && d.model !== fallback),
+      ];
+    }
 
     let lastError = "";
 
@@ -249,9 +266,13 @@ export class ImageModelExecutor {
             params.referenceMode === "campaign_identity" &&
             !geminiPrompt.includes("CAMPAIGN LAYOUT ARCHITECTURE")
           ) {
-            const campaignDirective = `[CAMPAIGN LAYOUT ARCHITECTURE]:
-The attached style reference image represents the master visual layout and design system for this campaign series.
-You MUST replicate its structural design architecture: exact spatial layout, margins, composition framing, background treatment, color contrast, and graphic lines/borders so the resulting image visually belongs to the same post series.`;
+            const campaignDirective = `[CRITICAL MANDATE — MASTER CAMPAIGN VISUAL IDENTITY & LAYOUT REPLICATION]:
+The attached reference image is the MASTER CAMPAIGN KEY ART for this advertising series.
+The new image you are creating MUST visually belong to the exact same campaign series:
+1. Replicate the EXACT atmospheric lighting, background environment, color temperature, and color contrast of the master reference image (e.g. dark blue studio atmosphere, cinematic lighting, and dark reflective floor).
+2. Replicate all iconic visual elements and signature graphics (e.g. 3D glowing neon light ribbons/tubes, energy trails, glassmorphic badges, or geometric borders) found in the master reference image.
+3. Mirror the composition balance, margins, spatial distribution, and layout framing of the master reference image.
+4. Adapt the subjects/characters to fulfill the user briefing while maintaining the identical photographic finish, aesthetic dignity, and campaign design system.`;
             geminiPrompt = `${campaignDirective}\n\n${geminiPrompt}`;
           }
 
