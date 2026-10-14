@@ -71,6 +71,7 @@ export interface AIImageGenerationRequest {
   brandKitId?: string;
   referenceAssetIds?: string[];
   referenceAssetUrls?: string[];
+  referenceMode?: "style_only" | "campaign_identity";
   sourceAssetIds?: string[];
   sourceAssetUrls?: string[];
   textMode: "none" | "editable_layers" | "rasterized";

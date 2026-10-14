@@ -44,6 +44,7 @@ export interface OrchestratorRunParams {
   includeLogo?: boolean;
   sourceAssetUrls?: string[];
   referenceAssetUrls?: string[];
+  referenceMode?: "style_only" | "campaign_identity";
 }
 
 export interface OrchestratorRunResult {
@@ -115,6 +116,7 @@ export class ImageGenerationOrchestrator {
       productHeadline: normalized.explicitHeadline,
       negativeInstructions: normalized.negativeDirectives,
       preferredModel: aiConfig.generalPlannerModel,
+      referenceMode: params.referenceMode,
     });
 
     // 6. Etapa de Renderização: Geração de Imagem com GPT Image 2 (ou modelo configurado)
@@ -125,6 +127,7 @@ export class ImageGenerationOrchestrator {
       preferredModel: aiConfig.generalImageModel,
       fallbackModel: aiConfig.generalFallbackImageModel,
       quality: aiConfig.imageQuality,
+      referenceMode: params.referenceMode,
     });
 
     // 6. Validação e Padronização de Dimensões (sem cortes destrutivos)

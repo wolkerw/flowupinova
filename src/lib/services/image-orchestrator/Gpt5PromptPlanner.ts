@@ -169,17 +169,43 @@ BRANDKIT DO CLIENTE:
     const subjectImage = input.referenceImages?.find((r) => r.role === "product_subject");
     const styleImage = input.referenceImages?.find((r) => r.role === "style_reference");
 
-    const referencesSection = subjectImage
-      ? `
+    let referencesSection = "";
+    if (subjectImage && styleImage) {
+      referencesSection = `
+DUAS FOTOS ANEXADAS NA ETAPA 5 (SUJEITO REAL + REFERÊNCIA DE ESTILO/CAMPANHA):
+1. SUJEITO REAL (PRODUTO OU PESSOA): Preserve a fisionomia, idade aproximada, etnia, cabelo e estilo se for pessoa, ou formato, embalagem, cores e textura real se for produto. Coloque esse sujeito no centro da cena.
+2. ${
+  input.referenceMode === "campaign_identity"
+    ? `REFERÊNCIA MESTRA DE IDENTIDADE DE CAMPANHA (LAYOUT & DESIGN SYSTEM): Replique a arquitetura visual, diagramação geométrica, enquadramento de cena, molduras, faixas e atmosfera da imagem de referência de estilo para que a arte resultante forme uma série consistente de publicidade.`
+    : `FOTO DE ESTILO/INSPIRAÇÃO: Utilize a paleta de cores, iluminação e atmosfera da imagem de referência como inspiração de luz e clima.`
+}
+`;
+    } else if (subjectImage) {
+      referencesSection = `
 FOTO REAL DA ETAPA 5 ANEXADA (SUJEITO/PRODUTO):
 Existe uma foto real anexada enviada pelo usuário na Etapa 5.
 INSTRUÇÃO OBRIGATÓRIA:
 1. Examine a imagem anexada detalhadamente. Se for uma PESSOA, preserve a fisionomia, idade aproximada, etnia, cabelo e estilo. Se for um PRODUTO, preserve o formato, embalagem, cores e textura real.
 2. Descreva esse sujeito com detalhes no bloco [3. HERO SUBJECT] para que a IA crie o cenário ao redor dele como protagonista da cena.
+`;
+    } else if (styleImage) {
+      referencesSection =
+        input.referenceMode === "campaign_identity"
+          ? `
+FOTO DE REFERÊNCIA DE IDENTIDADE DE CAMPANHA / DESIGN SYSTEM ANEXADA:
+Esta imagem enviada na Etapa 5 é a REFERÊNCIA MESTRA DE LAYOUT E IDENTIDADE DA SÉRIE.
+DIRETRIZES MANDATÓRIAS DE IDENTIDADE DE CAMPANHA (DESIGN SYSTEM DE SÉRIE):
+1. ARQUITETURA VISUAL E LAYOUT: Examine a imagem de referência anexada com máxima atenção e replique rigorosamente sua estrutura de design:
+   - Diagramação espacial, enquadramento de cena e proporções de respiro/margens.
+   - Posição e destaque do sujeito principal em relação ao fundo.
+   - Elementos gráficos, molduras, faixas de contraste, cantos, linhas ou texturas de apoio visual.
+2. LINGUAGEM EDITORIAL DE SÉRIE: Todas as peças geradas sob esta campanha devem parecer parte da mesma série de publicidade. Mantenha a mesma assinatura estética, estilo de iluminação, textura e atmosfera gráfica da referência, adaptando harmonicamente o conteúdo conforme o briefing.
+3. HARMONIA CROMÁTICA: Preserve a paleta de cores dominante e o equilíbrio de contraste da referência.
 `
-      : styleImage
-        ? "FOTO DE ESTILO/INSPIRAÇÃO ANEXADA: Utilize a paleta de cores e atmosfera da imagem como referência de luz."
-        : "Nenhuma foto externa anexada na Etapa 5.";
+          : "FOTO DE ESTILO/INSPIRAÇÃO ANEXADA: Utilize a paleta de cores e atmosfera da imagem como referência de luz e clima estético.";
+    } else {
+      referencesSection = "Nenhuma foto externa anexada na Etapa 5.";
+    }
 
     // REGRA INVIOLÁVEL: hasLogo é TRUE apenas se a imagem da logo foi EFETIVAMENTE
     // carregada como referência real (base64 presente). A URL do brandKit não é suficiente —

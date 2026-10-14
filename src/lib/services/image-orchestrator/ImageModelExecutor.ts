@@ -30,6 +30,7 @@ export class ImageModelExecutor {
     preferredModel?: string;
     fallbackModel?: string;
     quality?: string;
+    referenceMode?: "style_only" | "campaign_identity";
   }): Promise<{
     imageBuffer: Buffer;
     modelUsed: string;
@@ -240,6 +241,18 @@ export class ImageModelExecutor {
           }
           if (subjectRef && !geminiPrompt.includes("HERO SUBJECT PRESERVATION")) {
             geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
+          }
+
+          const styleRef = params.references?.find((r) => r.role === "style_reference");
+          if (
+            styleRef &&
+            params.referenceMode === "campaign_identity" &&
+            !geminiPrompt.includes("CAMPAIGN LAYOUT ARCHITECTURE")
+          ) {
+            const campaignDirective = `[CAMPAIGN LAYOUT ARCHITECTURE]:
+The attached style reference image represents the master visual layout and design system for this campaign series.
+You MUST replicate its structural design architecture: exact spatial layout, margins, composition framing, background treatment, color contrast, and graphic lines/borders so the resulting image visually belongs to the same post series.`;
+            geminiPrompt = `${campaignDirective}\n\n${geminiPrompt}`;
           }
 
           const parts: any[] = [{ text: geminiPrompt }];

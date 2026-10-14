@@ -44,6 +44,7 @@ import {
   HelpCircle,
   RotateCcw,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   type AIImageObjective,
@@ -222,6 +223,7 @@ export function ImageGenerationWizard() {
 
   // Arquivos anexos do Briefing
   const [referenceImages, setReferenceImages] = useState<{ file?: File; url: string }[]>([]);
+  const [referenceMode, setReferenceMode] = useState<"style_only" | "campaign_identity">("style_only");
   const [sourceImage, setSourceImage] = useState<{ file?: File; url: string } | null>(null);
   const [logoImage, setLogoImage] = useState<{ file?: File; url: string } | null>(null);
   const [selectedLogoId, setSelectedLogoId] = useState<string>("main");
@@ -532,6 +534,7 @@ export function ImageGenerationWizard() {
           logoUrl: uploadedLogoUrl || undefined,
           includeLogo: Boolean(includeLogo && uploadedLogoUrl),
           referenceAssetUrls: uploadedRefUrls,
+          referenceMode,
           sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
         }),
       });
@@ -1201,6 +1204,58 @@ export function ImageGenerationWizard() {
                             </button>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Seletor de Modo da Referência (Cores & Luz vs Identidade de Campanha) */}
+                    {referenceImages.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-slate-200/80 space-y-2">
+                        <span className="text-[11px] font-bold text-gray-700 block">
+                          Como a IA deve aplicar esta referência?
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setReferenceMode("style_only")}
+                            className={cn(
+                              "flex flex-col items-start p-2.5 rounded-xl border text-left transition-all",
+                              referenceMode === "style_only"
+                                ? "border-primary bg-blue-50/70 text-primary shadow-xs ring-1 ring-primary/40"
+                                : "border-slate-200 bg-white text-gray-600 hover:border-slate-300 hover:bg-slate-50"
+                            )}
+                          >
+                            <span className="text-xs font-bold flex items-center gap-1.5">
+                              <span>🎨</span> Cores & Luz
+                            </span>
+                            <span className="text-[10px] text-gray-500 mt-1 leading-snug">
+                              Inspiração livre na paleta de cores, luz e clima visual.
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setReferenceMode("campaign_identity")}
+                            className={cn(
+                              "flex flex-col items-start p-2.5 rounded-xl border text-left transition-all relative overflow-hidden",
+                              referenceMode === "campaign_identity"
+                                ? "border-indigo-600 bg-indigo-50/80 text-indigo-700 shadow-xs ring-1 ring-indigo-500/40"
+                                : "border-slate-200 bg-white text-gray-600 hover:border-slate-300 hover:bg-slate-50"
+                            )}
+                          >
+                            <span className="text-xs font-bold flex items-center gap-1.5">
+                              <span>📐</span> Identidade de Campanha
+                            </span>
+                            <span className="text-[10px] text-gray-500 mt-1 leading-snug">
+                              Clona layout, enquadramento e design para criar uma série consistente.
+                            </span>
+                          </button>
+                        </div>
+                        {referenceMode === "campaign_identity" && (
+                          <div className="flex items-center gap-1.5 rounded-lg bg-indigo-100/70 p-2 text-[11px] text-indigo-900 font-medium">
+                            <span className="text-sm shrink-0">✨</span>
+                            <span>A IA manterá o mesmo esqueleto de layout da referência para criar peças que parecem da mesma agência publicitária.</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

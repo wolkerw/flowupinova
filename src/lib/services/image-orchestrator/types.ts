@@ -58,6 +58,7 @@ export interface Gpt5PlannerInput {
   productHeadline?: string;
   negativeInstructions?: string;
   preferredModel?: string;
+  referenceMode?: "style_only" | "campaign_identity";
 }
 
 export interface SocialCaptionPlan {

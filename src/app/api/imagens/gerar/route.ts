@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
       logoUrl = "",
       includeLogo = true,
       referenceAssetUrls = [],
+      referenceMode = "style_only",
       sourceAssetUrls = [],
       retryAssetId = null,
       existingGenerationId = null,
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
         style,
         useBrandKit: Boolean(useBrandKit),
         referenceAssetUrls,
+        referenceMode: referenceMode || "style_only",
         sourceAssetUrls,
         textOverlayMode: textOverlayMode || "NONE",
         safetyStatus: "approved",
@@ -474,6 +476,7 @@ export async function POST(request: NextRequest) {
           includeLogo: Boolean(effectiveLogoUrl && includeLogo !== false),
           sourceAssetUrls,
           referenceAssetUrls,
+          referenceMode,
         });
 
         imageBuffer = orchResult.imageBuffer;
