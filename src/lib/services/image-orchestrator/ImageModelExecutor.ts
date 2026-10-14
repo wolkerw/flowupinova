@@ -78,36 +78,18 @@ export class ImageModelExecutor {
     const fallback = params.fallbackModel || "gemini-2.5-flash-image";
 
     const defaultList = [
+      { provider: "openai" as const, model: "gpt-image-2" },
       { provider: "openai" as const, model: "gpt-image-2.5-sunburst" },
       { provider: "openai" as const, model: "gpt-image-2.5-flare" },
-      { provider: "openai" as const, model: "gpt-image-2" },
       { provider: "google" as const, model: "gemini-2.5-flash-image" },
       { provider: "google" as const, model: "gemini-3-pro-image" },
     ];
 
-    const hasStyleRef = Boolean(
-      params.references?.some((r) => r.role === "style_reference" && Boolean(r.base64))
-    );
-    const isCampaignIdentity = params.referenceMode === "campaign_identity" && hasStyleRef;
-
-    let modelsToTry: { provider: "openai" | "google"; model: string }[];
-
-    if (isCampaignIdentity) {
-      // No modo Identidade de Campanha com foto mestre anexada, o Google Gemini Multimodal é a prioridade absoluta
-      // pois é o único motor com capacidade de ingerir os pixels da imagem mestre diretamente na geração multimodal.
-      modelsToTry = [
-        { provider: "google" as const, model: "gemini-2.5-flash-image" },
-        { provider: "google" as const, model: "gemini-3-pro-image" },
-        { provider: "openai" as const, model: "gpt-image-2.5-sunburst" },
-        { provider: "openai" as const, model: "gpt-image-2" },
-      ];
-    } else {
-      modelsToTry = [
-        { provider: getProvider(preferred), model: preferred },
-        { provider: getProvider(fallback), model: fallback },
-        ...defaultList.filter((d) => d.model !== preferred && d.model !== fallback),
-      ];
-    }
+    const modelsToTry = [
+      { provider: getProvider(preferred), model: preferred },
+      { provider: getProvider(fallback), model: fallback },
+      ...defaultList.filter((d) => d.model !== preferred && d.model !== fallback),
+    ];
 
     let lastError = "";
 
