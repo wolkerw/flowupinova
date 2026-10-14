@@ -721,14 +721,6 @@ export default function GaleriaPage() {
                       <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 p-2">
                         <Button
                           size="sm"
-                          className="flex items-center gap-1.5 rounded-full text-xs font-bold shadow-md bg-[#0083C7] hover:bg-[#006ea8] text-white h-8 px-3"
-                          onClick={() => handleOpenApprovalModal(item)}
-                        >
-                          <CheckSquare className="h-3.5 w-3.5" />
-                          Aprovação
-                        </Button>
-                        <Button
-                          size="sm"
                           variant="secondary"
                           className="flex items-center gap-1.5 rounded-full text-xs font-bold shadow-md hover:bg-white h-8 px-3"
                           onClick={() => handleCreatePost(item)}
