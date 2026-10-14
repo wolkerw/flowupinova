@@ -35,7 +35,7 @@ export const AvatarAnimationDemo = () => {
           className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-accent/20 transition-all"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          Avatar IA: Criação de Retrato
+          Foto Profissional: Criação de Retrato
         </button>
       </div>
 
@@ -186,7 +186,7 @@ export const AvatarAnimationDemo = () => {
               />
               <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 backdrop-blur-sm">
                 <CheckCircle2 className="h-3 w-3 text-green-400" />
-                <span className="text-[8px] font-bold text-white">Avatar IA Gerado</span>
+                <span className="text-[8px] font-bold text-white">Foto Profissional Gerada</span>
               </div>
             </motion.div>
           </div>

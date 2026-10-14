@@ -66,9 +66,9 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
    - **Conexões de Redes Sociais**:
      - Integrações com Instagram, Facebook (Meta Business), LinkedIn, TikTok e Google Meu Negócio.
 
-6. **Avatar IA** -> [Avatar IA](/dashboard/avatar)
-   - Criação de clone digital e fotos de estúdio profissionais a partir de selfies do usuário ou equipe.
-   - Gera ensaios fotográficos em diferentes cenários mantendo a consistência do rosto.
+6. **Foto Profissional** -> [Foto Profissional](/dashboard/avatar)
+   - Criação de fotos de estúdio e retratos corporativos profissionais a partir de selfies do usuário ou equipe.
+   - Gera ensaios fotográficos em diferentes cenários mantendo a consistência rigorosa do rosto e tom de pele original.
 
 7. **Minha Conta & Assinatura** -> [Minha Conta](/dashboard/minha-conta)
    - Gestão de plano, limite de créditos, dados cadastrais e faturas.

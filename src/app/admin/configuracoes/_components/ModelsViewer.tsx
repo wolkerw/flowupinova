@@ -412,12 +412,12 @@ export function ModelsViewer() {
             </div>
           </div>
 
-          {/* Avatar IA (Digital Twin) - Congelado */}
+          {/* Foto Profissional (Digital Twin) - Congelado */}
           <div className="flex flex-col rounded-xl border border-purple-800/40 bg-purple-950/10 p-5 shadow-sm">
             <div className="mb-3 flex items-center justify-between border-b border-purple-800/30 pb-3">
               <div className="flex items-center gap-2 text-white">
                 <ShieldCheck className="h-5 w-5 text-purple-400" />
-                <h3 className="font-semibold">Avatar IA (Digital Twin Presença)</h3>
+                <h3 className="font-semibold">Foto Profissional (Digital Twin Presença)</h3>
               </div>
               <span className="flex items-center gap-1 rounded bg-purple-900/60 px-2 py-0.5 text-[11px] font-semibold text-purple-200 border border-purple-700/50">
                 <Lock className="h-3 w-3" />
@@ -426,7 +426,7 @@ export function ModelsViewer() {
             </div>
 
             <p className="mb-3 text-xs text-slate-400">
-              Fluxo protegido de clonagem visual e pose. Utiliza arquitetura dual multimodal proprietária com envio simultâneo de Selfie e Foto de Estilo.
+              Fluxo protegido de fotos profissionais realistas. Utiliza arquitetura dual multimodal proprietária com envio simultâneo de Selfie e Foto de Estilo, com regras estritas de fidelidade facial e preservação do tom de pele natural.
             </p>
 
             <div className="rounded-lg border border-purple-900/30 bg-purple-950/30 p-3 text-xs text-slate-300">
@@ -438,7 +438,7 @@ export function ModelsViewer() {
                 Modelos de contingência fixos: <code className="text-purple-300">gemini-3-pro-image</code>, <code className="text-purple-300">gemini-2.0-flash-exp</code>, <code className="text-purple-300">gemini-3.5-flash</code>, <code className="text-purple-300">gemini-2.5-flash</code>.
               </p>
               <p className="mt-2 text-[10px] text-amber-400/90 font-medium">
-                🔒 Bloqueado para edição por regra de negócio e garantia de fidelidade facial.
+                🔒 Bloqueado para edição por regra de negócio e garantia de fidelidade facial biométrica e tom de pele.
               </p>
             </div>
           </div>

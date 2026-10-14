@@ -483,13 +483,13 @@ export default function AvatarPage() {
         <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
         <div className="relative z-10 space-y-3">
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Retrato{" "}
+            Foto{" "}
             <span className="bg-gradient-to-r from-sky-400 via-blue-500 to-accent bg-clip-text text-transparent">
-              Profissional IA
+              Profissional
             </span>
           </h1>
           <p className="max-w-2xl text-sm text-slate-300 md:text-base">
-            Transforme uma selfie comum em um retrato corporativo e profissional realista de estúdio
+            Transforme uma selfie comum em uma foto corporativa e profissional realista de estúdio
             usando IA de ponta.
           </p>
         </div>
@@ -894,10 +894,10 @@ export default function AvatarPage() {
       {(loading || resultUrl) && (
         <div className="mx-auto max-w-2xl space-y-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md md:p-8">
           <h2 className="text-center text-sm font-bold uppercase tracking-wider text-slate-300">
-            Seu Retrato Profissional IA
+            Sua Foto Profissional
           </h2>
 
-          <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 shadow-2xl">
+          <div className="relative mx-auto flex min-h-[380px] max-h-[640px] w-full max-w-md items-center justify-center overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 p-2 shadow-2xl">
             {/* Estado Carregando com o Loader Circular igual as outras gerações */}
             {loading && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/95 p-6 backdrop-blur-sm">
@@ -965,8 +965,8 @@ export default function AvatarPage() {
             {resultUrl && (
               <img
                 src={resultUrl}
-                alt="Retrato Profissional Gerado"
-                className="h-full w-full object-cover"
+                alt="Foto Profissional Gerada"
+                className="h-auto max-h-[620px] w-auto max-w-full rounded-xl object-contain shadow-lg"
               />
             )}
           </div>
@@ -977,14 +977,14 @@ export default function AvatarPage() {
               {success && (
                 <div className="flex items-center gap-2.5 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-xs text-green-400 shadow-sm">
                   <CheckCircle2 className="h-4.5 w-4.5 flex-shrink-0 animate-pulse text-green-400" />
-                  <span>Seu retrato foi salvo automaticamente na sua Galeria de Mídias!</span>
+                  <span>Sua foto profissional foi salva automaticamente na sua Galeria de Mídias!</span>
                 </div>
               )}
 
               {/* Botão de download */}
               <a
                 href={resultUrl}
-                download={`retrato_avatar_${Date.now()}.jpg`}
+                download={`foto_profissional_${Date.now()}.jpg`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:border-slate-700 hover:bg-slate-900 active:scale-[0.98]"

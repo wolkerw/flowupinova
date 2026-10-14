@@ -98,7 +98,7 @@ const allNavigationItems: {
     icon: Building2,
   },
   {
-    title: "Avatar IA",
+    title: "Foto Profissional",
     url: "/dashboard/avatar",
     icon: User,
   },

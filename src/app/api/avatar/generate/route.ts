@@ -311,10 +311,10 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         const dualImageInstruction = styleBase64
           ? `REGRA CRÍTICA DE COMBINAÇÃO DAS DUAS IMAGENS:
 Nesta requisição foram fornecidas DUAS IMAGENS de referência:
-- IMAGEM 1 (Selfie do Usuário): Extraia e preserve 100% da identidade facial da pessoa (rosto, traços, feição, olhos, tom de pele, cabelo e barba).
-- IMAGEM 2 (Foto de Inspiração/Estilo): Copie e replique o estilo de vestuário, a pose corporal, a composição do cenário de fundo e a iluminação desta imagem de referência.
-Sua missão é realizar a FUSÃO PERFEITA: coloque o rosto idêntico da pessoa da IMAGEM 1 vestindo a roupa, posando na atitude e no cenário inspirados na IMAGEM 2.`
-          : `REGRA CRÍTICA DE FIDELIDADE FACIAL: Preserve 100% da biometria facial, traços do rosto e tom de pele da pessoa da selfie enviada.`;
+- IMAGEM 1 (Selfie do Usuário): Extraia e preserve 100% da identidade facial da pessoa (rosto, traços, feição, formato dos olhos, nariz, boca, tom exato de pele, sobrancelhas, cabelo e barba). A pessoa gerada DEVE SER EXATAMENTE E INCONFUNDIVELMENTE A MESMA PESSOA DA SELFIE.
+- IMAGEM 2 (Foto de Inspiração/Estilo): Copie e replique o estilo de vestuário, a pose corporal, a composição do cenário de fundo e a iluminação desta imagem de referência. NUNCA utilize a cor ou o tom de pele da IMAGEM 2.
+Sua missão é realizar a FUSÃO PERFEITA: coloque o rosto idêntico da pessoa da IMAGEM 1 com seu tom de pele natural em todo o corpo, vestindo a roupa, posando na atitude e no cenário inspirados na IMAGEM 2.`
+          : `REGRA CRÍTICA DE FIDELIDADE FACIAL: Preserve 100% da biometria facial, traços do rosto e tom de pele original da pessoa da selfie enviada. A pessoa gerada DEVE SER EXATAMENTE A MESMA PESSOA DA SELFIE.`;
 
         const nanobananaPrompt = `Você é um Diretor de Fotografia e Retratista Editorial Sênior.
 Com base nas imagens de referência fornecidas, gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade.
@@ -322,9 +322,10 @@ Com base nas imagens de referência fornecidas, gere um retrato fotográfico pro
 ${dualImageInstruction}
 
 DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
-1. REPRODUÇÃO FIEL DA PESSOA: Mantenha estritamente a identidade biometria facial, características físicas, feição, formato dos olhos, expressão, tom de pele, tipo e cor do cabelo, e barba exatamente como estão na foto enviada.
-2. RECONSTRUÇÃO ANATÔMICA HARMONIOSA: Caso a foto de referência enviada exiba apenas o rosto ou busto (selfie), recrie e complete harmonicamente as partes do corpo que não são oferecidas na foto original (ombros, torso, braços e postura) de forma anatomicamente perfeita e integrada no plano médio ou plano americano.
-3. APRIMORAMENTO E RECRIAÇÃO DO VESTUÁRIO: A roupa da pessoa pode ser melhorada, ajustada ou totalmente recriada com IA para um estilo fotográfico de alta elegância e sofisticação (como alfaiataria fina, terno bem cortado ou figurino de estilo de vida premium), combinando com as instruções de estilo e cenário.
+1. REPRODUÇÃO FIEL DA PESSOA (PRIORIDADE MÁXIMA E INEGOCIÁVEL): A pessoa na imagem final gerada DEVE SER INCONFUNDIVELMENTE A MESMA PESSOA enviada na selfie (IMAGEM 1). Mantenha com precisão absoluta a identidade facial, biometria, feições, formato e distância dos olhos, formato do nariz, lábios, mandíbula, formato do rosto, marcas características, sobrancelhas, linha e cor do cabelo, e barba exatamente como estão na selfie original. É TERMINANTEMENTE PROIBIDO gerar um rosto diferente ou genérico.
+2. FIDELIDADE E CONSISTÊNCIA TOTAL DO TOM DE PELE: O tom e a cor de pele observados na selfie (IMAGEM 1) DEVEM ser rigorosamente replicados e preservados em todas as partes visíveis do corpo (rosto, pescoço, colo, braços, mãos e pernas). Caso a foto de estilo (IMAGEM 2) possua partes do corpo que a selfie não mostre, recrie-as assegurando que a cor e textura da pele sejam 100% fiéis à selfie do usuário, e NUNCA à cor da pessoa da foto de referência/estilo.
+3. RECONSTRUÇÃO ANATÔMICA HARMONIOSA: Caso a foto de referência enviada exiba apenas o rosto ou busto (selfie), recrie e complete harmonicamente as partes do corpo que não estão na selfie original (ombros, torso, braços, mãos e postura) de forma anatomicamente perfeita, integrada e com a mesma tonalidade de pele da pessoa.
+4. APRIMORAMENTO E RECRIAÇÃO DO VESTUÁRIO: A roupa da pessoa pode ser adaptada, ajustada ou recriada com IA para um figurino de alta elegância e sofisticação (como alfaiataria fina, terno bem cortado ou figurino de estilo de vida premium), combinando com as instruções de estilo e cenário.
 
 DIRETRIZES ESTÉTICAS E TÉCNICAS (CONSOLIDADO):
 - ${poseSection}
