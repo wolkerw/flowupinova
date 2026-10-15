@@ -253,18 +253,18 @@ export async function POST(request: NextRequest) {
       // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
       if (effectiveLogoUrl) {
         brandDirectives.push(
-          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Leave the top-left corner 100% CLEAN, BLANK and EMPTY for external overlay. It is STRICTLY FORBIDDEN to draw, paint, or render any logos, flower icons, sun icons, stylized company names, or brand badges anywhere in the image.]`
+          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Leave the top-left corner 100% CLEAN, BLANK and EMPTY for external overlay. It is STRICTLY FORBIDDEN to draw, paint, or render any floating logos, flower icons, sun icons, or artificial brand badges in the poster layout background. Real product packaging labels must remain authentic.]`
         );
       } else {
         brandDirectives.push(
-          `[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: No official logo was provided. It is STRICTLY FORBIDDEN to invent, draw, or render any logos, brand emblems, company icons, badges, mascots, rocket icons, monograms, seals, flower icons, sun icons, or any symbol resembling a trademark. Leave the top corner of the image completely empty and clean for manual logo insertion.]`
+          `[MANDATORY POST BRANDING — EMPTY LOGO SPACE: No official header logo was provided. Leave the top corner of the image completely empty and clean for manual logo insertion. Do NOT draw floating layout logos or watermark badges. CRITICAL EXCEPTION: Physical product packaging and labels must maintain their original printed brand names and product details.]`
         );
       }
 
       // Se houver foto real de pessoa ou produto enviada na Etapa 5
       if (sourceAssetUrls && sourceAssetUrls.length > 0) {
         brandDirectives.push(
-          `SUJEITO REAL DA ETAPA 5 (PESSOA OU PRODUTO): Foi fornecida a foto real do sujeito/produto. A IA DEVE OBRIGATORIAMENTE manter a fisionomia, traços, roupas e características da pessoa, ou a embalagem, formato e rótulo do produto real enviado na Etapa 5, criando o cenário publicitário em volta dele como protagonista da cena.`
+          `SUJEITO REAL DA ETAPA 5 (PESSOA OU PRODUTO): Foi fornecida a foto real do sujeito/produto. A IA DEVE OBRIGATORIAMENTE manter a fisionomia, traços, roupas e características da pessoa, ou a embalagem, formato, rótulo original com todos os textos, marca impressa no produto, selos e cores reais da embalagem enviada na Etapa 5. É EXPRESSAMENTE PROIBIDO apagar, censurar ou higienizar o rótulo do produto físico.`
         );
       }
 
@@ -284,8 +284,8 @@ export async function POST(request: NextRequest) {
     // Diretivas de Diagramação, Textos e Infográficos
     if (effectiveOverlayMode === "NONE") {
       compiledPrompt += effectiveLogoUrl
-        ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays. Keep the top corner clean and open for the official brand overlay, do not invent random brand marks.]"
-        : " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: Do not draw, render, or invent any logos, emblems, badges, watermarks, mascots, flower icons, sun icons, or brand symbols. Pristine photography only. Top corner must remain completely empty and clean.]";
+        ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays. Keep the top corner clean and open for the official brand overlay, do not invent random brand marks in the background. Real product packaging labels remain fully intact.]"
+        : " [CRITICAL MANDATE — PURE PHOTOGRAPHY & EMPTY HEADER: Pristine photography only. Top corner must remain completely empty and clean for manual logo. Physical product packaging and labels must retain authentic printed text and branding.]";
     } else if (effectiveOverlayMode === "TITLE_ONLY") {
       const headlineDirective = productHeadline?.trim()
         ? `with the exact headline: "${productHeadline.trim()}"`

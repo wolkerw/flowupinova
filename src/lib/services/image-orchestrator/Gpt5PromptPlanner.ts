@@ -16,16 +16,16 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    [1. INTENDED GOAL]: Objetivo comercial/editorial claro.
    [2. SCENE & CONTEXT]: Descrição do ambiente publicitário, iluminação e atmosfera.
    [3. HERO SUBJECT]: Detalhes fiéis do sujeito ou produto principal. Se o usuário enviou foto na Etapa 5, examine a imagem anexada e descreva com precisão extrema as características físicas da pessoa (idade, gênero, etnia, cabelo, traços, roupas) ou da embalagem/formato/rótulo do produto real.
+   CRÍTICO PARA PRODUTOS REAIS: Quando o sujeito for um produto físico comercial (embalagem, pote, garrafa, caixa, sachê, frasco), o rótulo original, o nome da marca impresso na embalagem, a tipografia do rótulo, os pesos, selos de qualidade e ilustrações da embalagem DEVEM SER RIGOROSAMENTE PRESERVADOS E DESCRITOS com máxima fidelidade. É TERMINANTEMENTE PROIBIDO higienizar, censurar, apagar os nomes ou transformar o rótulo do produto em blocos de cores lisos ou formas abstratas vazias!
    [4. COMPOSITION & PLACEMENT]: Distribuição visual e pontos focais equilibrados.
    [5. FRAMING & PERSPECTIVE]: Ângulo de câmera, lente (ex: 50mm, 85mm f/1.8), proporção.
    [6. LIGHTING & COLOR]: Iluminação profissional e paleta cromática harmônica inspirada nas cores da marca.
    [7. TEXTURES & FINISH]: Acabamentos de estúdio de alta fidelidade e realismo.
    [8. VISUAL STYLE]: Fotografia comercial moderna de alto padrão.
-   [9. LOGO DIRECTIVE]: REGRA PROIBITIVA ABSOLUTA DE LOGOMARCAS (INVIOLÁVEL):
-   A IA generativa JAMAIS deve desenhar, pintar, renderizar, gerar ou inventar qualquer logomarca, logotipo, texto estilizado de nome de empresa (como NumVapt ou qualquer outro), símbolo, brasão, florzinha, solzinho, mascote ou ícone de marca registrada.
-   O canto superior (área destinada à marca) DEVE SEMPRE permanecer 100% LIMPO, VAZIO e LIVRE de qualquer elemento gráfico ou texto (espaço negativo reservado).
-   A logomarca oficial do cliente é SEMPRE inserida digitalmente pela nossa camada de software em pós-processamento, portanto o modelo de difusão DEVE deixar o fundo perfeitamente limpo nessa área.
-   No "imagePrompt", inclua OBRIGATORIAMENTE a instrução: "The top corner must remain completely clean, empty negative space with zero text and zero logos. It is strictly forbidden to draw any logos, emblems, stylized company names, flower/sun icons, or brand marks anywhere in the artwork."
+   [9. LOGO DIRECTIVE]: DIRETIVA DE LOGOMARCA DO POST vs. RÓTULO DO PRODUTO FÍSICO (DISTINÇÃO CRÍTICA):
+   a) ÁREA DE BRANDING DO POST (CANTO SUPERIOR / TOPO DA ARTE): A IA generativa JAMAIS deve desenhar, pintar, renderizar, gerar ou inventar qualquer logomarca solta ou logotipo digital no layout (como NumVapt ou qualquer outro logotipo fictício no topo/canto da arte, florzinhas, solzinhos flutuantes). O canto superior do layout DEVE SEMPRE permanecer 100% LIMPO, VAZIO e LIVRE de qualquer elemento gráfico ou logotipo (espaço negativo reservado para aplicação digital posterior da logo oficial pelo software ou pelo cliente).
+   b) EXCEÇÃO OBRIGATÓRIA PARA RÓTULOS DE PRODUTOS FÍSICOS: A proibição de desenhar logomarcas aplica-se EXCLUSIVAMENTE ao layout digital da imagem (canto superior e branding da peça). Ela NUNCA se aplica aos produtos físicos reais fotografados na cena! As embalagens e rótulos dos produtos reais enviados pelo usuário DEVEM MANTER suas marcas impressas originais, nomes de produtos, textos, pesos e selos autênticos e legíveis.
+   No "imagePrompt", inclua OBRIGATORIAMENTE a instrução: "The top-left corner of the poster layout must remain completely clean, empty negative space with zero digital logos or floating brand marks. CRITICAL EXCEPTION: Physical product packaging and labels depicted in the scene MUST faithfully preserve their original authentic printed brand names, product typography, and packaging graphics intact without any censoring or blanking."
    [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas.
 
 DIRETRIZES DE TEXTO / INFOGRÁFICO:
@@ -194,7 +194,7 @@ BRANDKIT DO CLIENTE:
     if (subjectImage && styleImage) {
       referencesSection = `
 DUAS FOTOS ANEXADAS NA ETAPA 5 (SUJEITO REAL + REFERÊNCIA DE ESTILO/CAMPANHA):
-1. SUJEITO REAL (PRODUTO OU PESSOA): Preserve a fisionomia, idade aproximada, etnia, cabelo e estilo se for pessoa, ou formato, embalagem, cores e textura real se for produto. Coloque esse sujeito no centro da cena.
+1. SUJEITO REAL (PRODUTO OU PESSOA): Se for PESSOA, preserve a fisionomia, idade aproximada, etnia, cabelo e estilo. Se for PRODUTO FÍSICO COMERCIAL, preserve integralmente o formato da embalagem, frasco/pote, cores e O RÓTULO ORIGINAL COMPLETO (nome da marca impresso no produto, tipografia original, pesos, selos e ilustrações). É TERMINANTEMENTE PROIBIDO apagar ou higienizar rótulos de produtos reais! Coloque esse sujeito no centro da cena.
 2. ${
   input.referenceMode === "campaign_identity"
     ? `REFERÊNCIA MESTRA DE IDENTIDADE DE CAMPANHA (LAYOUT & DESIGN SYSTEM): Replique a arquitetura visual, diagramação geométrica, enquadramento de cena, molduras, faixas e atmosfera da imagem de referência de estilo para que a arte resultante forme uma série consistente de publicidade.`
@@ -206,8 +206,8 @@ DUAS FOTOS ANEXADAS NA ETAPA 5 (SUJEITO REAL + REFERÊNCIA DE ESTILO/CAMPANHA):
 FOTO REAL DA ETAPA 5 ANEXADA (SUJEITO/PRODUTO):
 Existe uma foto real anexada enviada pelo usuário na Etapa 5.
 INSTRUÇÃO OBRIGATÓRIA:
-1. Examine a imagem anexada detalhadamente. Se for uma PESSOA, preserve a fisionomia, idade aproximada, etnia, cabelo e estilo. Se for um PRODUTO, preserve o formato, embalagem, cores e textura real.
-2. Descreva esse sujeito com detalhes no bloco [3. HERO SUBJECT] para que a IA crie o cenário ao redor dele como protagonista da cena.
+1. Examine a imagem anexada detalhadamente. Se for uma PESSOA, preserve a fisionomia, idade aproximada, etnia, cabelo e estilo. Se for um PRODUTO FÍSICO COMERCIAL (embalagem, pote, rótulo, garrafa, etc.), preserve com 100% de fidelidade a embalagem real, o formato, as cores E O RÓTULO ORIGINAL COMPLETO (incluindo o nome da marca impresso na embalagem, tipografia, selos e ilustrações do rótulo). É TERMINANTEMENTE PROIBIDO remover textos do rótulo ou transformar a embalagem em blocos de cor lisos sem texto!
+2. Descreva esse sujeito com detalhes no bloco [3. HERO SUBJECT] para que a IA crie o cenário ao redor dele como protagonista da cena, mantendo a embalagem e o rótulo do produto autênticos e legíveis.
 `;
     } else if (styleImage) {
       referencesSection =
@@ -236,9 +236,10 @@ Sua missão NÚMERO 1 é garantir que a nova arte seja imediatamente reconhecida
 
     const logoDirectiveText = hasLogo
       ? `REGRA MANDATÓRIA DE LOGOMARCA (INVIOLÁVEL):
-A imagem da logomarca oficial do negócio foi anexada como referência visual. A logomarca oficial é aplicada DIGITALMENTE no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A DEIXAR O CANTO SUPERIOR 100% LIMPO E VAZIO, e PROIBIR TOTALMENTE que a IA desenhe, estilize ou invente qualquer logotipo, símbolo, florzinha, solzinho ou o nome da empresa como logo. O canto superior deve ser negative space livre.`
-      : `REGRA ABSOLUTA E INVIOLÁVEL — PROIBIÇÃO TOTAL DE LOGOMARCAS FICTÍCIAS:
-NENHUMA logomarca foi fornecida pelo usuário. É TERMINANTEMENTE PROIBIDO desenhar, gerar, renderizar, simular ou inventar qualquer logotipo, símbolo de empresa, ícone corporativo, badge de marca, texto estilizado de nome de empresa, foguete, mascote, florzinha, solzinho ou qualquer elemento visual que possa ser interpretado como logomarca. Deixe o canto superior da imagem COMPLETAMENTE LIMPO — esse espaço fica reservado para inserção manual da logo real pelo usuário. NÃO crie qualquer substituto visual para a logo ausente.`;
+A imagem da logomarca oficial do negócio foi anexada como referência visual. A logomarca oficial é aplicada DIGITALMENTE no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A DEIXAR O CANTO SUPERIOR 100% LIMPO E VAZIO, e PROIBIR TOTALMENTE que a IA desenhe, estilize ou invente qualquer logotipo, símbolo, florzinha, solzinho ou o nome da empresa como logo no layout. O canto superior deve ser negative space livre. Rótulos de produtos físicos reais continuam autênticos e intactos.`
+      : `REGRA ABSOLUTA DE LOGOMARCAS DE CABEÇALHO / POST:
+NENHUMA logomarca oficial de cabeçalho foi fornecida para sobreposição digital. É TERMINANTEMENTE PROIBIDO inventar, desenhar ou renderizar qualquer logotipo solto, badge de marca no layout, mascote, florzinha ou solzinho flutuante no topo da arte. Deixe o canto superior da imagem COMPLETAMENTE LIMPO (espaço negativo livre).
+RESSALVA CRÍTICA PARA PRODUTOS FÍSICOS: Esta proibição de logotipo é restrita ao layout do anúncio (espaço do cabeçalho). Se houver produto físico com rótulo na cena, a embalagem original e seu rótulo impresso com a marca e os textos do produto DEVEM SER MANTIDOS E REPRODUZIDOS COM TOTAL AUTENTICIDADE E FIDELIDADE.`;
 
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
@@ -330,8 +331,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       negativePrompt:
         raw.negativePrompt ||
         (hasLogo
-          ? "distorted logo, warped branding, competitor trademarks, fake text, cropped headline, cut off borders, low quality, artifacts"
-          : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts"),
+          ? "distorted logo, warped branding, competitor trademarks, fake text, cropped headline, cut off borders, blank product label, erased packaging text, low quality, artifacts"
+          : Boolean(input.referenceImages?.find((r) => r.role === "product_subject"))
+            ? "floating digital logo in layout, fake header emblem, artificial watermark, invented company icon in corner, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped headline, cut off borders, low quality, artifacts"
+            : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts"),
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto do sujeito da Etapa 5", "Margens seguras"]
         : ["Foto do sujeito da Etapa 5", "Espaço limpo para logo manual", "Margens seguras"],
@@ -396,8 +399,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       socialCaption: this.generateFallbackSocialCaption(input),
       imagePrompt: this.buildFallbackImagePrompt(input),
       negativePrompt: hasLogo
-        ? "distorted logo, warped branding, competitor trademarks, fake text, cropped typography, text touching borders, amateur framing"
-        : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped typography, text touching borders, amateur framing",
+        ? "distorted logo, warped branding, competitor trademarks, fake text, cropped typography, text touching borders, blank product label, amateur framing"
+        : Boolean(input.referenceImages?.find((r) => r.role === "product_subject"))
+          ? "floating digital logo in layout, fake header emblem, artificial watermark, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing"
+          : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped typography, text touching borders, amateur framing",
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto do sujeito da Etapa 5", "Margem segura de 20%"]
         : ["Foto do sujeito da Etapa 5", "Espaço para logo manual", "Margem segura de 20%"],
@@ -442,12 +447,12 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         : "";
 
     const logoMandate = hasLogo
-      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo is composited digitally. The diffusion AI MUST keep the top-left corner 100% CLEAN, BLANK and EMPTY. ABSOLUTE PROHIBITION: Do NOT draw, render, paint or invent any company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges anywhere in the scene.]"
-      : "[ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, company logo, brand emblem, badge, watermark, mascot, rocket icon, cartoon character, monogram, seal, crest, shield, stylized company name, circle with letters, brand symbol, flower icon, sun icon, or any graphic element resembling a trademark must appear anywhere in the image. The top corner MUST remain completely empty and clean — this space is deliberately reserved for the client to manually add their real logo. Do NOT place any decorative placeholder in this area.]";
+      ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo is composited digitally. The diffusion AI MUST keep the top-left corner 100% CLEAN, BLANK and EMPTY. ABSOLUTE PROHIBITION: Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
+      : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion. CRITICAL EXCEPTION: Physical products and packaging provided as references MUST maintain their authentic printed labels, brand names, and packaging artwork intact. Do NOT erase or replace product packaging labels with solid color patches.]";
 
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
     const subjectMandate = subjectRef
-      ? "[CRITICAL MANDATE — HERO SUBJECT PRESERVATION: Faithfully preserve the appearance, key features, and identity of the real person/product from the uploaded reference photo, building the advertising scene around them as the protagonist.]"
+      ? "[CRITICAL MANDATE — HERO SUBJECT PRESERVATION: Faithfully preserve the appearance, packaging, and authentic printed label details (brand name, product typography, colors, seals) of the real product/person from the reference photo. Do NOT erase or simplify packaging labels into blank patches.]"
       : "";
 
     if (input.compiledPrompt) {

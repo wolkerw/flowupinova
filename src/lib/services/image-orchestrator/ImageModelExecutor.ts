@@ -62,13 +62,13 @@ export class ImageModelExecutor {
     // O modelo de difusão NUNCA deve inventar logomarcas, ícones de sol/flor, símbolos em celulares ou caricaturas.
     // O espaço superior deve vir sempre limpo e reservado para a aplicação digital da logo oficial.
     const zeroLogoDirective =
-      " [ABSOLUTE PROHIBITION — ZERO LOGOS & EMPTY LOGO SPACE: NO logo, brand emblem, company icon, badge, watermark, signature, mascot, rocket icon, cartoon character, stylized company name, monogram, seal, shield, crest, flower icon, sun icon, or any symbol that could be interpreted as a brand mark must appear anywhere in the image or on gadgets. The top-left corner MUST remain completely empty, clean and free blank negative space. Do NOT draw any placeholder graphics, brand pills or logos.]";
+      " [CRITICAL MANDATE — POST BRANDING & EMPTY LOGO SPACE: The top-left corner of the poster layout MUST remain completely empty, clean and free blank negative space. Do NOT generate floating digital logos, artificial company emblems, or brand watermarks in the background or corners. CRITICAL EXCEPTION FOR PHYSICAL PRODUCTS: Real physical products, packaging, jars, bottles, and merchandise from reference photos MUST preserve their authentic printed labels, original brand names, typography, and graphics 100% intact. Do NOT erase or abstract packaging labels into blank color patches.]";
 
     const logoDirective =
-      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: The official logo is added digitally in post-processing. The top-left corner MUST remain 100% BLANK, EMPTY and UNBRANDED negative space. Do NOT draw, invent or paint any random logos, flower icons, sun icons, brand pills, or stylized brand text anywhere in the scene. Absolutely zero logos drawn by AI.]";
+      " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: The official logo is added digitally in post-processing. The top-left corner MUST remain 100% BLANK, EMPTY and UNBRANDED negative space. Do NOT draw floating logos or brand badges in the poster layout. Real product packaging labels must remain authentic.]";
 
     const subjectDirective = subjectRef
-      ? " [CRITICAL MANDATE — HERO SUBJECT PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features, identity, hair, clothing (if person) or packaging, shape, colors, label details (if product) with high fidelity, placing them naturally in the scene as the hero protagonist.]"
+      ? " [CRITICAL MANDATE — HERO SUBJECT & PRODUCT LABEL PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features (if person) or authentic packaging, shape, printed label graphics, original brand name on package, product title, and colors (if product) with high fidelity. Place them naturally in the scene as the hero protagonist without altering or erasing the physical product packaging label.]"
       : "";
 
     const getProvider = (m: string): "openai" | "google" =>
@@ -102,16 +102,16 @@ export class ImageModelExecutor {
               openaiPrompt += logoDirective;
             }
           } else {
-            // Sem logo: garantir proibição absoluta no prompt final
-            if (!openaiPrompt.includes("ZERO LOGOS") && !openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
+            // Sem logo: garantir proibição de logos no layout mantendo rótulos intactos
+            if (!openaiPrompt.includes("POST BRANDING & EMPTY LOGO SPACE") && !openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
               openaiPrompt += zeroLogoDirective;
             }
           }
-          if (subjectRef && !openaiPrompt.includes("HERO SUBJECT PRESERVATION")) {
+          if (subjectRef && !openaiPrompt.includes("HERO SUBJECT & PRODUCT LABEL PRESERVATION") && !openaiPrompt.includes("HERO SUBJECT PRESERVATION")) {
             openaiPrompt += subjectDirective;
           }
-          // Regra mandatória reforçada no início e no final: topo esquerdo 100% limpo e sem logos
-          openaiPrompt = `[MANDATORY ZERO-LOGO DIRECTIVE: Top-left corner must be completely blank, unbranded negative space. Do NOT draw any company logos or brand names anywhere.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw or paint any brand logos, flower/sun icons, or company names as logos.]`;
+          // Regra mandatória reforçada: topo limpo para overlay do post, com preservação integral de rótulos de produtos físicos
+          openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background. CRITICAL: Physical product packaging and labels from user references MUST remain 100% intact with authentic printed text and branding.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos. Keep authentic product packaging labels intact.]`;
 
           const isGpt25 = cfg.model.includes("2.5");
           const isGptImage = cfg.model.startsWith("gpt-image-");

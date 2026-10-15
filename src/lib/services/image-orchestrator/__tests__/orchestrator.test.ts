@@ -181,6 +181,34 @@ describe("Image Orchestrator Suite", () => {
       expect(planResult.compiledImagePrompt).toContain("MANDATORY LOGO INTEGRATION");
       expect(planResult.compiledImagePrompt).not.toContain("ZERO LOGOS");
     });
+
+    it("preserva rótulos de embalagens de produtos reais e ajusta negativePrompt quando product_subject é fornecido", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Pote de alho em pasta Agrosserra",
+        objective: "commercial",
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic",
+        useBrandKit: false,
+        referenceImages: [
+          {
+            role: "product_subject",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/alho.png",
+            description: "Foto real da embalagem de alho em pasta",
+          },
+        ],
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("HERO SUBJECT PRESERVATION");
+      expect(planResult.compiledImagePrompt).toContain("authentic printed label");
+      // Não deve conter 'blank product label' como proibição no negativo
+      expect(planResult.compiledNegativePrompt).toContain("blank product label");
+      expect(planResult.compiledNegativePrompt).toContain("erased packaging typography");
+    });
   });
 
   describe("ImageModelExecutor", () => {
