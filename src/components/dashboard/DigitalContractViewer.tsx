@@ -180,6 +180,13 @@ export function DigitalContractViewer({
       total: "R$ 4.788,00 por 13 meses",
       condicao: "Plano promocional com 12 meses contratados e 1 mês adicional incluído",
     },
+    tudo_pronto: {
+      nome: "Tudo Pronto (Execução Completa)",
+      ciclo: "Ciclo mensal de 1 mês (Renovação Recorrente)",
+      precoMensal: "R$ 699,00/mês",
+      total: "R$ 699,00 por ciclo mensal",
+      condicao: "Acesso completo a todas as ferramentas PRO + serviço de criação e gestão de posts pela equipe NumVapt com aprovação em 1 clique",
+    },
   };
 
   const activePlanInfo = planLabels[modalidade] || planLabels.anual;
@@ -297,7 +304,7 @@ export function DigitalContractViewer({
           <section className="space-y-3">
             <h2 className="text-sm font-bold uppercase text-[#0083C7]">3. Modalidades de assinatura e escolha do plano</h2>
             <p>
-              A NumVapt oferece quatro modalidades de assinatura. O Assinante declara ter escolhido a modalidade assinalada abaixo:
+              A NumVapt oferece as modalidades de assinatura de autoatendimento e o módulo Tudo Pronto de execução completa. O Assinante declara ter escolhido a modalidade assinalada abaixo:
             </p>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -357,6 +364,19 @@ export function DigitalContractViewer({
                     <td className="p-3">R$ 368,30/mês de acesso</td>
                     <td className="p-3">R$ 4.788,00 por 13 meses</td>
                     <td className="p-3">Plano promocional com 12 meses contratados e 1 mês adicional incluído</td>
+                  </tr>
+                  <tr className={cn(modalidade === "tudo_pronto" && "bg-blue-50/70 font-semibold")}>
+                    <td className="p-3">
+                      <span className={cn("inline-flex items-center justify-center h-5 w-5 rounded border", modalidade === "tudo_pronto" ? "border-blue-600 bg-blue-600 text-white font-bold" : "border-slate-300")}>
+                        {modalidade === "tudo_pronto" ? "✓" : ""}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      Tudo Pronto <span className="text-[10px] bg-blue-100 text-[#0083C7] px-1.5 py-0.5 rounded font-bold">VIP</span>
+                    </td>
+                    <td className="p-3">R$ 699,00/mês</td>
+                    <td className="p-3">R$ 699,00 por ciclo mensal</td>
+                    <td className="p-3">Assinatura mensal recorrente com criação completa de posts pela equipe e aprovação pelo Assinante</td>
                   </tr>
                 </tbody>
               </table>

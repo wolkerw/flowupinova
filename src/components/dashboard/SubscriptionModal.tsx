@@ -42,6 +42,7 @@ interface PaymentSettings {
   creditLinkSemestral: string;
   creditLinkYearly: string;
   creditLinkYearlyRecurrent?: string;
+  creditLinkTudoPronto?: string;
 }
 
 export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModalProps) {
@@ -71,6 +72,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     creditLinkSemestral: "",
     creditLinkYearly: "",
     creditLinkYearlyRecurrent: "https://www.asaas.com/c/2unkh9p3t6apkcvm",
+    creditLinkTudoPronto: "",
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
@@ -81,7 +83,8 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     mensal: 490,
     trimestral: 441, // 10% off
     semestral: 416.5, // 15% off
-    anual: 399, // 12x R$ 399/mês (+ 1 mês grátis, equivalente a R$ 308,30/mês)
+    anual: 399, // 12x R$ 399/mês (+ 1 mês grátis, equivalente a R$ 368,30/mês)
+    tudo_pronto: 699, // R$ 699/mês - Módulo Tudo Pronto (Execução Completa)
   };
 
   useEffect(() => {
@@ -205,6 +208,8 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
       else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
       else if (selectedPlan === "anual") {
         targetLink = settings.creditLinkYearlyRecurrent || "https://www.asaas.com/c/2unkh9p3t6apkcvm";
+      } else if (selectedPlan === "tudo_pronto") {
+        targetLink = settings.creditLinkTudoPronto || "";
       }
 
       if (targetLink) {
@@ -225,6 +230,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
         trimestral: "Trimestral",
         semestral: "Semestral",
         anual: "Anual",
+        tudo_pronto: "Tudo Pronto (Execução Completa)",
       };
       const planName = planNames[selectedPlan] || selectedPlan;
       const formattedTotal = totalToPay.toLocaleString("pt-BR", {
@@ -505,6 +511,26 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                       Entra apenas <strong>R$ 400 por mês</strong> no seu cartão. Você aproveita todos os benefícios do plano anual com <strong>13 meses liberados</strong> sem comprometer o limite total!
                     </p>
                   </div>
+                ) : selectedPlan === "tudo_pronto" ? (
+                  <div className="rounded-xl border border-blue-200/80 bg-white p-4 text-center shadow-sm">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[#0083C7]">
+                        Execução Completa
+                      </span>
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800">
+                        Sem travar limite
+                      </span>
+                    </div>
+                    <span className="mt-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Mensalidade Tudo Pronto no Cartão
+                    </span>
+                    <p className="mt-1 text-2xl font-black text-[#0083C7]">
+                      R$ 699,00 <span className="text-sm font-bold text-slate-400">/mês</span>
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                      Cobrado como <strong>Assinatura Mensal Recorrente</strong> de <strong>R$ 699/mês</strong>. Nossa equipe cria suas publicações e envia direto para sua aprovação com todas as ferramentas PRO inclusas!
+                    </p>
+                  </div>
                 ) : (
                   <div className="rounded-xl border border-blue-200/60 bg-white p-4 shadow-sm">
                     <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -588,12 +614,13 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
             </div>
 
             {/* Plan Toggle */}
-            <div className="flex justify-center pt-2">
+            <div className="space-y-2 pt-2">
               <div className="relative flex w-full flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
                 <button
+                  type="button"
                   onClick={() => setSelectedPlan("mensal")}
                   className={cn(
-                    "relative min-w-[70px] flex-1 rounded-xl py-2 text-xs font-bold transition-all",
+                    "relative min-w-[65px] flex-1 rounded-xl py-2 text-xs font-bold transition-all",
                     selectedPlan === "mensal"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -602,9 +629,10 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   Mensal
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSelectedPlan("trimestral")}
                   className={cn(
-                    "relative flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
+                    "relative flex min-w-[65px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
                     selectedPlan === "trimestral"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -623,9 +651,10 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   </span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSelectedPlan("semestral")}
                   className={cn(
-                    "relative flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
+                    "relative flex min-w-[65px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
                     selectedPlan === "semestral"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -644,9 +673,10 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   </span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSelectedPlan("anual")}
                   className={cn(
-                    "relative flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
+                    "relative flex min-w-[65px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
                     selectedPlan === "anual"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -661,10 +691,50 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                         : "bg-orange-100 text-[#FA6305]"
                     )}
                   >
-                    +1 Mês Grátis
+                    +1 MÊS GRÁTIS
                   </span>
                 </button>
               </div>
+
+              {/* Botão Destaque: Módulo Tudo Pronto */}
+              <button
+                type="button"
+                onClick={() => setSelectedPlan("tudo_pronto")}
+                className={cn(
+                  "relative flex w-full items-center justify-between rounded-2xl border p-3 transition-all",
+                  selectedPlan === "tudo_pronto"
+                    ? "border-[#0083C7] bg-blue-50/70 shadow-md ring-2 ring-[#0083C7]"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                )}
+              >
+                <div className="flex items-center gap-3 text-left">
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold transition-colors",
+                      selectedPlan === "tudo_pronto"
+                        ? "bg-[#0083C7] text-white"
+                        : "bg-blue-100 text-[#0083C7]"
+                    )}
+                  >
+                    ⚡
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900">Módulo Tudo Pronto</span>
+                      <span className="rounded-full bg-[#0083C7] px-2 py-0.5 text-[9px] font-extrabold uppercase text-white">
+                        Execução VIP
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-500">
+                      Nossa equipe cria tudo e você só aprova em 1 clique
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0 pl-2">
+                  <span className="text-sm font-black text-slate-900">R$ 699</span>
+                  <span className="text-[10px] font-bold text-slate-400">/mês</span>
+                </div>
+              </button>
             </div>
 
             {selectedPlan === "anual" && (
@@ -679,6 +749,24 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                     </p>
                     <p className="text-[11px] font-bold text-[#FA6305]">
                       Benefícios do anual por apenas 12x de R$ 399/mês
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedPlan === "tudo_pronto" && (
+              <div className="mb-2 mt-3 overflow-hidden rounded-xl bg-gradient-to-r from-[#0083C7] to-[#005c8a] p-[2px] shadow-md duration-300 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-center gap-3 rounded-[10px] bg-white/95 px-4 py-2.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                    <span className="text-xl">🚀</span>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[13px] font-black leading-tight text-slate-900">
+                      Você só precisa aprovar!
+                    </p>
+                    <p className="text-[11px] font-bold text-[#0083C7]">
+                      Criação e agendamento de posts com gestão na Central de Aprovações
                     </p>
                   </div>
                 </div>
@@ -717,6 +805,11 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
               {selectedPlan === "anual" && !discount && (
                 <p className="mt-1 text-[11px] font-medium text-slate-400">
                   12x de R$ 399 (equivalente a R$ 368,30/mês com 13º mês bônus — R$ 4.788 total)
+                </p>
+              )}
+              {selectedPlan === "tudo_pronto" && !discount && (
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Assinatura mensal recorrente de R$ 699,00 sem travar o limite total do cartão
                 </p>
               )}
             </div>

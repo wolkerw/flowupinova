@@ -19,6 +19,7 @@ const PLAN_DETAILS: Record<
   trimestral: { valorMensal: 441, valorTotal: 1323, periodoMeses: 3 },
   semestral: { valorMensal: 416.5, valorTotal: 2499, periodoMeses: 6 },
   anual: { valorMensal: 369.23, valorTotal: 4800, periodoMeses: 13 },
+  tudo_pronto: { valorMensal: 699, valorTotal: 699, periodoMeses: 1 },
 };
 
 const REQUIRED_ACEITES: (keyof ContractClause19Aceites)[] = [

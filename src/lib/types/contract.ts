@@ -1,4 +1,4 @@
-﻿export type SubscriptionPlanModalidade = "mensal" | "trimestral" | "semestral" | "anual";
+export type SubscriptionPlanModalidade = "mensal" | "trimestral" | "semestral" | "anual" | "tudo_pronto";
 
 export type PaymentMethodType = "pix" | "cartao_credito";
 

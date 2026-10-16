@@ -261,7 +261,7 @@ export class AsaasService {
   /**
    * Configuração de valores e parcelas oficiais para cada plano
    */
-  static getPlanConfig(plan: "mensal" | "trimestral" | "semestral" | "anual" | "anual_recorrente") {
+  static getPlanConfig(plan: "mensal" | "trimestral" | "semestral" | "anual" | "anual_recorrente" | "tudo_pronto") {
     switch (plan) {
       case "mensal":
         return {
@@ -300,6 +300,16 @@ export class AsaasService {
           chargeType: "RECURRENT" as const,
           subscriptionCycle: "MONTHLY" as const,
           durationDays: 30, // Renovado a cada mensalidade de R$ 400
+        };
+      case "tudo_pronto":
+        return {
+          name: "NumVapt Pro - Módulo Tudo Pronto",
+          description: "Execução completa pela equipe NumVapt: criação e gestão de posts com aprovação em 1 clique + acesso total às ferramentas de IA.",
+          totalValue: 699.0,
+          installmentCount: 1,
+          chargeType: "RECURRENT" as const,
+          subscriptionCycle: "MONTHLY" as const,
+          durationDays: 30,
         };
     }
   }

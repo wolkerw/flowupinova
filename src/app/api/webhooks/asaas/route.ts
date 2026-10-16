@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         if (plan === "trimestral") durationDays = 90;
         else if (plan === "semestral") durationDays = 180;
         else if (plan === "anual") durationDays = 395;
-        else if (plan === "anual_recorrente") durationDays = 30;
+        else if (plan === "anual_recorrente" || plan === "tudo_pronto") durationDays = 30;
 
         const userDocRef = adminDb.collection("users").doc(userId);
         const userDocSnap = await userDocRef.get();

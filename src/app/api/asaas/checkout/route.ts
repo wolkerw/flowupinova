@@ -36,13 +36,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { plan, coupon } = body as {
-      plan?: "mensal" | "trimestral" | "semestral" | "anual" | "anual_recorrente";
+      plan?: "mensal" | "trimestral" | "semestral" | "anual" | "anual_recorrente" | "tudo_pronto";
       coupon?: string;
     };
 
-    if (!plan || !["mensal", "trimestral", "semestral", "anual", "anual_recorrente"].includes(plan)) {
+    if (!plan || !["mensal", "trimestral", "semestral", "anual", "anual_recorrente", "tudo_pronto"].includes(plan)) {
       return NextResponse.json(
-        { error: "Plano inválido. Selecione mensal, trimestral, semestral, anual ou anual_recorrente." },
+        { error: "Plano inválido. Selecione mensal, trimestral, semestral, anual, anual_recorrente ou tudo_pronto." },
         { status: 400 }
       );
     }

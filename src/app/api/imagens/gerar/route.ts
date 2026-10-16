@@ -16,6 +16,7 @@ import { Jimp } from "jimp";
 import { matchStyleCommands } from "@/lib/services/style-command-matcher";
 import {
   ImageGenerationOrchestrator,
+  Gpt5PromptPlanner,
   type OrchestratorRunResult,
 } from "@/lib/services/image-orchestrator";
 import crypto from "crypto";
