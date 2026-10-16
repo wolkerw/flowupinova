@@ -60,6 +60,60 @@ REGRAS DE CONFORMIDADE:
 - O campo "imagePrompt" (prompt em inglês para o gpt-image) DEVE SEMPRE conter a diretiva de logo — proibição explícita (Cenário B) ou mandato de integração (Cenário A). Nunca omita ou deixe essa diretiva vaga.
 `;
 
+  public static readonly CREATIVE_LOGO_ARCHETYPES = [
+    {
+      id: "architectural_3d_sign",
+      labelPt: "Letreiro Arquitetônico 3D Iluminado (acrílico cristal e metal escovado com luz de recorte LED backlit na parede/cenário ao fundo)",
+      promptEn: "mounted as a sleek 3D backlit architectural wall sign in brushed metal and glowing acrylic in the studio/environment background",
+    },
+    {
+      id: "tabletop_acrylic_plaque",
+      labelPt: "Totem / Placa Escultural de Acrílico Cristal Iluminado sobre a bancada ou mesa em primeiro/médio plano",
+      promptEn: "featured on a premium edge-lit crystal acrylic tabletop brand plaque/totem resting prominently on the counter or desk in the foreground",
+    },
+    {
+      id: "lifestyle_prop_merch",
+      labelPt: "Objeto Físico de Cena & Merchandising (estampada com acabamento premium em caneca de cerâmica na mesa, ecobag estruturada, caderno executivo Moleskine ou embalagem na cena)",
+      promptEn: "printed with crisp UV/screen-print finish on a hero lifestyle prop in the scene (such as a matte ceramic mug on the table, a structured premium tote bag, or an executive notebook)",
+    },
+    {
+      id: "digital_screen_showcase",
+      labelPt: "Display Digital High-Tech (exibida com nitidez em destaque na tela iluminada de um tablet, notebook aberto, monitor curvo ou smartphone voltado para a câmera)",
+      promptEn: "displayed crisply on the glowing high-resolution screen of a modern laptop, tablet, curved monitor, or smartphone angled clearly toward the viewer",
+    },
+    {
+      id: "floating_glassmorphic_emblem",
+      labelPt: "Insígnia / Escultura 3D Glassmórfica Flutuante integrada às luzes de neon e à profundidade espacial do estúdio",
+      promptEn: "rendered as a futuristic 3D glassmorphic floating brand emblem integrated organically with the studio's spatial depth and neon lighting",
+    },
+    {
+      id: "apparel_embroidery",
+      labelPt: "Vestuário & Bordado Executivo (bordada ou estampada com textura têxtil nítida em jaqueta, blazer, avental gourmet, boné ou camisa polo do protagonista)",
+      promptEn: "applied as high-definition textile embroidery or print on the protagonist's jacket, apron, blazer lapel, cap, or polo shirt chest",
+    },
+    {
+      id: "podium_counter_front",
+      labelPt: "Cenografia de Balcão / Estação de Trabalho Moderna com a logomarca em relevo iluminado",
+      promptEn: "mounted in illuminated 3D relief on the front facade of a modern reception counter, workstation podium, or frosted glass partition",
+    },
+    {
+      id: "holographic_light_panel",
+      labelPt: "Painel Holográfico / Display Translúcido Luminoso flutuando dinamicamente ao lado do sujeito na cena",
+      promptEn: "projected on a crisp holographic light panel or transparent glass HUD display floating dynamically beside the subject in the scene",
+    },
+  ];
+
+  private static creativeArchetypeCursor = Math.floor(Math.random() * 8);
+
+  public static selectCreativeLogoArchetype(userBrief = "") {
+    const len = this.CREATIVE_LOGO_ARCHETYPES.length;
+    const idx = this.creativeArchetypeCursor % len;
+    this.creativeArchetypeCursor = (this.creativeArchetypeCursor + 1) % len;
+    const primary = this.CREATIVE_LOGO_ARCHETYPES[idx];
+    const secondary = this.CREATIVE_LOGO_ARCHETYPES[(idx + 3) % len];
+    return { primary, secondary, userBrief };
+  }
+
   public static async plan(input: Gpt5PlannerInput): Promise<OrchestratorPlanResult> {
     const startTime = Date.now();
     const openaiKey = process.env.OPENAI_API_KEY;
@@ -201,6 +255,9 @@ BRANDKIT DO CLIENTE:
 
     const subjectImage = input.referenceImages?.find((r) => r.role === "product_subject");
     const styleImage = input.referenceImages?.find((r) => r.role === "style_reference");
+    const selectedArchetypes = subjectImage
+      ? this.selectCreativeLogoArchetype(input.userBrief)
+      : null;
 
     let referencesSection = "";
     if (subjectImage && styleImage) {
@@ -209,7 +266,10 @@ DUAS FOTOS ANEXADAS NA ETAPA 5 (IMAGEM 1: SUJEITO/PRODUTO/LOGOMARCA + IMAGEM 2: 
 1. IMAGEM 1 DA ETAPA 5 (SUJEITO, PRODUTO OU LOGOMARCA ENVIADA PELO USUÁRIO):
    - Se for PESSOA: preserve a fisionomia, idade aproximada, etnia, cabelo e estilo.
    - Se for PRODUTO FÍSICO COMERCIAL: preserve integralmente o formato da embalagem, frasco/pote, cores e O RÓTULO ORIGINAL COMPLETO (nome da marca impresso no produto, tipografia original, pesos, selos e ilustrações). É TERMINANTEMENTE PROIBIDO apagar ou higienizar rótulos de produtos reais! Coloque esse sujeito no centro da cena.
-   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA (especialmente quando a inserção fixa de logo do BrandKit está desativada): ATIVE IMEDIATAMENTE O MODO EXCEÇÃO CRIATIVA! Passe por cima de qualquer proibição de logomarcas e INTEGRE ESSA LOGOMARCA ENVIADA DE FORMA CRIATIVA, NÍTIDA E EM DESTAQUE na nova imagem (por exemplo: bordada/estampada com perfeição no peito da camisa polo/uniforme do protagonista, exibida na tela do smartphone em mãos, em um letreiro luminoso 3D de estúdio ou integrada com destaque no card/painel da peça), reproduzindo 100% fielmente o nome, tipografia, símbolo e cores da logomarca enviada! JAMAIS escreva "no logos" na roupa ou na cena!
+   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA: ATIVE IMEDIATAMENTE O MODO EXCEÇÃO CRIATIVA COM ALTERNÂNCIA DINÂMICA! Passe por cima de qualquer proibição de logomarcas e INTEGRE ESSA LOGOMARCA ENVIADA DE FORMA CRIATIVA, NÍTIDA E EM DESTAQUE na nova imagem!
+     * ARQUÉTIPO CRIATIVO SORTEADO PARA ESTA GERAÇÃO (PRIORIDADE): ${selectedArchetypes?.primary.labelPt} (${selectedArchetypes?.primary.promptEn})
+     * OPÇÃO CRIATIVA ALTERNATIVA (CASO SE ADAPTE MELHOR AO NICHO): ${selectedArchetypes?.secondary.labelPt} (${selectedArchetypes?.secondary.promptEn})
+     * (Se o usuário pediu explicitamente no briefing um local específico para a logo, siga o pedido do usuário; caso contrário, aplique o Arquétipo Criativo Sorteado acima para garantir variedade máxima entre gerações, reproduzindo 100% fielmente o nome, tipografia, símbolo e cores da logomarca enviada!)
 2. ${
   input.referenceMode === "campaign_identity"
     ? `REFERÊNCIA MESTRA DE IDENTIDADE DE CAMPANHA (LAYOUT & DESIGN SYSTEM): Replique a arquitetura visual, diagramação geométrica, enquadramento de cena, molduras, faixas de neon e atmosfera da imagem de referência de estilo para que a arte resultante forme uma série consistente de publicidade, mantendo um protagonista/cena inéditos.`
@@ -224,7 +284,10 @@ INSTRUÇÃO OBRIGATÓRIA:
 1. Examine a imagem anexada detalhadamente:
    - Se for uma PESSOA: preserve a fisionomia, idade aproximada, etnia, cabelo e estilo.
    - Se for um PRODUTO FÍSICO COMERCIAL (embalagem, pote, rótulo, garrafa, etc.): preserve com 100% de fidelidade a embalagem real, o formato, as cores E O RÓTULO ORIGINAL COMPLETO (incluindo o nome da marca impresso na embalagem, tipografia, selos e ilustrações do rótulo). É TERMINANTEMENTE PROIBIDO remover textos do rótulo ou transformar a embalagem em blocos de cor lisos sem texto!
-   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA: ATIVE O MODO EXCEÇÃO CRIATIVA! Passe por cima de todas as regras de proibição de logos e integre essa logomarca enviada de forma CRIATIVA, ORGÂNICA, NÍTIDA e EM DESTAQUE na nova imagem (ex: bordada/estampada na camisa do protagonista, na tela do celular, em um letreiro/placa luminosa no cenário ou em destaque no layout), preservando fielmente a grafia exata do nome da marca, o ícone e as cores!
+   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA: ATIVE O MODO EXCEÇÃO CRIATIVA COM ALTERNÂNCIA DINÂMICA! Passe por cima de todas as regras de proibição de logos e integre essa logomarca enviada de forma CRIATIVA, ORGÂNICA, NÍTIDA e EM DESTAQUE na nova imagem:
+     * ARQUÉTIPO CRIATIVO SORTEADO PARA ESTA GERAÇÃO (PRIORIDADE): ${selectedArchetypes?.primary.labelPt} (${selectedArchetypes?.primary.promptEn})
+     * OPÇÃO CRIATIVA ALTERNATIVA (CASO SE ADAPTE MELHOR AO NICHO): ${selectedArchetypes?.secondary.labelPt} (${selectedArchetypes?.secondary.promptEn})
+     * (Se o usuário pediu explicitamente no briefing um local específico para a logo, siga o pedido do usuário; caso contrário, aplique o Arquétipo Criativo Sorteado acima, preservando fielmente a grafia exata do nome da marca, o ícone e as cores!)
 2. Descreva esse elemento com detalhes no bloco [3. HERO SUBJECT] e [9. LOGO DIRECTIVE].
 `;
     } else if (styleImage) {
@@ -252,13 +315,13 @@ Sua missão NÚMERO 1 é garantir que a nova arte seja imediatamente reconhecida
     const hasLogo = Boolean(logoRef);
 
     const logoDirectiveText = subjectImage
-      ? `REGRA DE INSERÇÃO CRIATIVA CENOGRÁFICA PARA LOGOMARCA OU PRODUTO ENVIADO NA ETAPA 5 (PRIORIDADE MÁXIMA — SEMPRE ATIVA):
+      ? `REGRA DE INSERÇÃO CRIATIVA CENOGRÁFICA DINÂMICA PARA LOGOMARCA OU PRODUTO ENVIADO NA ETAPA 5 (PRIORIDADE MÁXIMA — SEMPRE ATIVA):
 O usuário enviou uma imagem na Etapa 5 (product_subject). ${
           hasLogo
             ? "A logomarca fixa do BrandKit será aplicada digitalmente apenas no canto superior esquerdo (mantenha o canto superior esquerdo limpo), MAS o arquivo enviado na Etapa 5 tem papel CENOGRÁFICO e CRIATIVO dentro da imagem!"
             : "A inserção fixa de logomarca de canto do BrandKit está desativada, portanto a marca deve brilhar de forma criativa dentro da própria cena!"
         }
-1. MODO EXCEÇÃO CRIATIVA DE LOGOMARCA DA ETAPA 5: Se a imagem enviada na Etapa 5 for uma LOGOMARCA, LOGOTIPO ou SÍMBOLO DE MARCA (ex: logo da NumVapt ou da empresa do cliente), VOCÊ DEVE PASSAR POR CIMA DE TODAS AS REGRAS RESTRITIVAS DE LOGOMARCA NA CENA! Instrua o modelo gerador no "imagePrompt" (em [3. HERO SUBJECT] e [9. LOGO DIRECTIVE]) a INSERIR E INTEGRAR A LOGOMARCA ENVIADA NA ETAPA 5 DE FORMA CRIATIVA, CENOGRÁFICA, NÍTIDA E DIFERENTE DO CARIMBO DE CANTO DO BRANDKIT (por exemplo: bordada/estampada com perfeição no peito da camisa polo/uniforme do protagonista, exibida na tela do smartphone/tablet segurado pelo personagem, aplicada em um letreiro/fachada 3D luminosa no ambiente, ou em um objeto físico da cena), reproduzindo fielmente o nome exato da marca, seu símbolo e suas cores! JAMAIS escreva "no logos", "absolutely no logos" ou "no NumVapt logo" no imagePrompt ou no negativePrompt!
+1. MODO EXCEÇÃO CRIATIVA COM ROTAÇÃO DINÂMICA (${selectedArchetypes?.primary.id}): Se a imagem enviada na Etapa 5 for uma LOGOMARCA, LOGOTIPO ou SÍMBOLO DE MARCA (ex: logo da NumVapt ou da empresa do cliente), VOCÊ DEVE PASSAR POR CIMA DE TODAS AS REGRAS RESTRITIVAS DE LOGOMARCA NA CENA! Instrua o modelo gerador no "imagePrompt" (em [3. HERO SUBJECT] e [9. LOGO DIRECTIVE]) a INSERIR E INTEGRAR A LOGOMARCA ENVIADA NA ETAPA 5 DE FORMA CRIATIVA, CENOGRÁFICA, NÍTIDA E DIFERENTE DO CARIMBO DE CANTO DO BRANDKIT, aplicando preferencialmente o conceito sorteado para esta geração: "${selectedArchetypes?.primary.promptEn}" (ou, caso mais coerente com o briefing: "${selectedArchetypes?.secondary.promptEn}"), reproduzindo fielmente o nome exato da marca, seu símbolo e suas cores! JAMAIS escreva "no logos", "absolutely no logos" ou "no NumVapt logo" no imagePrompt ou no negativePrompt!
 2. PRESERVAÇÃO DE RÓTULO DE PRODUTO: Se a imagem enviada na Etapa 5 for um produto físico com rótulo, mantenha e reproduza seu rótulo e marca impressos com 100% de fidelidade.`
       : hasLogo
         ? `REGRA MANDATÓRIA DE LOGOMARCA DO BRANDKIT (SOBREPOSIÇÃO DIGITAL):
@@ -497,8 +560,12 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         ? `Color palette harmonized with ${brand.primaryColors.join(", ")}.`
         : "";
 
+    const fallbackArchetype = subjectRef
+      ? this.selectCreativeLogoArchetype(input.userBrief)
+      : null;
+
     const logoMandate = subjectRef
-      ? "[CRITICAL MANDATE — CREATIVE LOGO / SUBJECT EXCEPTION MODE: If the uploaded Step 5 reference image is a brand logo or emblem, OVERRIDE all scene logo restrictions and creatively, crisply, and organically integrate that exact uploaded brand logo inside the scene itself (different from any flat corner BrandKit stamp — e.g., embroidered on the protagonist's shirt chest, displayed on the smartphone screen, mounted as a 3D architectural sign, or printed on a physical prop) preserving its exact spelling, icon, and colors while keeping the top-left header corner clean. If it is a physical product or person, preserve their authentic printed labels and appearance 100% intact.]"
+      ? `[CRITICAL MANDATE — CREATIVE LOGO / SUBJECT EXCEPTION MODE (${fallbackArchetype?.primary.id}): If the uploaded Step 5 reference image is a brand logo or emblem, OVERRIDE all scene logo restrictions and creatively, crisply, and organically integrate that exact uploaded brand logo inside the scene itself (different from any flat corner BrandKit stamp — specifically ${fallbackArchetype?.primary.promptEn}, or alternatively ${fallbackArchetype?.secondary.promptEn}) preserving its exact spelling, icon, and colors while keeping the top-left header corner clean. If it is a physical product or person, preserve their authentic printed labels and appearance 100% intact.]`
       : hasLogo
         ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo is composited digitally. The diffusion AI MUST keep the top-left corner 100% CLEAN, BLANK and EMPTY. ABSOLUTE PROHIBITION: Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
         : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion.]";

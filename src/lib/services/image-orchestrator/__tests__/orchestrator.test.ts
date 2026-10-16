@@ -281,6 +281,16 @@ describe("Image Orchestrator Suite", () => {
       expect(planResult.compiledImagePrompt).toContain("different from any flat corner BrandKit stamp");
       expect(planResult.visualPlan.brandApplication.useLogo).toBe(true);
     });
+
+    it("alterna dinamicamente entre diferentes arquétipos criativos a cada nova geração com logomarca na Etapa 5", () => {
+      const a1 = Gpt5PromptPlanner.selectCreativeLogoArchetype("Post comercial 1");
+      const a2 = Gpt5PromptPlanner.selectCreativeLogoArchetype("Post comercial 2");
+      const a3 = Gpt5PromptPlanner.selectCreativeLogoArchetype("Post comercial 3");
+
+      expect(a1.primary.id).not.toBe(a2.primary.id);
+      expect(a2.primary.id).not.toBe(a3.primary.id);
+      expect(Gpt5PromptPlanner.CREATIVE_LOGO_ARCHETYPES.length).toBeGreaterThanOrEqual(8);
+    });
   });
 
   describe("ImageModelExecutor", () => {
