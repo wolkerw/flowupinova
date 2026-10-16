@@ -68,7 +68,7 @@ export class ImageModelExecutor {
       " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION: The official logo is added digitally in post-processing. The top-left corner MUST remain 100% BLANK, EMPTY and UNBRANDED negative space. Do NOT draw floating logos or brand badges in the poster layout. Real product packaging labels must remain authentic.]";
 
     const subjectDirective = subjectRef
-      ? " [CRITICAL MANDATE — HERO SUBJECT & PRODUCT LABEL PRESERVATION: The attached reference image contains the real person or product provided by the user. Maintain their exact facial features (if person) or authentic packaging, shape, printed label graphics, original brand name on package, product title, and colors (if product) with high fidelity. Place them naturally in the scene as the hero protagonist without altering or erasing the physical product packaging label.]"
+      ? " [CRITICAL MANDATE — HERO SUBJECT, PRODUCT LABEL & CREATIVE LOGO EXCEPTION: The attached reference image contains the real person, product, or brand logo provided by the user. If the attached reference image is a BRAND LOGO or COMPANY EMBLEM (with standard BrandKit corner stamp disabled), OVERRIDE all logo prohibitions and creatively, crisply, and prominently integrate that exact uploaded brand logo into the generated scene (such as embroidered/printed on the protagonist's shirt chest, displayed on the smartphone screen, or featured as a prominent 3D/glassmorphic brand signature in the layout/studio), preserving its exact brand name spelling, typography, icon, and colors 100% faithfully. If it is a PERSON or PHYSICAL PRODUCT, maintain their exact facial features or authentic packaging, shape, printed label graphics, original brand name on package, product title, and colors 100% intact.]"
       : "";
 
     const getProvider = (m: string): "openai" | "google" =>
@@ -101,17 +101,20 @@ export class ImageModelExecutor {
             if (!openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               openaiPrompt += logoDirective;
             }
+            openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background. CRITICAL: Physical product packaging and labels from user references MUST remain 100% intact with authentic printed text and branding.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos. Keep authentic product packaging labels intact.]`;
+          } else if (subjectRef) {
+            // Modo Exceção Criativa: usuário enviou imagem/logomarca na Etapa 5 e desabilitou a logo fixa do BrandKit
+            if (!openaiPrompt.includes("CREATIVE LOGO EXCEPTION") && !openaiPrompt.includes("HERO SUBJECT")) {
+              openaiPrompt += subjectDirective;
+            }
+            openaiPrompt = `[CREATIVE LOGO & SUBJECT EXCEPTION DIRECTIVE: Faithfully inspect the uploaded reference image. If it is a brand logo, OVERRIDE any logo restrictions and creatively integrate that exact uploaded logo into the new image (e.g., on the protagonist's shirt, smartphone screen, or layout signature) with 100% accurate spelling, icon, and colors. If it is a product or person, preserve their authentic label and features intact.] ${openaiPrompt}`;
           } else {
-            // Sem logo: garantir proibição de logos no layout mantendo rótulos intactos
+            // Sem logo do BrandKit e sem imagem na Etapa 5: garantir proibição de logos fictícias no layout
             if (!openaiPrompt.includes("POST BRANDING & EMPTY LOGO SPACE") && !openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
               openaiPrompt += zeroLogoDirective;
             }
+            openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos.]`;
           }
-          if (subjectRef && !openaiPrompt.includes("HERO SUBJECT & PRODUCT LABEL PRESERVATION") && !openaiPrompt.includes("HERO SUBJECT PRESERVATION")) {
-            openaiPrompt += subjectDirective;
-          }
-          // Regra mandatória reforçada: topo limpo para overlay do post, com preservação integral de rótulos de produtos físicos
-          openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background. CRITICAL: Physical product packaging and labels from user references MUST remain 100% intact with authentic printed text and branding.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos. Keep authentic product packaging labels intact.]`;
 
           const isGpt25 = cfg.model.includes("2.5");
           const isGptImage = cfg.model.startsWith("gpt-image-");
@@ -232,14 +235,16 @@ export class ImageModelExecutor {
             if (!geminiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               geminiPrompt = `${logoDirective}\n\n${geminiPrompt}`;
             }
+          } else if (subjectRef) {
+            // Modo Exceção Criativa: usuário enviou imagem/logomarca na Etapa 5 e desabilitou a logo fixa do BrandKit
+            if (!geminiPrompt.includes("CREATIVE LOGO EXCEPTION") && !geminiPrompt.includes("HERO SUBJECT")) {
+              geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
+            }
           } else {
-            // Sem logo: garantir proibição absoluta no prompt final
+            // Sem logo do BrandKit e sem imagem na Etapa 5: garantir proibição absoluta no prompt final
             if (!geminiPrompt.includes("ZERO LOGOS") && !geminiPrompt.includes("ABSOLUTE PROHIBITION")) {
               geminiPrompt += zeroLogoDirective;
             }
-          }
-          if (subjectRef && !geminiPrompt.includes("HERO SUBJECT PRESERVATION")) {
-            geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
           }
 
           const styleRef = params.references?.find((r) => r.role === "style_reference");
@@ -254,8 +259,11 @@ The attached reference image is the BRAND GUIDELINE / MASTER KEY ART for this ca
 2. REPLICATE THE CAMPAIGN'S SIGNATURE BRANDING DNA:
    - Incorporate the signature 3D glowing neon light ribbons/tubes (in electric blue and warm orange) swirling dynamically around the new subject.
    - Maintain the dark cinematic studio lighting and subtle floor reflections.
-   - Maintain the clean, modern layout balance with glassmorphic translucent badges and typography on the right.
-   - Keep the top-left corner 100% clean and unbranded for post-production logo overlay.`;
+   - Maintain the clean, modern layout balance with glassmorphic translucent badges and typography on the right.${
+     !hasLogo && subjectRef
+       ? "\n   - CREATIVE LOGO EXCEPTION: Creatively and faithfully integrate the uploaded brand logo/subject from the user's primary reference image into the scene."
+       : "\n   - Keep the top-left corner 100% clean and unbranded for post-production logo overlay."
+   }`;
             geminiPrompt = `${campaignDirective}\n\n${geminiPrompt}`;
           }
 

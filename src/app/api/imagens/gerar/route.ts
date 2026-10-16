@@ -210,11 +210,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 3.2. Integração do BrandKit & Personas da Marca no Prompt
+    const hasUploadedSourceAsset = Array.isArray(sourceAssetUrls) && sourceAssetUrls.length > 0;
+    const isCreativeLogoExceptionMode = !effectiveLogoUrl && hasUploadedSourceAsset;
+
     if (useBrandKit && brandSnapshot) {
       const brandDirectives: string[] = [];
 
       if (brandSnapshot.name && brandSnapshot.name !== "Empresa") {
-        brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". AVISO MANDATÓRIO: NUNCA desenhar, pintar, estampar ou renderizar o nome "${brandSnapshot.name}" como logotipo na imagem, nem no cabeçalho nem no rodapé nem em gadgets. O canto superior deve permanecer 100% limpo.`);
+        if (isCreativeLogoExceptionMode) {
+          brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". MODO EXCEÇÃO CRIATIVA ATIVO: Se o arquivo enviado na Etapa 5 for uma logomarca/logotipo (ex: "${brandSnapshot.name}"), DEVE-SE PASSAR POR CIMA das travas restritivas e integrar essa logomarca enviada de forma criativa, nítida e fiel dentro da nova imagem (ex: bordada no peito da camisa do protagonista, exibida na tela do smartphone, em letreiro 3D no ambiente ou em destaque orgânico no layout).`);
+        } else {
+          brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". AVISO MANDATÓRIO: NUNCA desenhar, pintar, estampar ou renderizar o nome "${brandSnapshot.name}" como logotipo na imagem, nem no cabeçalho nem no rodapé nem em gadgets. O canto superior deve permanecer 100% limpo.`);
+        }
       }
       if (brandSnapshot.segment) {
         brandDirectives.push(`Segmento/Nicho: ${brandSnapshot.segment}`);
@@ -251,10 +258,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Regra de Logomarcas: Inclusão obrigatória se fornecida, ou proibição de logos fictícios se ausente
+      // Regra de Logomarcas: Inclusão obrigatória se fornecida, Exceção Criativa se enviada avulsa na Etapa 5 sem carimbo fixo, ou proibição se ausente
       if (effectiveLogoUrl) {
         brandDirectives.push(
           `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Leave the top-left corner 100% CLEAN, BLANK and EMPTY for external overlay. It is STRICTLY FORBIDDEN to draw, paint, or render any floating logos, flower icons, sun icons, or artificial brand badges in the poster layout background. Real product packaging labels must remain authentic.]`
+        );
+      } else if (isCreativeLogoExceptionMode) {
+        brandDirectives.push(
+          `[CREATIVE LOGO EXCEPTION MODE — OVERRIDE ALL LOGO PROHIBITIONS: The user uploaded a custom image/logo in Step 5 and disabled the fixed corner BrandKit stamp. If the uploaded Step 5 asset is a brand logo or emblem, OVERRIDE all logo restrictions and integrate the uploaded logo creatively, prominently, and faithfully into the generated scene (e.g., embroidered on the protagonist's shirt chest, displayed on the smartphone screen, as a 3D wall sign, or as a featured creative badge in the layout), preserving its exact spelling, icon, and colors.]`
         );
       } else {
         brandDirectives.push(
@@ -262,10 +273,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Se houver foto real de pessoa ou produto enviada na Etapa 5
-      if (sourceAssetUrls && sourceAssetUrls.length > 0) {
+      // Se houver foto real de pessoa, produto ou logomarca enviada na Etapa 5
+      if (hasUploadedSourceAsset) {
         brandDirectives.push(
-          `SUJEITO REAL DA ETAPA 5 (PESSOA OU PRODUTO): Foi fornecida a foto real do sujeito/produto. A IA DEVE OBRIGATORIAMENTE manter a fisionomia, traços, roupas e características da pessoa, ou a embalagem, formato, rótulo original com todos os textos, marca impressa no produto, selos e cores reais da embalagem enviada na Etapa 5. É EXPRESSAMENTE PROIBIDO apagar, censurar ou higienizar o rótulo do produto físico.`
+          `SUJEITO REAL DA ETAPA 5 (PESSOA, PRODUTO OU LOGOMARCA): Foi fornecida a imagem real na Etapa 5. A IA DEVE OBRIGATORIAMENTE preservar e integrar com 100% de fidelidade: se for uma logomarca/logotipo avulso, inseri-la de forma criativa e visível na cena (no vestuário, dispositivo ou layout) mantendo grafia, ícone e cores exatas; se for pessoa ou produto físico, manter fisionomia ou embalagem e rótulo original intactos.`
         );
       }
 

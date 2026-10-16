@@ -511,6 +511,12 @@ export function ImageGenerationWizard() {
         } else if (logoImage.url) {
           uploadedLogoUrl = logoImage.url;
         }
+      } else if (!includeLogo && logoImage && selectedLogoId === "custom_upload" && !uploadedSourceUrl) {
+        if (logoImage.file) {
+          uploadedSourceUrl = await handleUploadImageFile(logoImage.file);
+        } else if (logoImage.url) {
+          uploadedSourceUrl = logoImage.url;
+        }
       }
 
       const dimensions = FORMAT_DIMENSIONS[format];
@@ -1089,14 +1095,14 @@ export function ImageGenerationWizard() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                           <Scissors className="h-4 w-4 text-accent" />
-                          Foto do Produto ou Pessoa
+                          Foto do Produto, Pessoa ou Logomarca
                         </span>
                         <Badge variant="outline" className="text-[10px] font-bold border-orange-200 text-orange-600 bg-orange-50">
-                          Sujeito
+                          Sujeito / Logo
                         </Badge>
                       </div>
                       <p className="text-xs text-gray-500">
-                        Envie a foto real do seu produto ou de uma pessoa para a IA criar um cenário em volta.
+                        Envie a foto do seu produto, pessoa ou logomarca avulsa para a IA integrar de forma criativa na cena.
                       </p>
                     </div>
 
