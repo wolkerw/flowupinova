@@ -241,6 +241,46 @@ describe("Image Orchestrator Suite", () => {
       expect(planResult.compiledImagePrompt).toContain("UPLOADED LOGO INTEGRATION");
       expect(planResult.compiledNegativePrompt).not.toContain("no NumVapt logo");
     });
+
+    it("mantém a Inserção Criativa Cenográfica da Etapa 5 ativa mesmo quando a logo fixa do BrandKit também está habilitada", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Crie uma imagem com um personagem vestindo a camisa da marca",
+        objective: "commercial",
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic",
+        useBrandKit: true,
+        brandKit: {
+          enabled: true,
+          businessName: "NumVapt",
+          primaryColors: ["#0083C7", "#FA6305"],
+          useLogo: true,
+          logoUrl: "https://example.com/brandkit-logo.png",
+        },
+        referenceImages: [
+          {
+            role: "product_subject",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/step5-logo.png",
+            description: "Logomarca enviada na Etapa 5",
+          },
+          {
+            role: "official_logo",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/brandkit-logo.png",
+            description: "Logomarca oficial do BrandKit",
+          },
+        ],
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("CREATIVE LOGO / SUBJECT EXCEPTION MODE");
+      expect(planResult.compiledImagePrompt).toContain("different from any flat corner BrandKit stamp");
+      expect(planResult.visualPlan.brandApplication.useLogo).toBe(true);
+    });
   });
 
   describe("ImageModelExecutor", () => {

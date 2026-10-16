@@ -211,14 +211,14 @@ export async function POST(request: NextRequest) {
 
     // 3.2. Integração do BrandKit & Personas da Marca no Prompt
     const hasUploadedSourceAsset = Array.isArray(sourceAssetUrls) && sourceAssetUrls.length > 0;
-    const isCreativeLogoExceptionMode = !effectiveLogoUrl && hasUploadedSourceAsset;
+    const isCreativeLogoExceptionMode = hasUploadedSourceAsset;
 
     if (useBrandKit && brandSnapshot) {
       const brandDirectives: string[] = [];
 
       if (brandSnapshot.name && brandSnapshot.name !== "Empresa") {
         if (isCreativeLogoExceptionMode) {
-          brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". MODO EXCEÇÃO CRIATIVA ATIVO: Se o arquivo enviado na Etapa 5 for uma logomarca/logotipo (ex: "${brandSnapshot.name}"), DEVE-SE PASSAR POR CIMA das travas restritivas e integrar essa logomarca enviada de forma criativa, nítida e fiel dentro da nova imagem (ex: bordada no peito da camisa do protagonista, exibida na tela do smartphone, em letreiro 3D no ambiente ou em destaque orgânico no layout).`);
+          brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". MODO EXCEÇÃO CRIATIVA DA ETAPA 5 ATIVO: Se o arquivo enviado na Etapa 5 for uma logomarca/logotipo, DEVE-SE PASSAR POR CIMA das travas restritivas e integrar essa logomarca enviada de forma CRIATIVA, CENOGRÁFICA e DIFERENTE do carimbo fixo do BrandKit (ex: bordada no peito da camisa do protagonista, exibida na tela do smartphone/notebook, aplicada em letreiro 3D iluminado no cenário, em sacola/caneca ou elemento de destaque orgânico na cena), mantendo o canto superior esquerdo limpo.`);
         } else {
           brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". AVISO MANDATÓRIO: NUNCA desenhar, pintar, estampar ou renderizar o nome "${brandSnapshot.name}" como logotipo na imagem, nem no cabeçalho nem no rodapé nem em gadgets. O canto superior deve permanecer 100% limpo.`);
         }
@@ -258,14 +258,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Regra de Logomarcas: Inclusão obrigatória se fornecida, Exceção Criativa se enviada avulsa na Etapa 5 sem carimbo fixo, ou proibição se ausente
-      if (effectiveLogoUrl) {
+      // Regra de Logomarcas: diferencia o carimbo fixo do BrandKit (canto superior) da Inserção Criativa Cenográfica da Etapa 5
+      if (effectiveLogoUrl && isCreativeLogoExceptionMode) {
+        brandDirectives.push(
+          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION + CREATIVE LOGO EXCEPTION MODE: Leave the top-left corner 100% CLEAN and EMPTY for the fixed BrandKit header overlay. HOWEVER, for the image uploaded in Step 5: if it is a brand logo or emblem, OVERRIDE all scene logo restrictions and integrate it CREATIVELY and ORGANICALLY inside the scene itself (different from the corner stamp — e.g., embroidered on the protagonist's shirt chest, glowing on the smartphone screen, mounted as a 3D architectural sign in the background, or printed on a prop), preserving its exact spelling, icon, and colors.]`
+        );
+      } else if (effectiveLogoUrl) {
         brandDirectives.push(
           `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. Leave the top-left corner 100% CLEAN, BLANK and EMPTY for external overlay. It is STRICTLY FORBIDDEN to draw, paint, or render any floating logos, flower icons, sun icons, or artificial brand badges in the poster layout background. Real product packaging labels must remain authentic.]`
         );
       } else if (isCreativeLogoExceptionMode) {
         brandDirectives.push(
-          `[CREATIVE LOGO EXCEPTION MODE — OVERRIDE ALL LOGO PROHIBITIONS: The user uploaded a custom image/logo in Step 5 and disabled the fixed corner BrandKit stamp. If the uploaded Step 5 asset is a brand logo or emblem, OVERRIDE all logo restrictions and integrate the uploaded logo creatively, prominently, and faithfully into the generated scene (e.g., embroidered on the protagonist's shirt chest, displayed on the smartphone screen, as a 3D wall sign, or as a featured creative badge in the layout), preserving its exact spelling, icon, and colors.]`
+          `[CREATIVE LOGO EXCEPTION MODE — OVERRIDE ALL LOGO PROHIBITIONS: The user uploaded a custom image/logo in Step 5. If the uploaded Step 5 asset is a brand logo or emblem, OVERRIDE all logo restrictions and integrate the uploaded logo creatively, prominently, and faithfully into the generated scene (different from a flat corner stamp — e.g., embroidered on the protagonist's shirt chest, displayed on the smartphone screen, as a 3D wall sign, or as a featured creative badge in the scene), preserving its exact spelling, icon, and colors.]`
         );
       } else {
         brandDirectives.push(
@@ -276,7 +280,7 @@ export async function POST(request: NextRequest) {
       // Se houver foto real de pessoa, produto ou logomarca enviada na Etapa 5
       if (hasUploadedSourceAsset) {
         brandDirectives.push(
-          `SUJEITO REAL DA ETAPA 5 (PESSOA, PRODUTO OU LOGOMARCA): Foi fornecida a imagem real na Etapa 5. A IA DEVE OBRIGATORIAMENTE preservar e integrar com 100% de fidelidade: se for uma logomarca/logotipo avulso, inseri-la de forma criativa e visível na cena (no vestuário, dispositivo ou layout) mantendo grafia, ícone e cores exatas; se for pessoa ou produto físico, manter fisionomia ou embalagem e rótulo original intactos.`
+          `SUJEITO REAL DA ETAPA 5 (PESSOA, PRODUTO OU LOGOMARCA CENOGRÁFICA): Foi fornecida uma imagem na Etapa 5. A IA DEVE OBRIGATORIAMENTE preservar e integrar com 100% de fidelidade: se for uma logomarca/logotipo, inseri-la de forma criativa, orgânica e cenográfica dentro da cena (no vestuário, tela de dispositivo, fachada/letreiro 3D ou objeto de cena, de forma diferente do carimbo de canto do BrandKit) mantendo grafia, ícone e cores exatas; se for pessoa ou produto físico, manter fisionomia ou embalagem e rótulo original intactos.`
         );
       }
 

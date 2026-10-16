@@ -97,17 +97,18 @@ export class ImageModelExecutor {
       try {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
-          if (hasLogo) {
+          if (subjectRef) {
+            // Sempre que houver imagem enviada na Etapa 5 (produto, pessoa ou logomarca):
+            // integra criativamente na cena (diferente do carimbo fixo de canto do BrandKit)
+            if (!openaiPrompt.includes("CREATIVE LOGO EXCEPTION") && !openaiPrompt.includes("HERO SUBJECT")) {
+              openaiPrompt += subjectDirective;
+            }
+            openaiPrompt = `[CREATIVE LOGO & SUBJECT EXCEPTION DIRECTIVE: Faithfully inspect the uploaded Step 5 reference image. If it is a brand logo, OVERRIDE any scene logo restrictions and creatively, organically integrate that exact uploaded logo inside the scene itself, DIFFERENT from a flat corner stamp (e.g., embroidered on the protagonist's shirt chest, glowing on the smartphone screen, mounted as a 3D studio sign, or printed on a physical prop) with 100% accurate spelling, icon, and colors, while keeping the top-left header corner clean. If it is a product or person, preserve their authentic label and features intact.] ${openaiPrompt}`;
+          } else if (hasLogo) {
             if (!openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               openaiPrompt += logoDirective;
             }
             openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background. CRITICAL: Physical product packaging and labels from user references MUST remain 100% intact with authentic printed text and branding.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos. Keep authentic product packaging labels intact.]`;
-          } else if (subjectRef) {
-            // Modo Exceção Criativa: usuário enviou imagem/logomarca na Etapa 5 e desabilitou a logo fixa do BrandKit
-            if (!openaiPrompt.includes("CREATIVE LOGO EXCEPTION") && !openaiPrompt.includes("HERO SUBJECT")) {
-              openaiPrompt += subjectDirective;
-            }
-            openaiPrompt = `[CREATIVE LOGO & SUBJECT EXCEPTION DIRECTIVE: Faithfully inspect the uploaded reference image. If it is a brand logo, OVERRIDE any logo restrictions and creatively integrate that exact uploaded logo into the new image (e.g., on the protagonist's shirt, smartphone screen, or layout signature) with 100% accurate spelling, icon, and colors. If it is a product or person, preserve their authentic label and features intact.] ${openaiPrompt}`;
           } else {
             // Sem logo do BrandKit e sem imagem na Etapa 5: garantir proibição de logos fictícias no layout
             if (!openaiPrompt.includes("POST BRANDING & EMPTY LOGO SPACE") && !openaiPrompt.includes("ABSOLUTE PROHIBITION")) {
@@ -231,14 +232,14 @@ export class ImageModelExecutor {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
           
           let geminiPrompt = params.prompt;
-          if (hasLogo) {
-            if (!geminiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
-              geminiPrompt = `${logoDirective}\n\n${geminiPrompt}`;
-            }
-          } else if (subjectRef) {
-            // Modo Exceção Criativa: usuário enviou imagem/logomarca na Etapa 5 e desabilitou a logo fixa do BrandKit
+          if (subjectRef) {
+            // Sempre que houver imagem/logomarca enviada na Etapa 5: ativa Inserção Criativa Cenográfica
             if (!geminiPrompt.includes("CREATIVE LOGO EXCEPTION") && !geminiPrompt.includes("HERO SUBJECT")) {
               geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
+            }
+          } else if (hasLogo) {
+            if (!geminiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
+              geminiPrompt = `${logoDirective}\n\n${geminiPrompt}`;
             }
           } else {
             // Sem logo do BrandKit e sem imagem na Etapa 5: garantir proibição absoluta no prompt final
@@ -260,8 +261,8 @@ The attached reference image is the BRAND GUIDELINE / MASTER KEY ART for this ca
    - Incorporate the signature 3D glowing neon light ribbons/tubes (in electric blue and warm orange) swirling dynamically around the new subject.
    - Maintain the dark cinematic studio lighting and subtle floor reflections.
    - Maintain the clean, modern layout balance with glassmorphic translucent badges and typography on the right.${
-     !hasLogo && subjectRef
-       ? "\n   - CREATIVE LOGO EXCEPTION: Creatively and faithfully integrate the uploaded brand logo/subject from the user's primary reference image into the scene."
+     subjectRef
+       ? "\n   - CREATIVE LOGO EXCEPTION: Creatively and organically integrate the uploaded Step 5 brand logo/subject inside the scene itself (different from a flat corner stamp)."
        : "\n   - Keep the top-left corner 100% clean and unbranded for post-production logo overlay."
    }`;
             geminiPrompt = `${campaignDirective}\n\n${geminiPrompt}`;
