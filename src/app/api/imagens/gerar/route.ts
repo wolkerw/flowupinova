@@ -448,12 +448,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Função auxiliar de geração de imagem individual com intermediário GPT-5 -> GPT Image 2
+    // 4. Função auxiliar de geração de imagem individual com intermediário GPT-6.1-Sol (fallback GPT-5) -> GPT Image 2
     const generateSingleImage = async (slotId: string, orderIndex: number): Promise<AIImageAssetDoc> => {
       const slotRef = adminDb.doc(`users/${userId}/aiImageAssets/${slotId}`);
       let imageBuffer: Buffer | null = null;
       let modelUsed = "gpt-image-2";
-      let plannerModelUsed = "gpt-5";
+      let plannerModelUsed = "gpt-6.1-sol";
       let visualPlan: any = null;
       let usedPrompt = compiledPrompt;
       let lastError = "";
@@ -658,7 +658,7 @@ export async function POST(request: NextRequest) {
 
     const readyAssetFound = generatedAssets.find((a) => a.status === "ready");
     const primaryModelUsed = readyAssetFound?.modelUsed || "gpt-image-2";
-    const primaryPlannerModelUsed = readyAssetFound?.plannerModelUsed || "gpt-5";
+    const primaryPlannerModelUsed = readyAssetFound?.plannerModelUsed || "gpt-6.1-sol";
     const primaryVisualPlan = readyAssetFound?.promptMetadata?.visualPlan || null;
 
     await genDocRef.update({

@@ -15,8 +15,9 @@ export interface AIModelsConfig {
 
 export const AVAILABLE_AI_MODELS = {
   planners: [
-    { id: "gpt-4o", label: "GPT-4o (OpenAI Vision - Recomendado)", provider: "openai" },
+    { id: "gpt-6.1-sol", label: "GPT-6.1 Sol (OpenAI Raciocínio Profundo - Recomendado)", provider: "openai" },
     { id: "gpt-5", label: "GPT-5 (OpenAI - Diretor de Arte)", provider: "openai" },
+    { id: "gpt-4o", label: "GPT-4o (OpenAI Vision)", provider: "openai" },
     { id: "gpt-4o-mini", label: "GPT-4o Mini (OpenAI - Econômico)", provider: "openai" },
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Google - Rápido)", provider: "google" },
   ],
@@ -50,7 +51,7 @@ export const AVAILABLE_AI_MODELS = {
 };
 
 export const DEFAULT_AI_MODELS_CONFIG: AIModelsConfig = {
-  generalPlannerModel: "gpt-5",
+  generalPlannerModel: "gpt-6.1-sol",
   generalImageModel: "gpt-image-2",
   generalFallbackImageModel: "gemini-2.5-flash-image",
   imageQuality: "medium",

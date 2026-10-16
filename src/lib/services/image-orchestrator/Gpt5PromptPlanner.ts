@@ -65,13 +65,13 @@ REGRAS DE CONFORMIDADE:
     // Tentar planejamento com GPT-5 (ou gpt-4o como fallback) com suporte multimodal se houver foto
     if (openaiKey) {
       try {
-        const baseModels = ["gpt-5", "gpt-4o", "gpt-4o-mini"];
+        const baseModels = ["gpt-6.1-sol", "gpt-5", "gpt-4o", "gpt-4o-mini"];
         const modelsToTry = input.preferredModel
           ? [input.preferredModel, ...baseModels.filter((m) => m !== input.preferredModel)]
           : baseModels;
 
         const userPrompt = this.buildUserPrompt(input);
-        // Montar mensagem multimodal para que o GPT-5 veja as fotos de sujeito, estilo/campanha e logo
+        // Montar mensagem multimodal para que o GPT-6.1-sol / GPT-5 veja as fotos de sujeito, estilo/campanha e logo
         const contentParts: any[] = [{ type: "text", text: userPrompt }];
         const subjectImage = input.referenceImages?.find((r) => r.role === "product_subject");
         if (subjectImage && subjectImage.base64) {
@@ -116,9 +116,19 @@ REGRAS DE CONFORMIDADE:
               ],
               response_format: { type: "json_object" },
             };
-            // gpt-5 e modelos da série 'o' da OpenAI não aceitam temperature diferente do padrão (1)
-            if (!model.startsWith("gpt-5") && !model.startsWith("o1") && !model.startsWith("o3")) {
+            // gpt-6, gpt-5 e modelos da série 'o' da OpenAI não aceitam temperature diferente do padrão (1)
+            if (
+              !model.startsWith("gpt-6") &&
+              !model.startsWith("gpt-5") &&
+              !model.startsWith("o1") &&
+              !model.startsWith("o3")
+            ) {
               bodyPayload.temperature = 0.7;
+            }
+
+            // Ativa esforço de raciocínio padrão balanceado para modelos da família de raciocínio profundo
+            if (model.startsWith("gpt-6") || model.startsWith("o1") || model.startsWith("o3")) {
+              bodyPayload.reasoning_effort = "medium";
             }
 
             const res = await fetch("https://api.openai.com/v1/chat/completions", {

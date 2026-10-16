@@ -327,11 +327,77 @@ describe("Image Orchestrator Suite", () => {
         format: "portrait",
       });
 
-      expect(res.plannerModelUsed).toBe("gpt-5");
+      expect(res.plannerModelUsed).toBe("gpt-6.1-sol");
       expect(res.imageModelUsed).toBe("gpt-image-2");
       expect(res.width).toBe(1080);
       expect(res.height).toBe(1350);
       expect(res.planResult.visualPlan).toBeDefined();
+    });
+
+    it("realiza fallback automático e transparente para gpt-5 quando gpt-6.1-sol retornar erro (ex: 403/404 de tier)", async () => {
+      let gpt6Attempted = false;
+      let gpt5Attempted = false;
+
+      (global.fetch as any).mockImplementation((url: string, opts?: any) => {
+        const urlStr = String(url);
+        if (urlStr.includes("api.openai.com/v1/chat/completions")) {
+          const body = JSON.parse(opts?.body || "{}");
+          if (body.model === "gpt-6.1-sol") {
+            gpt6Attempted = true;
+            // Simula erro 404 (model not found / tier restrito)
+            return Promise.resolve({
+              ok: false,
+              status: 404,
+              text: async () => JSON.stringify({ error: { message: "Model gpt-6.1-sol not found or tier restricted" } }),
+            });
+          }
+          if (body.model === "gpt-5") {
+            gpt5Attempted = true;
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                choices: [
+                  {
+                    message: {
+                      content: JSON.stringify({
+                        schemaVersion: "1.0",
+                        confidence: 0.95,
+                        needsClarification: false,
+                        interpretation: { goal: "commercial", subject: "Produto em estúdio" },
+                        visualPlan: { scene: "Estúdio fotográfico com iluminação suave" },
+                        imagePrompt: "Commercial studio product photography [SAFE MARGINS MANDATE: 20%]",
+                        negativePrompt: "blurry, low quality",
+                      }),
+                    },
+                  },
+                ],
+              }),
+            });
+          }
+        }
+        if (urlStr.includes("api.openai.com/v1/images/generations")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: [{ b64_json: Buffer.from("rendered-image-bytes").toString("base64") }],
+            }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      });
+
+      const res = await ImageGenerationOrchestrator.execute({
+        userId: "user-123",
+        generationId: "gen-456",
+        assetId: "asset-789",
+        rawBrief: "Frasco de perfume sobre pedra vulcânica",
+        format: "portrait",
+      });
+
+      expect(gpt6Attempted).toBe(true);
+      expect(gpt5Attempted).toBe(true);
+      expect(res.plannerModelUsed).toBe("gpt-5");
+      expect(res.imageModelUsed).toBe("gpt-image-2");
     });
   });
 });
