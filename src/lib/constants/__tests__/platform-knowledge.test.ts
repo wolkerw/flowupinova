@@ -39,4 +39,20 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 4: Selecionar as Redes Sociais");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("Etapa 5: Publicar ou Agendar");
   });
+
+  it("deve conter os guias passo a passo de configuração do Cérebro do Negócio e dos 5 fluxos de posts", () => {
+    // Guia Cérebro do Negócio
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Índice de Inteligência da Marca");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Regra de Ouro para Produtos");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Diretrizes Visuais para Geração de Fotos");
+
+    // Guia dos 5 fluxos
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("GUIA PASSO A PASSO: COMO CRIAR POSTS NOS 5 FLUXOS");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Conceito");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Produto");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Pessoa + Cenário");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Manual");
+    expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Geral");
+  });
 });
