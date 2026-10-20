@@ -224,7 +224,7 @@ describe("Image Orchestrator Suite", () => {
           enabled: true,
           businessName: "NumVapt",
           primaryColors: ["#0083C7", "#FA6305"],
-          useLogo: false,
+          hasLocalOfficialLogo: false, secondaryColors: [], accentColors: [],
         },
         referenceImages: [
           {
@@ -256,7 +256,7 @@ describe("Image Orchestrator Suite", () => {
           enabled: true,
           businessName: "NumVapt",
           primaryColors: ["#0083C7", "#FA6305"],
-          useLogo: true,
+          hasLocalOfficialLogo: true, secondaryColors: [], accentColors: [],
           logoUrl: "https://example.com/brandkit-logo.png",
         },
         referenceImages: [

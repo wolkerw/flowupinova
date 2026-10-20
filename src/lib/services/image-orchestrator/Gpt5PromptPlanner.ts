@@ -19,16 +19,16 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    - Se for PESSOA: descreva com precisão as características físicas (idade, gênero, etnia, cabelo, traços, roupas).
    - Se for PRODUTO FÍSICO COMERCIAL (embalagem, pote, garrafa, caixa, sachê, frasco): o rótulo original, o nome da marca impresso na embalagem, a tipografia do rótulo, os pesos, selos de qualidade e ilustrações da embalagem DEVEM SER RIGOROSAMENTE PRESERVADOS E DESCRITOS com máxima fidelidade. É TERMINANTEMENTE PROIBIDO higienizar, censurar, apagar os nomes ou transformar o rótulo do produto em blocos de cores lisos!
    - CRÍTICO — SE FOR UMA LOGOMARCA / LOGOTIPO ENVIADA PELO USUÁRIO NA ETAPA 5 (INSERÇÃO CRIATIVA CENOGRÁFICA SEMPRE ATIVA): Sempre que a imagem enviada na Etapa 5 for uma logomarca, logotipo ou símbolo de marca (independentemente de a logo fixa do BrandKit estar ativa ou não), você DEVE PASSAR POR CIMA (OVERRIDE) das travas anti-logo para a cena! Inspecione e descreva minuciosamente a logomarca enviada na Etapa 5 (grafia exata do nome, tipografia, ícone/símbolo e cores exatas) e integre-a de forma CRIATIVA, CENOGRÁFICA, ORGÂNICA e DIFERENTE da simples colagem de canto do BrandKit (por exemplo: bordada/estampada com perfeição no peito da camisa polo/uniforme do protagonista, exibida na tela do smartphone/notebook segurado pelo personagem, aplicada em um letreiro/fachada 3D iluminada no cenário, estampada em uma caneca/sacola/embalagem ou integrada tridimensionalmente à composição). JAMAIS escreva "no logos", "absolutely no logos" ou proíba a logo na cena quando uma logomarca for enviada na Etapa 5!
-   [4. COMPOSITION & PLACEMENT]: Distribuição visual e pontos focais equilibrados.
+   [4. COMPOSITION & PLACEMENT]: Distribuição visual e pontos focais equilibrados. Se houver logomarca do BrandKit habilitada, respeitar estritamente a ZONA DE LIMPEZA DO TOPO ESQUERDO (os primeiros 22% do topo e 30% da esquerda devem ficar 100% livres de textos ou elementos focais).
    [5. FRAMING & PERSPECTIVE]: Ângulo de câmera, lente (ex: 50mm, 85mm f/1.8), proporção.
    [6. LIGHTING & COLOR]: Iluminação profissional e paleta cromática harmônica inspirada nas cores da marca.
    [7. TEXTURES & FINISH]: Acabamentos de estúdio de alta fidelidade e realismo.
    [8. VISUAL STYLE]: Fotografia comercial moderna de alto padrão.
    [9. LOGO DIRECTIVE]: DIRETIVA DE LOGOMARCA DO BRANDKIT (CANTO) vs. RÓTULO DO PRODUTO vs. LOGOMARCA CRIATIVA DA ETAPA 5 (CENA):
-   a) CANTO SUPERIOR ESQUERDO (RESERVADO AO BRANDKIT): O canto superior esquerdo da imagem permanece limpo para a assinatura fixa do BrandKit (se habilitada).
+   a) CANTO SUPERIOR ESQUERDO (ZONA DE LIMPEZA ABSOLUTA DE LOGO / ZERO-TEXT LOGO CLEARANCE ZONE): Se a logomarca do BrandKit estiver habilitada (ou se houver aplicação de logo fixa), o quadrante superior esquerdo (primeiros 22% de altura x 30% de largura à esquerda) DEVE PERMANECER 100% VAZIO E LIMPO (espaço negativo puro). É TERMINANTEMENTE PROIBIDO colocar qualquer texto, título, subtítulo, frase de efeito/eyebrow (ex: 'VOCÊ É NOSSO CONVIDADO'), data, selo ou badge nessa área! Todos os textos devem começar obrigatoriamente abaixo de Y=22% da imagem ou alinhados ao centro/direita, NUNCA sobrepondo a área onde a logo do BrandKit será posicionada.
    b) EXCEÇÃO OBRIGATÓRIA PARA RÓTULOS DE PRODUTOS FÍSICOS: As embalagens e rótulos dos produtos reais enviados pelo usuário DEVEM MANTER suas marcas impressas originais, nomes de produtos, textos, pesos e selos autênticos e legíveis.
    c) INSERÇÃO CRIATIVA CENOGRÁFICA (SEMPRE QUE O USUÁRIO ENVIAR UMA LOGOMARCA NA ETAPA 5): Se a imagem anexada na Etapa 5 for uma logomarca/logotipo enviada pelo usuário, PASSE POR CIMA da regra de proibição de logos na cena! No bloco [9. LOGO DIRECTIVE] do "imagePrompt", inclua OBRIGATORIAMENTE em inglês: "CREATIVE LOGO EXCEPTION MODE ACTIVE: The user provided a brand logo in Step 5 for creative scene integration. OVERRIDE all scene logo prohibitions and creatively, crisply, and organically integrate this exact uploaded brand logo inside the scene itself, DIFFERENT from a flat corner stamp (e.g., embroidered/printed on the protagonist's shirt chest, glowing on the smartphone/tablet screen, mounted as a 3D illuminated sign in the studio/environment, or printed on a physical prop), preserving its exact brand name spelling, typography, icon, and colors 100% faithfully while keeping the top-left header corner clean."
-   [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas.
+   [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas. Quando houver logo de cabeçalho, manter adicionalmente a zona de respiro de 22% de altura no canto superior esquerdo para que a logomarca nunca sobreponha outros textos ou informações.
 
 DIRETRIZES DE TEXTO / INFOGRÁFICO:
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia pura sem letras ou legendas.
@@ -318,14 +318,14 @@ Sua missão NÚMERO 1 é garantir que a nova arte seja imediatamente reconhecida
       ? `REGRA DE INSERÇÃO CRIATIVA CENOGRÁFICA DINÂMICA PARA LOGOMARCA OU PRODUTO ENVIADO NA ETAPA 5 (PRIORIDADE MÁXIMA — SEMPRE ATIVA):
 O usuário enviou uma imagem na Etapa 5 (product_subject). ${
           hasLogo
-            ? "A logomarca fixa do BrandKit será aplicada digitalmente apenas no canto superior esquerdo (mantenha o canto superior esquerdo limpo), MAS o arquivo enviado na Etapa 5 tem papel CENOGRÁFICO e CRIATIVO dentro da imagem!"
+            ? "A logomarca fixa do BrandKit será aplicada digitalmente apenas no canto superior esquerdo (mantenha o quadrante superior esquerdo de 22% de altura x 30% de largura 100% LIMPO e LIVRE de qualquer texto/headline/eyebrow/badge), MAS o arquivo enviado na Etapa 5 tem papel CENOGRÁFICO e CRIATIVO dentro da imagem!"
             : "A inserção fixa de logomarca de canto do BrandKit está desativada, portanto a marca deve brilhar de forma criativa dentro da própria cena!"
         }
 1. MODO EXCEÇÃO CRIATIVA COM ROTAÇÃO DINÂMICA (${selectedArchetypes?.primary.id}): Se a imagem enviada na Etapa 5 for uma LOGOMARCA, LOGOTIPO ou SÍMBOLO DE MARCA (ex: logo da NumVapt ou da empresa do cliente), VOCÊ DEVE PASSAR POR CIMA DE TODAS AS REGRAS RESTRITIVAS DE LOGOMARCA NA CENA! Instrua o modelo gerador no "imagePrompt" (em [3. HERO SUBJECT] e [9. LOGO DIRECTIVE]) a INSERIR E INTEGRAR A LOGOMARCA ENVIADA NA ETAPA 5 DE FORMA CRIATIVA, CENOGRÁFICA, NÍTIDA E DIFERENTE DO CARIMBO DE CANTO DO BRANDKIT, aplicando preferencialmente o conceito sorteado para esta geração: "${selectedArchetypes?.primary.promptEn}" (ou, caso mais coerente com o briefing: "${selectedArchetypes?.secondary.promptEn}"), reproduzindo fielmente o nome exato da marca, seu símbolo e suas cores! JAMAIS escreva "no logos", "absolutely no logos" ou "no NumVapt logo" no imagePrompt ou no negativePrompt!
 2. PRESERVAÇÃO DE RÓTULO DE PRODUTO: Se a imagem enviada na Etapa 5 for um produto físico com rótulo, mantenha e reproduza seu rótulo e marca impressos com 100% de fidelidade.`
       : hasLogo
-        ? `REGRA MANDATÓRIA DE LOGOMARCA DO BRANDKIT (SOBREPOSIÇÃO DIGITAL):
-A imagem da logomarca oficial do BrandKit foi anexada para aplicação DIGITAL no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A DEIXAR O CANTO SUPERIOR 100% LIMPO E VAZIO, e PROIBIR que a IA desenhe logotipos soltos no canto superior. Rótulos de produtos físicos reais continuam autênticos e intactos.`
+        ? `REGRA MANDATÓRIA DE LOGOMARCA DO BRANDKIT (SOBREPOSIÇÃO DIGITAL & ZONA LIVRE DE TEXTO):
+A imagem da logomarca oficial do BrandKit foi anexada para aplicação DIGITAL no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A:\n1. MANTER O QUADRANTE SUPERIOR ESQUERDO (topo 22% de altura x esquerda 30% de largura) 100% LIMPO, VAZIO E LIVRE DE QUALQUER TEXTO, TÍTULO, SUBTÍTULO, EYEBROW (ex: frases de topo), DATA OU BADGE. Todos os textos devem começar abaixo de Y=22% ou no centro/direita.\n2. PROIBIR que a IA desenhe logotipos soltos ou marcas fictícias no layout. Rótulos de produtos físicos reais continuam autênticos e intactos.`
         : `REGRA ABSOLUTA DE LOGOMARCAS DE CABEÇALHO / POST:
 NENHUMA logomarca oficial foi fornecida. É TERMINANTEMENTE PROIBIDO inventar, desenhar ou renderizar qualquer logotipo solto, badge de marca no layout, mascote, florzinha ou solzinho flutuante no topo da arte. Deixe o canto superior da imagem COMPLETAMENTE LIMPO (espaço negativo livre).`;
 
@@ -444,7 +444,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         return hasSubject
           ? "competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped headline, cut off borders, low quality, artifacts"
           : hasLogo
-            ? "distorted logo, warped branding, competitor trademarks, fake text, cropped headline, cut off borders, blank product label, erased packaging text, low quality, artifacts"
+            ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, cropped headline, cut off borders, blank product label, erased packaging text, low quality, artifacts"
             : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts";
       })(),
       preserve: hasLogo
@@ -514,7 +514,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       negativePrompt: hasSubject
         ? "competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing"
         : hasLogo
-          ? "distorted logo, warped branding, competitor trademarks, fake text, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts"
+          ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts"
           : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped typography, text touching borders, amateur framing",
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margem segura de 20%"]
@@ -549,10 +549,14 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       "[CRITICAL MANDATE — ZERO TEXT: Clean photography with zero typography, letters or watermarks.]";
     if (isTitle) {
       const headline = input.productHeadline?.trim() || "Headline em português";
-      textInstruction = `[HEADLINE POSTER DIRECTIVE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}" with generous breathing room and 20% safe margins.]`;
+      textInstruction = hasLogo
+        ? `[HEADLINE POSTER DIRECTIVE & LOGO CLEARANCE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}". ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 22% height x left 30% width) 100% blank and clean for logo overlay; place headline starting below Y=22% or centered with generous breathing room and 20% safe margins.]`
+        : `[HEADLINE POSTER DIRECTIVE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}" with generous breathing room and 20% safe margins.]`;
     } else if (isInfographic) {
       const headline = input.productHeadline?.trim() || "Solução Inteligente";
-      textInstruction = `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders.]`;
+      textInstruction = hasLogo
+        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders. ZERO-TEXT LOGO CLEARANCE ZONE: The top-left quadrant (top 22% height x left 30% width) MUST remain 100% blank negative space. All headlines, badges, and text callouts must start below Y=22% or center/right so they never overlap the brand logo.]`
+        : `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders.]`;
     }
 
     const brandInstruction =
@@ -567,7 +571,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const logoMandate = subjectRef
       ? `[CRITICAL MANDATE — CREATIVE LOGO / SUBJECT EXCEPTION MODE (${fallbackArchetype?.primary.id}): If the uploaded Step 5 reference image is a brand logo or emblem, OVERRIDE all scene logo restrictions and creatively, crisply, and organically integrate that exact uploaded brand logo inside the scene itself (different from any flat corner BrandKit stamp — specifically ${fallbackArchetype?.primary.promptEn}, or alternatively ${fallbackArchetype?.secondary.promptEn}) preserving its exact spelling, icon, and colors while keeping the top-left header corner clean. If it is a physical product or person, preserve their authentic printed labels and appearance 100% intact.]`
       : hasLogo
-        ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo is composited digitally. The diffusion AI MUST keep the top-left corner 100% CLEAN, BLANK and EMPTY. ABSOLUTE PROHIBITION: Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
+        ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE: The official business logo is composited digitally. The diffusion AI MUST keep the top-left quadrant (top 22% height x left 30% width) 100% CLEAN, BLANK and EMPTY negative space. ABSOLUTE PROHIBITION: Do NOT place any text, titles, subtitles, eyebrows, dates, or badges in the top-left area. Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
         : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion.]";
 
     const subjectMandate = subjectRef
