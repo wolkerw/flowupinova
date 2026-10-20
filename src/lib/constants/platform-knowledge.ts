@@ -195,3 +195,54 @@ Na tela de **[Posts](/dashboard/posts)**, na seção **"Criar novo post"**, exis
 3. **Links Clicáveis em Markdown**:
    - Sempre inclua links funcionais para facilitar a vida do lojista: \`[Posts](/dashboard/posts)\`, \`[Galeria](/dashboard/galeria)\`, \`[Configurações](/dashboard/configuracoes)\`, etc.
 `;
+
+export type PlatformKnowledgeChannel = "web" | "whatsapp" | "instagram";
+
+/**
+ * Retorna a Central de Informações adaptada especificamente para o canal de atendimento.
+ * - 'web': Formato original com links markdown relativos e foco no tutor Vapti.
+ * - 'whatsapp': Converte para links absolutos (https://numvapt.com.br/...), formatação nativa *negrito* e diretrizes para a Maia.
+ * - 'instagram': Converte para links absolutos completos e síntese para mensagens no Direct.
+ */
+export function getPlatformKnowledgeForChannel(channel: PlatformKnowledgeChannel = "web"): string {
+  if (channel === "web") {
+    return PLATFORM_KNOWLEDGE_BASE;
+  }
+
+  const BASE_URL = "https://numvapt.com.br";
+  let knowledge = PLATFORM_KNOWLEDGE_BASE;
+
+  if (channel === "whatsapp") {
+    // 1. Converter links markdown relativos [Texto](/rota) para *Texto* (URL absoluta)
+    knowledge = knowledge.replace(/\[([^\]]+)\]\(\/?([^\)]+)\)/g, `*$1* (${BASE_URL}/$2)`);
+    // 2. Converter formatação markdown **negrito** para *negrito* nativo do WhatsApp
+    knowledge = knowledge.replace(/\*\*([^*]+)\*\*/g, `*$1*`);
+    // 3. Adicionar diretrizes específicas para atendimento via WhatsApp
+    knowledge += `\n---
+
+## 📲 DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA WHATSAPP (MAIA):
+1. **Linguagem Humanizada e Prática**:
+   - Atue como uma consultora atenciosa, amigável e resolutiva no WhatsApp.
+   - Quando o cliente tiver dúvidas de como mexer na ferramenta ou postar, guie-o passo a passo explicando com clareza em qual aba clicar (ex: *Posts* em ${BASE_URL}/dashboard/posts ou *Configurações* em ${BASE_URL}/dashboard/configuracoes).
+   - Envie sempre URLs oficiais absolutas para que o cliente possa clicar diretamente da conversa no celular.
+2. **Consultoria Ativa do Cérebro do Negócio**:
+   - Se o cliente perguntar como melhorar o resultado dos posts ou como configurar o "Cérebro do Negócio", explique didaticamente que o preenchimento dos dados em *Configurações* (${BASE_URL}/dashboard/configuracoes) — incluindo cores, personas, tom de voz e a Regra de Ouro para produtos — calibra a IA para gerar artes de altíssimo nível.
+3. **Formatação Otimizada para WhatsApp**:
+   - Use parágrafos curtos (2 a 3 linhas), marcadores simples (•) e *negrito* nas palavras-chave.
+`;
+  } else if (channel === "instagram") {
+    // 1. Converter links markdown relativos [Texto](/rota) para links absolutos completos
+    knowledge = knowledge.replace(/\[([^\]]+)\]\(\/?([^\)]+)\)/g, `[$1](${BASE_URL}/$2)`);
+    // 2. Adicionar diretrizes específicas para atendimento via Instagram Direct
+    knowledge += `\n---
+
+## 📸 DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA INSTAGRAM DIRECT (MAIA):
+1. **Atendimento Ágil no Direct**:
+   - Mantenha respostas curtas, acolhedoras e objetivas, fáceis de ler no smartphone.
+   - Quando o seguidor perguntar sobre como publicar ou como configurar sua marca, explique as etapas de forma sucinta e passe o link da plataforma (ex: ${BASE_URL}/dashboard/posts).
+   - Se a dúvida for complexa ou o seguidor desejar suporte aprofundado, passe o contato do WhatsApp oficial: (51) 92004-4035 (https://wa.me/5551920044035).
+`;
+  }
+
+  return knowledge;
+}

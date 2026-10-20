@@ -39,6 +39,42 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     isActive: true,
     order: 4,
     updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "topic_passo_a_passo",
+    category: "funcionalidades",
+    title: "Passo a Passo: Como Publicar e Agendar Posts (5 Etapas)",
+    content: "Roteiro completo em 5 etapas para publicação no app da NumVapt:\n• Etapa 1: Ir na aba Posts (https://numvapt.com.br/dashboard/posts) no menu lateral e escolher o fluxo desejado (Manual ou IA).\n• Etapa 2: Adicionar foto/vídeo do celular/computador ou da Galeria (opção de retocar com Editor GPT para alterações com IA ou Editor Manual para retoques de pincel).\n• Etapa 3: Escrever legenda atrativa com gancho, chamada para ação, emojis e hashtags do nicho.\n• Etapa 4: Selecionar as redes sociais conectadas (Instagram, Facebook, LinkedIn, TikTok, Google Meu Negócio).\n• Etapa 5: Clicar em 'Publicar Agora' para postar na hora ou agendar data e hora no calendário.",
+    isActive: true,
+    order: 5,
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "topic_cerebro",
+    category: "funcionalidades",
+    title: "Cérebro do Negócio e Configurações da Marca",
+    content: "Como configurar o Cérebro do Negócio (https://numvapt.com.br/dashboard/configuracoes):\n• O Cérebro do Negócio calibra a inteligência artificial para que os posts tenham a identidade visual e o tom de voz autênticos da empresa.\n• Preencher: Nome Comercial, Categoria/Nicho, Descrição do Negócio, WhatsApp e Redes Sociais.\n• Identidade Visual: Upload das logomarcas (horizontal, vertical, símbolo, avatar) e paleta de cores primária e secundária.\n• Estratégia: Cadastro do Público-Alvo, Personas, Diferenciais Competitivos e Tom de Voz.\n• Brand Book com IA: Possibilidade de enviar o PDF da marca ou responder às perguntas do Vapti para preenchimento automático.\n• Regra de Ouro para Produtos: Instrução expressa para a IA preservar fielmente rótulo, embalagem, cores e proporção real de produtos físicos.",
+    isActive: true,
+    order: 6,
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "topic_fluxos_criacao",
+    category: "funcionalidades",
+    title: "Os 5 Fluxos de Criação de Posts na NumVapt",
+    content: "Na aba Posts (https://numvapt.com.br/dashboard/posts), o cliente conta com 5 formas especializadas de criar:\n1. Fluxo Manual: Para fotos ou vídeos próprios já prontos, com suporte ao Editor GPT (alterações com IA) e Editor Manual (retoques de pincel).\n2. Fluxo Conceito: Criação de campanhas institucionais e ideias de nicho a partir de temas livres.\n3. Fluxo Produto: Envio de foto real do produto para a IA criar cenários comerciais profissionais mantendo o rótulo e embalagem originais intactos.\n4. Fluxo Pessoa + Cenário: Combina a selfie/retrato da equipe com cenários de estúdio ou ambientes personalizados.\n5. Fluxo Geral: Geração aberta com suporte ao modo 'Identidade de Campanha', que replica o design system e estética de uma arte de referência.",
+    isActive: true,
+    order: 7,
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "topic_recursos",
+    category: "funcionalidades",
+    title: "Recursos da Plataforma: Galeria, Aprovações e Redes Conectadas",
+    content: "Outras ferramentas essenciais da plataforma:\n• Galeria de Mídias (https://numvapt.com.br/dashboard/galeria): Nuvem para salvar e baixar criativos em alta definição e criar posts com 1 clique.\n• Central de Aprovações (https://numvapt.com.br/dashboard/aprovacoes): Visualização de prévia e aprovação em 1 clique para clientes e gestores no modo Concierge.\n• Foto Profissional / Avatar IA (https://numvapt.com.br/dashboard/avatar): Fotos de estúdio e retratos corporativos a partir de selfies mantendo fidelidade facial rigorosa.\n• Conexões Sociais: Integração com Instagram, Facebook, LinkedIn, TikTok e Google Meu Negócio.",
+    isActive: true,
+    order: 8,
+    updatedAt: new Date().toISOString(),
   }
 ];
 

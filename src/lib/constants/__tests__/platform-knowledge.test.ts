@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { PLATFORM_KNOWLEDGE_BASE } from "../platform-knowledge";
+import {
+  PLATFORM_KNOWLEDGE_BASE,
+  getPlatformKnowledgeForChannel,
+} from "../platform-knowledge";
 
 describe("PLATFORM_KNOWLEDGE_BASE", () => {
   it("deve conter as seções essenciais e rotas da plataforma NumVapt", () => {
@@ -54,5 +57,34 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Pessoa + Cenário");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Manual");
     expect(PLATFORM_KNOWLEDGE_BASE).toContain("Fluxo Geral");
+  });
+
+  describe("getPlatformKnowledgeForChannel", () => {
+    it("retorna a base original intacta para o canal 'web'", () => {
+      const webKb = getPlatformKnowledgeForChannel("web");
+      expect(webKb).toBe(PLATFORM_KNOWLEDGE_BASE);
+      expect(webKb).toContain("[Posts](/dashboard/posts)");
+    });
+
+    it("adapta links para URLs absolutas e negrito nativo para o canal 'whatsapp'", () => {
+      const waKb = getPlatformKnowledgeForChannel("whatsapp");
+      expect(waKb).toContain("https://numvapt.com.br/dashboard/posts");
+      expect(waKb).toContain("https://numvapt.com.br/dashboard/configuracoes");
+      expect(waKb).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA WHATSAPP (MAIA)");
+      expect(waKb).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
+      expect(waKb).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
+      // Não deve conter links relativos soltos
+      expect(waKb).not.toContain("](/dashboard/posts)");
+    });
+
+    it("adapta links para URLs absolutas para o canal 'instagram'", () => {
+      const igKb = getPlatformKnowledgeForChannel("instagram");
+      expect(igKb).toContain("https://numvapt.com.br/dashboard/posts");
+      expect(igKb).toContain("https://numvapt.com.br/dashboard/configuracoes");
+      expect(igKb).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA INSTAGRAM DIRECT (MAIA)");
+      expect(igKb).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
+      expect(igKb).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
+      expect(igKb).not.toContain("](/dashboard/posts)");
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { getPlatformKnowledgeForChannel } from "@/lib/constants/platform-knowledge";
 import type { WhatsAppMessage, WhatsAppAIResponse } from "@/lib/types/whatsapp";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_KNOWLEDGE_TOPICS } from "@/app/api/admin/whatsapp/knowledge/route";
@@ -148,7 +149,8 @@ export async function generateWhatsAppAIResponse(
       .join("\n\n");
   }
 
-  let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION;
+  const platformKnowledge = getPlatformKnowledgeForChannel("whatsapp");
+  let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION + "\n\n" + platformKnowledge;
   if (dynamicKnowledge) {
     dynamicInstruction +=
       "\n\n# CENTRAL DE CONHECIMENTO OFICIAL (FONTE DA VERDADE SUPREMA E ATUALIZADA - PRIORIDADE MÁXIMA):\n" +

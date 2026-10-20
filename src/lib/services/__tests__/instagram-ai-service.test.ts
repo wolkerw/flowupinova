@@ -31,11 +31,15 @@ vi.mock("@/lib/firebase-admin", () => {
 });
 
 describe("Instagram AI Service", () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env = { ...originalEnv };
+    delete process.env.GEMINI_API_KEY;
   });
 
-  it("retorna resposta de planos usando a central de conhecimento do Firestore", async () => {
+  it("retorna resposta de planos usando a central de conhecimento do Firestore (fallback)", async () => {
     const res = await generateInstagramAIResponse({
       incomingMessage: "Quanto custa o plano da NumVapt?",
       senderName: "Carlos",
@@ -68,5 +72,47 @@ describe("Instagram AI Service", () => {
     expect(res.replyText).toContain("Fernanda");
     expect(res.replyText).toContain("Maia");
     expect(res.needsHumanSupport).toBe(false);
+  });
+
+  it("chama o Gemini com a base de conhecimento completa da plataforma, passo a passo e cérebro do negócio", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+
+    const mockAiJson = JSON.stringify({
+      replyText: "Olá! Para publicar posts na NumVapt, temos 5 etapas simples na aba Posts! ✨",
+      needsHumanSupport: false,
+      suggestedAction: "faq",
+      planMentioned: null,
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: mockAiJson }],
+            },
+          },
+        ],
+      }),
+    });
+
+    const res = await generateInstagramAIResponse({
+      incomingMessage: "Como faço para postar um carrossel no app?",
+      senderName: "Lucas",
+    });
+
+    expect(res.replyText).toContain("NumVapt");
+    expect(global.fetch).toHaveBeenCalled();
+
+    const fetchArgs = (global.fetch as any).mock.calls[0];
+    const requestBody = JSON.parse(fetchArgs[1].body);
+    const systemInstruction = requestBody.systemInstruction.parts[0].text;
+
+    expect(systemInstruction).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
+    expect(systemInstruction).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
+    expect(systemInstruction).toContain("https://numvapt.com.br/dashboard/posts");
+    expect(systemInstruction).toContain("https://numvapt.com.br/dashboard/configuracoes");
+    expect(systemInstruction).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA INSTAGRAM DIRECT (MAIA)");
   });
 });

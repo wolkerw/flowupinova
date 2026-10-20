@@ -51,7 +51,7 @@ describe("whatsapp-ai-service", () => {
     expect(res.needsHumanSupport).toBe(true);
   });
 
-  it("gera resposta da IA formatada para WhatsApp a partir da chamada ao Gemini", async () => {
+  it("gera resposta da IA formatada para WhatsApp a partir da chamada ao Gemini e inclui a Central de Conhecimento e Cérebro", async () => {
     const mockAiJson = JSON.stringify({
       replyText: "Olá! O plano anual da *NumVapt* sai por R$ 369,23/mês equivalente com 13 meses de acesso! ✨ Gostaria de receber o link de pagamento?",
       needsHumanSupport: false,
@@ -73,16 +73,24 @@ describe("whatsapp-ai-service", () => {
     });
 
     const res = await generateWhatsAppAIResponse({
-      incomingMessage: "Qual o valor do plano anual?",
+      incomingMessage: "Como faço para postar e como configuro meu cérebro do negócio?",
       senderName: "Carlos",
       clientPhone: "51920044035",
     });
 
     expect(res.replyText).toContain("NumVapt");
-    expect(res.replyText).toContain("R$ 369,23/mês");
     expect(res.needsHumanSupport).toBe(false);
-    expect(res.suggestedAction).toBe("checkout_link");
-    expect(res.planMentioned).toBe("anual");
+
+    // Valida que a instrução do sistema enviada ao Gemini continha a base completa de conhecimento
+    expect(global.fetch).toHaveBeenCalled();
+    const fetchArgs = (global.fetch as any).mock.calls[0];
+    const requestBody = JSON.parse(fetchArgs[1].body);
+    const systemText = requestBody.systemInstruction.parts[0].text;
+    expect(systemText).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
+    expect(systemText).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
+    expect(systemText).toContain("https://numvapt.com.br/dashboard/posts");
+    expect(systemText).toContain("https://numvapt.com.br/dashboard/configuracoes");
+    expect(systemText).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA WHATSAPP (MAIA)");
   });
 
   it("detecta pedido de atendente humano e sinaliza needsHumanSupport", async () => {

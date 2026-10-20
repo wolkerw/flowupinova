@@ -1,3 +1,4 @@
+import { getPlatformKnowledgeForChannel } from "@/lib/constants/platform-knowledge";
 import type { InstagramMessage, InstagramAIResponse } from "@/lib/types/instagram";
 import { adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_KNOWLEDGE_TOPICS } from "@/app/api/admin/whatsapp/knowledge/route";
@@ -91,7 +92,8 @@ export async function generateInstagramAIResponse(
   const apiKey = process.env.GEMINI_API_KEY;
   if (apiKey) {
     try {
-      let fullInstruction = INSTAGRAM_SYSTEM_INSTRUCTION;
+      const platformKnowledge = getPlatformKnowledgeForChannel("instagram");
+      let fullInstruction = INSTAGRAM_SYSTEM_INSTRUCTION + "\n\n" + platformKnowledge;
       if (dynamicKnowledge) {
         fullInstruction +=
           "\n\n# CENTRAL DE CONHECIMENTO OFICIAL (FONTE DA VERDADE SUPREMA E ATUALIZADA - PRIORIDADE MÁXIMA):\n" +
