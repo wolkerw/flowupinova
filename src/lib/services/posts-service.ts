@@ -1,6 +1,6 @@
 "use client";
 
-import { db, storage } from "@/lib/firebase";
+import { db, storage, auth } from "@/lib/firebase";
 import {
   collection,
   addDoc,
@@ -979,16 +979,96 @@ export async function saveMediaToGallery(
     return { success: false, error: "UserID é obrigatório." };
   }
 
+  const isVideo = input.type === "video" || isVideoMedia(input.publicUrl || input.previewUrl || "");
+  const ext = isVideo ? "mp4" : "jpg";
+  const fileName = input.fileName || (isVideo ? `video_${Date.now()}.${ext}` : `arte_${Date.now()}.${ext}`);
+
+  // 1. Tentar salvar prioritariamente via API route (Firebase Admin - robusto contra CORS e regras de cliente)
+  if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+    try {
+      const formData = new FormData();
+      formData.append("userId", userId);
+      if (input.caption) formData.append("caption", input.caption);
+      if (input.source) formData.append("source", input.source);
+      formData.append("type", isVideo ? "video" : "image");
+      formData.append("fileName", fileName);
+
+      let hasPayload = false;
+
+      // Se há um arquivo físico do upload
+      if (input.file && input.file.size > 0) {
+        formData.append("file", input.file, fileName);
+        hasPayload = true;
+      }
+      // Se há um Blob URL temporário local
+      else if (input.previewUrl?.startsWith("blob:") || input.publicUrl?.startsWith("blob:")) {
+        try {
+          const blobUrl = input.publicUrl?.startsWith("blob:") ? input.publicUrl : input.previewUrl!;
+          const res = await fetch(blobUrl);
+          const blob = await res.blob();
+          const fileObj = new File([blob], fileName, {
+            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+          });
+          formData.append("file", fileObj, fileName);
+          hasPayload = true;
+        } catch (blobFetchErr) {
+          console.warn("[POST_SERVICE] Falha ao converter blob para FormData:", blobFetchErr);
+        }
+      }
+      // Se for Data URL Base64
+      else if (input.previewUrl?.startsWith("data:") || input.publicUrl?.startsWith("data:")) {
+        const dataUrl = input.publicUrl?.startsWith("data:") ? input.publicUrl : input.previewUrl!;
+        formData.append("fileBase64", dataUrl);
+        hasPayload = true;
+      }
+      // Se já for uma URL pública existente
+      else if (input.publicUrl?.startsWith("http")) {
+        formData.append("publicUrl", input.publicUrl);
+        hasPayload = true;
+      }
+
+      if (hasPayload) {
+        const headers: Record<string, string> = {};
+        try {
+          const token = await auth?.currentUser?.getIdToken();
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+        } catch {}
+
+        const origin = window.location?.origin || "";
+        const endpoint = origin ? `${origin}/api/galeria/salvar` : "/api/galeria/salvar";
+
+        const apiRes = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: formData,
+        });
+
+        const apiData = await apiRes.json().catch(() => ({}));
+        if (apiRes.ok && apiData.success) {
+          return {
+            success: true,
+            galleryId: apiData.galleryId,
+            url: apiData.url,
+          };
+        }
+
+        if (apiData?.error) {
+          console.warn("[POST_SERVICE] API /api/galeria/salvar retornou erro:", apiData.error);
+        }
+      }
+    } catch (apiErr: any) {
+      console.warn("[POST_SERVICE] Falha ao tentar API /api/galeria/salvar, acionando fallback client:", apiErr);
+    }
+  }
+
+  // 2. Fallback Client-side (Firestore / Storage direto)
   try {
     let finalUrl = input.publicUrl || input.previewUrl || "";
     let storagePath = "";
-    const isVideo = input.type === "video" || isVideoMedia(finalUrl);
 
-    // Se a URL for blob ou data URL, ou se tiver um File físico que ainda não subiu para a nuvem
     if (finalUrl.startsWith("data:")) {
       const blob = base64ToBlob(finalUrl);
-      const ext = isVideo ? "mp4" : "jpg";
-      const file = new File([blob], input.fileName || `arte_${Date.now()}.${ext}`, {
+      const file = new File([blob], fileName, {
         type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
       });
       finalUrl = await uploadMediaAndGetURL(userId, file);
@@ -996,8 +1076,7 @@ export async function saveMediaToGallery(
     } else if (finalUrl.startsWith("blob:")) {
       const res = await fetch(finalUrl);
       const blob = await res.blob();
-      const ext = isVideo ? "mp4" : "jpg";
-      const file = new File([blob], input.fileName || `arte_${Date.now()}.${ext}`, {
+      const file = new File([blob], fileName, {
         type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
       });
       finalUrl = await uploadMediaAndGetURL(userId, file);
@@ -1016,7 +1095,7 @@ export async function saveMediaToGallery(
     }
 
     const galleryCol = collection(db, "users", userId, "mediaGallery");
-    const docData = {
+    const docData = deepSanitizeFirestoreData({
       url: finalUrl,
       storagePath: storagePath || "",
       source: input.source || "manual_editor",
@@ -1024,10 +1103,10 @@ export async function saveMediaToGallery(
       caption: input.caption || null,
       createdAt: serverTimestamp(),
       usedInPostId: null,
-      fileName: input.fileName || (isVideo ? `video_${Date.now()}.mp4` : `arte_${Date.now()}.jpg`),
+      fileName,
       type: isVideo ? "video" : "image",
       isPublished: false,
-    };
+    });
 
     const docRef = await addDoc(galleryCol, docData);
 
@@ -1037,7 +1116,7 @@ export async function saveMediaToGallery(
       url: finalUrl,
     };
   } catch (err: any) {
-    console.error("[POST_SERVICE] Erro ao salvar na galeria:", err);
+    console.error("[POST_SERVICE] Erro no fallback ao salvar na galeria:", err);
     return {
       success: false,
       error: err?.message || "Erro desconhecido ao salvar mídia na galeria.",
@@ -1111,7 +1190,7 @@ export async function sendPostToApproval(
       ? input.scheduledAt instanceof Date
         ? input.scheduledAt
         : new Date(input.scheduledAt)
-      : new Date(Date.now() + 24 * 60 * 60 * 1000); // amanhã se não informado
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const postDocData: any = {
       text: input.text?.trim() || "",

@@ -2966,6 +2966,7 @@ export default function CriarConteudoPage() {
 
     try {
       let savedCount = 0;
+      let lastErrorMessage = "";
       for (const [idx, item] of mediaItems.entries()) {
         const fileName = item.file?.name || (item.type === "video" ? `video_${Date.now()}_${idx + 1}.mp4` : `arte_manual_${Date.now()}_${idx + 1}.jpg`);
         const res = await saveMediaToGallery(user.uid, {
@@ -2982,6 +2983,8 @@ export default function CriarConteudoPage() {
           if (res.url) {
             item.publicUrl = res.url;
           }
+        } else {
+          lastErrorMessage = res.error || "";
         }
       }
 
@@ -2993,7 +2996,7 @@ export default function CriarConteudoPage() {
         });
         setGallerySavedModalOpen(true);
       } else {
-        throw new Error("Não foi possível salvar os itens na galeria.");
+        throw new Error(lastErrorMessage || "Não foi possível salvar os itens na galeria.");
       }
     } catch (err: any) {
       console.error("[CRIAR_POST] Erro ao salvar na galeria:", err);
