@@ -1858,6 +1858,9 @@ export default function CriarConteudoPage() {
   const [text, setText] = useState("");
   const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingToGallery, setIsSavingToGallery] = useState(false);
+  const [isSendingToApproval, setIsSendingToApproval] = useState(false);
+  const [gallerySavedModalOpen, setGallerySavedModalOpen] = useState(false);
   const [scheduleType, setScheduleType] = useState<"now" | "schedule">("now");
   const [scheduleDate, setScheduleDate] = useState("");
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -2930,6 +2933,146 @@ export default function CriarConteudoPage() {
     setPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     );
+  };
+
+  const handleSaveCurrentToGallery = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Não autenticado",
+        description: "Você precisa estar conectado para salvar na galeria.",
+      });
+      return;
+    }
+    if (mediaItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Nenhuma mídia",
+        description: "Adicione ou edite uma mídia antes de salvar na galeria.",
+      });
+      return;
+    }
+
+    setIsSavingToGallery(true);
+    toast({
+      title: "Salvando na Galeria...",
+      description: "Fazendo upload da arte final para seu acervo.",
+    });
+
+    try {
+      let savedCount = 0;
+      for (const [idx, item] of mediaItems.entries()) {
+        const fileName = item.file?.name || (item.type === "video" ? `video_${Date.now()}_${idx + 1}.mp4` : `arte_manual_${Date.now()}_${idx + 1}.jpg`);
+        const res = await saveMediaToGallery(user.uid, {
+          file: item.file,
+          publicUrl: item.publicUrl,
+          previewUrl: item.previewUrl,
+          caption: text || null,
+          type: item.type,
+          fileName,
+          source: item.editorLayers?.length ? "manual_editor_inpaint" : "manual_flow",
+        });
+        if (res.success) {
+          savedCount++;
+          if (res.url) {
+            item.publicUrl = res.url;
+          }
+        }
+      }
+
+      if (savedCount > 0) {
+        toast({
+          variant: "success",
+          title: "Arte Salva na Galeria!",
+          description: `${savedCount} mídia(s) arquivada(s) com sucesso na sua Galeria.`,
+        });
+        setGallerySavedModalOpen(true);
+      } else {
+        throw new Error("Não foi possível salvar os itens na galeria.");
+      }
+    } catch (err: any) {
+      console.error("[CRIAR_POST] Erro ao salvar na galeria:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Salvar",
+        description: err?.message || "Ocorreu um erro ao salvar a arte na galeria.",
+      });
+    } finally {
+      setIsSavingToGallery(false);
+    }
+  };
+
+  const handleDirectSendToApproval = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Não autenticado",
+        description: "Você precisa estar conectado para enviar para aprovação.",
+      });
+      return;
+    }
+    if (mediaItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Nenhuma mídia",
+        description: "Adicione uma mídia antes de enviar para aprovação.",
+      });
+      return;
+    }
+    if (!text.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Legenda necessária",
+        description: "Por favor, escreva uma legenda antes de enviar para aprovação do cliente.",
+      });
+      return;
+    }
+
+    setIsSendingToApproval(true);
+    toast({
+      title: "Enviando para Aprovação...",
+      description: "Preparando a arte e criando a solicitação para o cliente.",
+    });
+
+    try {
+      const scheduledDateTime = scheduleType === "schedule" && scheduleDate
+        ? new Date(scheduleDate)
+        : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const effectivePlatforms = platforms.length > 0
+        ? platforms
+        : ["instagram", "facebook"];
+
+      const res = await sendPostToApproval(user.uid, {
+        text: text.trim(),
+        media: mediaItems,
+        platforms: effectivePlatforms,
+        scheduledAt: scheduledDateTime,
+        isCarousel: selectedType === "carousel",
+        isStory: selectedType === "story",
+        requestedBy: user.email || user.uid,
+      });
+
+      if (res.success) {
+        toast({
+          variant: "success",
+          title: "Enviado para Aprovação!",
+          description: "A publicação foi enviada para a Central de Aprovações com sucesso.",
+        });
+        router.push("/dashboard/aprovacoes");
+      } else {
+        throw new Error(res.error || "Falha ao registrar aprovação.");
+      }
+    } catch (err: any) {
+      console.error("[CRIAR_POST] Erro ao enviar para aprovação:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Enviar",
+        description: err?.message || "Não foi possível enviar a arte para aprovação.",
+      });
+    } finally {
+      setIsSendingToApproval(false);
+    }
   };
 
   const handleSubmit = async () => {

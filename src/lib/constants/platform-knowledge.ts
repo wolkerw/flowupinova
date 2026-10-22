@@ -175,6 +175,7 @@ Na tela de **[Posts](/dashboard/posts)**, na seção **"Criar novo post"**, exis
 4. **Fluxo Manual** (Artes e Mídias Prontas):
    - **Quando usar**: Quando o lojista já tem a foto/vídeo pronto produzido por ele ou fotógrafo, artes anteriores ou comunicados.
    - **Como fazer**: Escolher formato (Post Único, Carrossel ou Story 9:16) -> Enviar mídia -> Escrever legenda -> Retocar com Editor GPT ou Editor Manual se desejar -> Agendar ou publicar.
+   - **Salvar na Galeria & Aprovações**: Na Etapa 3 (Revisão), o usuário pode salvar qualquer arte editada diretamente no acervo da [Galeria](/dashboard/galeria) para uso posterior ou enviar o post para a [Central de Aprovações](/dashboard/aprovacoes) do cliente/gestor com um único clique.
 
 5. **Fluxo Geral** (Geração Livre e Séries de Campanha):
    - **Quando usar**: Criações abertas a partir de ideias, prompts customizados e séries com **Identidade de Campanha** (onde a IA herda o design system e a diagramação de uma arte mestre da série).

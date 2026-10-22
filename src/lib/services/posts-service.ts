@@ -960,3 +960,218 @@ export async function deletePost(userId: string, postId: string): Promise<void> 
     throw new Error("Não foi possível excluir a publicação do banco de dados.");
   }
 }
+
+export interface SaveMediaToGalleryInput {
+  file?: File | null;
+  publicUrl?: string | null;
+  previewUrl?: string | null;
+  caption?: string | null;
+  type?: "image" | "video";
+  source?: string;
+  fileName?: string;
+}
+
+export async function saveMediaToGallery(
+  userId: string,
+  input: SaveMediaToGalleryInput
+): Promise<{ success: boolean; galleryId?: string; url?: string; error?: string }> {
+  if (!userId) {
+    return { success: false, error: "UserID é obrigatório." };
+  }
+
+  try {
+    let finalUrl = input.publicUrl || input.previewUrl || "";
+    let storagePath = "";
+    const isVideo = input.type === "video" || isVideoMedia(finalUrl);
+
+    // Se a URL for blob ou data URL, ou se tiver um File físico que ainda não subiu para a nuvem
+    if (finalUrl.startsWith("data:")) {
+      const blob = base64ToBlob(finalUrl);
+      const ext = isVideo ? "mp4" : "jpg";
+      const file = new File([blob], input.fileName || `arte_${Date.now()}.${ext}`, {
+        type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+      });
+      finalUrl = await uploadMediaAndGetURL(userId, file);
+      storagePath = `users/${userId}/uploads/${file.name}`;
+    } else if (finalUrl.startsWith("blob:")) {
+      const res = await fetch(finalUrl);
+      const blob = await res.blob();
+      const ext = isVideo ? "mp4" : "jpg";
+      const file = new File([blob], input.fileName || `arte_${Date.now()}.${ext}`, {
+        type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+      });
+      finalUrl = await uploadMediaAndGetURL(userId, file);
+      storagePath = `users/${userId}/uploads/${file.name}`;
+    } else if (
+      input.file &&
+      input.file.size > 0 &&
+      (!finalUrl || finalUrl.startsWith("blob:") || finalUrl.startsWith("data:"))
+    ) {
+      finalUrl = await uploadMediaAndGetURL(userId, input.file);
+      storagePath = `users/${userId}/uploads/${input.file.name}`;
+    }
+
+    if (!finalUrl) {
+      return { success: false, error: "URL da mídia não disponível para salvar na galeria." };
+    }
+
+    const galleryCol = collection(db, "users", userId, "mediaGallery");
+    const docData = {
+      url: finalUrl,
+      storagePath: storagePath || "",
+      source: input.source || "manual_editor",
+      prompt: input.caption || null,
+      caption: input.caption || null,
+      createdAt: serverTimestamp(),
+      usedInPostId: null,
+      fileName: input.fileName || (isVideo ? `video_${Date.now()}.mp4` : `arte_${Date.now()}.jpg`),
+      type: isVideo ? "video" : "image",
+      isPublished: false,
+    };
+
+    const docRef = await addDoc(galleryCol, docData);
+
+    return {
+      success: true,
+      galleryId: docRef.id,
+      url: finalUrl,
+    };
+  } catch (err: any) {
+    console.error("[POST_SERVICE] Erro ao salvar na galeria:", err);
+    return {
+      success: false,
+      error: err?.message || "Erro desconhecido ao salvar mídia na galeria.",
+    };
+  }
+}
+
+export interface SendPostToApprovalInput {
+  text: string;
+  media: Array<{
+    file?: File | null;
+    publicUrl?: string | null;
+    previewUrl?: string | null;
+    type?: "image" | "video";
+  }>;
+  platforms: string[];
+  scheduledAt?: Date | string | null;
+  isCarousel?: boolean;
+  isStory?: boolean;
+  requestedBy?: string;
+}
+
+export async function sendPostToApproval(
+  userId: string,
+  input: SendPostToApprovalInput
+): Promise<{ success: boolean; postId?: string; error?: string }> {
+  if (!userId) {
+    return { success: false, error: "UserID é obrigatório." };
+  }
+  if (!input.media || input.media.length === 0) {
+    return { success: false, error: "Ao menos uma mídia é necessária para enviar para aprovação." };
+  }
+
+  try {
+    // 1. Processa upload de todas as mídias para URLs persistentes no Storage
+    const uploadedUrls = await Promise.all(
+      input.media.map(async (m) => {
+        let url = m.publicUrl || m.previewUrl || "";
+        const isVideo = m.type === "video" || isVideoMedia(url);
+
+        if (url.startsWith("data:")) {
+          const blob = base64ToBlob(url);
+          const ext = isVideo ? "mp4" : "jpg";
+          const file = new File([blob], `approval_${Date.now()}.${ext}`, {
+            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+          });
+          return await uploadMediaAndGetURL(userId, file);
+        } else if (url.startsWith("blob:")) {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const ext = isVideo ? "mp4" : "jpg";
+          const file = new File([blob], `approval_${Date.now()}.${ext}`, {
+            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+          });
+          return await uploadMediaAndGetURL(userId, file);
+        } else if (m.file && m.file.size > 0 && (!url || url.startsWith("blob:"))) {
+          return await uploadMediaAndGetURL(userId, m.file);
+        }
+        return url;
+      })
+    );
+
+    const validUrls = uploadedUrls.filter(Boolean);
+    if (validUrls.length === 0) {
+      return { success: false, error: "Não foi possível processar a mídia para aprovação." };
+    }
+
+    const firstIsVideo =
+      input.media[0]?.type === "video" || isVideoMedia(validUrls[0]);
+    const scheduledDate = input.scheduledAt
+      ? input.scheduledAt instanceof Date
+        ? input.scheduledAt
+        : new Date(input.scheduledAt)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000); // amanhã se não informado
+
+    const postDocData: any = {
+      text: input.text?.trim() || "",
+      caption: input.text?.trim() || "",
+      imageUrl: firstIsVideo ? null : validUrls[0],
+      videoUrl: firstIsVideo ? validUrls[0] : null,
+      imageUrls: firstIsVideo ? [] : validUrls,
+      mediaFiles: validUrls.map((u, i) => ({
+        url: u,
+        type: input.media[i]?.type || (isVideoMedia(u) ? "video" : "image"),
+      })),
+      mediaType: firstIsVideo ? "video" : "image",
+      isCarousel: Boolean(input.isCarousel || validUrls.length > 1),
+      isStory: Boolean(input.isStory),
+      platforms: input.platforms.length > 0 ? input.platforms : ["instagram", "facebook"],
+      scheduledAt: Timestamp.fromDate(scheduledDate),
+      status: "pending_approval",
+      approval: {
+        status: "pending",
+        requestedAt: Timestamp.now(),
+        requestedBy: input.requestedBy || userId,
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    const postsCol = collection(db, "users", userId, "posts");
+    const postRef = await addDoc(postsCol, deepSanitizeFirestoreData(postDocData));
+
+    // Também salvar cada mídia na galeria do usuário para garantir rastreabilidade
+    try {
+      const galleryCol = collection(db, "users", userId, "mediaGallery");
+      for (const [idx, url] of validUrls.entries()) {
+        const itemType = input.media[idx]?.type || (isVideoMedia(url) ? "video" : "image");
+        await addDoc(galleryCol, {
+          url,
+          storagePath: "",
+          source: "manual_approval",
+          prompt: input.text || null,
+          caption: input.text || null,
+          createdAt: serverTimestamp(),
+          usedInPostId: postRef.id,
+          fileName: itemType === "video" ? `video_${Date.now()}.mp4` : `arte_${Date.now()}.jpg`,
+          type: itemType,
+          isPublished: false,
+        });
+      }
+    } catch (galErr) {
+      console.warn("[POST_SERVICE] Aviso ao sincronizar galeria no envio para aprovação:", galErr);
+    }
+
+    return {
+      success: true,
+      postId: postRef.id,
+    };
+  } catch (err: any) {
+    console.error("[POST_SERVICE] Erro ao enviar post para aprovação:", err);
+    return {
+      success: false,
+      error: err?.message || "Erro desconhecido ao enviar para aprovação.",
+    };
+  }
+}
