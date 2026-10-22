@@ -437,6 +437,15 @@ export function ModelsViewer() {
               <p className="mt-1 text-[11px] text-slate-400">
                 Modelos de contingência fixos: <code className="text-purple-300">gemini-3-pro-image</code>, <code className="text-purple-300">gemini-2.0-flash-exp</code>, <code className="text-purple-300">gemini-3.5-flash</code>, <code className="text-purple-300">gemini-2.5-flash</code>.
               </p>
+              <div className="mt-2.5 rounded border border-purple-800/50 bg-purple-900/40 p-2.5">
+                <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-purple-200">
+                  <span>/identylock ativo</span>
+                  <span className="rounded bg-purple-700/60 px-1.5 py-0.2 text-[9px] text-purple-100">Trava Facial</span>
+                </div>
+                <p className="mt-1 text-[10px] text-slate-300 leading-relaxed">
+                  Trava todas as características faciais. Você pode modificar os elementos da imagem (roupas, cenários, iluminação e pose) sem que o rosto seja alterado.
+                </p>
+              </div>
               <p className="mt-2 text-[10px] text-amber-400/90 font-medium">
                 🔒 Bloqueado para edição por regra de negócio e garantia de fidelidade facial biométrica e tom de pele.
               </p>

@@ -70,6 +70,7 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
 6. **Foto Profissional** -> [Foto Profissional](/dashboard/avatar)
    - Criação de fotos de estúdio e retratos corporativos profissionais a partir de selfies do usuário ou equipe.
    - Gera ensaios fotográficos em diferentes cenários mantendo a consistência rigorosa do rosto e tom de pele original.
+   - **Regra /identylock**: Trava 100% de todas as características faciais originais. Você pode modificar e estilizar livremente as roupas, cenário, iluminação e pose sem que o rosto seja alterado.
 
 7. **Minha Conta & Assinatura** -> [Minha Conta](/dashboard/minha-conta)
    - Gestão de plano, limite de créditos, dados cadastrais e faturas.

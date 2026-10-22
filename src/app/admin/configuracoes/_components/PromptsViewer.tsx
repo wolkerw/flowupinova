@@ -386,6 +386,57 @@ export function PromptsViewer() {
             </div>
           </AccordionContent>
         </AccordionItem>
+
+        {/* Agente Foto Profissional / Identylock */}
+        <AccordionItem
+          value="avatar_identylock"
+          className="overflow-hidden rounded-lg border border-purple-800/40 bg-purple-950/20 px-4"
+        >
+          <AccordionTrigger className="text-purple-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <Bot className="h-4 w-4 text-purple-400" />
+              Agente: Foto Profissional (Digital Twin & /identylock)
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-300">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-purple-400">
+                <p>
+                  Diretrizes de fidelidade biométrica e regras do comando <code>/identylock</code> para geração de ensaios e retratos corporativos a partir de selfie.
+                </p>
+                <span className="rounded bg-purple-900/60 px-2 py-0.5 text-[10px] font-semibold text-purple-200 border border-purple-700/50">
+                  Dual Multimodal parts[1] + parts[2]
+                </span>
+              </div>
+              <Textarea
+                className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[160px]"
+                value={
+                  prompts.avatar_identylock_prompt ||
+                  `DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
+1. TRAVAMENTO BIOMÉTRICO FACIAL RIGOROSO (/identylock ATIVO):
+- REGRA MANDATÓRIA /identylock: Trava todas as características faciais da pessoa. Você pode modificar livremente os elementos da imagem (cenário, iluminação, vestuário, pose corporal, ambiente e enquadramento) sem que o rosto seja alterado.
+- REPRODUÇÃO FIEL DA PESSOA (PRIORIDADE MÁXIMA E INEGOCIÁVEL): A pessoa na imagem final gerada DEVE SER INCONFUNDIVELMENTE A MESMA PESSOA enviada na selfie (IMAGEM 1). Mantenha com precisão absoluta a identidade facial, biometria, feições, formato e distância dos olhos, formato do nariz, lábios, mandíbula, formato do rosto, marcas características, sobrancelhas, linha e cor do cabelo, e barba exatamente como estão na selfie original. É TERMINANTEMENTE PROIBIDO gerar um rosto diferente ou genérico.
+2. FIDELIDADE E CONSISTÊNCIA TOTAL DO TOM DE PELE: O tom e a cor de pele observados na selfie (IMAGEM 1) DEVEM ser rigorosamente replicados e preservados em todas as partes visíveis do corpo.`
+                }
+                onChange={(e) => handleChange("avatar_identylock_prompt", e.target.value)}
+              />
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-slate-400">
+                  Regra protegida integrada nativamente no motor Nano Banana Pro.
+                </span>
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("avatar_identylock_prompt")}
+                  disabled={saving}
+                  className="bg-purple-600 hover:bg-purple-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
     </div>
   );

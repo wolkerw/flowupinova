@@ -1156,4 +1156,19 @@ export const DEFAULT_STYLE_COMMANDS_SEED: Omit<AIStyleCommand, "createdAt" | "up
     order: 77,
     usageCount: 0,
   },
+  {
+    id: "cmd_identylock",
+    command: "/identylock",
+    label: "Travar Características Faciais (IdentyLock)",
+    description: "Trava todas as características faciais. Você pode modificar os elementos da imagem sem que o rosto seja alterado.",
+    category: "Pessoas & Retrato",
+    iconEmoji: "🔒",
+    promptInjection:
+      "Strict biometric facial lock (/identylock rule active): Lock 100% of all facial characteristics and biometric identity from reference photo. You can modify background scenery, lighting, clothing, body posture, and props freely without altering the face in any way. Face must remain identical, authentic, and unchanged.",
+    negativePromptInjection: "face modification, altered facial features, different person, generic face, facial distortion, inconsistent skin tone",
+    triggerKeywords: ["identylock", "travar rosto", "bloquear rosto", "manter rosto", "mesmo rosto", "preservar rosto", "fidelidade facial"],
+    active: true,
+    order: 78,
+    usageCount: 0,
+  },
 ];

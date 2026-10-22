@@ -61,7 +61,7 @@ describe("API /api/admin/prompts/commands", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
-    expect(data.items).toHaveLength(77);
+    expect(data.items).toHaveLength(78);
     expect(data.items[0].command).toBe("/bokeh");
   });
 

@@ -163,9 +163,10 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             faceImageUrl,
             styleImageUrl,
-            userPrompt: prompt,
+            userPrompt: prompt ? (prompt.includes('/identylock') ? prompt : `/identylock ${prompt}`) : '/identylock',
             userId,
             engine,
+            identylock: true,
           }),
         });
 
@@ -322,7 +323,9 @@ Com base nas imagens de referência fornecidas, gere um retrato fotográfico pro
 ${dualImageInstruction}
 
 DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
-1. REPRODUÇÃO FIEL DA PESSOA (PRIORIDADE MÁXIMA E INEGOCIÁVEL): A pessoa na imagem final gerada DEVE SER INCONFUNDIVELMENTE A MESMA PESSOA enviada na selfie (IMAGEM 1). Mantenha com precisão absoluta a identidade facial, biometria, feições, formato e distância dos olhos, formato do nariz, lábios, mandíbula, formato do rosto, marcas características, sobrancelhas, linha e cor do cabelo, e barba exatamente como estão na selfie original. É TERMINANTEMENTE PROIBIDO gerar um rosto diferente ou genérico.
+1. TRAVAMENTO BIOMÉTRICO FACIAL RIGOROSO (/identylock ATIVO):
+- REGRA MANDATÓRIA /identylock: Trava todas as características faciais da pessoa. Você pode modificar livremente os elementos da imagem (cenário, iluminação, vestuário, pose corporal, ambiente e enquadramento) sem que o rosto seja alterado.
+- REPRODUÇÃO FIEL DA PESSOA (PRIORIDADE MÁXIMA E INEGOCIÁVEL): A pessoa na imagem final gerada DEVE SER INCONFUNDIVELMENTE A MESMA PESSOA enviada na selfie (IMAGEM 1). Mantenha com precisão absoluta a identidade facial, biometria, feições, formato e distância dos olhos, formato do nariz, lábios, mandíbula, formato do rosto, marcas características, sobrancelhas, linha e cor do cabelo, e barba exatamente como estão na selfie original. É TERMINANTEMENTE PROIBIDO gerar um rosto diferente ou genérico.
 2. FIDELIDADE E CONSISTÊNCIA TOTAL DO TOM DE PELE: O tom e a cor de pele observados na selfie (IMAGEM 1) DEVEM ser rigorosamente replicados e preservados em todas as partes visíveis do corpo (rosto, pescoço, colo, braços, mãos e pernas). Caso a foto de estilo (IMAGEM 2) possua partes do corpo que a selfie não mostre, recrie-as assegurando que a cor e textura da pele sejam 100% fiéis à selfie do usuário, e NUNCA à cor da pessoa da foto de referência/estilo.
 3. RECONSTRUÇÃO ANATÔMICA HARMONIOSA: Caso a foto de referência enviada exiba apenas o rosto ou busto (selfie), recrie e complete harmonicamente as partes do corpo que não estão na selfie original (ombros, torso, braços, mãos e postura) de forma anatomicamente perfeita, integrada e com a mesma tonalidade de pele da pessoa.
 4. APRIMORAMENTO E RECRIAÇÃO DO VESTUÁRIO: A roupa da pessoa pode ser adaptada, ajustada ou recriada com IA para um figurino de alta elegância e sofisticação (como alfaiataria fina, terno bem cortado ou figurino de estilo de vida premium), combinando com as instruções de estilo e cenário.

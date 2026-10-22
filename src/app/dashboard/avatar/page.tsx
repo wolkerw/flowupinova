@@ -678,6 +678,9 @@ export default function AvatarPage() {
                   <span className="font-medium text-sky-300">Foto de Estilo:</span> A IA extrairá a
                   pose, cenário e vestimenta desta foto.
                 </li>
+                <li>
+                  <span className="font-medium text-purple-300">Regra /identylock:</span> Trava todas as características faciais. Você pode modificar roupas, cenário e iluminação sem que seu rosto seja alterado.
+                </li>
               </ul>
             </div>
           </div>
