@@ -209,6 +209,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (objective === "thumbnail") {
+      compiledPrompt += " [OBJETIVO VISUAL: THUMB DE ALTA PERFORMANCE — Capa de vídeo extremamente chamativa, magnética e de alto CTR para YouTube, Reels e TikTok. Ponto focal marcante, expressões fortes, contraste vibrante e composição irresistível para atrair cliques imediatos.]";
+    }
+
     // 3.2. Integração do BrandKit & Personas da Marca no Prompt
     const hasUploadedSourceAsset = Array.isArray(sourceAssetUrls) && sourceAssetUrls.length > 0;
     const isCreativeLogoExceptionMode = hasUploadedSourceAsset;
@@ -251,8 +255,12 @@ export async function POST(request: NextRequest) {
         brandDirectives.push(`Personas da Marca: Adequar a estética humana, estilo e representatividade visual para conectar diretamente com as personas da marca: ${personasList}`);
       }
 
-      // Se o objetivo for Foto de Perfil / Personal Branding ("personal")
-      if (objective === "personal") {
+      // Se o objetivo for Thumb de alta performance / Capa de Vídeo ("thumbnail")
+      if (objective === "thumbnail") {
+        brandDirectives.push(
+          `Thumb de Alta Performance / Capa de Vídeo Irresistível: Composição extremamente chamativa, magnética e de alto impacto visual (estilo thumbnail de alta conversão/CTR para vídeos no YouTube, Reels e TikTok). Ponto focal ultra destacado, expressões fortes, contraste vibrante, iluminação cinematográfica de alto dinamismo, hierarquia visual impecável que atrai o clique imediatamente e desperta curiosidade irresistível.`
+        );
+      } else if (objective === "personal") {
         brandDirectives.push(
           `Personal Branding / Foto de Perfil Executiva: Retrato profissional de alta credibilidade, postura confiante e autoridade executiva, alinhado perfeitamente à identidade e nicho da marca "${brandSnapshot.name || 'Empresa'}"`
         );

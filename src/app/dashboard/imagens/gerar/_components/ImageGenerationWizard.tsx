@@ -95,10 +95,10 @@ const OBJECTIVE_OPTIONS: {
     desc: "Ideias livres, datas comemorativas, ilustrações conceituais e temas artísticos",
   },
   {
-    id: "personal",
-    label: "Foto de Perfil",
-    icon: "👤",
-    desc: "Retratos profissionais para foto de perfil e fortalecimento da marca pessoal",
+    id: "thumbnail",
+    label: "Thumb de alta performance",
+    icon: "🎬",
+    desc: "Crie uma capa extremamente chamativa para seu vídeo com alto poder de atração e clique",
   },
 ];
 

@@ -280,5 +280,48 @@ describe("ImageGenerationWizard", () => {
 
     expect(avatarButton).toBeInTheDocument();
   });
-});
+  it("exibe o objetivo 'Thumb de alta performance' e não exibe mais 'Foto de Perfil' na Etapa 3", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        generationId: "gen-thumb-123",
+        assets: [],
+      }),
+    });
 
+    render(<ImageGenerationWizard />);
+
+    // Verifica que Foto de Perfil não existe
+    expect(screen.queryByText("Foto de Perfil")).toBeNull();
+
+    // Verifica que Thumb de alta performance existe
+    const thumbOption = screen.getByText("Thumb de alta performance");
+    expect(thumbOption).toBeInTheDocument();
+    expect(
+      screen.getByText(/Crie uma capa extremamente chamativa para seu vídeo com alto poder de atração e clique/i)
+    ).toBeInTheDocument();
+
+    // Clica no objetivo de Thumb
+    fireEvent.click(thumbOption);
+
+    // Preenche briefing e gera imagem
+    const textarea = screen.getByPlaceholderText(
+      /Crie uma foto publicitária de um bolo de chocolate/i
+    );
+    fireEvent.change(textarea, { target: { value: "Como faturar seus primeiros 10 mil no digital" } });
+
+    const generateBtn = screen.getByRole("button", { name: /Gerar Imagem com IA/i });
+    fireEvent.click(generateBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/imagens/gerar",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"objective":"thumbnail"'),
+        })
+      );
+    });
+  });
+});

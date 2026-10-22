@@ -4,6 +4,7 @@ export type AIImageObjective =
   | "ad"
   | "presentation"
   | "concept"
+  | "thumbnail"
   | "personal";
 
 export type AIImageFormat =

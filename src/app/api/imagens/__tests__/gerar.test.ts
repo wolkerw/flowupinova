@@ -212,6 +212,40 @@ describe("API /api/imagens/gerar", () => {
     expect(capturedPrompt).toContain("Personal Branding / Foto de Perfil Executiva");
   });
 
+  it("injeta diretriz de Thumb de Alta Performance no prompt quando o objetivo for thumbnail", async () => {
+    let capturedPrompt = "";
+    global.fetch = vi.fn().mockImplementation((url, options) => {
+      if (options && options.body) {
+        try {
+          const parsed = JSON.parse(options.body as string);
+          if (parsed.prompt) capturedPrompt = parsed.prompt;
+        } catch {}
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          data: [{ b64_json: Buffer.from("fake-thumb-image").toString("base64") }],
+        }),
+      });
+    });
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/gerar", {
+      method: "POST",
+      body: JSON.stringify({
+        brief: "Capa incrível para vídeo de marketing digital",
+        objective: "thumbnail",
+        format: "landscape",
+        quantity: 1,
+        useBrandKit: true,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(capturedPrompt).toContain("Thumb de Alta Performance");
+    expect(capturedPrompt).toContain("Capa de Vídeo Irresistível");
+  });
+
   it("prioriza gpt-image-2 mesmo quando houver foto/logomarca e registra modelUsed no Firestore", async () => {
     process.env.GEMINI_API_KEY = "test-gemini-key";
     process.env.OPENAI_API_KEY = "test-openai-key";

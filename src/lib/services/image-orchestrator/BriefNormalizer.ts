@@ -66,7 +66,12 @@ export class BriefNormalizer {
     }
 
     // Detectar objetivo se não fornecido
-    const detectedObjective: AIImageObjective = params.objective || "commercial";
+    let detectedObjective: AIImageObjective = params.objective || "commercial";
+    if (!params.objective) {
+      if (lower.includes("thumb") || lower.includes("capa de video") || lower.includes("capa de vídeo")) {
+        detectedObjective = "thumbnail";
+      }
+    }
 
     // Detectar sujeito principal
     const detectedSubject = cleaned.split(".")[0]?.slice(0, 100) || cleaned.slice(0, 100);
