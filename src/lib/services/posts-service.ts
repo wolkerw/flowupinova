@@ -1152,34 +1152,65 @@ export async function sendPostToApproval(
 
   try {
     // 1. Processa upload de todas as mídias para URLs persistentes no Storage
-    const uploadedUrls = await Promise.all(
+    const uploadedItems = await Promise.all(
       input.media.map(async (m) => {
         let url = m.publicUrl || m.previewUrl || "";
         const isVideo = m.type === "video" || isVideoMedia(url);
+        let galleryId: string | undefined = undefined;
 
-        if (url.startsWith("data:")) {
+        // Se já for uma URL pública definitiva (https:// e não blob nem localhost)
+        if (url.startsWith("http") && !url.includes("localhost") && !url.startsWith("blob:")) {
+          return { url, galleryId, type: isVideo ? "video" : "image" };
+        }
+
+        // Se estamos no browser (fora de testes), usa saveMediaToGallery para upload seguro via backend
+        if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+          const res = await saveMediaToGallery(userId, {
+            file: m.file,
+            publicUrl: m.publicUrl,
+            previewUrl: m.previewUrl,
+            caption: input.text,
+            type: isVideo ? "video" : "image",
+            source: "manual_approval",
+          });
+          if (res.success && res.url) {
+            return { url: res.url, galleryId: res.galleryId, type: isVideo ? "video" : "image" };
+          }
+        }
+
+        // Fallback / Ambiente de Testes Unitários
+        let fileObj: File | null = m.file || null;
+        if (!fileObj && url.startsWith("data:")) {
           const blob = base64ToBlob(url);
           const ext = isVideo ? "mp4" : "jpg";
-          const file = new File([blob], `approval_${Date.now()}.${ext}`, {
+          fileObj = new File([blob], `approval_${Date.now()}.${ext}`, {
             type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
           });
-          return await uploadMediaAndGetURL(userId, file);
-        } else if (url.startsWith("blob:")) {
-          const res = await fetch(url);
-          const blob = await res.blob();
-          const ext = isVideo ? "mp4" : "jpg";
-          const file = new File([blob], `approval_${Date.now()}.${ext}`, {
-            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
-          });
-          return await uploadMediaAndGetURL(userId, file);
-        } else if (m.file && m.file.size > 0 && (!url || url.startsWith("blob:"))) {
-          return await uploadMediaAndGetURL(userId, m.file);
+        } else if (!fileObj && url.startsWith("blob:")) {
+          try {
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const ext = isVideo ? "mp4" : "jpg";
+            fileObj = new File([blob], `approval_${Date.now()}.${ext}`, {
+              type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+            });
+          } catch (blobErr) {
+            console.warn("[POST_SERVICE] Falha ao ler blob na aprovação:", blobErr);
+          }
         }
-        return url;
+
+        if (fileObj && fileObj.size > 0) {
+          const uploadedUrl = await uploadMediaAndGetURL(userId, fileObj);
+          return { url: uploadedUrl, galleryId, type: isVideo ? "video" : "image" };
+        }
+
+        return { url, galleryId, type: isVideo ? "video" : "image" };
       })
     );
 
-    const validUrls = uploadedUrls.filter(Boolean);
+    const validItems = uploadedItems.filter((item) => Boolean(item.url));
+    const validUrls = validItems.map((item) => item.url);
+
     if (validUrls.length === 0) {
       return { success: false, error: "Não foi possível processar a mídia para aprovação." };
     }
@@ -1220,23 +1251,31 @@ export async function sendPostToApproval(
     const postsCol = collection(db, "users", userId, "posts");
     const postRef = await addDoc(postsCol, deepSanitizeFirestoreData(postDocData));
 
-    // Também salvar cada mídia na galeria do usuário para garantir rastreabilidade
+    // Também sincroniza/atualiza cada mídia na galeria do usuário para garantir rastreabilidade
     try {
       const galleryCol = collection(db, "users", userId, "mediaGallery");
-      for (const [idx, url] of validUrls.entries()) {
-        const itemType = input.media[idx]?.type || (isVideoMedia(url) ? "video" : "image");
-        await addDoc(galleryCol, {
-          url,
-          storagePath: "",
-          source: "manual_approval",
-          prompt: input.text || null,
-          caption: input.text || null,
-          createdAt: serverTimestamp(),
-          usedInPostId: postRef.id,
-          fileName: itemType === "video" ? `video_${Date.now()}.mp4` : `arte_${Date.now()}.jpg`,
-          type: itemType,
-          isPublished: false,
-        });
+      for (const [idx, item] of validItems.entries()) {
+        const itemType = input.media[idx]?.type || (isVideoMedia(item.url) ? "video" : "image");
+        if (item.galleryId) {
+          try {
+            await updateDoc(doc(db, "users", userId, "mediaGallery", item.galleryId), {
+              usedInPostId: postRef.id,
+            });
+          } catch {}
+        } else {
+          await addDoc(galleryCol, {
+            url: item.url,
+            storagePath: "",
+            source: "manual_approval",
+            prompt: input.text || null,
+            caption: input.text || null,
+            createdAt: serverTimestamp(),
+            usedInPostId: postRef.id,
+            fileName: itemType === "video" ? `video_${Date.now()}.mp4` : `arte_${Date.now()}.jpg`,
+            type: itemType,
+            isPublished: false,
+          });
+        }
       }
     } catch (galErr) {
       console.warn("[POST_SERVICE] Aviso ao sincronizar galeria no envio para aprovação:", galErr);
