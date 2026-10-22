@@ -43,6 +43,9 @@ import {
   MoreHorizontal,
   Globe,
   Bookmark,
+  BookmarkPlus,
+  FileCheck2,
+  CheckCircle2,
   Repeat,
   Heart,
   Info,
@@ -75,6 +78,8 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   schedulePost,
+  saveMediaToGallery,
+  sendPostToApproval,
   uploadMediaAndGetURL,
   type PostDataInput,
   type MediaFileInput,
@@ -4204,6 +4209,22 @@ export default function CriarConteudoPage() {
                     logoOpacity={logoOpacity}
                   />
                 </CardContent>
+                <CardFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSaveCurrentToGallery}
+                    disabled={isSavingToGallery || mediaItems.length === 0}
+                    className="w-full flex items-center justify-center gap-2 border-slate-300 hover:border-[#0083C7] hover:bg-sky-50 text-slate-700 font-semibold text-xs py-2 h-10 rounded-lg transition-all"
+                  >
+                    {isSavingToGallery ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-[#0083C7]" />
+                    ) : (
+                      <BookmarkPlus className="h-4 w-4 text-[#0083C7]" />
+                    )}
+                    <span>{isSavingToGallery ? "Salvando na Galeria..." : "Salvar Arte na Galeria"}</span>
+                  </Button>
+                </CardFooter>
               </Card>
             </div>
           </div>
@@ -4589,11 +4610,42 @@ export default function CriarConteudoPage() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex-col items-stretch">
+            <CardFooter className="flex-col items-stretch gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSaveCurrentToGallery}
+                  disabled={isSavingToGallery || mediaItems.length === 0}
+                  className="w-full flex items-center justify-center gap-2 border-slate-300 hover:border-[#0083C7] hover:bg-sky-50 text-slate-700 font-semibold text-xs py-2.5 h-11 rounded-lg transition-all shadow-xs"
+                >
+                  {isSavingToGallery ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-[#0083C7]" />
+                  ) : (
+                    <BookmarkPlus className="h-4 w-4 text-[#0083C7]" />
+                  )}
+                  <span>{isSavingToGallery ? "Salvando..." : "Salvar na Galeria"}</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleDirectSendToApproval}
+                  disabled={isSendingToApproval || mediaItems.length === 0}
+                  className="w-full flex items-center justify-center gap-2 bg-[#0083C7] hover:bg-[#0072ad] text-white font-bold text-xs py-2.5 h-11 rounded-lg transition-all shadow-xs"
+                >
+                  {isSendingToApproval ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  ) : (
+                    <FileCheck2 className="h-4 w-4" />
+                  )}
+                  <span>{isSendingToApproval ? "Enviando..." : "Enviar para Aprovação"}</span>
+                </Button>
+              </div>
+
               <Button
                 onClick={handleSubmit}
                 size="lg"
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-lg shadow-sm"
                 disabled={isSubmitDisabled}
               >
                 {isPublishing ? (
@@ -4604,16 +4656,18 @@ export default function CriarConteudoPage() {
                 {isPublishing
                   ? "Publicando..."
                   : scheduleType === "now"
-                    ? "Publicar Post"
+                    ? "Publicar Post Diretamente"
                     : "Agendar Post"}
               </Button>
+
               {!metaConnection?.isConnected &&
                 !instagramConnection?.isConnected &&
                 !linkedinConnection?.isConnected &&
                 !googleConnection?.isConnected &&
                 !tiktokConnection?.isConnected && (
-                  <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
-                    <AlertTriangle className="h-4 w-4" /> Conecte pelo menos uma rede social para publicar.
+                  <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                    <Info className="h-4 w-4 shrink-0 text-amber-600" />
+                    <span>Conecte suas redes para publicar direto, ou use <strong>Enviar para Aprovação</strong> / <strong>Salvar na Galeria</strong>.</span>
                   </p>
                 )}
             </CardFooter>
@@ -4713,6 +4767,64 @@ export default function CriarConteudoPage() {
           }}
         />
       )}
+
+            {/* Modal de Confirmação quando a Arte é Salva na Galeria */}
+      <Dialog open={gallerySavedModalOpen} onOpenChange={setGallerySavedModalOpen}>
+        <DialogContent className="sm:max-w-md p-6 rounded-2xl border border-slate-200 shadow-2xl bg-white">
+          <DialogHeader className="text-center sm:text-left">
+            <div className="mx-auto sm:mx-0 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-3">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-gray-900">
+              Arte Salva na Galeria!
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 mt-1">
+              Sua arte foi arquivada com sucesso no acervo da Galeria. Você pode aproveitá-la agora mesmo:
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-2.5 mt-4">
+            <Button
+              type="button"
+              onClick={() => {
+                setGallerySavedModalOpen(false);
+                handleDirectSendToApproval();
+              }}
+              disabled={isSendingToApproval}
+              className="w-full flex items-center justify-center gap-2 bg-[#0083C7] hover:bg-[#0072ad] text-white font-bold py-2.5 h-11 rounded-xl shadow-xs"
+            >
+              {isSendingToApproval ? (
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
+              ) : (
+                <FileCheck2 className="h-4 w-4" />
+              )}
+              <span>Enviar para Aprovação do Cliente</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setGallerySavedModalOpen(false);
+                router.push("/dashboard/galeria");
+              }}
+              className="w-full flex items-center justify-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium py-2.5 h-11 rounded-xl"
+            >
+              <BookmarkPlus className="h-4 w-4 text-[#0083C7]" />
+              <span>Ver no Acervo da Galeria</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setGallerySavedModalOpen(false)}
+              className="w-full text-xs text-gray-500 hover:text-gray-700 py-2"
+            >
+              Continuar no Criador de Posts
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Vídeo Tutorial para Usuários Iniciantes */}
       <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
