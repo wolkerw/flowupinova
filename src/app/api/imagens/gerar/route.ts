@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
 
     // 3.2. Integração do BrandKit & Personas da Marca no Prompt
     const hasUploadedSourceAsset = Array.isArray(sourceAssetUrls) && sourceAssetUrls.length > 0;
-    const isCreativeLogoExceptionMode = hasUploadedSourceAsset;
+    const isCreativeLogoExceptionMode = hasUploadedSourceAsset && /\b(logo|logomarca|logotipo|emblema|símbolo da marca|simbolo da marca|marca enviada|minha marca|camisa da marca)\b/i.test(brief || "");
 
     if (useBrandKit && brandSnapshot) {
       const brandDirectives: string[] = [];
@@ -287,9 +287,15 @@ export async function POST(request: NextRequest) {
 
       // Se houver foto real de pessoa, produto ou logomarca enviada na Etapa 5
       if (hasUploadedSourceAsset) {
-        brandDirectives.push(
-          `SUJEITO REAL DA ETAPA 5 (TRAVA ESTRUTURAL DE PRODUTO /productlock, PESSOA OU LOGOMARCA CENOGRÁFICA): Foi fornecida uma imagem na Etapa 5. A IA DEVE OBRIGATORIAMENTE preservar e integrar com 100% de fidelidade: (1) se for PRODUTO FÍSICO ou EQUIPAMENTO (caixas de som, aparelhos, embalagens, etc.), aplicar a trava /productlock preservando 100% do seu formato geométrico original, partes superiores e inferiores, peças aparentes (cornetas, tweeters, grades em barras, botões, cabos), cores exatas de cada lateral do gabinete e rótulo original, sendo PROIBIDO remodelar partes do produto, cobrir peças expostas com telas genéricas ou estampar no equipamento marcas citadas apenas no título; (2) se for PESSOA, manter fisionomia intacta; (3) se for uma LOGOMARCA isolada, inseri-la de forma criativa, orgânica e cenográfica dentro da cena mantendo grafia, ícone e cores exatas.`
-        );
+        if (isCreativeLogoExceptionMode) {
+          brandDirectives.push(
+            `SUJEITO REAL DA ETAPA 5 — LOGOMARCA ENVIADA (INSERÇÃO CRIATIVA CENOGRÁFICA): Se a imagem enviada na Etapa 5 for uma logomarca/logotipo isolado, inseri-la de forma criativa, orgânica e cenográfica dentro da cena (no vestuário, tela de dispositivo, fachada/letreiro 3D ou objeto de cena, de forma diferente do carimbo de canto do BrandKit) mantendo grafia, ícone e cores exatas.`
+          );
+        } else {
+          brandDirectives.push(
+            `SUJEITO REAL DA ETAPA 5 — PRODUTO FÍSICO OU PESSOA (TRAVA ESTRUTURAL /productlock & PROIBIÇÃO ABSOLUTA DE LOGOS NA CENA): A imagem enviada na Etapa 5 é um PRODUTO FÍSICO ou PESSOA (NÃO é uma logomarca). A IA DEVE: (1) Aplicar a trava /productlock preservando 100% do formato geométrico original do produto, partes superiores e inferiores, peças aparentes (cornetas, tweeters, grades em barras, botões, cabos), cores exatas de cada lateral do gabinete e rótulo original impresso na embalagem; (2) É TERMINANTEMENTE PROIBIDO desenhar, inventar ou renderizar qualquer logomarca da empresa ("${brandSnapshot.name || 'Empresa'}"), placa de acrílico em balcão, totem na mesa, letreiro na parede ou emblema solto dentro da cena! A logomarca do negócio será aplicada exclusivamente via software no canto superior esquerdo.`
+          );
+        }
       }
 
       if (brandDirectives.length > 0) {

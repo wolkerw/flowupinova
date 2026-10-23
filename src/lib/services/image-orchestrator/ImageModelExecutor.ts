@@ -67,8 +67,18 @@ export class ImageModelExecutor {
     const logoDirective =
       " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE: The official logo is added digitally in post-processing. The top-left quadrant (top 22% height x left 30% width) MUST remain 100% BLANK, EMPTY and UNBRANDED negative space. ABSOLUTELY NO text, titles, subtitles, eyebrows, dates, or badges in the top-left area. All headlines and text layers must be placed below Y=22% or centered/right. Do NOT draw floating logos or brand badges in the poster layout. Real product packaging labels must remain authentic.]";
 
+    const isStep5Logo = Boolean(
+      subjectRef &&
+        (/\b(logo|logomarca|logotipo|emblema|símbolo da marca|simbolo da marca|marca enviada|minha marca|camisa da marca)\b/i.test(
+          `${params.prompt || ""} ${subjectRef.description || ""} ${subjectRef.url || ""}`
+        ) ||
+          params.prompt.includes("CREATIVE LOGO / SUBJECT EXCEPTION MODE"))
+    );
+
     const subjectDirective = subjectRef
-      ? " [CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock), HERO SUBJECT, PRODUCT LABEL & CREATIVE LOGO EXCEPTION: The attached reference image contains the real person, physical product/equipment, or brand logo provided by the user. If the attached reference image is a PHYSICAL PRODUCT, EQUIPMENT, SPEAKER SYSTEM, MACHINE, OR PACKAGING, lock 100% of its exact physical geometry, silhouette, upper and lower cabinets, exposed components (visible horns, tweeters, bar grilles, knobs, cables, racks), exact cabinet side colors, and authentic printed label graphics 100% intact. It is STRICTLY FORBIDDEN to redesign, modernize, replace exposed components with generic mesh grilles, repaint colored/white panels to black, or stamp brand logos mentioned in the text headline (e.g. JBL) onto the product hardware if they are not physically on the original photo! Only modify the background scenery, floor, lighting, and graphic typography. If it is a PERSON, maintain their exact facial features intact. If it is a standalone BRAND LOGO or COMPANY EMBLEM, OVERRIDE all logo prohibitions and creatively, crisply, and prominently integrate that exact uploaded brand logo into the generated scene, preserving its exact brand name spelling, typography, icon, and colors 100% faithfully.]"
+      ? isStep5Logo
+        ? " [CRITICAL MANDATE — HERO SUBJECT, PRODUCT LABEL & CREATIVE LOGO EXCEPTION: The attached Step 5 reference image is a BRAND LOGO or COMPANY EMBLEM provided by the user. OVERRIDE all logo prohibitions and creatively, crisply, and prominently integrate that exact uploaded brand logo into the generated scene (such as embroidered/printed on the protagonist's shirt chest, displayed on the smartphone screen, or featured as a prominent 3D/glassmorphic brand signature in the layout/studio), preserving its exact brand name spelling, typography, icon, and colors 100% faithfully while keeping the top-left header corner clean.]"
+        : " [CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock) & ZERO SCENE LOGOS: The attached Step 5 reference image is a PHYSICAL PRODUCT, EQUIPMENT, OR PERSON (NOT a logo). Lock 100% of the product's exact physical geometry, silhouette, upper and lower cabinets, exposed components (visible horns, tweeters, bar grilles, knobs, cables, racks), exact cabinet side colors, and authentic printed label graphics 100% intact. It is STRICTLY FORBIDDEN to redesign, modernize, replace exposed components with generic mesh grilles, repaint colored/white panels to black, or stamp brand logos mentioned in the text headline onto the product hardware! Furthermore, do NOT draw, invent, or render any company logo (such as NumVapt), acrylic tabletop plaque on counters/desks, totem, or 3D wall sign anywhere in the scene! Only modify the background scenery, floor, lighting, and graphic typography.]"
       : "";
 
     const getProvider = (m: string): "openai" | "google" =>
@@ -98,12 +108,14 @@ export class ImageModelExecutor {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
           if (subjectRef) {
-            // Sempre que houver imagem enviada na Etapa 5 (produto, pessoa ou logomarca):
-            // integra criativamente na cena (diferente do carimbo fixo de canto do BrandKit)
-            if (!openaiPrompt.includes("CREATIVE LOGO EXCEPTION") && !openaiPrompt.includes("HERO SUBJECT")) {
+            if (!openaiPrompt.includes("CREATIVE LOGO EXCEPTION") && !openaiPrompt.includes("HERO SUBJECT") && !openaiPrompt.includes("STRICT PRODUCT GEOMETRY")) {
               openaiPrompt += subjectDirective;
             }
-            openaiPrompt = `[CREATIVE LOGO & SUBJECT EXCEPTION DIRECTIVE + STRICT PRODUCT GEOMETRY LOCK (/productlock): Faithfully inspect the uploaded Step 5 reference image. If it is a physical product or equipment (such as audio speakers, machinery, electronics, packaging, food, or apparel), preserve 100% of its exact geometry, upper and lower cabinets, exposed components (horns, tweeters, bar grilles, cables), side panel colors, and authentic labels intact WITHOUT redesigning, covering exposed parts with generic grilles, or stamping brand logos mentioned in the headline onto the hardware. Change ONLY the background environment, floor, studio lighting, and text layout. If it is a standalone brand logo, OVERRIDE any scene logo restrictions and creatively, organically integrate that exact uploaded logo inside the scene itself, DIFFERENT from a flat corner stamp (e.g., embroidered on the protagonist's shirt chest, glowing on the smartphone screen, mounted as a 3D studio sign, or printed on a physical prop) with 100% accurate spelling, icon, and colors, while keeping the top-left header corner clean. If it is a person, preserve their authentic features intact.] ${openaiPrompt}`;
+            if (isStep5Logo) {
+              openaiPrompt = `[CREATIVE LOGO & SUBJECT EXCEPTION DIRECTIVE: The uploaded Step 5 reference image is a brand logo. OVERRIDE any scene logo restrictions and creatively, organically integrate that exact uploaded logo inside the scene itself, DIFFERENT from a flat corner stamp (e.g., embroidered on the protagonist's shirt chest, glowing on the smartphone screen, mounted as a 3D studio sign, or printed on a physical prop) with 100% accurate spelling, icon, and colors, while keeping the top-left header corner clean.] ${openaiPrompt}`;
+            } else {
+              openaiPrompt = `[STRICT PRODUCT GEOMETRY LOCK (/productlock) & ZERO SCENE LOGOS DIRECTIVE: The uploaded Step 5 reference image is a physical product, equipment, or person (NOT a logo). Preserve 100% of its exact geometry, upper and lower cabinets, exposed components (horns, tweeters, bar grilles, cables), side panel colors, and authentic product labels intact WITHOUT redesigning, covering exposed parts with generic grilles, or stamping brand logos from the headline onto the hardware. ABSOLUTELY DO NOT draw, invent, or render any company logo (such as NumVapt), acrylic tabletop plaque on counters/desks, totem, or wall sign anywhere in the scene! Keep the top-left quadrant (top 22% height x left 30% width) 100% blank negative space for digital overlay.] ${openaiPrompt}`;
+            }
           } else if (hasLogo) {
             if (!openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               openaiPrompt += logoDirective;

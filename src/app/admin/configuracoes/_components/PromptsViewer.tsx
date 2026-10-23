@@ -465,7 +465,8 @@ export function PromptsViewer() {
                   prompts.general_productlock_prompt ||
                   `TRAVA ESTRUTURAL E GEOMÉTRICA DE PRODUTO (/productlock ATIVA):
 1. PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (PRODUCT GEOMETRY & COMPONENT LOCK): Inspecione minuciosamente cada sub-componente do produto na foto enviada (ex: caixas de som superiores e inferiores, cornetas aparentes, tweeters expostos, grades em barras, cores exatas das laterais do gabinete, cabos, suportes e proporções). É TERMINANTEMENTE PROIBIDO "modernizar", redesenhar, substituir peças expostas por telas fechadas genéricas de catálogo ou alterar o formato do equipamento!
-2. PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS nos textos/títulos da arte. NUNCA redesenhe o produto físico nem estampe logotipos de terceiros sobre o equipamento se não existirem fisicamente na foto original enviada pelo usuário!`
+2. PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS nos textos/títulos da arte. NUNCA redesenhe o produto físico nem estampe logotipos de terceiros sobre o equipamento se não existirem fisicamente na foto original enviada pelo usuário!
+3. DIFERENCIAÇÃO CONDICIONAL ETAPA 5 (LOGOMARCA VS PRODUTO): Se o arquivo enviado na Etapa 5 for identificado como uma LOGOMARCA, mantém-se o sorteio de arquétipos cenográficos (CREATIVE_LOGO_ARCHETYPES). Se for identificado como foto de PRODUTO/EQUIPAMENTO, é TERMINANTEMENTE PROIBIDO sortear arquétipos de logo ou desenhar qualquer logomarca na cena (placas de acrílico no balcão, totens, letreiros 3D).`
                 }
                 onChange={(e) => handleChange("general_productlock_prompt", e.target.value)}
               />

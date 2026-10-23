@@ -204,6 +204,9 @@ describe("Image Orchestrator Suite", () => {
       });
 
       expect(planResult.compiledImagePrompt).toContain("STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock)");
+      expect(planResult.compiledImagePrompt).not.toContain("CREATIVE LOGO / SUBJECT EXCEPTION MODE");
+      expect(planResult.compiledImagePrompt).toContain("ZERO LOGOS IN POST LAYOUT");
+      expect(planResult.compiledNegativePrompt).toContain("acrylic logo plaque on counter");
       expect(planResult.compiledImagePrompt).toContain("HERO SUBJECT PRESERVATION");
       expect(planResult.compiledImagePrompt).toContain("authentic printed label");
       expect(planResult.compiledNegativePrompt).toContain("redesigned product geometry");

@@ -117,6 +117,15 @@ REGRAS DE CONFORMIDADE:
     return { primary, secondary, userBrief };
   }
 
+  public static isStep5LogoUpload(input: Gpt5PlannerInput): boolean {
+    const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
+    if (!subjectRef) return false;
+    const combinedText = `${input.userBrief || ""} ${input.compiledPrompt || ""} ${subjectRef.description || ""} ${subjectRef.url || ""}`;
+    return /\b(logo|logomarca|logotipo|emblema|símbolo da marca|simbolo da marca|marca enviada|minha marca|camisa da marca)\b/i.test(
+      combinedText
+    );
+  }
+
   public static async plan(input: Gpt5PlannerInput): Promise<OrchestratorPlanResult> {
     const startTime = Date.now();
     const openaiKey = process.env.OPENAI_API_KEY;
@@ -152,18 +161,9 @@ REGRAS DE CONFORMIDADE:
             },
           });
         }
-        const logoImage = input.referenceImages?.find(
-          (r) => r.role === "business_logo" || r.role === "official_logo"
-        );
-        if (logoImage && logoImage.base64) {
-          contentParts.push({
-            type: "image_url",
-            image_url: {
-              url: `data:${logoImage.mimeType};base64,${logoImage.base64}`,
-              detail: "high",
-            },
-          });
-        }
+        // NOTA CRÍTICA: A logo oficial do BrandKit (business_logo / official_logo) é aplicada digitalmente via Jimp
+        // no pós-processamento (BrandLogoApplier). NUNCA anexamos a imagem da logo do BrandKit na visão do LLM
+        // para impedir que a IA tente redesenhá-la em placas de acrílico, totens ou paredes dentro da cena!
 
         for (const model of modelsToTry) {
           try {
@@ -317,15 +317,20 @@ Sua missão NÚMERO 1 é garantir que a nova arte seja imediatamente reconhecida
     );
     const hasLogo = Boolean(logoRef);
 
+    const isStep5Logo = this.isStep5LogoUpload(input);
     const logoDirectiveText = subjectImage
-      ? `REGRA DE INSERÇÃO CRIATIVA CENOGRÁFICA DINÂMICA PARA LOGOMARCA OU PRODUTO ENVIADO NA ETAPA 5 (PRIORIDADE MÁXIMA — SEMPRE ATIVA):
-O usuário enviou uma imagem na Etapa 5 (product_subject). ${
-          hasLogo
-            ? "A logomarca fixa do BrandKit será aplicada digitalmente apenas no canto superior esquerdo (mantenha o quadrante superior esquerdo de 22% de altura x 30% de largura 100% LIMPO e LIVRE de qualquer texto/headline/eyebrow/badge), MAS o arquivo enviado na Etapa 5 tem papel CENOGRÁFICO e CRIATIVO dentro da imagem!"
-            : "A inserção fixa de logomarca de canto do BrandKit está desativada, portanto a marca deve brilhar de forma criativa dentro da própria cena!"
-        }
-1. MODO EXCEÇÃO CRIATIVA COM ROTAÇÃO DINÂMICA (${selectedArchetypes?.primary.id}): Se a imagem enviada na Etapa 5 for uma LOGOMARCA, LOGOTIPO ou SÍMBOLO DE MARCA (ex: logo da NumVapt ou da empresa do cliente), VOCÊ DEVE PASSAR POR CIMA DE TODAS AS REGRAS RESTRITIVAS DE LOGOMARCA NA CENA! Instrua o modelo gerador no "imagePrompt" (em [3. HERO SUBJECT] e [9. LOGO DIRECTIVE]) a INSERIR E INTEGRAR A LOGOMARCA ENVIADA NA ETAPA 5 DE FORMA CRIATIVA, CENOGRÁFICA, NÍTIDA E DIFERENTE DO CARIMBO DE CANTO DO BRANDKIT, aplicando preferencialmente o conceito sorteado para esta geração: "${selectedArchetypes?.primary.promptEn}" (ou, caso mais coerente com o briefing: "${selectedArchetypes?.secondary.promptEn}"), reproduzindo fielmente o nome exato da marca, seu símbolo e suas cores! JAMAIS escreva "no logos", "absolutely no logos" ou "no NumVapt logo" no imagePrompt ou no negativePrompt!
-2. PRESERVAÇÃO DE RÓTULO DE PRODUTO: Se a imagem enviada na Etapa 5 for um produto físico com rótulo, mantenha e reproduza seu rótulo e marca impressos com 100% de fidelidade.`
+      ? `REGRA CONDICIONAL ESTRITA PARA A IMAGEM ENVIADA NA ETAPA 5 (PRODUTO FÍSICO vs. LOGOMARCA):
+Inspecione visualmente a imagem enviada na Etapa 5 (product_subject) e retorne no JSON o campo "detectedStep5AssetType" como "product_or_person" (se for produto físico, equipamento, caixa de som, objeto, alimento ou pessoa) OU "brand_logo" (somente se a imagem enviada na Etapa 5 for o design gráfico isolado de uma logomarca/logotipo).
+- CASO A — SE A IMAGEM DA ETAPA 5 FOR UM PRODUTO FÍSICO, EQUIPAMENTO, CAIXA DE SOM OU PESSOA ("product_or_person"):
+  1. NÃO APLIQUE NENHUM ARQUÉTIPO DE LOGOMARCA! IGNORE completamente placas de acrílico, totens de bancada ou letreiros 3D!
+  2. PROIBIÇÃO ABSOLUTA DE DESENHAR LOGOMARCAS NA CENA: É TERMINANTEMENTE PROIBIDO desenhar, inventar, renderizar ou estampar qualquer logomarca da empresa (como "${brand?.businessName || 'NumVapt'}") em placas de acrílico na mesa/balcão, totens, paredes ou equipamentos! ${
+    hasLogo
+      ? "A logomarca do BrandKit será colada via software APENAS no canto superior esquerdo (mantenha o quadrante superior esquerdo de 22% de altura x 30% de largura 100% LIMPO e VAZIO)."
+      : "Mantenha o canto superior limpo e NÃO desenhe nenhuma logomarca na cena."
+  }
+  3. TRAVA /productlock: Preserve 100% da geometria, partes superiores e inferiores, peças aparentes e cores reais do produto enviado.
+- CASO B — SOMENTE SE A IMAGEM ENVIADA NA ETAPA 5 FOR UMA LOGOMARCA / LOGOTIPO ISOLADO ("brand_logo" — isStep5Logo=${isStep5Logo}):
+  1. MODO EXCEÇÃO CRIATIVA COM ROTAÇÃO DINÂMICA (${selectedArchetypes?.primary.id}): Aí sim, mantenha o sorteio de arquétipos e integre essa logomarca enviada na Etapa 5 de forma criativa na cena aplicando preferencialmente: "${selectedArchetypes?.primary.promptEn}" (ou "${selectedArchetypes?.secondary.promptEn}"), reproduzindo fielmente o nome, símbolo e cores da logomarca enviada!`
       : hasLogo
         ? `REGRA MANDATÓRIA DE LOGOMARCA DO BRANDKIT (SOBREPOSIÇÃO DIGITAL & ZONA LIVRE DE TEXTO):
 A imagem da logomarca oficial do BrandKit foi anexada para aplicação DIGITAL no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A:\n1. MANTER O QUADRANTE SUPERIOR ESQUERDO (topo 22% de altura x esquerda 30% de largura) 100% LIMPO, VAZIO E LIVRE DE QUALQUER TEXTO, TÍTULO, SUBTÍTULO, EYEBROW (ex: frases de topo), DATA OU BADGE. Todos os textos devem começar abaixo de Y=22% ou no centro/direita.\n2. PROIBIR que a IA desenhe logotipos soltos ou marcas fictícias no layout. Rótulos de produtos físicos reais continuam autênticos e intactos.`
@@ -518,7 +523,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       socialCaption: this.generateFallbackSocialCaption(input),
       imagePrompt: this.buildFallbackImagePrompt(input),
       negativePrompt: hasSubject
-        ? "redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing"
+        ? this.isStep5LogoUpload(input) ? "competitor trademarks, distorted logo, warped branding, cropped typography, text touching borders, amateur framing" : "acrylic logo plaque on counter, tabletop logo totem, 3D wall logo sign, invented brand logo in scene, floating company emblem, redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing"
         : hasLogo
           ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts"
           : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped typography, text touching borders, amateur framing",
@@ -570,15 +575,16 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         ? `Color palette harmonized with ${brand.primaryColors.join(", ")}.`
         : "";
 
-    const fallbackArchetype = subjectRef
+    const isStep5Logo = this.isStep5LogoUpload(input);
+    const fallbackArchetype = subjectRef && isStep5Logo
       ? this.selectCreativeLogoArchetype(input.userBrief)
       : null;
 
-    const logoMandate = subjectRef
-      ? `[CRITICAL MANDATE — CREATIVE LOGO / SUBJECT EXCEPTION MODE (${fallbackArchetype?.primary.id}): If the uploaded Step 5 reference image is a brand logo or emblem, OVERRIDE all scene logo restrictions and creatively, crisply, and organically integrate that exact uploaded brand logo inside the scene itself (different from any flat corner BrandKit stamp — specifically ${fallbackArchetype?.primary.promptEn}, or alternatively ${fallbackArchetype?.secondary.promptEn}) preserving its exact spelling, icon, and colors while keeping the top-left header corner clean. If it is a physical product or person, preserve their authentic printed labels and appearance 100% intact.]`
+    const logoMandate = subjectRef && isStep5Logo
+      ? `[CRITICAL MANDATE — CREATIVE LOGO / SUBJECT EXCEPTION MODE (${fallbackArchetype?.primary.id}): The uploaded Step 5 reference image is a brand logo or emblem. OVERRIDE all scene logo restrictions and creatively, crisply, and organically integrate that exact uploaded brand logo inside the scene itself (different from any flat corner BrandKit stamp — specifically ${fallbackArchetype?.primary.promptEn}, or alternatively ${fallbackArchetype?.secondary.promptEn}) preserving its exact spelling, icon, and colors while keeping the top-left header corner clean.]`
       : hasLogo
-        ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE: The official business logo is composited digitally. The diffusion AI MUST keep the top-left quadrant (top 22% height x left 30% width) 100% CLEAN, BLANK and EMPTY negative space. ABSOLUTE PROHIBITION: Do NOT place any text, titles, subtitles, eyebrows, dates, or badges in the top-left area. Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
-        : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion.]";
+        ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE: The official business logo is composited digitally. The diffusion AI MUST keep the top-left quadrant (top 22% height x left 30% width) 100% CLEAN, BLANK and EMPTY negative space. ABSOLUTE PROHIBITION: Do NOT place any text, titles, subtitles, eyebrows, dates, or badges in the top-left area. Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), acrylic tabletop plaques on counters, totens, wall signs, flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
+        : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, acrylic tabletop plaque, counter totem, wall sign, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion.]";
 
     const subjectMandate = subjectRef
       ? "[CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock) + HERO SUBJECT PRESERVATION & UPLOADED LOGO INTEGRATION: Faithfully preserve 100% of the exact physical geometry, silhouette, upper and lower structures, exposed components (such as visible horns, tweeters, bar grilles, knobs, cables), exact cabinet side-panel colors, packaging, authentic printed label details, or uploaded brand logo graphics (brand name spelling, typography, colors, icon) from the user's reference image and integrate them prominently into the scene. Do NOT redesign, modernize, cover exposed parts with generic mesh grilles, change cabinet colors, or stamp brand logos mentioned in the text headline onto the product hardware if they are not physically present on the original photo.]"
