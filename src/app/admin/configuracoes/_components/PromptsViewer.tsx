@@ -437,6 +437,55 @@ export function PromptsViewer() {
             </div>
           </AccordionContent>
         </AccordionItem>
+
+        {/* Agente Fluxo Geral - Trava Estrutural de Produto (/productlock) */}
+        <AccordionItem
+          value="general_productlock"
+          className="overflow-hidden rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-4"
+        >
+          <AccordionTrigger className="text-emerald-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <ImageIcon className="h-4 w-4 text-emerald-400" />
+              Agente: Fluxo Geral — Trava Estrutural de Produto (/productlock)
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-300">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-emerald-400">
+                <p>
+                  Diretrizes de preservação geométrica e mecânica (<code>/productlock</code>) para fotos de produtos e equipamentos enviadas na Etapa 5 do Fluxo Geral.
+                </p>
+                <span className="rounded bg-emerald-900/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 border border-emerald-700/50">
+                  Product Geometry & Component Lock
+                </span>
+              </div>
+              <Textarea
+                className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[160px]"
+                value={
+                  prompts.general_productlock_prompt ||
+                  `TRAVA ESTRUTURAL E GEOMÉTRICA DE PRODUTO (/productlock ATIVA):
+1. PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (PRODUCT GEOMETRY & COMPONENT LOCK): Inspecione minuciosamente cada sub-componente do produto na foto enviada (ex: caixas de som superiores e inferiores, cornetas aparentes, tweeters expostos, grades em barras, cores exatas das laterais do gabinete, cabos, suportes e proporções). É TERMINANTEMENTE PROIBIDO "modernizar", redesenhar, substituir peças expostas por telas fechadas genéricas de catálogo ou alterar o formato do equipamento!
+2. PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS nos textos/títulos da arte. NUNCA redesenhe o produto físico nem estampe logotipos de terceiros sobre o equipamento se não existirem fisicamente na foto original enviada pelo usuário!`
+                }
+                onChange={(e) => handleChange("general_productlock_prompt", e.target.value)}
+              />
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-slate-400">
+                  Regra integrada nativamente no Gpt5PromptPlanner e ImageModelExecutor.
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => handleSave("general_productlock_prompt")}
+                  disabled={saving}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
     </div>
   );

@@ -203,8 +203,11 @@ describe("Image Orchestrator Suite", () => {
         ],
       });
 
+      expect(planResult.compiledImagePrompt).toContain("STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock)");
       expect(planResult.compiledImagePrompt).toContain("HERO SUBJECT PRESERVATION");
       expect(planResult.compiledImagePrompt).toContain("authentic printed label");
+      expect(planResult.compiledNegativePrompt).toContain("redesigned product geometry");
+      expect(planResult.compiledNegativePrompt).toContain("altered speaker top cabinets");
       // Não deve conter 'blank product label' como proibição no negativo
       expect(planResult.compiledNegativePrompt).toContain("blank product label");
       expect(planResult.compiledNegativePrompt).toContain("erased packaging typography");

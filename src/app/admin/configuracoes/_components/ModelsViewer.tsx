@@ -339,6 +339,17 @@ export function ModelsViewer() {
                 ))}
               </select>
             </div>
+
+            {/* Trava Estrutural de Produto (/productlock) */}
+            <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-3 text-xs text-slate-300">
+              <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-emerald-300">
+                <span>/productlock ativo</span>
+                <span className="rounded bg-emerald-800/60 px-1.5 py-0.5 text-[9px] text-emerald-100">Trava Estrutural & Geométrica de Produto</span>
+              </div>
+              <p className="mt-1 text-[10px] text-slate-300 leading-relaxed">
+                Bloqueia alterações na geometria, partes superiores/inferiores, cornetas aparentes, grades, cores de gabinete e rótulos de produtos/equipamentos enviados na Etapa 5, impedindo que a IA substitua peças por versões genéricas ou estampe marcas citadas apenas no título.
+              </p>
+            </div>
           </div>
         </div>
 
