@@ -843,7 +843,7 @@ ${
     ? `
 7. TYPOGRAPHY AND BRAND FONTS: If the layout requires text overlays, badges, or printed titles, they must follow the brand's typography system:
    ${fontsText}
-   - Describe a clean typographic composition that uses the specified Primary Font for titles/headers or aligns with the specified General Typographic Style (e.g. "with bold modern text printed in Montserrat typeface").
+   - Describe a clean typographic composition that strictly follows the brand's Primary Font (Bold weight for main headlines/emphasis), Secondary Font (Regular/Normal weight for setup/body text), and General Typographic Style. Translate custom font names (like "Branding SF") into explicit anatomical descriptors (e.g. "rendered in a single unified modern corporate geometric sans-serif typeface family across all lines, differentiating setup vs. emphasis strictly by Regular vs. Bold weight of the exact same sans-serif family, with crisp straight terminals and ZERO serifs or mismatched font families").
 `
     : ""
 }
@@ -1912,7 +1912,12 @@ Cenário desejado e estilo: ${prompt}`;
           if (bp.businessName) {
             brandIdentityDirective = `Brand: ${bp.businessName}. `;
           }
-          if (bp.visualIdentity?.typography?.primaryFont) {
+          const primaryF = bp.brandKit?.fonts?.primaryFont || bp.visualIdentity?.typography?.primaryFont;
+          const secondaryF = bp.brandKit?.fonts?.secondaryFont || bp.visualIdentity?.typography?.secondaryFont;
+          const styleF = bp.brandKit?.fonts?.style || bp.visualIdentity?.typography?.style;
+          if (primaryF || secondaryF || styleF) {
+            brandTypographyDirective = `strictly following the BrandKit typography system (Primary Title/Bold Font: "${primaryF || 'Modern Geometric Sans-Serif Bold'}", Secondary Body/Normal Font: "${secondaryF || 'Modern Geometric Sans-Serif Regular'}", General Style: "${styleF || 'Clean modern corporate sans-serif'}" — render ALL text lines using a single unified modern geometric sans-serif family, differentiating setup vs. bold lines strictly by Regular vs. Bold weight of the exact same family, with ZERO serifs or mismatched fonts)`;
+          } else if (bp.visualIdentity?.typography?.primaryFont) {
             brandTypographyDirective = `with ${bp.visualIdentity.typography.primaryFont} typography style`;
           } else if (bp.visualIdentity?.typography?.style) {
             brandTypographyDirective = `with ${bp.visualIdentity.typography.style} typography style`;

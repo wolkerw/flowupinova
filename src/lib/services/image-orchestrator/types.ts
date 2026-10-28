@@ -36,6 +36,11 @@ export interface BrandContext {
   accentColors: string[];
   visualStyle?: string;
   toneOfVoice?: string;
+  fonts?: {
+    primaryFont?: string;
+    secondaryFont?: string;
+    style?: string;
+  };
   restrictions?: string[];
   logoUrl?: string;
   hasLocalOfficialLogo: boolean;

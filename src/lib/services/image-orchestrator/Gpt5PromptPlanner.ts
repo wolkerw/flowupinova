@@ -37,6 +37,7 @@ DIRETRIZES DE TEXTO / INFOGRÁFICO:
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia pura sem letras ou legendas.
 - Se textOverlayMode for TITLE_ONLY: Incluir headline em português com tipografia nítida e contrastante no topo com margens de segurança.
 - Se textOverlayMode for INFOGRAPHIC: Criar layout dinâmico adaptado ao briefing (badges flutuantes, callouts com linhas sutis, cards de benefícios modernos), com espaçamento generoso e textos nítidos em português (pt-BR).
+- REGRA CRÍTICA DE FIDELIDADE TIPOGRÁFICA DO BRANDKIT (/fontlock): Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE especificar essa tipografia em inglês no "imagePrompt" traduzindo sua anatomia visual exata! Como geradores de imagem não possuem arquivos .ttf de fontes comerciais específicas (como "Branding SF"), descreva explicitamente a anatomia da fonte (ex: se for "Branding SF" ou "sans-serif limpo, corporativo", exija "uniform modern geometric corporate sans-serif typeface across ALL lines of text, clean monolinear stroke terminals, ZERO serifs, ZERO semi-serifed or calligraphic flares"). Quando uma frase tiver parte em peso normal e parte em destaque/negrito, EXIJA que ambas pertençam EXATAMENTE À MESMA FAMÍLIA SANS-SERIF, mudando apenas o peso (Regular/Normal weight para o texto secundário e Bold/ExtraBold weight para o destaque principal), proibindo terminantemente misturar famílias tipográficas diferentes na mesma peça!
 
 DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
 No campo "socialCaption", crie um copywriting persuasivo e engajador em português (pt-BR) pronto para publicação comercial nas redes sociais (Instagram, Facebook, LinkedIn):
@@ -125,6 +126,27 @@ REGRAS DE CONFORMIDADE:
       combinedText
     );
   }
+
+  public static buildBrandTypographyMandate(input: Gpt5PlannerInput): string {
+    if (!input.textOverlayMode || input.textOverlayMode === "NONE") return "";
+    const fonts = input.brandKit?.enabled ? input.brandKit?.fonts : undefined;
+    if (!fonts || (!fonts.primaryFont && !fonts.secondaryFont && !fonts.style)) return "";
+
+    const primary = fonts.primaryFont?.trim() || "Modern Geometric Sans-Serif Bold";
+    const secondary = fonts.secondaryFont?.trim() || "Modern Geometric Sans-Serif Regular";
+    const style = fonts.style?.trim() || "Clean modern corporate sans-serif, highly legible";
+    const isSansSerif =
+      /sans-serif|sans serif|branding sf|montserrat|inter|poppins|roboto|helvetica|arial|futura|gotham|gilroy|myriad|eras|corporativo|moderno|limpo/i.test(
+        `${primary} ${secondary} ${style}`
+      ) && !/\b(serifa|serifada|classic serif|times|garamond|playfair|bodoni)\b/i.test(`${primary} ${secondary} ${style}`);
+
+    return `[CRITICAL MANDATE — BRAND KIT TYPOGRAPHY LOCK (/fontlock): All rendered text MUST strictly follow the brand's official typography system — Primary Font (Titles / Bold Highlights): "${primary}"; Secondary Font (Body / Setup Text): "${secondary}"; General Typographic Style: "${style}". ${
+      isSansSerif
+        ? "ANATOMICAL FONT ENFORCEMENT: Render ALL text lines using a SINGLE unified, clean, modern corporate geometric sans-serif typeface family (matching Branding SF / Montserrat / Inter aesthetics) with crisp straight terminals and uniform stroke geometry. Differentiate setup lines vs. bold emphasis lines STRICTLY by font weight (Normal/Regular weight vs. Bold/ExtraBold weight of the EXACT SAME sans-serif family). It is STRICTLY FORBIDDEN to use serifs, semi-serifed flared terminals, humanist calligraphic strokes, slab serifs, or mix two different font families in the same text block!"
+        : "ANATOMICAL FONT ENFORCEMENT: Maintain 100% typographic family consistency across all text lines, differentiating hierarchy strictly by weight (Normal vs. Bold) within the exact specified brand typeface family."
+    }]`;
+  }
+
 
   public static async plan(input: Gpt5PlannerInput): Promise<OrchestratorPlanResult> {
     const startTime = Date.now();
@@ -252,6 +274,9 @@ BRANDKIT DO CLIENTE:
 - Cores Secundárias: ${brand.secondaryColors.join(", ")}
 - Estilo Visual: ${brand.visualStyle || "Moderno e profissional"}
 - Tom de Voz: ${brand.toneOfVoice || "Corporativo e confiável"}
+- Fonte Primária (Títulos / Destaques Bold): ${brand.fonts?.primaryFont || "Não especificada (usar Sans-Serif Geométrica Bold)"}
+- Fonte Secundária (Textos / Corpo Normal): ${brand.fonts?.secondaryFont || "Não especificada (usar Sans-Serif Geométrica Regular)"}
+- Estilo Tipográfico Geral: ${brand.fonts?.style || "Moderno sans-serif limpo, corporativo e altamente legível"}
 - Restrições: ${brand.restrictions?.join("; ") || "Nenhuma"}
 `
         : "BrandKit: Desativado ou não fornecido pelo usuário.";
@@ -439,6 +464,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
             prompt += " [STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock): For any physical product or equipment in the reference photo, preserve 100% of its exact geometry, upper and lower structures, exposed components (horns, tweeters, bar grilles, knobs, cables), and exact cabinet side colors. Do NOT redesign parts into generic mesh grilles or stamp brand names mentioned in the headline onto the hardware if not present on the original photo.]";
           }
         }
+        const fontMandate = this.buildBrandTypographyMandate(input);
+        if (fontMandate && !prompt.includes("/fontlock")) {
+          prompt += ` ${fontMandate}`;
+        }
         return prompt;
       })(),
       negativePrompt: (() => {
@@ -613,6 +642,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (!p.includes("SAFE MARGINS")) {
         p += " [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text, logo, or focal subjects touching the edges.]";
       }
+      const fontMandate = this.buildBrandTypographyMandate(input);
+      if (fontMandate && !p.includes("/fontlock")) {
+        p += ` ${fontMandate}`;
+      }
       return p;
     }
 
@@ -620,7 +653,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       ? " [HIGH-PERFORMANCE VIDEO THUMBNAIL MANDATE: Dynamic magnetic video cover composition with dramatic high-contrast lighting, intense facial or subject focus, vibrant saturated color scheme, and extreme curiosity-inducing visual hook for maximum click-through rate (CTR) on YouTube, Reels, and TikTok.]"
       : "";
 
-    return `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere. ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    return `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere. ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {

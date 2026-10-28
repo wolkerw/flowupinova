@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
           secondaryColor: data?.secondaryColor || bk?.secondaryColor || "#FA6305",
           visualGuidelines: bk?.visualGuidelines || data?.visualGuidelines || "",
           logoUrl: bk?.logoUrl || data?.logo?.url || (typeof data?.logo === "string" ? data.logo : ""),
+          fonts: bk?.fonts || data?.fonts || undefined,
           targetAudience: data?.targetAudience || bk?.targetAudience || "",
           toneOfVoice: data?.toneOfVoice || bk?.toneOfVoice || "",
           slogan: data?.slogan || bk?.slogan || "",
@@ -242,6 +243,16 @@ export async function POST(request: NextRequest) {
       if (brandSnapshot.visualGuidelines) {
         brandDirectives.push(`Diretrizes Visuais da Marca: ${brandSnapshot.visualGuidelines}`);
       }
+      if (brandSnapshot.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style)) {
+        const fontParts = [
+          brandSnapshot.fonts.primaryFont ? `Fonte Primária (Títulos/Destaques): "${brandSnapshot.fonts.primaryFont}"` : "",
+          brandSnapshot.fonts.secondaryFont ? `Fonte Secundária (Textos/Subtítulos): "${brandSnapshot.fonts.secondaryFont}"` : "",
+          brandSnapshot.fonts.style ? `Estilo Tipográfico Geral: "${brandSnapshot.fonts.style}"` : "",
+        ].filter(Boolean).join(" | ");
+        brandDirectives.push(
+          `TIPOGRAFIA OFICIAL DO BRANDKIT (OBRIGATÓRIA EM QUALQUER TEXTO DA ARTE): ${fontParts}. Mantenha 100% de consistência anatômica na mesma família tipográfica (se o estilo for sans-serif limpo, é TERMINANTEMENTE PROIBIDO usar fontes serifadas, semi-serifadas, caligráficas ou misturar famílias diferentes na mesma frase; diferencie o texto normal do destaque apenas pelo peso/espessura Normal vs Bold da mesma família sans-serif).`
+        );
+      }
       if (brandSnapshot.targetAudience) {
         brandDirectives.push(`Público-Alvo: ${brandSnapshot.targetAudience}`);
       }
@@ -321,13 +332,13 @@ export async function POST(request: NextRequest) {
         ? `with the exact headline: "${productHeadline.trim()}"`
         : "with an impactful commercial headline in Portuguese (pt-BR)";
       compiledPrompt +=
-        ` [COMMERCIAL HEADLINE POSTER DIRECTIVE: Render a bold, clean, high-contrast headline typography in Portuguese (pt-BR) ${headlineDirective} with elegant lettering and safe margins. ${effectiveLogoUrl ? "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 22% height x left 30% width) 100% blank and clean for logo overlay; place headline starting below Y=22% or centered. " : ""}No icons or complex infographic elements, just the hero subject and the bold headline.]`;
+        ` [COMMERCIAL HEADLINE POSTER DIRECTIVE: Render a bold, clean, high-contrast headline typography in Portuguese (pt-BR) ${headlineDirective}${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly using the BrandKit typography system (Primary/Bold Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Geometric Sans-Serif Bold'}", Secondary/Normal Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Geometric Sans-Serif Regular'}", General Style: "${brandSnapshot.fonts.style || 'Clean modern corporate sans-serif'}" — keep 100% uniform geometric sans-serif anatomy across all lines, differentiating setup lines vs emphasis lines strictly by font weight Normal vs Bold within the exact same sans-serif family, with ZERO serifs or calligraphic strokes)` : " with elegant lettering"} and safe margins. ${effectiveLogoUrl ? "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 22% height x left 30% width) 100% blank and clean for logo overlay; place headline starting below Y=22% or centered. " : ""}No icons or complex infographic elements, just the hero subject and the bold headline.]`;
     } else if (effectiveOverlayMode === "INFOGRAPHIC" || effectiveOverlayMode === "BOTH") {
       const headlineDirective = productHeadline?.trim()
         ? `with the main headline: "${productHeadline.trim()}"`
         : "with an impactful context-tailored commercial headline in Portuguese (pt-BR)";
       compiledPrompt +=
-        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC ADVERTISING DIRECTIVE: The AI has full creative freedom to decide the most fitting, modern infographic composition in Portuguese (pt-BR) tailored dynamically to the subject and briefing. Do NOT force a repetitive rigid template (do NOT force a mandatory warranty seal or a fixed row of 4 bottom cards). Instead, adapt the layout organically: (a) Floating feature callout tags with clean pointers to product/subject details, (b) A sleek modern sidebar or clean list of 2-4 key benefits with minimalist line icons, (c) Glassmorphic stat badges, step-by-step points, or comparative visual highlights, or (d) Integrated editorial typography harmonized naturally with the scene. Include: ${headlineDirective} in bold high-contrast Portuguese typography, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. MANDATÓRIO: Deixar o quadrante superior esquerdo (topo 22% x esquerda 30%) 100% livre, limpo e com ZERO TEXTO para inserção da logomarca (todos os títulos, badges e textos devem começar abaixo de Y=22% ou alinhados ao centro/direita). JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
+        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC ADVERTISING DIRECTIVE: The AI has full creative freedom to decide the most fitting, modern infographic composition in Portuguese (pt-BR) tailored dynamically to the subject and briefing. Do NOT force a repetitive rigid template (do NOT force a mandatory warranty seal or a fixed row of 4 bottom cards). Instead, adapt the layout organically: (a) Floating feature callout tags with clean pointers to product/subject details, (b) A sleek modern sidebar or clean list of 2-4 key benefits with minimalist line icons, (c) Glassmorphic stat badges, step-by-step points, or comparative visual highlights, or (d) Integrated editorial typography harmonized naturally with the scene. Include: ${headlineDirective} in bold high-contrast Portuguese typography${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly adhering to the BrandKit typography system (Primary Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Sans-Serif Bold'}", Secondary Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Sans-Serif Regular'}", Style: "${brandSnapshot.fonts.style || 'Clean corporate sans-serif'}" — use a single unified sans-serif typeface family across all text lines, differentiating hierarchy strictly by Normal vs Bold weight with ZERO serifs)` : ""}, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. MANDATÓRIO: Deixar o quadrante superior esquerdo (topo 22% x esquerda 30%) 100% livre, limpo e com ZERO TEXTO para inserção da logomarca (todos os títulos, badges e textos devem começar abaixo de Y=22% ou alinhados ao centro/direita). JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
     }
 
     if (negativeInstructions) {

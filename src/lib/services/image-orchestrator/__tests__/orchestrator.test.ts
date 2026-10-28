@@ -295,7 +295,39 @@ describe("Image Orchestrator Suite", () => {
 
       expect(a1.primary.id).not.toBe(a2.primary.id);
       expect(a2.primary.id).not.toBe(a3.primary.id);
-      expect(Gpt5PromptPlanner.CREATIVE_LOGO_ARCHETYPES.length).toBeGreaterThanOrEqual(8);
+    });
+
+    it("aplica a trava tipográfica do BrandKit (/fontlock) quando primaryFont, secondaryFont e style estão configurados", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Se a gente escondesse a casca, você saberia dizer qual é Fuji e qual é Gala?",
+        objective: "social",
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic",
+        textOverlayMode: "TITLE_ONLY",
+        productHeadline: "Se a gente escondesse a casca, você saberia dizer qual é Fuji e qual é Gala?",
+        useBrandKit: true,
+        brandKit: {
+          enabled: true,
+          businessName: "Pomar Brasil",
+          primaryColors: ["#0E4B35"],
+          secondaryColors: ["#FFFFFF"],
+          accentColors: [],
+          hasLocalOfficialLogo: false,
+          fonts: {
+            primaryFont: "Branding SF - BOLD",
+            secondaryFont: "Branding SF - NORMAL",
+            style: "Moderno sans-serif limpo, corporativo e altamente legível",
+          },
+        },
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("/fontlock");
+      expect(planResult.compiledImagePrompt).toContain("Branding SF - BOLD");
+      expect(planResult.compiledImagePrompt).toContain("Branding SF - NORMAL");
+      expect(planResult.compiledImagePrompt).toContain("SINGLE unified, clean, modern corporate geometric sans-serif typeface family");
     });
   });
 

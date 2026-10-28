@@ -91,6 +91,11 @@ export interface BrandSnapshot {
   visualGuidelines?: string;
   logoUrl?: string;
   fontFamily?: string;
+  fonts?: {
+    primaryFont?: string;
+    secondaryFont?: string;
+    style?: string;
+  };
   targetAudience?: string;
   toneOfVoice?: string;
   slogan?: string;

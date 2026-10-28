@@ -402,7 +402,7 @@ ${
 # TYPOGRAPHY RULES (MANDATORY TEXT RENDERING PERSONALIZATION)
 When rendering the literal text/title on the image, instruct the generator to follow the brand's typography:
 ${fontsText}
-Instruct the typography to be rendered using the specified Primary Font for titles/headers or using the specified General Typographic Style (e.g. "write the literal text '...' using a clean, sans-serif Montserrat font to match the brand's typography").
+Instruct the typography to be rendered strictly following the BrandKit font hierarchy and anatomical style: use the Primary Font (Bold/Heavy weight) for main titles or emphasized punchlines, and the Secondary Font (Normal/Regular weight) for setup or body lines, maintaining 100% consistency within the EXACT SAME typeface family across all lines! Since image generators do not have proprietary .ttf font files (such as "Branding SF"), always translate the font into explicit anatomical descriptors in the prompt (e.g., if the font or style is "Branding SF" or "sans-serif limpo, corporativo", instruct: "render all text using a single unified modern corporate geometric sans-serif typeface family across every line, differentiating setup lines in Regular weight from highlighted lines in Bold weight of the exact same sans-serif family, with crisp straight terminals and ZERO serifs, ZERO semi-serifed flares, and ZERO mixing of different font families").
 `
     : ""
 }

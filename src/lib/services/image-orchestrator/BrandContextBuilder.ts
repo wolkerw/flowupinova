@@ -41,6 +41,7 @@ export class BrandContextBuilder {
           secondaryColor: data?.secondaryColor || bk?.secondaryColor || "#FA6305",
           visualGuidelines: bk?.visualGuidelines || data?.visualGuidelines || "",
           logoUrl: bk?.logoUrl || data?.logo?.url || (typeof data?.logo === "string" ? data.logo : ""),
+          fonts: bk?.fonts || data?.fonts || undefined,
           targetAudience: data?.targetAudience || bk?.targetAudience || "",
           toneOfVoice: data?.toneOfVoice || bk?.toneOfVoice || "",
           slogan: data?.slogan || bk?.slogan || "",
@@ -75,6 +76,7 @@ export class BrandContextBuilder {
       accentColors: ["#FFFFFF", "#1E293B"],
       visualStyle: snapshot?.visualGuidelines || "Moderno, limpo, confiável, corporativo e tecnológico",
       toneOfVoice: snapshot?.toneOfVoice || "Profissional, acessível e inspirador",
+      fonts: snapshot?.fonts,
       restrictions: [
         "Não utilizar logotipos concorrentes ou marcas não autorizadas.",
         "Não inventar logotipos alternativos (como foguetes ou caricaturas aleatórias).",
