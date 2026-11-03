@@ -250,7 +250,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
   const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
-  const [layoutStyle, setLayoutStyle] = useState<string>("CLEAN_LUXURY");
+  const [layoutStyle, setLayoutStyle] = useState<string>(
+    mode === "reference-photo" ? "AUTO" : "CLEAN_LUXURY"
+  );
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
@@ -1269,7 +1271,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               // No fluxo de fotos de produto, não aciona Flux Kontext para não descaracterizar o produto
               throw new Error(
                 nanobananaError.message ||
-                  "O motor de IA de produto (gpt-image-2) não conseguiu completar a geração. Por favor, tente novamente."
+                  "O motor de IA de produto (gpt-image-2.5-sunburst) não conseguiu completar a geração. Por favor, tente novamente."
               );
             }
 

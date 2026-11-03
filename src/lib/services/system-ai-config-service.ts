@@ -52,7 +52,7 @@ export const AVAILABLE_AI_MODELS = {
 
 export const DEFAULT_AI_MODELS_CONFIG: AIModelsConfig = {
   generalPlannerModel: "gpt-6.1-sol",
-  generalImageModel: "gpt-image-2",
+  generalImageModel: "gpt-image-2.5-sunburst",
   generalFallbackImageModel: "gemini-2.5-flash-image",
   imageQuality: "medium",
   chatModel: "gemini-2.5-flash",

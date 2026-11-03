@@ -182,8 +182,7 @@ export function PromptsViewer() {
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-400">
             <p className="mb-4 text-xs">
-              Instrui a preservar perfeitamente marcas e formatos originais, 
-              posicionando o item num cenário fotográfico de alto padrão.
+              Instrui o motor primário (<strong>gpt-image-2.5-sunburst</strong> via Image-to-Image 4:5 1024x1280 → 1080x1350 sem crop destrutivo) a preservar perfeitamente marcas e formatos originais, posicionando o item num cenário fotográfico de alto padrão com margem interna segura de 15% a 20% em todos os lados para evitar corte de títulos e cards.
             </p>
             <div className="flex flex-col gap-3">
               <Textarea 

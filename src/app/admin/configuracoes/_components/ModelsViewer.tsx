@@ -265,12 +265,12 @@ export function ModelsViewer() {
             <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/10 p-4">
               <div className="mb-1 flex items-center justify-between">
                 <label className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                  2. Motor Gráfico Principal (Renderizador)
+                  2. Motor Gráfico Principal (Renderizador — Produto & Geral)
                 </label>
-                <span className="text-[10px] font-medium text-emerald-500">Primário</span>
+                <span className="text-[10px] font-medium text-emerald-500">Primário (GPT-Image-2.5 Sunburst)</span>
               </div>
               <p className="mb-2 text-[11px] text-slate-400">
-                Renderiza o anúncio final respeitando composição, tipografia e espaços de respiro sem crop destrutivo.
+                Renderiza o anúncio final e o fluxo de Foto de Produto (Image-to-Image em 1024x1280 / 1080x1350 4:5) respeitando composição, tipografia e margens internas seguras de 15-20% sem crop destrutivo nas bordas.
               </p>
               <select
                 value={config.generalImageModel}

@@ -215,13 +215,15 @@ export async function POST(request: Request) {
     if (textOverlayMode === "NONE" || insertTextOnImage === false) {
       finalPrompt += " [CRITICAL MANDATE — FOTOGRAFIA PURA (ABSOLUTELY ZERO TEXT): DO NOT render any text, typography, letters, words, slogans, banners, badges, or watermarks on the image. The image must be 100% clean photography.]";
     } else if (textOverlayMode === "TITLE_ONLY" && activeHeadline) {
-      finalPrompt += ` [DIAGRAMAÇÃO APENAS TÍTULO: Renderize na imagem APENAS a headline comercial principal em destaque em Português (pt-BR): "${activeHeadline}". ESTRITAMENTE PROIBIDO adicionar cartões de benefícios, infográficos secundários, selos ou rodapés textuais complexos. Foto limpa com tipografia elegante e margens seguras de 20%. PROIBIDO desenhar qualquer logotipo ou marca na imagem.]`;
+      finalPrompt += ` [DIAGRAMAÇÃO APENAS TÍTULO (ZERO CORTE DE TEXTO): Renderize na imagem APENAS a headline comercial principal em destaque em Português (pt-BR): "${activeHeadline}", quebrada em 2 a 3 linhas curtas centralizadas ocupando no máximo 70% da largura com 15% a 20% de margem livre em todos os 4 lados para que nenhuma letra seja cortada nas bordas. ESTRITAMENTE PROIBIDO adicionar cartões de benefícios, infográficos secundários, selos ou rodapés textuais complexos. PROIBIDO desenhar qualquer logotipo ou marca na imagem.]`;
     } else if ((textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") && activeHeadline) {
-      finalPrompt += ` [DIAGRAMAÇÃO INFOGRÁFICO COMPLETO COM TÍTULO EM DESTAQUE: Renderize a arte publicitária completa em Português (pt-BR) com o título principal: "${activeHeadline}", acompanhado de diagramação infográfica, cartões visuais de benefícios, ícones e selos comerciais elegantes com margens seguras de 20%. PROIBIÇÃO ABSOLUTA DE LOGOMARCAS (ZERO LOGOS): ESTRITAMENTE PROIBIDO desenhar, carimbar, simular ou inventar qualquer logotipo, logomarca, emblema ou nome de empresa na imagem (seja em cantos, rodapés, cabeçalhos, telas de celulares/tablets ou dentro de cards de vidro). A imagem deve ter o espaço de cabeçalho e rodapé 100% limpo e livre de logos desenhadas pela IA, pois a logo oficial é aplicada manualmente pelo usuário no editor de marca.]`;
+      finalPrompt += ` [DIAGRAMAÇÃO INFOGRÁFICO COMPLETO COM TÍTULO EM DESTAQUE (ZERO CORTE NAS BORDAS): Renderize a arte publicitária completa em Português (pt-BR) com o título principal: "${activeHeadline}" quebrado em 2 a 3 linhas curtas centralizadas (máximo 70% da largura), acompanhado de cartões visuais flutuantes de benefícios e selos comerciais elegantes. REGRA CRÍTICA ANTI-CORTE: Mantenha 15% a 20% de margem livre interna em todos os 4 lados (esquerda, direita, topo e base). NUNCA cole os cards na borda direita ou esquerda da imagem — todos os 4 cantos arredondados de cada card e 100% das letras devem estar integralmente visíveis dentro do quadro. PROIBIÇÃO ABSOLUTA DE LOGOMARCAS (ZERO LOGOS): ESTRITAMENTE PROIBIDO desenhar ou inventar qualquer logotipo na imagem.]`;
     }
 
-    // 2. Modelo Principal Estrito: gpt-image-2 (OpenAI) é SEMPRE o motor primário absoluto
+    // 2. Modelo Principal Estrito: gpt-image-2.5-sunburst (OpenAI) é SEMPRE o motor primário absoluto
     const MODELS_CHAIN = [
+      { provider: "openai", model: "gpt-image-2.5-sunburst" },
+      { provider: "openai", model: "gpt-image-2.5-flare" },
       { provider: "openai", model: "gpt-image-2" },
       { provider: "openai", model: "dall-e-3" },
       { provider: "google", model: "gemini-3-pro-image" },
@@ -242,8 +244,8 @@ export async function POST(request: Request) {
           if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
 
           const nativeSize =
-            config.model === "gpt-image-2"
-              ? "1152x1536"
+            config.model.startsWith("gpt-image-")
+              ? "1024x1280"
               : config.model === "dall-e-3"
                 ? "1024x1792"
                 : "1024x1024";
@@ -254,6 +256,9 @@ export async function POST(request: Request) {
             n: 1,
             size: nativeSize,
           };
+          if (config.model.includes("2.5") || config.model.startsWith("gpt-image-")) {
+            payload.quality = "auto";
+          }
 
           const response = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
             method: "POST",
@@ -299,7 +304,7 @@ export async function POST(request: Request) {
                 {
                   parts: [
                     {
-                      text: `[FORMAT: Vertical 3:4 portrait (1080x1440)] Framed vertically in 3:4 aspect ratio (1080x1440 portrait format). ${finalPrompt}`,
+                      text: `[FORMAT: Vertical 4:5 portrait (1080x1350) with 15-20% inner safe margins on all sides] Framed vertically in 4:5 aspect ratio (1080x1350 portrait format). ${finalPrompt}`,
                     },
                   ],
                 },
@@ -368,38 +373,17 @@ export async function POST(request: Request) {
       throw new Error(`Falha na geração de imagem. ${lastError}`);
     }
 
-    // 2. Converter o base64 para Buffer binário e padronizar com precisão em 1080x1440 (3:4)
+    // 2. Converter o base64 para Buffer binário e padronizar em 1080x1350 (4:5) SEM CROP DESTRUTIVO NAS BORDAS
     let buffer = Buffer.from(imageBytes, "base64");
     try {
       const image = await Jimp.read(buffer);
-      const targetWidth = 1080;
-      const targetHeight = 1440;
-      const targetRatio = targetWidth / targetHeight; // 0.75 (3:4)
-      const currentRatio = image.width / image.height;
-
-      if (Math.abs(currentRatio - targetRatio) > 0.01) {
-        let cropW = image.width;
-        let cropH = image.height;
-        if (currentRatio > targetRatio) {
-          // Imagem mais larga (ex: horizontal 16:9 ou 1:1)
-          cropW = Math.round(image.height * targetRatio);
-          const x = Math.max(0, Math.floor((image.width - cropW) / 2));
-          image.crop({ x, y: 0, w: cropW, h: cropH });
-        } else {
-          // Imagem mais alta (ex: vertical 9:16)
-          cropH = Math.round(image.width / targetRatio);
-          const y = Math.max(0, Math.floor((image.height - cropH) / 2));
-          image.crop({ x: 0, y, w: cropW, h: cropH });
-        }
-      }
-
-      image.resize({ w: targetWidth, h: targetHeight });
+      image.resize({ w: 1080, h: 1350 });
       buffer = await image.getBuffer("image/jpeg");
       console.log(
-        `[GENERATE_IMAGES_NATIVE] Imagem concept_${fileName} formatada com precisão para 1080x1440 (3:4).`
+        `[GENERATE_IMAGES_NATIVE] Imagem concept_${fileName} formatada com precisão para 1080x1350 (4:5) sem recorte lateral.`
       );
     } catch (jimpErr) {
-      console.warn("[GENERATE_IMAGES_NATIVE] Falha ao ajustar proporção 3:4 com Jimp:", jimpErr);
+      console.warn("[GENERATE_IMAGES_NATIVE] Falha ao ajustar resolução 4:5 com Jimp:", jimpErr);
     }
 
     // 3. Fazer o upload do buffer diretamente para o Firebase Storage usando o Firebase Admin SDK no bucket correto

@@ -595,7 +595,7 @@ NÃO inclua crases, NENHUM bloco markdown \`\`\`json, nem qualquer texto antes o
         return NextResponse.json({ error: "Arquivo de imagem não fornecido." }, { status: 400 });
       }
 
-      // Função auxiliar para preparar buffer e cortar 1:1
+      // Função auxiliar para preparar buffer mantendo a proporção integral (sem crop destrutivo)
       const processImage = async (imgFile: File) => {
         const arrayBuffer = await imgFile.arrayBuffer();
         let buffer = Buffer.from(arrayBuffer);
@@ -603,17 +603,13 @@ NÃO inclua crases, NENHUM bloco markdown \`\`\`json, nem qualquer texto antes o
 
         try {
           const image = await Jimp.read(buffer);
-          const width = image.width;
-          const height = image.height;
-          if (width !== height) {
-            const size = Math.min(width, height);
-            const x = Math.max(0, Math.floor((width - size) / 2));
-            const y = Math.max(0, Math.floor((height - size) / 2));
-            image.crop({ x, y, w: size, h: size });
+          const maxDim = 1024;
+          if (image.width > maxDim || image.height > maxDim) {
+            image.scaleToFit({ w: maxDim, h: maxDim });
             buffer = await image.getBuffer("image/jpeg");
           }
         } catch (jimpError) {
-          console.warn("[GERAR_REFERENCIA] Falha ao recortar imagem, usando original:", jimpError);
+          console.warn("[GERAR_REFERENCIA] Falha ao redimensionar imagem, usando original:", jimpError);
         }
         return {
           base64: buffer.toString("base64"),
@@ -935,20 +931,20 @@ ${
 `;
       } else if (textOverlayMode === "TITLE_ONLY") {
         textRenderingInstruction = `
-- COMMERCIAL ADVERTISING TYPOGRAPHY (MAIN HEADLINE ONLY):
+- COMMERCIAL ADVERTISING TYPOGRAPHY (MAIN HEADLINE ONLY — ZERO EDGE CROPPING):
   - Prominently feature the main headline in Portuguese (pt-BR): "${effectiveHeadline || "O SEU PRODUTO EM DESTAQUE"}".
-  - Instruct the image generator to render clean, high-contrast, modern commercial typography placed safely within the central upper area (at least 20% margin from all borders to prevent clipping).
+  - [CRITICAL RULE — SAFE INNER MARGINS (15%-20% PADDING)]: Break the headline into 2 to 3 compact, centered lines occupying at most 70% of the canvas width. Leave at least 15% to 20% empty background margin on the left, right, and top borders so NO first or last letter is ever cut off or touching the edge of the frame.
   - STRICTLY FORBIDDEN: DO NOT include complex feature cards, bullet icons, spec tables, or multiple footer text badges. Clean photography with an elegant primary headline.
 `;
       } else {
         // INFOGRAPHIC ou BOTH
         textRenderingInstruction = `
-- COMPLETE COMMERCIAL ADVERTISING AGENCY POSTER & INFOGRAPHIC LAYOUT:
-  - HEADLINE: Render an impactful, bold commercial headline at the top in Portuguese (pt-BR): "${effectiveHeadline || "QUALIDADE & PERFORMANCE EM CADA DETALHE"}".
-  - QUALITY/GUARANTEE SEAL: Include a sleek floating circular quality badge or guarantee seal (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL").
-  - 3-4 BENEFIT CALLOUT CARDS: Integrate an elegant row or stack of 3 to 4 distinct feature cards with minimalist line icons and short, crisp descriptors in Portuguese (pt-BR) tailored specifically to the real physical attributes of the product (e.g., "Tecido Respirável", "Toque Ultra Macio", "Costura Reforçada", "Alta Durabilidade").
-  - SLOGAN / CTA FOOTER: A subtle, refined slogan bar or call-to-action in Portuguese at the lower margin.
-  - COMPOSITION: All text elements, containers, and badges MUST adhere strictly to the 20% inner safe boundary margin from canvas borders to prevent any text cutoff.
+- COMPLETE COMMERCIAL ADVERTISING AGENCY POSTER & INFOGRAPHIC LAYOUT (ZERO EDGE CROPPING):
+  - HEADLINE: Render an impactful, bold commercial headline at the top in Portuguese (pt-BR): "${effectiveHeadline || "QUALIDADE & PERFORMANCE EM CADA DETALHE"}", broken into 2-3 compact centered lines occupying at most 70% of the canvas width.
+  - QUALITY/GUARANTEE SEAL: Include a sleek floating circular quality badge or guarantee seal (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL") placed well inside the safe zone.
+  - 3-4 BENEFIT CALLOUT CARDS (FLOATING INSET — NEVER FLUSH TO EDGES): Integrate an elegant stack or row of 3 to 4 compact floating feature cards with minimalist line icons and short descriptors in Portuguese (pt-BR) tailored to the product (e.g., "Tecido Respirável", "Toque Ultra Macio", "Alta Durabilidade"). Every card MUST have all 4 rounded corners 100% visible inside the frame with at least 15% breathing room between the card border and the canvas edge — NEVER attach or bleed cards onto the right or left border of the image.
+  - SLOGAN / CTA FOOTER: A subtle, refined slogan pill or call-to-action in Portuguese centered well above the bottom border.
+  - [CRITICAL SAFE ZONE MANDATE]: Maintain a strict 15% to 20% inner safe margin on ALL four sides (left, right, top, bottom). 100% of every letter, word, badge, and card container must be completely visible inside the frame with zero clipping.
 `;
       }
 
@@ -1005,7 +1001,7 @@ ${
 }
 4. TEXT RENDERING CONTROL (CRITICAL):
    ${textRenderingInstruction}
-5. FORMAT: Always end the prompt with the instruction: "framed vertically in 3:4 portrait format (1080x1440 pixels), optimized for Instagram portrait post".
+5. FORMAT & SAFE MARGINS: Always end the prompt with the instruction: "framed vertically in 4:5 portrait format (1080x1350 pixels) with a mandatory 15-20% inner safe margin on all four sides (left, right, top, bottom) so that 100% of headlines, seals, and floating benefit cards are completely visible inside the frame and never cropped at the edges".
 ${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
@@ -1343,10 +1339,11 @@ ${yamlAnalysis}`;
         `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
       );
 
-      // Cadeia de modelos: gpt-image-2 primeiro como oficial
+      // Cadeia de modelos: gpt-image-2.5-sunburst primeiro como motor oficial
       const MODELS_CHAIN = [
+        { provider: "openai", model: "gpt-image-2.5-sunburst" },
+        { provider: "openai", model: "gpt-image-2.5-flare" },
         { provider: "openai", model: "gpt-image-2" },
-        { provider: "openai", model: "chatgpt-image-latest" },
         { provider: "openai", model: "dall-e-3" },
       ];
 
@@ -1363,8 +1360,8 @@ ${yamlAnalysis}`;
           if (config.provider === "openai") {
             if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
             const nativeSize =
-              config.model === "gpt-image-2"
-                ? "1152x1536"
+              config.model.startsWith("gpt-image-")
+                ? "1024x1280"
                 : config.model === "dall-e-3"
                   ? "1024x1792"
                   : "1024x1024";
@@ -1374,6 +1371,9 @@ ${yamlAnalysis}`;
               n: 1,
               size: nativeSize,
             };
+            if (config.model.includes("2.5") || config.model.startsWith("gpt-image-")) {
+              payload.quality = "auto";
+            }
             if (config.model === "dall-e-3" || config.model === "dall-e-2") {
               payload.response_format = "b64_json";
             }
@@ -1444,31 +1444,14 @@ ${yamlAnalysis}`;
         );
       }
 
-      // Pós-processamento Jimp: Formatar para 1080 x 1440 (3:4 Vertical Feed)
+      // Pós-processamento Jimp: Redimensionar para 1080 x 1350 (4:5 Vertical Feed) SEM CROP DESTRUTIVO
       try {
         const jimpImage = await Jimp.read(Buffer.from(imageBytes, "base64"));
-        const targetWidth = 1080;
-        const targetHeight = 1440;
-        const targetRatio = targetWidth / targetHeight; // 0.75
-
-        const currentRatio = jimpImage.width / jimpImage.height;
-        if (Math.abs(currentRatio - targetRatio) > 0.01) {
-          let cropW = jimpImage.width;
-          let cropH = jimpImage.height;
-          if (currentRatio > targetRatio) {
-            cropW = Math.round(jimpImage.height * targetRatio);
-          } else {
-            cropH = Math.round(jimpImage.width / targetRatio);
-          }
-          const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
-          const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
-          jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
-        }
-        jimpImage.resize({ w: targetWidth, h: targetHeight });
+        jimpImage.resize({ w: 1080, h: 1350 });
         const processedBuffer = await jimpImage.getBuffer("image/jpeg");
         imageBytes = processedBuffer.toString("base64");
       } catch (jimpErr) {
-        console.warn("[IMAGE_REF] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
+        console.warn("[IMAGE_REF] Falha ao ajustar resolução 4:5 via Jimp:", jimpErr);
       }
 
       // Salvar no Firebase Storage
@@ -1573,33 +1556,20 @@ ${yamlAnalysis}`;
         `[NANOBANANA_REF] Iniciando processamento para o post ${postId} (Preset: ${layoutStyle || "Padrão"})...`
       );
 
-      // Função auxiliar para processar, recortar 1:1 proporcional e redimensionar para 768px max
+      // Função auxiliar para processar e redimensionar proporcionalmente sem cortar as bordas do produto
       const processImageBuffer = async (imgFile: File) => {
         const arrBuf = await imgFile.arrayBuffer();
         let buf = Buffer.from(arrBuf);
-        const mime = imgFile.type || "image/jpeg";
         try {
           const image = await Jimp.read(buf);
-          let width = image.width;
-          let height = image.height;
-
-          if (width !== height) {
-            const size = Math.min(width, height);
-            const x = Math.max(0, Math.floor((width - size) / 2));
-            const y = Math.max(0, Math.floor((height - size) / 2));
-            image.crop({ x, y, w: size, h: size });
-            width = size;
-            height = size;
-          }
-
-          const maxDim = 768;
-          if (width > maxDim) {
-            image.resize({ w: maxDim, h: maxDim });
+          const maxDim = 1024;
+          if (image.width > maxDim || image.height > maxDim) {
+            image.scaleToFit({ w: maxDim, h: maxDim });
           }
 
           buf = await image.getBuffer("image/png");
         } catch (e) {
-          console.warn("[NANOBANANA_REF] Falha no crop/resize:", e);
+          console.warn("[NANOBANANA_REF] Falha no resize:", e);
         }
         return { buffer: buf, mimeType: "image/png" };
       };
@@ -1832,6 +1802,18 @@ Respond with a concise, rich 3-4 sentence photographic instruction to recreate t
       let nanobananaPrompt = "";
       let contentsParts: any[] = [];
 
+      const textOverlayMode =
+        (formData.get("textOverlayMode") as string) ||
+        (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
+      const insertTextOnImage =
+        textOverlayMode !== "NONE" && formData.get("insertTextOnImage") !== "false";
+      const textHeadline = (formData.get("textHeadline") as string) || "";
+      const businessProfileRaw = (formData.get("businessProfile") as string) || "";
+
+      const geminiTextRule = insertTextOnImage
+        ? `- REGRA CRÍTICA DE TEXTOS E MARGENS DE SEGURANÇA (ZERO CROPPING - 15% A 20% DE RESPIRO INTERNO): A imagem DEVE incluir a diagramação publicitária solicitada no prompt em Português (pt-BR), porém NENHUMA letra, título, selo ou card lateral pode encostar ou ser cortado pelas bordas da imagem. Mantenha 15% a 20% de margem livre em todos os 4 lados (esquerda, direita, topo e base). Títulos devem ser quebrados em 2 a 3 linhas curtas centralizadas (máximo 70% da largura) e cards de benefícios devem ser flutuantes com os 4 cantos arredondados 100% visíveis dentro do quadro.`
+        : `- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia.`;
+
       if (secondaryFile) {
         // Prompt Híbrido Avançado
         let priorityRule = "";
@@ -1857,13 +1839,11 @@ Respond with a concise, rich 3-4 sentence photographic instruction to recreate t
 4. THREE-DIMENSIONAL INTEGRATION: Position the product/project and the person in the scene integrated with realistic lighting, shadows, and reflections. The background must blend them naturally.`;
         }
 
-        const inputIsPackshot = hybridPriority === "packshot";
-        
         const rawHibridoPrompt = dynamicPrompts.hibrido_prompt || `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
 Com base nas duas imagens de referência fornecidas (Foto 1 e Foto 2), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
 
 DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC (SIGA ESTRITAMENTE):
-- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia.
+${geminiTextRule}
 - REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento, deixando um espaço livre (headroom) na parte superior. Nunca corte o topo da cabeça ou cabelo do modelo.
 - Utilize iluminação profissional e natural para criar profundidade e separação tridimensional.
 - Replique o visual de uma câmera profissional de alto padrão (lente 50mm ou 85mm, foco nítido, desfoque suave de fundo).
@@ -1893,17 +1873,17 @@ Cenário desejado e estilo: ${prompt}`;
         ];
       } else {
         // Prompt Tradicional (Pessoa Única ou Produto Único)
-        const rawProdutoPrompt = dynamicPrompts.produto_prompt || `Aqui está a foto de referência do produto (com fundo transparente/removido).
+        const rawProdutoPrompt = dynamicPrompts.produto_prompt || `Aqui está a foto de referência do produto.
 Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
 
 ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
-1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXACTAMENTE como estão na foto de referência.
+1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXATAMENTE como estão na foto de referência.
 2. Não altere, distorça ou modifique o produto. Ele deve parecer real, nítido e idêntico à referência.
 3. Posicione o produto de forma tridimensional e integrada com as sombras e reflexos adequados no cenário.
 4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
 
 DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
-- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia.
+${geminiTextRule}
 - REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem.
 - Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave).
 - Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm.`;
@@ -1926,7 +1906,7 @@ Cenário desejado e estilo: ${prompt}`;
       let imageBytes: string | null = null;
       let modelUsed = "";
 
-      // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2 (Image-to-Image) como motor primário!
+      // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2.5-sunburst (Image-to-Image) como motor primário!
       let effectiveLayoutStyle = layoutStyle;
       const promptLower = (prompt || "").toLowerCase();
       if (!effectiveLayoutStyle || effectiveLayoutStyle === "AUTO") {
@@ -1950,13 +1930,6 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       const isProductPreset = Boolean(effectiveLayoutStyle && effectiveLayoutStyle.startsWith("PRODUCT_"));
-      const textOverlayMode =
-        (formData.get("textOverlayMode") as string) ||
-        (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
-      const insertTextOnImage =
-        textOverlayMode !== "NONE" && formData.get("insertTextOnImage") !== "false";
-      const textHeadline = (formData.get("textHeadline") as string) || "";
-      const businessProfileRaw = (formData.get("businessProfile") as string) || "";
 
       let brandTypographyDirective = "";
       let brandIdentityDirective = "";
@@ -2075,12 +2048,12 @@ Cenário desejado e estilo: ${prompt}`;
         let agencyDirective = "";
         if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
           const headlineText = headlineToUse
-            ? `com o título em destaque: "${headlineToUse}"`
-            : "com headline de destaque e selo de qualidade";
-          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) An impactful headline at the top in Portuguese (pt-BR) ${headlineText} with decorative badge/icon, (2) A floating quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" ou "GARANTIA TOTAL"), (3) The hero product prominently staged in high fidelity with thematic lighting and atmospheric depth, (4) At the bottom or side, a structured row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+            ? `with the exact headline: "${headlineToUse}"`
+            : "with a short impactful Portuguese headline and quality seal";
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE — ZERO TEXT CROPPING): Construct a complete commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) A compact, bold headline at the top in Portuguese (pt-BR) ${headlineText}, broken into 2-3 short centered lines occupying at most 70% of the canvas width, (2) A floating circular quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL") placed well inside the safe zone, (3) The hero product prominently staged in high fidelity with thematic lighting, (4) 3 compact floating benefit cards with minimalist icons and short 2-3 word Portuguese descriptors tailored to the product's features. [CRITICAL RULE — NO EDGE-FLUSH CARDS & 15%-20% SAFE INNER MARGIN]: Every headline word, badge, and floating benefit card MUST be inset with at least 15% to 20% empty background padding from the left, right, top, and bottom canvas edges. NEVER attach or bleed benefit cards onto the right or left border of the image — all 4 rounded corners of every card and 100% of all letters must be completely visible inside the frame.`;
         } else if (textOverlayMode === "TITLE_ONLY") {
           const headlineText = headlineToUse ? `"${headlineToUse}"` : '"O SEU PRODUTO EM DESTAQUE"';
-          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText}, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE — ZERO TEXT CROPPING): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText}, broken into 2-3 compact centered lines occupying at most 70% of the canvas width with at least 15% to 20% empty margin on the left, right, and top borders so NO letter is ever cut off, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom.`;
         } else if (isProductPreset) {
           agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
         } else {
@@ -2089,7 +2062,7 @@ Cenário desejado e estilo: ${prompt}`;
 
         let typographyPrompt = "";
         if (insertTextOnImage && headlineToUse) {
-          typographyPrompt = `CUSTOM HEADLINE: Use the exact headline text "${headlineToUse}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Place all text within the central safe area with at least 20% breathing room from borders. If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling in Portuguese, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
+          typographyPrompt = `CUSTOM HEADLINE & ANTI-CROPPING RULE: Use the exact headline text "${headlineToUse}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Break the headline into 2-3 compact centered lines within the central 70% of the frame width, maintaining a strict 15-20% inner safe margin from the left, right, top, and bottom borders so the first and last letters are NEVER clipped. Ensure perfect spelling in Portuguese, sharp crisp characters, and zero typos.`;
         } else if (!insertTextOnImage && textOverlayMode === "NONE") {
           typographyPrompt =
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
@@ -2099,10 +2072,10 @@ Cenário desejado e estilo: ${prompt}`;
           ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
           : "";
 
-        const openaiPrompt = `${heroProductRule} ${styleHeader}${displaySystemHeader} Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} The product must be sharply in focus, large-scale, with tactile textures and authentic material details. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const openaiPrompt = `${heroProductRule} ${styleHeader}${displaySystemHeader} Commercial advertising photography in 4:5 vertical portrait format (1024x1280) featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} The product must be sharply in focus, large-scale, with tactile textures and authentic material details. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         const isHybridPersonScene = Boolean(secondaryFile);
-        const shouldRunOpenAiEdits = Boolean(openaiKey && (isProductPreset || isHybridPersonScene));
+        const shouldRunOpenAiEdits = Boolean(openaiKey);
 
         let openAiPersonScenePrompt = "";
         if (isHybridPersonScene) {
@@ -2122,18 +2095,27 @@ Cenário desejado e estilo: ${prompt}`;
             ? `[ARCHITECTURAL & ENVIRONMENT BLUEPRINT FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
             : "";
 
-          openAiPersonScenePrompt = `Commercial advertising and realistic lifestyle photography. Integrate the person from this input image into this exact physical architectural environment: ${scenarioDesc}${cleanPrompt || "modern real estate and lifestyle setting"}. ${integrationDirective} Professional photography, cinematic daylight, authentic textures, sharp focus, 8k resolution, photorealistic. ZERO written text, no watermarks, no artificial overlay badges.`;
+          const hybridTextDirective = insertTextOnImage
+            ? `${agencyDirective} ${typographyPrompt}`
+            : "ZERO written text, no watermarks, no artificial overlay badges.";
+
+          openAiPersonScenePrompt = `Commercial advertising and realistic lifestyle photography in 4:5 vertical portrait format (1024x1280). Integrate the person from this input image into this exact physical architectural environment: ${scenarioDesc}${cleanPrompt || "modern real estate and lifestyle setting"}. ${integrationDirective} ${hybridTextDirective} Professional photography, cinematic daylight, authentic textures, sharp focus, 8k resolution, photorealistic.`;
         }
 
         const finalOpenAiPrompt = isHybridPersonScene ? openAiPersonScenePrompt : openaiPrompt;
-        const openAiModelsToTry = ["gpt-image-2.5-sunburst", "gpt-image-2"];
+        const openAiModelsToTry = [
+          "gpt-image-2.5-sunburst",
+          "gpt-image-2.5-flare",
+          "gpt-image-2",
+        ];
 
         if (shouldRunOpenAiEdits) {
           modelLoop: for (const currentOpenAiModel of openAiModelsToTry) {
             for (let attempt = 1; attempt <= 2; attempt++) {
               try {
+                const targetEditSize = attempt === 1 ? "1024x1280" : "1024x1536";
                 console.log(
-                  `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando para OpenAI /v1/images/edits (${currentOpenAiModel} - Tentativa ${attempt}/2)...`
+                  `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando para OpenAI /v1/images/edits (${currentOpenAiModel} - size: ${targetEditSize} - Tentativa ${attempt}/2)...`
                 );
                 const editsFormData = new FormData();
                 const productBlob = new Blob([buffer1], { type: "image/png" });
@@ -2141,7 +2123,7 @@ Cenário desejado e estilo: ${prompt}`;
                 editsFormData.append("model", currentOpenAiModel);
                 editsFormData.append("prompt", finalOpenAiPrompt);
                 editsFormData.append("n", "1");
-                editsFormData.append("size", "1152x1536");
+                editsFormData.append("size", targetEditSize);
                 if (currentOpenAiModel.includes("2.5") || currentOpenAiModel.startsWith("gpt-image-")) {
                   editsFormData.append("quality", "auto");
                 }
@@ -2168,7 +2150,7 @@ Cenário desejado e estilo: ${prompt}`;
                     imageBytes = b64;
                     modelUsed = currentOpenAiModel;
                     console.log(
-                      `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${currentOpenAiModel})!`
+                      `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${currentOpenAiModel} - ${targetEditSize})!`
                     );
                     break modelLoop;
                   }
@@ -2179,7 +2161,7 @@ Cenário desejado e estilo: ${prompt}`;
                     errTxt.slice(0, 160)
                   );
                   if (attempt < 2) {
-                    await new Promise((r) => setTimeout(r, 1500));
+                    await new Promise((r) => setTimeout(r, 1000));
                   }
                 }
               } catch (openaiErr: any) {
@@ -2188,65 +2170,135 @@ Cenário desejado e estilo: ${prompt}`;
                   openaiErr.message
                 );
                 if (attempt < 2) {
-                  await new Promise((r) => setTimeout(r, 1500));
+                  await new Promise((r) => setTimeout(r, 1000));
                 }
+              }
+            }
+          }
+
+          // Fallback secundário OpenAI (/v1/images/generations com gpt-image-2.5-sunburst em 1024x1280) caso /v1/images/edits falhe
+          if (!imageBytes) {
+            for (const genModel of openAiModelsToTry) {
+              try {
+                console.log(
+                  `[NANOBANANA_REF] 🔄 Tentando OpenAI /v1/images/generations (${genModel} - 1024x1280)...`
+                );
+                const genRes = await fetch("https://api.openai.com/v1/images/generations", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openaiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: genModel,
+                    prompt: finalOpenAiPrompt,
+                    n: 1,
+                    size: "1024x1280",
+                    quality: "auto",
+                  }),
+                });
+                if (genRes.ok) {
+                  const genData = await genRes.json();
+                  let b64 = genData?.data?.[0]?.b64_json;
+                  if (!b64 && genData?.data?.[0]?.url) {
+                    const imgRes = await fetch(genData.data[0].url);
+                    if (imgRes.ok) {
+                      const ab = await imgRes.arrayBuffer();
+                      b64 = Buffer.from(ab).toString("base64");
+                    }
+                  }
+                  if (b64) {
+                    imageBytes = b64;
+                    modelUsed = genModel;
+                    console.log(
+                      `[NANOBANANA_REF] ✅ Sucesso com OpenAI /v1/images/generations (${genModel})!`
+                    );
+                    break;
+                  }
+                }
+              } catch (genErr: any) {
+                console.warn(
+                  `[NANOBANANA_REF] Falha no fallback /v1/images/generations (${genModel}):`,
+                  genErr.message
+                );
               }
             }
           }
         }
       }
 
-      // Se não gerou via OpenAI (ou se for o fluxo padrão sem preset de produto), utiliza o Nano Banana Pro
+      // Se não gerou via OpenAI, utiliza o Nano Banana Pro como fallback de contingência
       if (!imageBytes) {
         for (const model of NANOBANANA_MODELS) {
-        let timeoutId: NodeJS.Timeout | null = null;
-        try {
-          console.log(`[NANOBANANA_REF] Tentando gerar com modelo ${model}...`);
-          const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          let timeoutId: NodeJS.Timeout | null = null;
+          try {
+            console.log(`[NANOBANANA_REF] Tentando gerar com modelo ${model}...`);
+            const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-          const controller = new AbortController();
-          timeoutId = setTimeout(() => {
-            console.warn(
-              `[NANOBANANA_REF] Timeout de 75s atingido para o modelo ${model}. Abortando...`
-            );
-            controller.abort();
-          }, 75000);
-
-          const response = await fetch(nanobananaUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: contentsParts,
-                },
-              ],
-            }),
-            signal: controller.signal,
-          });
-
-          if (timeoutId) clearTimeout(timeoutId);
-
-          if (response.ok) {
-            const data = await response.json();
-            const bytes = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-            if (bytes) {
-              imageBytes = bytes;
-              modelUsed = model;
-              console.log(`[NANOBANANA_REF] ✅ Sucesso total com o modelo ${model}!`);
-              break;
-            } else {
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => {
               console.warn(
-                `[NANOBANANA_REF] Resposta ok do modelo ${model}, mas bytes de imagem ausentes:`,
-                JSON.stringify(data).substring(0, 200)
+                `[NANOBANANA_REF] Timeout de 75s atingido para o modelo ${model}. Abortando...`
+              );
+              controller.abort();
+            }, 75000);
+
+            let response = await fetch(nanobananaUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: contentsParts,
+                  },
+                ],
+                generationConfig: {
+                  responseModalities: ["IMAGE"],
+                  imageConfig: {
+                    aspectRatio: "3:4",
+                  },
+                },
+              }),
+              signal: controller.signal,
+            });
+
+            if (!response.ok && response.status === 400) {
+              response = await fetch(nanobananaUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: contentsParts,
+                    },
+                  ],
+                }),
+                signal: controller.signal,
+              });
+            }
+
+            if (timeoutId) clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              const bytes = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              if (bytes) {
+                imageBytes = bytes;
+                modelUsed = model;
+                console.log(`[NANOBANANA_REF] ✅ Sucesso total com o modelo ${model}!`);
+                break;
+              } else {
+                console.warn(
+                  `[NANOBANANA_REF] Resposta ok do modelo ${model}, mas bytes de imagem ausentes:`,
+                  JSON.stringify(data).substring(0, 200)
+                );
+              }
+            } else {
+              const errText = await response.text().catch(() => `status ${response.status}`);
+              console.warn(
+                `[NANOBANANA_REF] Modelo ${model} retornou erro (${response.status}): ${errText.substring(0, 150)}`
               );
             }
-          } else {
-            const errText = await response.text().catch(() => `status ${response.status}`);
-            console.warn(
-              `[NANOBANANA_REF] Modelo ${model} retornou erro (${response.status}): ${errText.substring(0, 150)}`
-            );
-          }
           } catch (modelErr: any) {
             if (timeoutId) clearTimeout(timeoutId);
             console.warn(`[NANOBANANA_REF] Exceção na chamada do modelo ${model}:`, modelErr.message);
@@ -2258,37 +2310,20 @@ Cenário desejado e estilo: ${prompt}`;
         return NextResponse.json(
           {
             error:
-              "Todos os modelos do Google Gemini Image (Nano Banana) falharam para a geração por referência.",
+              "Todos os motores de geração de imagem por referência (OpenAI gpt-image-2.5-sunburst e Google Gemini) falharam.",
           },
           { status: 500 }
         );
       }
 
-      // Pós-processamento Jimp: Formatar para 1080 x 1440 (3:4 Vertical Feed)
+      // Pós-processamento Jimp: Redimensionar para 1080 x 1350 (4:5 Vertical Feed) SEM CROP DESTRUTIVO NAS BORDAS
       try {
         const jimpImage = await Jimp.read(Buffer.from(imageBytes, "base64"));
-        const targetWidth = 1080;
-        const targetHeight = 1440;
-        const targetRatio = targetWidth / targetHeight; // 0.75
-
-        const currentRatio = jimpImage.width / jimpImage.height;
-        if (Math.abs(currentRatio - targetRatio) > 0.01) {
-          let cropW = jimpImage.width;
-          let cropH = jimpImage.height;
-          if (currentRatio > targetRatio) {
-            cropW = Math.round(jimpImage.height * targetRatio);
-          } else {
-            cropH = Math.round(jimpImage.width / targetRatio);
-          }
-          const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
-          const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
-          jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
-        }
-        jimpImage.resize({ w: targetWidth, h: targetHeight });
+        jimpImage.resize({ w: 1080, h: 1350 });
         const processedBuffer = await jimpImage.getBuffer("image/jpeg");
         imageBytes = processedBuffer.toString("base64");
       } catch (jimpErr) {
-        console.warn("[NANOBANANA_REF] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
+        console.warn("[NANOBANANA_REF] Falha ao redimensionar para 4:5 via Jimp:", jimpErr);
       }
 
       // 6. Gravar a imagem gerada no Firebase Storage
@@ -2439,30 +2474,41 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2.5-sunburst) para gerar imagem conceitual..."
       );
       try {
-        const response = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openaiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-image-2",
-            prompt: prompt,
-            n: 1,
-            size: "1152x1536",
-          }),
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          console.error("[GERAR_REFERENCIA] Erro na API da OpenAI (gpt-image-2):", errText);
-          throw new Error(`Erro na API da OpenAI (gpt-image-2): ${errText}`);
+        const dalleModels = ["gpt-image-2.5-sunburst", "gpt-image-2.5-flare", "gpt-image-2"];
+        let resData: any = null;
+        let lastDalleErr = "";
+        for (const dModel of dalleModels) {
+          const response = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openaiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: dModel,
+              prompt: prompt,
+              n: 1,
+              size: "1024x1280",
+              quality: "auto",
+            }),
+          });
+          if (response.ok) {
+            resData = await response.json();
+            break;
+          } else {
+            lastDalleErr = await response.text();
+            console.warn(`[GERAR_REFERENCIA] Falha em ${dModel}:`, lastDalleErr.slice(0, 160));
+          }
         }
 
-        const resData = await response.json();
+        if (!resData) {
+          console.error("[GERAR_REFERENCIA] Erro na API da OpenAI (gpt-image-2.5-sunburst):", lastDalleErr);
+          throw new Error(`Erro na API da OpenAI (gpt-image-2.5-sunburst): ${lastDalleErr}`);
+        }
+
         let b64Data = resData.data?.[0]?.b64_json;
         const urlData = resData.data?.[0]?.url;
 
@@ -2485,31 +2531,14 @@ Cenário desejado e estilo: ${prompt}`;
             "[GERAR_REFERENCIA] Gravando imagem Base64 da OpenAI direto no Firebase Storage..."
           );
           try {
-            // Pós-processamento Jimp: Formatar para 1080 x 1440 (3:4 Vertical Feed)
+            // Pós-processamento Jimp: Redimensionar para 1080 x 1350 (4:5 Vertical Feed) SEM CROP DESTRUTIVO
             try {
               const jimpImage = await Jimp.read(Buffer.from(b64Data, "base64"));
-              const targetWidth = 1080;
-              const targetHeight = 1440;
-              const targetRatio = targetWidth / targetHeight; // 0.75
-
-              const currentRatio = jimpImage.width / jimpImage.height;
-              if (Math.abs(currentRatio - targetRatio) > 0.01) {
-                let cropW = jimpImage.width;
-                let cropH = jimpImage.height;
-                if (currentRatio > targetRatio) {
-                  cropW = Math.round(jimpImage.height * targetRatio);
-                } else {
-                  cropH = Math.round(jimpImage.width / targetRatio);
-                }
-                const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
-                const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
-                jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
-              }
-              jimpImage.resize({ w: targetWidth, h: targetHeight });
+              jimpImage.resize({ w: 1080, h: 1350 });
               const processedBuffer = await jimpImage.getBuffer("image/jpeg");
               b64Data = processedBuffer.toString("base64");
             } catch (jimpErr) {
-              console.warn("[SUBMIT_DALLE] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
+              console.warn("[SUBMIT_DALLE] Falha ao ajustar resolução 4:5 via Jimp:", jimpErr);
             }
 
             const bucket = admin

@@ -84,13 +84,13 @@ export class ImageModelExecutor {
     const getProvider = (m: string): "openai" | "google" =>
       m.startsWith("gemini") ? "google" : "openai";
 
-    const preferred = params.preferredModel || "gpt-image-2";
+    const preferred = params.preferredModel || "gpt-image-2.5-sunburst";
     const fallback = params.fallbackModel || "gemini-2.5-flash-image";
 
     const defaultList = [
-      { provider: "openai" as const, model: "gpt-image-2" },
       { provider: "openai" as const, model: "gpt-image-2.5-sunburst" },
       { provider: "openai" as const, model: "gpt-image-2.5-flare" },
+      { provider: "openai" as const, model: "gpt-image-2" },
       { provider: "google" as const, model: "gemini-2.5-flash-image" },
       { provider: "google" as const, model: "gemini-3-pro-image" },
     ];

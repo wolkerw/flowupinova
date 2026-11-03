@@ -113,7 +113,7 @@ export const Step3ImageSelection = () => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 onClick={() => onSelectedImageChange(imgSrc)}
                 className={cn(
-                  "group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
+                  "group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-lg bg-slate-950 transition-all duration-300",
                   "ring-4 ring-offset-2",
                   selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
                 )}
@@ -122,8 +122,8 @@ export const Step3ImageSelection = () => {
                   src={imgSrc}
                   alt={`Opção ${index + 1}`}
                   layout="fill"
-                  objectFit="cover"
-                  className="transition-transform duration-300 group-hover:scale-105"
+                  objectFit="contain"
+                  className="transition-transform duration-300 group-hover:scale-[1.02]"
                   unoptimized
                 />
                 {/* Badge de opção */}
@@ -196,7 +196,7 @@ export const Step3ImageSelection = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: i * 0.1 }}
-                    className="relative aspect-[3/4] overflow-hidden rounded-lg border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
+                    className="relative aspect-[4/5] overflow-hidden rounded-lg border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
                   >
                     {/* Shimmer animado de fundo */}
                     <motion.div
