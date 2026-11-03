@@ -117,4 +117,36 @@ describe("POST /api/galeria/salvar", () => {
     expect(data.success).toBe(false);
     expect(data.error).toContain("Nenhum arquivo ou URL válida");
   });
+
+  it("salva carrossel via JSON com mediaUrls e grava documento único de carrossel", async () => {
+    const mediaUrls = [
+      "https://example.com/img1.jpg",
+      "https://example.com/img2.jpg",
+      "https://example.com/img3.jpg",
+    ];
+    const body = {
+      mediaUrls,
+      caption: "Carrossel completo",
+      type: "carousel",
+      source: "manual_carousel",
+    };
+
+    const req = new NextRequest("http://localhost:9002/api/galeria/salvar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockAdd).toHaveBeenCalledTimes(1);
+    const addedDoc = mockAdd.mock.calls[0][0];
+    expect(addedDoc.type).toBe("carousel");
+    expect(addedDoc.url).toBe("https://example.com/img1.jpg");
+    expect(addedDoc.mediaUrls).toEqual(mediaUrls);
+    expect(addedDoc.itemCount).toBe(3);
+  });
 });

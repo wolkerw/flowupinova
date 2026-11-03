@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     let publicUrl: string | null = null;
     let caption: string | null = null;
     let source: string = "manual_editor";
-    let mediaType: "image" | "video" = "image";
+    let mediaType: "image" | "video" | "carousel" = "image";
+    let mediaUrls: string[] = [];
     let fileName: string = "";
 
     const contentTypeHeader = request.headers.get("content-type") || "";
@@ -28,8 +29,9 @@ export async function POST(request: NextRequest) {
       caption = body.caption || null;
       source = body.source || "manual_editor";
       const rawType = body.type || "image";
-      mediaType = rawType === "video" ? "video" : "image";
+      mediaType = rawType === "carousel" ? "carousel" : rawType === "video" ? "video" : "image";
       fileName = body.fileName || "";
+      if (Array.isArray(body.mediaUrls)) mediaUrls = body.mediaUrls.filter(Boolean);
     } else {
       try {
         const formData = await request.formData();
@@ -40,8 +42,12 @@ export async function POST(request: NextRequest) {
         caption = (formData.get("caption") as string) || null;
         source = (formData.get("source") as string) || "manual_editor";
         const rawType = (formData.get("type") as string) || "image";
-        mediaType = rawType === "video" ? "video" : "image";
+        mediaType = rawType === "carousel" ? "carousel" : rawType === "video" ? "video" : "image";
         fileName = (formData.get("fileName") as string) || "";
+        const rawMediaUrls = (formData.get("mediaUrls") as string) || null;
+        if (rawMediaUrls) {
+          try { mediaUrls = JSON.parse(rawMediaUrls); } catch {}
+        }
       } catch {
         const body = await request.json().catch(() => ({}));
         userId = body.userId || userId;
@@ -50,7 +56,7 @@ export async function POST(request: NextRequest) {
         caption = body.caption || null;
         source = body.source || "manual_editor";
         const rawType = body.type || "image";
-        mediaType = rawType === "video" ? "video" : "image";
+        mediaType = rawType === "carousel" ? "carousel" : rawType === "video" ? "video" : "image";
         fileName = body.fileName || "";
       }
     }
@@ -64,7 +70,11 @@ export async function POST(request: NextRequest) {
 
     let finalUrl = publicUrl || "";
     let storagePath = "";
-    const isVideo = mediaType === "video";
+    const isCarousel = mediaType === "carousel" || mediaUrls.length > 1;
+    if (isCarousel && mediaUrls.length > 0 && !finalUrl) {
+      finalUrl = mediaUrls[0];
+    }
+    const isVideo = !isCarousel && mediaType === "video";
     const extension = isVideo ? "mp4" : "jpg";
     const defaultMimeType = isVideo ? "video/mp4" : "image/jpeg";
     const safeName = (fileName || `arte_${Date.now()}.${extension}`).replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -159,16 +169,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Gravar o documento na subcoleção mediaGallery usando o Firestore Admin
-    const docData = {
+    const docData: Record<string, any> = {
       url: finalUrl,
+      mediaUrls: isCarousel ? (mediaUrls.length > 0 ? mediaUrls : [finalUrl]) : undefined,
+      itemCount: isCarousel ? (mediaUrls.length > 0 ? mediaUrls.length : 1) : undefined,
       storagePath: storagePath || "",
-      source: source || "manual_editor",
+      source: source || (isCarousel ? "manual_carousel" : "manual_editor"),
       prompt: caption || null,
       caption: caption || null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       usedInPostId: null,
       fileName: safeName,
-      type: isVideo ? "video" : "image",
+      type: isCarousel ? "carousel" : isVideo ? "video" : "image",
       isPublished: false,
     };
 

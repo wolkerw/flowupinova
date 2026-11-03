@@ -32,6 +32,41 @@ export interface OnboardingLogosCollection {
   extraLogos?: OnboardingExtraLogoData[];
 }
 
+export interface CompetitorAnalysisReport {
+  executiveSummary: string;
+  whatWorkedWell: {
+    title: string;
+    description: string;
+    impact: "Alto" | "Médio";
+  }[];
+  gapsAndOpportunities: {
+    gap: string;
+    howToCapitalize: string;
+  }[];
+  winningContentIdeas: {
+    headline: string;
+    format: "Reels" | "Carrossel" | "Post Estático" | "Stories";
+    rationale: string;
+  }[];
+  benchmarkScores: {
+    positioning: number;
+    clarityOfOffer: number;
+    engagementTactics: number;
+  };
+}
+
+export interface CompetitorAnalysisItem {
+  id: string;
+  name: string;
+  type: "direct_competitor" | "market_reference";
+  website?: string;
+  socialMedia?: string;
+  notes?: string;
+  analyzedAt?: string;
+  status: "pending" | "analyzing" | "completed" | "error";
+  analysisReport?: CompetitorAnalysisReport;
+}
+
 export interface OnboardingProfileData {
   name: string;
   category: string;
@@ -69,6 +104,7 @@ export interface OnboardingProfileData {
       background?: string;
     };
     personas?: OnboardingPersona[];
+    brandMockups?: Record<string, string>;
     [key: string]: any;
   };
   onboardingSource?: string;
@@ -76,6 +112,7 @@ export interface OnboardingProfileData {
   keyProducts?: string;
   clientProfile?: string;
   stylisticPreferences?: string;
+  competitors?: CompetitorAnalysisItem[];
 }
 
 const defaultLogo: OnboardingLogoData = {
@@ -130,6 +167,7 @@ const defaultOnboardingProfile: OnboardingProfileData = {
       background: "",
     },
     personas: [],
+    brandMockups: {},
   },
 };
 

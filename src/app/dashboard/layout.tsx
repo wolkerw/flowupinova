@@ -23,6 +23,7 @@ import {
   CheckCircle,
   XCircle,
   Sparkles,
+  Palette,
   Settings2,
   Images,
   User,
@@ -88,6 +89,11 @@ const allNavigationItems: {
     icon: FileText,
   },
   {
+    title: "Social Media",
+    url: "/dashboard/social-media",
+    icon: Sparkles,
+  },
+  {
     title: "Aprovações",
     url: "/dashboard/aprovacoes",
     icon: CheckSquare,
@@ -96,6 +102,11 @@ const allNavigationItems: {
     title: "Meu Negócio",
     url: "/dashboard/meu-negocio",
     icon: Building2,
+  },
+  {
+    title: "Estúdio de Marca",
+    url: "/dashboard/estudio-marca",
+    icon: Palette,
   },
   {
     title: "Foto Profissional",
@@ -469,7 +480,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Sidebar>
 
         <main className="flex flex-1 flex-col bg-muted/50">
-          <header className="border-b border-border/60 bg-background px-6 py-4">
+          <header className="border-b border-border/60 bg-background px-6 py-4 print:hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
@@ -647,7 +658,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             href={waLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-6 right-6 z-50 print:hidden"
             aria-label="Entre em contato pelo WhatsApp com o suporte"
           >
             <Button

@@ -966,9 +966,11 @@ export interface SaveMediaToGalleryInput {
   publicUrl?: string | null;
   previewUrl?: string | null;
   caption?: string | null;
-  type?: "image" | "video";
+  type?: "image" | "video" | "carousel";
   source?: string;
   fileName?: string;
+  mediaUrls?: string[];
+  itemCount?: number;
 }
 
 export async function saveMediaToGallery(
@@ -979,9 +981,11 @@ export async function saveMediaToGallery(
     return { success: false, error: "UserID é obrigatório." };
   }
 
-  const isVideo = input.type === "video" || isVideoMedia(input.publicUrl || input.previewUrl || "");
+  const isCarousel = input.type === "carousel" || Boolean(input.mediaUrls && input.mediaUrls.length > 1);
+  const isVideo = !isCarousel && (input.type === "video" || isVideoMedia(input.publicUrl || input.previewUrl || ""));
+  const resolvedType: "image" | "video" | "carousel" = isCarousel ? "carousel" : isVideo ? "video" : "image";
   const ext = isVideo ? "mp4" : "jpg";
-  const fileName = input.fileName || (isVideo ? `video_${Date.now()}.${ext}` : `arte_${Date.now()}.${ext}`);
+  const fileName = input.fileName || (isCarousel ? `carrossel_${Date.now()}.${ext}` : isVideo ? `video_${Date.now()}.${ext}` : `arte_${Date.now()}.${ext}`);
 
   // 1. Tentar salvar prioritariamente via API route (Firebase Admin - robusto contra CORS e regras de cliente)
   if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
@@ -990,7 +994,10 @@ export async function saveMediaToGallery(
       formData.append("userId", userId);
       if (input.caption) formData.append("caption", input.caption);
       if (input.source) formData.append("source", input.source);
-      formData.append("type", isVideo ? "video" : "image");
+      formData.append("type", resolvedType);
+      if (input.mediaUrls && input.mediaUrls.length > 0) {
+        formData.append("mediaUrls", JSON.stringify(input.mediaUrls));
+      }
       formData.append("fileName", fileName);
 
       let hasPayload = false;
@@ -1063,7 +1070,7 @@ export async function saveMediaToGallery(
 
   // 2. Fallback Client-side (Firestore / Storage direto)
   try {
-    let finalUrl = input.publicUrl || input.previewUrl || "";
+    let finalUrl = input.publicUrl || input.previewUrl || (input.mediaUrls && input.mediaUrls.length > 0 ? input.mediaUrls[0] : "") || "";
     let storagePath = "";
 
     if (finalUrl.startsWith("data:")) {
@@ -1097,14 +1104,16 @@ export async function saveMediaToGallery(
     const galleryCol = collection(db, "users", userId, "mediaGallery");
     const docData = deepSanitizeFirestoreData({
       url: finalUrl,
+      mediaUrls: input.mediaUrls && input.mediaUrls.length > 0 ? input.mediaUrls : isCarousel ? [finalUrl] : undefined,
+      itemCount: input.mediaUrls && input.mediaUrls.length > 0 ? input.mediaUrls.length : isCarousel ? 1 : undefined,
       storagePath: storagePath || "",
-      source: input.source || "manual_editor",
+      source: input.source || (isCarousel ? "manual_carousel" : "manual_editor"),
       prompt: input.caption || null,
       caption: input.caption || null,
       createdAt: serverTimestamp(),
       usedInPostId: null,
       fileName,
-      type: isVideo ? "video" : "image",
+      type: resolvedType,
       isPublished: false,
     });
 

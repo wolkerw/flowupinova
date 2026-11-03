@@ -95,6 +95,32 @@ describe("saveMediaToGallery e sendPostToApproval", () => {
       expect(docData.isPublished).toBe(false);
       expect(docData.source).toBe("manual_editor");
     });
+
+    it("salva carrossel com múltiplas URLs em um único documento na subcoleção mediaGallery", async () => {
+      const mediaUrls = [
+        "https://example.com/slide1.jpg",
+        "https://example.com/slide2.jpg",
+        "https://example.com/slide3.jpg",
+      ];
+      const res = await saveMediaToGallery("user_123", {
+        type: "carousel",
+        mediaUrls,
+        caption: "Carrossel de imóveis incríveis",
+        source: "manual_carousel",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.galleryId).toBeDefined();
+
+      expect(mockAddDoc).toHaveBeenCalledTimes(1);
+      const [colRef, docData] = mockAddDoc.mock.calls[0];
+      expect(colRef.path).toBe("users/user_123/mediaGallery");
+      expect(docData.type).toBe("carousel");
+      expect(docData.url).toBe("https://example.com/slide1.jpg");
+      expect(docData.mediaUrls).toEqual(mediaUrls);
+      expect(docData.itemCount).toBe(3);
+      expect(docData.caption).toBe("Carrossel de imóveis incríveis");
+    });
   });
 
   describe("sendPostToApproval", () => {

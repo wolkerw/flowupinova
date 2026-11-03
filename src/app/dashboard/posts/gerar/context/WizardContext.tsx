@@ -22,6 +22,7 @@ import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import { schedulePost, deletePost } from "@/lib/services/posts-service";
+import { updateCampaignPostItemStatus } from "@/lib/services/social-media-campaign-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import {
   getInstagramConnection,
@@ -455,6 +456,36 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     loadInitialData();
+
+    const fromCampaign = searchParams.get("fromCampaign");
+    if (fromCampaign === "1" && typeof window !== "undefined") {
+      try {
+        const rawDraft = sessionStorage.getItem("social_campaign_draft");
+        if (rawDraft) {
+          const parsed = JSON.parse(rawDraft);
+          const item = parsed?.item;
+          if (item) {
+            setPostSummary(`${item.title}\n\nDireção Visual: ${item.aiImagePrompt || ""}`);
+            setCustomPrompt(item.aiImagePrompt || item.title || "");
+            setGeneratedContent([
+              {
+                id: "0",
+                titulo: item.title || "Publicação da Campanha",
+                subtitulo: item.caption || "",
+                hashtags: Array.isArray(item.hashtags) ? item.hashtags : [],
+              },
+            ]);
+            setSelectedContentId("0");
+            if (item.scheduledDate) {
+              const timeStr = item.suggestedTime || "19:00";
+              setScheduleDateTime(`${item.scheduledDate}T${timeStr}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[WIZARD] Falha ao carregar rascunho da campanha Social Media:", err);
+      }
+    }
   }, [user]);
 
   useEffect(() => {
@@ -2059,6 +2090,24 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           } catch (deleteError) {
             console.error("[WIZARD] Erro ao deletar rascunho temporário obsoleto:", deleteError);
           }
+        }
+
+        const campaignIdParam = searchParams.get("campaignId");
+        const itemIdParam = searchParams.get("itemId");
+        if (campaignIdParam && itemIdParam) {
+          try {
+            await updateCampaignPostItemStatus(
+              user.uid,
+              campaignIdParam,
+              itemIdParam,
+              publishMode === "now" ? "published" : "scheduled",
+              result.post?.id
+            );
+          } catch (campErr) {
+            console.warn("[WIZARD] Aviso ao atualizar status na campanha Social Media:", campErr);
+          }
+          router.push("/dashboard/social-media");
+          return;
         }
 
         router.push("/dashboard/posts");

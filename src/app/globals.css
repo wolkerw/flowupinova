@@ -76,3 +76,48 @@
     @apply font-headline;
   }
 }
+
+/* ==========================================================================
+   CONFIGURAÇÃO DE IMPRESSÃO GRÁFICA (@media print)
+   ========================================================================== */
+@media print {
+  /* Ocultar navegação, menus, barra lateral, cabeçalho e elementos interativos */
+  header,
+  nav,
+  aside,
+  [data-sidebar="sidebar"],
+  [data-sidebar="header"],
+  [data-sidebar="footer"],
+  .sidebar-trigger,
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Forçar fidelidade máxima de cores de fundo, degradês e imagens */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Resetar rolagem do Next.js / Dashboard para não cortar páginas */
+  main,
+  div {
+    overflow: visible !important;
+  }
+
+  @page {
+    margin: 8mm;
+    size: auto;
+  }
+}
+

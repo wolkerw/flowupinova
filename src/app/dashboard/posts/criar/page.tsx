@@ -114,6 +114,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { updateCampaignPostItemStatus } from "@/lib/services/social-media-campaign-service";
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type LogoPosition =
@@ -520,7 +521,8 @@ const mergeLogoWithFeedImage = (
   logoUrl?: string | null,
   logoPosition: LogoPosition = "bottom-right",
   logoScale: number = 30,
-  logoOpacity: number = 100
+  logoOpacity: number = 100,
+  applyBlurForLandscape: boolean = true
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
@@ -534,13 +536,51 @@ const mergeLogoWithFeedImage = (
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
-        const w = img.naturalWidth || img.width || 1080;
-        const h = img.naturalHeight || img.height || 1080;
-        canvas.width = w;
-        canvas.height = h;
+        const origW = img.naturalWidth || img.width || 1080;
+        const origH = img.naturalHeight || img.height || 1080;
+        const isLandscape = origW > origH;
 
-        // Desenha a imagem principal
-        ctx.drawImage(img, 0, 0, w, h);
+        let w = origW;
+        let h = origH;
+
+        if (isLandscape && applyBlurForLandscape) {
+          // Lógica dos Reels: proporção 4:5 oficial com preenchimento de fundo borrado (blur)
+          w = 1080;
+          h = 1350;
+          canvas.width = w;
+          canvas.height = h;
+
+          // 1. Fundo Borrado ampliado
+          ctx.save();
+          try {
+            ctx.filter = "blur(35px) brightness(0.75)";
+          } catch (e) {
+            console.warn("ctx.filter não suportado.", e);
+          }
+          const bgScale = Math.max(w / origW, h / origH) * 1.15;
+          const bgW = origW * bgScale;
+          const bgH = origH * bgScale;
+          const bgX = (w - bgW) / 2;
+          const bgY = (h - bgH) / 2;
+          ctx.drawImage(img, bgX, bgY, bgW, bgH);
+          ctx.restore();
+
+          // Overlay suave para contraste
+          ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+          ctx.fillRect(0, 0, w, h);
+
+          // 2. Imagem Principal Centralizada (sem distorção)
+          const scale = Math.min(w / origW, h / origH);
+          const targetW = origW * scale;
+          const targetH = origH * scale;
+          const targetX = (w - targetW) / 2;
+          const targetY = (h - targetH) / 2;
+          ctx.drawImage(img, targetX, targetY, targetW, targetH);
+        } else {
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
+        }
 
         if (logoUrl) {
           const logoImg = document.createElement("img");
@@ -1033,21 +1073,48 @@ const InstagramPreview = ({
             (currentMedia.file.type?.startsWith("video") ||
               isVideoMedia(currentMedia.file.name, currentMedia.file.type))) ||
           isVideoMedia(currentMedia.publicUrl || currentMedia.previewUrl) ? (
-            <VideoPreviewPlayer
-              src={currentMedia.publicUrl || currentMedia.previewUrl}
-              thumbnailUrl={currentMedia.thumbnailUrl}
-              objectFit="contain"
-              showPlayToggle={true}
-              className="absolute inset-0 h-full w-full object-contain"
-            />
+            <>
+              {currentMedia.thumbnailUrl && (
+                <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
+                  <Image
+                    src={currentMedia.thumbnailUrl}
+                    alt="Fundo Desfocado Vídeo"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                </div>
+              )}
+              <VideoPreviewPlayer
+                src={currentMedia.publicUrl || currentMedia.previewUrl}
+                thumbnailUrl={currentMedia.thumbnailUrl}
+                objectFit="contain"
+                showPlayToggle={true}
+                className="relative z-10 h-full w-full object-contain"
+              />
+            </>
           ) : (
-            <Image
-              src={currentMedia.publicUrl || currentMedia.previewUrl}
-              alt="Preview"
-              layout="fill"
-              objectFit="contain"
-              unoptimized
-            />
+            <>
+              {/* Lógica de preenchimento dos Reels com fundo borrado (blur) para fotos horizontais */}
+              <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
+                <Image
+                  src={currentMedia.publicUrl || currentMedia.previewUrl}
+                  alt="Fundo Desfocado"
+                  layout="fill"
+                  objectFit="cover"
+                  unoptimized
+                />
+              </div>
+              <div className="relative z-10 h-full w-full flex items-center justify-center">
+                <Image
+                  src={currentMedia.publicUrl || currentMedia.previewUrl}
+                  alt="Preview"
+                  layout="fill"
+                  objectFit="contain"
+                  unoptimized
+                />
+              </div>
+            </>
           )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
@@ -1060,26 +1127,7 @@ const InstagramPreview = ({
             opacity={logoOpacity}
           />
         )}
-        {currentMedia && !isFinalPreview && !isVideoMedia(currentMedia.publicUrl || currentMedia.previewUrl) && currentMedia.type !== "video" && (
-          <div className="absolute left-2.5 bottom-2.5 z-30">
-            <Button
-              size="sm"
-              type="button"
-              onClick={() => {
-                setAiEditorImage({
-                  url: currentMedia.publicUrl || currentMedia.previewUrl,
-                  index: currentSlide >= 0 && currentSlide < mediaItems.length ? currentSlide : 0,
-                });
-              }}
-              className="h-7 px-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-full shadow-md backdrop-blur-xs flex items-center gap-1.5 opacity-90 hover:opacity-100 transition-opacity"
-              title="Editar imagem com IA (Editor GPT)"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Editar com IA</span>
-            </Button>
-          </div>
-        )}
-        {isCarousel && (
+                {isCarousel && (
           <>
             <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
               <Copy className="h-3 w-3" />
@@ -1384,21 +1432,48 @@ const FacebookPreview = ({
             (singleItem.file.type?.startsWith("video") ||
               isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
           isVideoMedia(singleItem.publicUrl || singleItem.previewUrl) ? (
-            <VideoPreviewPlayer
-              src={singleItem.publicUrl || singleItem.previewUrl}
-              thumbnailUrl={singleItem.thumbnailUrl}
-              objectFit="contain"
-              showPlayToggle={true}
-              className="absolute inset-0 h-full w-full object-contain"
-            />
+            <>
+              {singleItem.thumbnailUrl && (
+                <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
+                  <Image
+                    src={singleItem.thumbnailUrl}
+                    alt="Fundo Desfocado Vídeo"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                </div>
+              )}
+              <VideoPreviewPlayer
+                src={singleItem.publicUrl || singleItem.previewUrl}
+                thumbnailUrl={singleItem.thumbnailUrl}
+                objectFit="contain"
+                showPlayToggle={true}
+                className="relative z-10 h-full w-full object-contain"
+              />
+            </>
           ) : (
-            <Image
-              src={singleItem.publicUrl || singleItem.previewUrl}
-              alt="Preview"
-              layout="fill"
-              objectFit="contain"
-              unoptimized
-            />
+            <>
+              {/* Lógica de preenchimento dos Reels com fundo borrado (blur) para fotos horizontais */}
+              <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
+                <Image
+                  src={singleItem.publicUrl || singleItem.previewUrl}
+                  alt="Fundo Desfocado"
+                  layout="fill"
+                  objectFit="cover"
+                  unoptimized
+                />
+              </div>
+              <div className="relative z-10 h-full w-full flex items-center justify-center">
+                <Image
+                  src={singleItem.publicUrl || singleItem.previewUrl}
+                  alt="Preview"
+                  layout="fill"
+                  objectFit="contain"
+                  unoptimized
+                />
+              </div>
+            </>
           )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
@@ -1655,21 +1730,48 @@ const LinkedInPreview = ({
             (singleItem.file.type?.startsWith("video") ||
               isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
           isVideoMedia(singleItem.publicUrl || singleItem.previewUrl) ? (
-            <VideoPreviewPlayer
-              src={singleItem.publicUrl || singleItem.previewUrl}
-              thumbnailUrl={singleItem.thumbnailUrl}
-              objectFit="contain"
-              showPlayToggle={true}
-              className="absolute inset-0 h-full w-full object-contain"
-            />
+            <>
+              {singleItem.thumbnailUrl && (
+                <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
+                  <Image
+                    src={singleItem.thumbnailUrl}
+                    alt="Fundo Desfocado Vídeo"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                </div>
+              )}
+              <VideoPreviewPlayer
+                src={singleItem.publicUrl || singleItem.previewUrl}
+                thumbnailUrl={singleItem.thumbnailUrl}
+                objectFit="contain"
+                showPlayToggle={true}
+                className="relative z-10 h-full w-full object-contain"
+              />
+            </>
           ) : (
-            <Image
-              src={singleItem.publicUrl || singleItem.previewUrl}
-              alt="Preview"
-              layout="fill"
-              objectFit="contain"
-              unoptimized
-            />
+            <>
+              {/* Lógica de preenchimento dos Reels com fundo borrado (blur) para fotos horizontais */}
+              <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
+                <Image
+                  src={singleItem.publicUrl || singleItem.previewUrl}
+                  alt="Fundo Desfocado"
+                  layout="fill"
+                  objectFit="cover"
+                  unoptimized
+                />
+              </div>
+              <div className="relative z-10 h-full w-full flex items-center justify-center">
+                <Image
+                  src={singleItem.publicUrl || singleItem.previewUrl}
+                  alt="Preview"
+                  layout="fill"
+                  objectFit="contain"
+                  unoptimized
+                />
+              </div>
+            </>
           )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
@@ -2032,6 +2134,10 @@ export default function CriarConteudoPage() {
     caption?: string | null;
     hasPrintedLogo?: boolean;
     skipAutoLogo?: boolean;
+    thumbnailUrl?: string;
+    type?: "image" | "video" | "carousel";
+    mediaUrls?: string[];
+    itemCount?: number;
   }
   const [galleryImages, setGalleryImages] = useState<GalleryMediaItem[]>([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -2045,6 +2151,11 @@ export default function CriarConteudoPage() {
 
   // Estados para Edição Inteligente com IA (Editor GPT)
   const [aiEditorImage, setAiEditorImage] = useState<{ url: string; index: number } | null>(null);
+  const campaignLinkRef = useRef<{
+    campaignId: string;
+    campaignItemId: string;
+    imageUrl?: string;
+  } | null>(null);
 
   // Buscar imagens livres da galeria no Firestore
   const fetchGalleryImages = async () => {
@@ -2055,9 +2166,11 @@ export default function CriarConteudoPage() {
       const q = query(galleryRef, where("usedInPostId", "==", null));
       const querySnapshot = await getDocs(q);
       const items: GalleryMediaItem[] = [];
+      const rawItems: GalleryMediaItem[] = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        items.push({
+        const isCar = data.type === "carousel" || (Array.isArray(data.mediaUrls) && data.mediaUrls.length > 1);
+        rawItems.push({
           id: docSnap.id,
           url: data.url,
           storagePath: data.storagePath,
@@ -2065,21 +2178,67 @@ export default function CriarConteudoPage() {
           prompt: data.prompt || null,
           createdAt: data.createdAt,
           usedInPostId: data.usedInPostId || null,
-          fileName: data.fileName || "imagem.jpg",
+          fileName: data.fileName || (isCar ? "carrossel.jpg" : "imagem.jpg"),
           caption: data.caption || null,
           hasPrintedLogo: Boolean(data.hasPrintedLogo),
           skipAutoLogo: Boolean(data.hasPrintedLogo || data.skipAutoLogo),
+          type: isCar ? "carousel" : data.type || "image",
+          mediaUrls: Array.isArray(data.mediaUrls) ? data.mediaUrls : undefined,
+          itemCount: data.itemCount || (Array.isArray(data.mediaUrls) ? data.mediaUrls.length : 1),
         });
       });
 
-      // Ordenar em memória para evitar a necessidade de criar um índice composto no Firestore
-      items.sort((a, b) => {
+      // Agrupamento retroativo de itens salvos juntos
+      const groupedGalleryMap = new Map<string, GalleryMediaItem[]>();
+      const standaloneItems: GalleryMediaItem[] = [];
+
+      rawItems.forEach((item) => {
+        if (item.type === "carousel" || (item.mediaUrls && item.mediaUrls.length > 1)) {
+          standaloneItems.push(item);
+          return;
+        }
+        const timeSec = item.createdAt?.seconds
+          ? item.createdAt.seconds
+          : Math.floor(new Date(item.createdAt || 0).getTime() / 1000);
+        const normCaption = (item.caption || "").trim();
+        if (normCaption.length > 10 && timeSec > 0) {
+          const timeSlot = Math.floor(timeSec / 120);
+          const groupKey = `${normCaption.slice(0, 50)}_${timeSlot}`;
+          if (!groupedGalleryMap.has(groupKey)) {
+            groupedGalleryMap.set(groupKey, []);
+          }
+          groupedGalleryMap.get(groupKey)!.push(item);
+        } else {
+          standaloneItems.push(item);
+        }
+      });
+
+      const unifiedItems: GalleryMediaItem[] = [...standaloneItems];
+      groupedGalleryMap.forEach((group) => {
+        if (group.length > 1) {
+          const first = group[0];
+          const allUrls = group.map((g) => g.url).filter(Boolean);
+          unifiedItems.push({
+            ...first,
+            id: `carousel_${first.id}`,
+            type: "carousel",
+            mediaUrls: allUrls,
+            itemCount: allUrls.length,
+            fileName: `carrossel_${group.length}_fotos.jpg`,
+          });
+        } else {
+          unifiedItems.push(...group);
+        }
+      });
+
+      // Ordenar em memória por data mais recente
+      unifiedItems.sort((a, b) => {
         const dateA = a.createdAt?.seconds ? a.createdAt.seconds : 0;
         const dateB = b.createdAt?.seconds ? b.createdAt.seconds : 0;
         return dateB - dateA;
       });
 
-      setGalleryImages(items);
+      setGalleryImages(unifiedItems);
     } catch (e) {
       console.error("Erro ao buscar imagens da galeria no manual:", e);
       toast({
@@ -2099,27 +2258,52 @@ export default function CriarConteudoPage() {
     }
   }, [isGalleryOpen]);
 
-  // Carregar imagem pré-selecionada da galeria na inicialização se redirecionado
+  // Carregar imagem ou carrossel pré-selecionado da galeria na inicialização se redirecionado
   useEffect(() => {
     try {
       const storedImage = sessionStorage.getItem("preloaded_gallery_image");
       if (storedImage) {
         const item = JSON.parse(storedImage);
-        const isVideo = isVideoMedia(item.url || item.storagePath || "");
+        const isCarousel = item.type === "carousel" || (Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0);
+        const isReels = !isCarousel && (item.type === "reels" || Boolean(item.isReels));
+        const isVideo = !isCarousel && (isReels || item.type === "video" || isVideoMedia(item.url || item.storagePath || ""));
 
-        const newMediaItem: MediaItem = {
-          file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
-          previewUrl: item.url,
-          publicUrl: item.url,
-          type: isVideo ? "video" : "image",
-        };
-
-        setMediaItems([newMediaItem]);
-        setSelectedType(isVideo ? "story" : "single_post");
+        if (isCarousel && Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0) {
+          const newMediaItems: MediaItem[] = item.mediaUrls.map((mediaUrl: string, idx: number) => ({
+            file: new File([], `slide_${idx + 1}.jpg`),
+            previewUrl: mediaUrl,
+            publicUrl: mediaUrl,
+            type: "image",
+          }));
+          setMediaItems(newMediaItems);
+          setSelectedType("carousel");
+        } else if (item.url) {
+          const newMediaItem: MediaItem = {
+            file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
+            previewUrl: item.url,
+            publicUrl: item.url,
+            type: isVideo ? "video" : "image",
+          };
+          setMediaItems([newMediaItem]);
+          setSelectedType(isReels ? "reels" : isVideo ? "story" : "single_post");
+        }
         setStep(2);
 
         if (item.caption) {
           setText(item.caption);
+        }
+
+        if (item.scheduledDate) {
+          setScheduleType("schedule");
+          setScheduleDate(item.scheduledDate);
+        }
+
+        if (item.campaignId && item.campaignItemId) {
+          campaignLinkRef.current = {
+            campaignId: item.campaignId,
+            campaignItemId: item.campaignItemId,
+            imageUrl: item.url,
+          };
         }
 
         if (item.skipAutoLogo || item.hasPrintedLogo) {
@@ -2132,8 +2316,10 @@ export default function CriarConteudoPage() {
 
         toast({
           variant: "success",
-          title: isVideo ? "Vídeo Importado!" : "Imagem Importada!",
-          description: isVideo
+          title: isCarousel ? "Carrossel Importado!" : isVideo ? "Vídeo Importado!" : "Imagem Importada!",
+          description: isCarousel
+            ? `Carrossel com ${item.mediaUrls.length} fotos carregado com sucesso no editor.`
+            : isVideo
             ? "Vídeo do seu acervo carregado com sucesso na sua área de trabalho."
             : "Imagem do seu acervo de IA carregada com sucesso na sua área de trabalho.",
         });
@@ -2144,6 +2330,24 @@ export default function CriarConteudoPage() {
   }, [toast]);
 
   const handleImportFromGallery = async (item: GalleryMediaItem) => {
+    if (item.type === "carousel" && Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0) {
+      const newItems: MediaItem[] = item.mediaUrls.map((u: string, idx: number) => ({
+        file: new File([], `slide_${idx + 1}.jpg`),
+        previewUrl: u,
+        publicUrl: u,
+        type: "image",
+      }));
+      setMediaItems(newItems);
+      setSelectedType("carousel");
+      if (item.caption) setText(item.caption);
+      setIsGalleryOpen(false);
+      toast({
+        variant: "success",
+        title: "Carrossel Importado!",
+        description: `Carrossel com ${item.mediaUrls.length} fotos carregado com sucesso.`,
+      });
+      return;
+    }
     const isVideo = isVideoMedia(item.url || item.storagePath || "");
     let thumbUrl = item.thumbnailUrl || (isVideo ? undefined : item.url);
     let dur = 0;
@@ -2597,19 +2801,41 @@ export default function CriarConteudoPage() {
                   isVideoMedia(item.file.name, item.file.type))) ||
               isVideoMedia(item.publicUrl || item.previewUrl || "");
 
-            // Se for vídeo ou não houver logomarca selecionada, mantém o item
-            if (isVideo || !logoPreviewUrl) {
+            // Se for vídeo, mantém o item original
+            if (isVideo) {
               return item;
             }
 
-            // Mescla a imagem com o logotipo na exata posição selecionada
             const imageUrlToProcess = item.publicUrl || item.previewUrl;
+
+            // Detecta se a imagem é horizontal ou possui logomarca para aplicar
+            const shouldProcess = await new Promise<boolean>((resolve) => {
+              if (logoPreviewUrl) return resolve(true);
+              const testImg = document.createElement("img");
+              testImg.crossOrigin = "anonymous";
+              testImg.onload = () => {
+                const w = testImg.naturalWidth || testImg.width || 0;
+                const h = testImg.naturalHeight || testImg.height || 0;
+                resolve(w > h);
+              };
+              testImg.onerror = () => resolve(false);
+              testImg.src = imageUrlToProcess.startsWith("blob:") || imageUrlToProcess.startsWith("data:") || imageUrlToProcess.startsWith("/")
+                ? imageUrlToProcess
+                : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(imageUrlToProcess)}`;
+            });
+
+            if (!shouldProcess) {
+              return item;
+            }
+
+            // Aplica preenchimento blur para fotos horizontais e mescla logotipo
             const blob = await mergeLogoWithFeedImage(
               imageUrlToProcess,
               logoPreviewUrl,
               logoPosition,
               logoScale,
-              logoOpacity
+              logoOpacity,
+              true
             );
 
             const fileName = item.file?.name || `branded_post_${index + 1}.jpg`;
@@ -2965,38 +3191,95 @@ export default function CriarConteudoPage() {
     });
 
     try {
-      let savedCount = 0;
-      let lastErrorMessage = "";
-      for (const [idx, item] of mediaItems.entries()) {
-        const fileName = item.file?.name || (item.type === "video" ? `video_${Date.now()}_${idx + 1}.mp4` : `arte_manual_${Date.now()}_${idx + 1}.jpg`);
-        const res = await saveMediaToGallery(user.uid, {
-          file: item.file,
-          publicUrl: item.publicUrl,
-          previewUrl: item.previewUrl,
-          caption: text || null,
-          type: item.type,
-          fileName,
-          source: item.editorLayers?.length ? "manual_editor_inpaint" : "manual_flow",
-        });
-        if (res.success) {
-          savedCount++;
-          if (res.url) {
-            item.publicUrl = res.url;
-          }
-        } else {
-          lastErrorMessage = res.error || "";
-        }
-      }
+      const isCarousel = selectedType === "carousel" || mediaItems.length > 1;
 
-      if (savedCount > 0) {
+      if (isCarousel) {
         toast({
-          variant: "success",
-          title: "Arte Salva na Galeria!",
-          description: `${savedCount} mídia(s) arquivada(s) com sucesso na sua Galeria.`,
+          title: "Processando carrossel...",
+          description: `Processando e salvando as ${mediaItems.length} imagens na ordem exata da capa...`,
         });
-        setGallerySavedModalOpen(true);
+
+        // Garantir rigorosamente a ordem das imagens: índice 0 é SEMPRE a capa oficial
+        const uploadedUrls: string[] = [];
+        for (let i = 0; i < mediaItems.length; i++) {
+          const item = mediaItems[i];
+          let finalUrl = item.publicUrl && item.publicUrl.startsWith("http") ? item.publicUrl : "";
+          if (!finalUrl) {
+            try {
+              finalUrl = await processSingleMediaItem(item);
+            } catch (pErr) {
+              console.warn(`[CRIAR_POST] Falha ao processar item ${i + 1} do carrossel:`, pErr);
+              if (item.file && item.file.size > 0) {
+                finalUrl = await uploadMediaAndGetURL(user.uid, item.file);
+              }
+            }
+          }
+          if (finalUrl) {
+            uploadedUrls.push(finalUrl);
+            item.publicUrl = finalUrl;
+          }
+        }
+
+        if (uploadedUrls.length === 0) {
+          throw new Error("Não foi possível processar as imagens do carrossel.");
+        }
+
+        // Salvar carrossel unificado mantendo uploadedUrls[0] como capa oficial
+        const res = await saveMediaToGallery(user.uid, {
+          publicUrl: uploadedUrls[0],
+          mediaUrls: uploadedUrls,
+          caption: text || null,
+          type: "carousel",
+          fileName: `carrossel_${Date.now()}.jpg`,
+          source: "manual_carousel",
+          itemCount: uploadedUrls.length,
+        });
+
+        if (res.success) {
+          toast({
+            variant: "success",
+            title: "Carrossel Salvo na Galeria!",
+            description: `Carrossel com ${uploadedUrls.length} fotos salvo com sucesso. A capa oficial e a ordem foram mantidas 100% fiéis.`,
+          });
+          setGallerySavedModalOpen(true);
+        } else {
+          throw new Error(res.error || "Não foi possível salvar o carrossel na galeria.");
+        }
       } else {
-        throw new Error(lastErrorMessage || "Não foi possível salvar os itens na galeria.");
+        // Fluxo para item único (imagem ou vídeo)
+        let savedCount = 0;
+        let lastErrorMessage = "";
+        for (const [idx, item] of mediaItems.entries()) {
+          const fileName = item.file?.name || (item.type === "video" ? `video_${Date.now()}_${idx + 1}.mp4` : `arte_manual_${Date.now()}_${idx + 1}.jpg`);
+          const res = await saveMediaToGallery(user.uid, {
+            file: item.file,
+            publicUrl: item.publicUrl,
+            previewUrl: item.previewUrl,
+            caption: text || null,
+            type: item.type,
+            fileName,
+            source: item.editorLayers?.length ? "manual_editor_inpaint" : "manual_flow",
+          });
+          if (res.success) {
+            savedCount++;
+            if (res.url) {
+              item.publicUrl = res.url;
+            }
+          } else {
+            lastErrorMessage = res.error || "";
+          }
+        }
+
+        if (savedCount > 0) {
+          toast({
+            variant: "success",
+            title: "Arte Salva na Galeria!",
+            description: `${savedCount} mídia(s) arquivada(s) com sucesso na sua Galeria.`,
+          });
+          setGallerySavedModalOpen(true);
+        } else {
+          throw new Error(lastErrorMessage || "Não foi possível salvar os itens na galeria.");
+        }
       }
     } catch (err: any) {
       console.error("[CRIAR_POST] Erro ao salvar na galeria:", err);
@@ -3195,6 +3478,19 @@ export default function CriarConteudoPage() {
     setIsPublishing(false);
 
     if (result.success) {
+      if (campaignLinkRef.current?.campaignId && campaignLinkRef.current?.campaignItemId) {
+        updateCampaignPostItemStatus(
+          user.uid,
+          campaignLinkRef.current.campaignId,
+          campaignLinkRef.current.campaignItemId,
+          scheduleType === "now" ? "published" : "scheduled",
+          {
+            linkedPostId: (result as any).postId || undefined,
+            generatedImageUrl: campaignLinkRef.current.imageUrl || undefined,
+          }
+        ).catch(() => null);
+      }
+
       toast({
         title: "Publicação realizada com sucesso!",
         description:
@@ -3364,22 +3660,7 @@ export default function CriarConteudoPage() {
                                   unoptimized
                                 />
                               )}
-                              {!isVideo && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setAiEditorImage({
-                                      url: item.publicUrl || item.previewUrl,
-                                      index,
-                                    });
-                                  }}
-                                  className="absolute left-1 top-1 z-20 rounded-full bg-amber-500 p-1.5 text-white shadow-md transition-all hover:scale-110 hover:bg-amber-600"
-                                  title="Editar imagem com IA (Editor GPT)"
-                                >
-                                  <Sparkles className="h-3.5 w-3.5" />
-                                </button>
-                              )}
+                              
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -3395,23 +3676,6 @@ export default function CriarConteudoPage() {
                             {!isVideo && (
                               <div className="flex flex-col gap-1 w-full">
                                 <Button
-                                  variant="default"
-                                  size="sm"
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setAiEditorImage({
-                                      url: item.publicUrl || item.previewUrl,
-                                      index,
-                                    });
-                                  }}
-                                  className="flex h-7 w-full items-center justify-center gap-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white px-1.5 py-1 text-[11px] font-bold shadow-xs transition-all"
-                                  title="Editar imagem com IA (Editor GPT)"
-                                >
-                                  <Sparkles className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">Editar com IA</span>
-                                </Button>
-                                <Button
                                   variant="outline"
                                   size="sm"
                                   type="button"
@@ -3421,10 +3685,10 @@ export default function CriarConteudoPage() {
                                     setActiveIndexToCorrect(index);
                                     setIsCorrectionOpen(true);
                                   }}
-                                  className="flex h-6 w-full items-center justify-center gap-1 rounded-md border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+                                  className="flex h-7 w-full items-center justify-center gap-1.5 rounded-md border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
                                   title="Editor manual com pincel e camadas"
                                 >
-                                  <Paintbrush className="h-2.5 w-2.5 shrink-0 text-primary" />
+                                  <Paintbrush className="h-3 w-3 shrink-0 text-primary" />
                                   <span className="truncate">Editor Manual</span>
                                 </Button>
                               </div>
@@ -3435,36 +3699,7 @@ export default function CriarConteudoPage() {
                     </div>
                   ) : null}
 
-                  {mediaItems.some((item) => item.type === "image") && (
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200">
-                      <div className="flex items-center gap-2 text-xs text-amber-900 font-semibold">
-                        <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>Deseja alterar títulos, cores ou elementos da arte?</span>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          const activeIdx =
-                            currentSlide >= 0 && currentSlide < mediaItems.length
-                              ? currentSlide
-                              : 0;
-                          const targetItem =
-                            mediaItems[activeIdx] || mediaItems.find((m) => m.type === "image");
-                          const targetIdx = targetItem ? mediaItems.indexOf(targetItem) : 0;
-                          if (targetItem) {
-                            setAiEditorImage({
-                              url: targetItem.publicUrl || targetItem.previewUrl,
-                              index: targetIdx >= 0 ? targetIdx : 0,
-                            });
-                          }
-                        }}
-                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-7 px-3 shadow-xs rounded-md"
-                      >
-                        Abrir Editor GPT
-                      </Button>
-                    </div>
-                  )}
+                  
 
                   <p className="pt-2 text-xs text-gray-500">Faça o upload de vídeos e imagens.</p>
                   <input
@@ -4117,24 +4352,6 @@ export default function CriarConteudoPage() {
                   </Tabs>
                   {mediaItems.some(item => item.type === "image") && (
                     <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          const activeIdx = currentSlide >= 0 && currentSlide < mediaItems.length ? currentSlide : 0;
-                          const targetItem = mediaItems[activeIdx] || mediaItems.find(m => m.type === "image");
-                          const targetIdx = targetItem ? mediaItems.indexOf(targetItem) : 0;
-                          if (targetItem) {
-                            setAiEditorImage({
-                              url: targetItem.publicUrl || targetItem.previewUrl,
-                              index: targetIdx >= 0 ? targetIdx : 0,
-                            });
-                          }
-                        }}
-                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        Editar Imagem com IA (Editor GPT)
-                      </Button>
                       <Button
                         variant="outline"
                         type="button"

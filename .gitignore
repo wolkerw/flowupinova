@@ -38,3 +38,6 @@ test-results/
 
 # Scratch directory
 scratch/
+
+*.tsbuildinfo
+tsconfig.tsbuildinfo

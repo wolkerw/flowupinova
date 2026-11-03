@@ -48,9 +48,10 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
    - Botão de aprovação em 1 clique ou solicitação de ajustes com comentários detalhados.
 
 4. **Galeria de Mídias / Acervo** -> [Galeria](/dashboard/galeria)
-   - Nuvem onde ficam salvas todas as imagens, fotos de produtos e vídeos gerados ou enviados.
+   - Nuvem onde ficam salvas todas as imagens, fotos de produtos, vídeos e carrosséis gerados ou enviados.
+   - **Carrosséis Unificados em Card Único**: Posts no formato carrossel são salvos como um único card na Galeria contendo todas as suas fotos/lâminas. Possuem indicador de slides (ex: 1/8), setas de navegação para folhear as imagens diretamente no próprio card, e botões para abrir todas as fotos de uma vez no Criador de Posts ou enviar o carrossel completo para Aprovação.
    - Download de criativos em alta definição.
-   - Botão "Criar Post" em qualquer imagem para abrir diretamente o editor com a mídia já selecionada.
+   - Botão "Criar Post" em qualquer imagem ou carrossel para abrir diretamente o editor com a mídia já selecionada.
 
 5. **Cérebro do Negócio & Configurações da Marca** -> [Configurações](/dashboard/configuracoes)
    - **Identidade Visual**:
@@ -75,13 +76,32 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
    - Gera ensaios fotográficos em diferentes cenários mantendo a consistência rigorosa do rosto e tom de pele original.
    - **Regra /identylock**: Trava 100% de todas as características faciais originais. Você pode modificar e estilizar livremente as roupas, cenário, iluminação e pose sem que o rosto seja alterado.
 
-7. **Minha Conta & Assinatura** -> [Minha Conta](/dashboard/minha-conta)
+7. **Estúdio de Marca & Papelaria (Mini Agência NumVapt)** -> [Estúdio de Marca](/dashboard/estudio-marca)
+   - Transforma a NumVapt em uma verdadeira agência de publicidade e design para o negócio:
+   - **Fase 1: Logo Studio (Ativo)**:
+     * **Criação do Zero com IA**: Gera novas logomarcas vetoriais profissionais com base no nicho, estilo (Minimalista, Emblema, Monograma, Abstrato, Orgânico) e paleta de cores.
+     * **Modernização & Vetorização**: Permite enviar a logomarca antiga de baixa qualidade para a IA recriar com traços modernos e alta resolução.
+     * **Visualizador Multicontraste**: Prévia do logo em fundo claro, fundo escuro, azul da marca e transparência.
+     * **Simulações do Brand Kit**: Exibe como a logo fica como foto de perfil no Instagram (Avatar 1:1), Favicon de navegador e cartão corporativo.
+     * **Salvar no Cérebro do Negócio em 1 Clique**: Integra a logomarca gerada instantaneamente ao perfil oficial da empresa para alimentar os geradores de imagens e posts.
+   - **Fase 2: Papelaria Executiva & Comunicação Digital (Ativo)**:
+     * **Cartão de Visitas Digital Interativo (PWA Web + vCard)**: Mockup realista de smartphone com 4 botões de alta conversão: WhatsApp Direto, Perfil do Instagram, Endereço/GPS e Salvar Contato na Agenda (arquivo .vcf automático), além de QR Code dinâmico e compartilhamento rápido para WhatsApp.
+     * **Cartão de Visitas Físico Tradicional (9x5 cm)**: Gabarito gráfico em padrão de gráfica com sangria de 3mm e marcas de corte, alternador de Frente e Verso e atalho de impressão gráfica / PDF.
+     * **Gerador de Assinatura de E-mail Profissional**: 3 modelos elegantes (Executivo Horizontal, Compacto Moderno e Cartão Badge) com estilos HTML inline compatíveis com Gmail, Outlook e Apple Mail, botão de cópia formatada em 1 clique e guia passo a passo de instalação.
+     * **Papel Timbrado Oficial Corporativo (A4)**: Diagramação formal em folha A4 com cabeçalho de logotipo e cores da marca, templates rápidos (Proposta Comercial, Orçamento Oficial e Ofício/Nota) e rodapé com dados de contato e endereço.
+   - **Fase 3: Ponto de Venda & Credibilidade Comercial (Ativo)**:
+     * **Display "Avalie-nos no Google" (Totem A5)**: Display vertical no formato A5 (148 x 210 mm) para balcão e mesas em acrílico, contendo 5 estrelas douradas de destaque, QR Code dinâmico escaneável gerado em tempo real apontando para o Google Meu Negócio, personalização de chamadas, suporte a recompensas/descontos para clientes e botão de impressão gráfica com marcas de corte.
+     * **Lacres & Adesivos de Delivery / Embalagens**: Adesivos redondos ou quadrados nos formatos 5x5 cm e 7x7 cm com mensagens de afeto e segurança ("Feito com muito carinho para você 💖", "Cuidado: Conteúdo especial! ✨", "Lacre de Segurança • 100% Autêntico 🔒" ou personalizada), integração de redes sociais e geração de cartela completa em folha A4 pronta para gráficas.
+     * **Pastas Corporativas de Proposta**: Visualizador de pasta fechada (22,5 x 31,5 cm) e faca aberta com orelha interna (45 x 31,5 cm) com bolsa e encaixe para cartão de visitas físico tradicional, além de especificações completas de gramatura (Couché 300g) e acabamento (laminação fosca e verniz localizado).
+     * **Mockups Realistas da Marca & Geração Fotográfica com IA (0.5K)**: Simulação da identidade visual em 5 categorias essenciais: Caneca de Porcelana (brindes, café e escritório), Frota de Veículos / Furgão Comercial (plotagem automotiva), Camisa Polo Piquet bordada, Sacola Kraft ecológica e Fachada Comercial 3D com iluminação backlight. Conta com o botão "Gerar Fotografia com IA (0.5K)" alimentado pelo Google Gemini Multimodal com a logomarca oficial do usuário aplicada com fidelidade absoluta. As imagens geradas são otimizadas em 0.5K (512x512) e salvas automaticamente na nuvem (Firebase Cloud Storage e Firestore), permanecendo salvas na conta mesmo após deslogar ou trocar de dispositivo.
+
+8. **Minha Conta & Assinatura** -> [Minha Conta](/dashboard/minha-conta)
    - Gestão de plano, limite de créditos, dados cadastrais e faturas.
    - Planos de assinatura disponíveis:
      * **Autoatendimento**: Mensal (R$ 490/mês), 3 Meses (R$ 450/mês), 6 Meses (R$ 430/mês) e Anual (R$ 400/mês).
      * **Módulo Tudo Pronto (Execução VIP)**: R$ 699/mês, modalidade gerenciada onde a equipe da NumVapt cria e agenda os posts e o cliente apenas revisa e aprova na [Central de Aprovações](/dashboard/aprovacoes). Pagamento via Pix e Cartão de Crédito recorrente sem travar o limite total.
 
-8. **Aprovadores de Clientes (Client Approvers & Concierge)**
+9. **Aprovadores de Clientes (Client Approvers & Concierge)**
    - Perfis de acesso criados para clientes e aprovadores de conteúdo no modo NumVapt Concierge.
    - Têm acesso restrito focado na [Central de Aprovações](/dashboard/aprovacoes) vinculados ao workspace do criador/agência.
    - No painel administrativo ([Usuários](/admin/usuarios)), eles contam com uma aba dedicada separada dos usuários padrão ("Aprovadores de Clientes"), com visualização de workspace vinculado e gestão de acesso isolada.
@@ -155,7 +175,14 @@ Quando o usuário perguntar como configurar o Cérebro do Negócio ou a marca, o
    - **Regra de Ouro para Produtos**: Instruir expressamente a IA a preservar a cor real, formato, rótulo, embalagem e proporções originais do produto.
    - Elementos que devem aparecer e elementos a serem evitados.
 
-7. **Salvar e Realizar Teste de Qualidade**:
+7. **Radar de Concorrentes & Referências do Mercado (Benchmarking por IA)**:
+   - Cadastre seus concorrentes diretos ou marcas que você admira no seu nicho, informando o site oficial e/ou perfil do Instagram.
+   - Clique em **"Inspecionar com IA"** para que nossa inteligência artificial analise a presença digital deles e entregue:
+     * **O que deu certo na concorrência**: Melhores práticas, formatos e ganchos validados para você modelar com sucesso.
+     * **Gargalos & Oportunidades**: Onde os concorrentes pecam para você se posicionar como a opção superior do mercado.
+     * **Ideias de Conteúdo para Vencer a Concorrência**: Headlines e formatos prontos planejados para atrair clientes insatisfeitos com os concorrentes.
+
+8. **Salvar e Realizar Teste de Qualidade**:
    - Clicar em **Salvar Alterações** e ir para **[Posts](/dashboard/posts)** para testar a geração de um post nos fluxos Conceito e Produto.
 
 ---

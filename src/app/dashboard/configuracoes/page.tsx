@@ -22,7 +22,9 @@ import {
   type OnboardingProfileData,
   type OnboardingLogoData,
   type OnboardingPersona,
+  type CompetitorAnalysisItem,
 } from "@/lib/services/onboarding-service";
+import { CompetitorsBenchmarkingSection } from "@/components/dashboard/CompetitorsBenchmarkingSection";
 import { updateBusinessProfile } from "@/lib/services/business-profile-service";
 import { getUserStoragePathClient } from "@/lib/utils/storage-utils-client";
 import { createCnpjRequest } from "@/lib/services/cnpj-request-service";
@@ -179,6 +181,18 @@ export default function ConfiguracoesPage() {
   const [backgroundColor, setBackgroundColor] = useState("");
   const [personas, setPersonas] = useState<OnboardingPersona[]>([]);
   const [selectedPersonaStrategy, setSelectedPersonaStrategy] = useState<string>("all");
+  const [competitors, setCompetitors] = useState<CompetitorAnalysisItem[]>([]);
+
+  const handleUpdateCompetitors = async (updated: CompetitorAnalysisItem[]) => {
+    setCompetitors(updated);
+    if (user?.uid) {
+      try {
+        await updateOnboardingProfile(user.uid, { competitors: updated }, { merge: true });
+      } catch (err) {
+        console.error("Erro ao atualizar concorrentes:", err);
+      }
+    }
+  };
 
   // Estados e Handlers para Gestão Interativa de Personas
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
@@ -509,6 +523,7 @@ export default function ConfiguracoesPage() {
       setBackgroundColor(data.brandKit?.extendedColors?.background || "");
       setPersonas(data.brandKit?.personas || []);
       setSelectedPersonaStrategy(data.brandKit?.selectedPersonaStrategy || "all");
+      setCompetitors(data.competitors || []);
 
       // Inicia migração assíncrona se houver Base64 legado
       migrateLegacyBase64Profile(data);
@@ -1080,6 +1095,7 @@ export default function ConfiguracoesPage() {
             personas: personas,
             selectedPersonaStrategy: selectedPersonaStrategy,
           },
+          competitors,
         },
         { merge: false }
       );
@@ -1174,7 +1190,8 @@ export default function ConfiguracoesPage() {
 
   const brainStats = React.useMemo(() => {
     let teoricoScore = 0;
-    const teoricoTotal = 8;
+    const teoricoTotal = 9;
+    if (competitors && competitors.length > 0) teoricoScore++;
     if (name?.trim()) teoricoScore++;
     if (category?.trim()) teoricoScore++;
     if (phone?.trim()) teoricoScore++;
@@ -1634,6 +1651,18 @@ export default function ConfiguracoesPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Radar de Concorrentes & Referências do Mercado */}
+          <CompetitorsBenchmarkingSection
+            competitors={competitors}
+            onUpdateCompetitors={handleUpdateCompetitors}
+            userBusinessContext={{
+              name,
+              category,
+              description,
+              targetAudience,
+            }}
+          />
 
           <div className="flex justify-end pt-4">
             <Button

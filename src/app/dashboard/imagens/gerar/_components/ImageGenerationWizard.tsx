@@ -54,6 +54,7 @@ import {
   type AIImageAssetDoc,
   FORMAT_DIMENSIONS,
 } from "@/lib/types/ai-image-general";
+import { updateCampaignPostItemStatus } from "@/lib/services/social-media-campaign-service";
 
 // Opções de Objetivo com linguagem acessível para baixa maturidade digital
 const OBJECTIVE_OPTIONS: {
@@ -232,6 +233,12 @@ export function ImageGenerationWizard() {
 
   // BrandKit carregado do negócio
   const [businessProfile, setBusinessProfile] = useState<any>(null);
+  const [campaignDraft, setCampaignDraft] = useState<{
+    campaignId: string;
+    campaignName?: string;
+    campaignObjective?: string;
+    item: any;
+  } | null>(null);
 
   // Mapear todas as variações de logos cadastradas no negócio
   const availableLogos = useMemo<{ id: string; url: string; label: string; isDarkBg?: boolean }[]>(() => {
@@ -407,6 +414,7 @@ export function ImageGenerationWizard() {
     setUseBrandKit(true);
     setShowAdvanced(false);
     setCurrentStep(1);
+    setCampaignDraft(null);
     if (typeof window !== "undefined") {
       try {
         window.sessionStorage?.removeItem("numvapt_image_generation_draft");
@@ -419,6 +427,88 @@ export function ImageGenerationWizard() {
   // Sempre que entrar no fluxo geral, resetar as informações da geração anterior
   useEffect(() => {
     handleResetForm();
+    if (typeof window !== "undefined" && searchParams?.get("fromCampaign") === "1") {
+      try {
+        const rawDraft = window.sessionStorage?.getItem("social_campaign_draft");
+        if (rawDraft) {
+          const parsed = JSON.parse(rawDraft);
+          const item = parsed?.item;
+          if (item) {
+            const baseVisualPrompt = (item.aiImagePrompt || item.title || "").trim();
+            const contentSlides = Array.isArray(item.carouselSlides)
+              ? item.carouselSlides.filter(
+                  (s: any) =>
+                    s?.headline &&
+                    s?.bodyText &&
+                    !String(s.headline).toLowerCase().includes("gostou") &&
+                    !String(s.bodyText).toLowerCase().includes("deslize para o lado")
+                )
+              : [];
+
+            let compiledBrief = baseVisualPrompt;
+            if (contentSlides.length > 0) {
+              const highlights = contentSlides
+                .slice(0, 3)
+                .map((s: any) => `${s.headline}: ${s.bodyText}`)
+                .join(" | ");
+              compiledBrief = `${baseVisualPrompt}. Proposta da publicação: "${item.title}". Destaque de forma clara e objetiva na composição visual: ${highlights}`;
+            } else if (item.theme && !baseVisualPrompt.includes(item.theme)) {
+              compiledBrief = `${baseVisualPrompt}. Objetivo da publicação: ${item.theme}`;
+            }
+
+            // Formato de tela: Feed Retrato (4:5) como padrão para publicações da campanha;
+            // Stories (9:16) apenas se o formato for explicitamente uma sequência de stories.
+            const mappedFormat: AIImageFormat =
+              item.format === "stories_sequence" ? "story" : "portrait";
+
+            // Objetivo principal da imagem: condicionado estritamente pelo objetivo da pauta/funil
+            // (nunca seleciona "thumbnail" automaticamente para evitar conflito com post de feed/stories).
+            const mappedObjective: AIImageObjective =
+              item.funnelStage === "bottom_conversion"
+                ? parsed.campaignObjective === "sales_launch"
+                  ? "commercial"
+                  : "ad"
+                : item.funnelStage === "middle_authority"
+                  ? "presentation"
+                  : "social";
+
+            // Diagramação visual: Infográfico Completo sempre que houver tópicos estruturados
+            // (ex: "3 Segredos", "Passo a passo", "Por que escolher", slides ou conversão).
+            const hasStructuredTopics =
+              contentSlides.length > 0 ||
+              item.format === "carousel_ai" ||
+              item.funnelStage === "middle_authority" ||
+              item.funnelStage === "bottom_conversion" ||
+              /\d+|segredo|passo|dica|como|por que|motivo|erro|benef[ií]cio/i.test(
+                item.title || ""
+              );
+
+            const mappedOverlay: AIImageTextOverlayMode = hasStructuredTopics
+              ? "INFOGRAPHIC"
+              : "TITLE_ONLY";
+
+            const mappedHeadline =
+              item.title || item.carouselSlides?.[0]?.headline || "";
+
+            setCampaignDraft(parsed);
+            setBrief(compiledBrief.trim());
+            setFormat(mappedFormat);
+            setObjective(mappedObjective);
+            setTextOverlayMode(mappedOverlay);
+            setProductHeadline(mappedHeadline);
+            setUseBrandKit(true);
+            setIncludeLogo(true);
+            toast({
+              title: "Proposta da campanha carregada! 🎯",
+              description: "Todos os campos do Fluxo Geral foram condicionados automaticamente para executar a proposta.",
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("[IMAGE_WIZARD] Erro ao hidratar rascunho da campanha:", err);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleResetForm]);
 
   // Suporte a colar imagens com Ctrl+V diretamente na página
@@ -553,11 +643,37 @@ export function ImageGenerationWizard() {
       setGenerationId(data.generationId);
       if (Array.isArray(data.assets)) {
         setAssets(data.assets);
+        const firstReadyAsset = data.assets.find(
+          (a: AIImageAssetDoc) => a?.originalUrl || a?.previewUrl
+        );
+        if (firstReadyAsset && user?.uid && campaignDraft?.campaignId && campaignDraft?.item?.id) {
+          const generatedUrl = firstReadyAsset.originalUrl || firstReadyAsset.previewUrl || "";
+          if (typeof window !== "undefined") {
+            window.sessionStorage?.setItem(`campaign_art_generated_${campaignDraft.item.id}`, generatedUrl);
+          }
+          const nextStatus =
+            campaignDraft.item.status === "scheduled" || campaignDraft.item.status === "published"
+              ? campaignDraft.item.status
+              : "in_production";
+          updateCampaignPostItemStatus(
+            user.uid,
+            campaignDraft.campaignId,
+            campaignDraft.item.id,
+            nextStatus,
+            {
+              generatedImageUrl: generatedUrl,
+              generatedImageAt: new Date().toISOString(),
+              generatedAssetId: firstReadyAsset.id,
+            }
+          ).catch((e) => console.warn("[IMAGE_WIZARD] Erro ao registrar arte na campanha:", e));
+        }
       }
 
       toast({
         title: "Suas imagens estão prontas! ✨",
-        description: "Imagens geradas e salvas com sucesso na sua Galeria.",
+        description: campaignDraft?.campaignId
+          ? "Arte vinculada à sua Campanha de Social Media e salva na Galeria."
+          : "Imagens geradas e salvas com sucesso na sua Galeria.",
       });
     } catch (err: any) {
       toast({
@@ -727,7 +843,15 @@ export function ImageGenerationWizard() {
   const handleUseInPost = (asset: AIImageAssetDoc) => {
     if (!asset.originalUrl) return;
     try {
+      const campaignCaption = campaignDraft?.item?.caption
+        ? `${campaignDraft.item.caption.trim()}${
+            Array.isArray(campaignDraft.item.hashtags) && campaignDraft.item.hashtags.length > 0
+              ? `\n\n${campaignDraft.item.hashtags.map((h: string) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`
+              : ""
+          }`
+        : "";
       const generatedCaption =
+        campaignCaption ||
         asset.caption ||
         generateClientSocialCaption(brief, productHeadline, businessProfile);
 
@@ -736,6 +860,24 @@ export function ImageGenerationWizard() {
           ? asset.hasPrintedLogo
           : (includeLogo && logoImage?.url)
       );
+
+      if (user?.uid && campaignDraft?.campaignId && campaignDraft?.item?.id) {
+        const nextStatus =
+          campaignDraft.item.status === "scheduled" || campaignDraft.item.status === "published"
+            ? campaignDraft.item.status
+            : "in_production";
+        updateCampaignPostItemStatus(
+          user.uid,
+          campaignDraft.campaignId,
+          campaignDraft.item.id,
+          nextStatus,
+          {
+            generatedImageUrl: asset.originalUrl,
+            generatedImageAt: new Date().toISOString(),
+            generatedAssetId: asset.id,
+          }
+        ).catch(() => null);
+      }
 
       if (typeof window !== "undefined") {
         window.sessionStorage?.setItem(
@@ -747,6 +889,12 @@ export function ImageGenerationWizard() {
             type: "image",
             hasPrintedLogo,
             skipAutoLogo: hasPrintedLogo,
+            scheduledDate:
+              campaignDraft?.item?.scheduledDate && campaignDraft?.item?.suggestedTime
+                ? `${campaignDraft.item.scheduledDate}T${campaignDraft.item.suggestedTime}`
+                : undefined,
+            campaignId: campaignDraft?.campaignId,
+            campaignItemId: campaignDraft?.item?.id,
           })
         );
       }
@@ -876,6 +1024,38 @@ export function ImageGenerationWizard() {
             </CardHeader>
 
             <CardContent className="p-6 sm:p-8 space-y-8">
+              {campaignDraft?.item && (
+                <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50/70 p-4 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-indigo-600 text-white border-none text-[11px] font-bold">
+                        Proposta da Campanha Social Media
+                      </Badge>
+                      {campaignDraft.item.scheduledDate && (
+                        <span className="text-xs font-semibold text-indigo-900">
+                          📅 {campaignDraft.item.dayOfWeekLabel} • {campaignDraft.item.scheduledDate.split("-").reverse().join("/")} às {campaignDraft.item.suggestedTime || "18:00"}
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push("/dashboard/social-media")}
+                      className="h-7 text-xs text-indigo-700 hover:bg-indigo-100"
+                    >
+                      <ArrowLeft className="mr-1 h-3.5 w-3.5" />
+                      Voltar para Campanha
+                    </Button>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    {campaignDraft.item.title}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Todos os campos abaixo (Ideia, Formato, Objetivo, Diagramação e Título) já foram condicionados automaticamente para executar esta proposta. Clique em <strong>Gerar Imagens</strong> ao final ou ajuste o que desejar!
+                  </p>
+                </div>
+              )}
               {/* 1. Campo Principal de Texto */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">

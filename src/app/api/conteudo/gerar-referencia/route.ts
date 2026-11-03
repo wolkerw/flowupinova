@@ -1645,15 +1645,69 @@ ${yamlAnalysis}`;
 4. Composition & Product Placement (where the hero product is anchored, negative space, surrounding splashes or particles).
 
 Respond with a precise 3-4 sentence instruction guiding how to replicate this exact complete advertising creative architecture around a new product.`
-                : `You are an elite Commercial Advertising Art Director & Photography Engineer. Analyze this reference image and extract ONLY its photographic environment and lighting setup (ignoring any graphic texts or logos):
-1. Environment & Backdrop (exact 3D surfaces, textures, architectural setting, color grading).
-2. Lighting & Reflections (key light direction, softbox/sunlight temperature, rim light, reflections, realistic shadows).
-3. Camera Perspective (macro, eye-level, low angle, tilt, depth of field).
-4. Physical Props & Effects (water splashes, pedestals, botanical elements, dynamic particles).
+                : `You are an elite Commercial Advertising Art Director & Architectural Photography Engineer. Analyze this reference image and extract its complete architectural and photographic environment setup (ignoring any graphic texts or logos):
+1. Architectural Structure & Scenery (exact building facade, porch, entrance, interior rooms, materials, stone textures, wood grain, tile patterns, flooring, landscaping).
+2. Lighting & Reflections (sunlight angle, time of day, warm/cool ambient temperature, directional shadows, depth of field).
+3. Composition & Placement Zone (identify the ideal placement area to integrate the person from Photo 1 naturally into the scene, leaning or standing harmoniously).
 
-Respond with a concise 3-4 sentence photographic instruction to recreate this clean 3D physical environment without copying any written text or graphics from the reference.`;
+Respond with a concise, rich 3-4 sentence photographic instruction to recreate this exact real-world physical environment and architecture with maximum fidelity.`;
 
-            if (apiKey) {
+            // 1. Tentar primeiro com OpenAI (GPT-5 com fallback para gpt-4o)
+            if (openaiKey) {
+              const openAiVisionModels = ["gpt-5", "gpt-4o", "chatgpt-4o-latest"];
+              for (const vModel of openAiVisionModels) {
+                try {
+                  console.log(`[DISPLAY_SYSTEM] 🧠 Tentando analisar Foto 2 com OpenAI (${vModel})...`);
+                  const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${openaiKey}`,
+                    },
+                    body: JSON.stringify({
+                      model: vModel,
+                      messages: [
+                        {
+                          role: "user",
+                          content: [
+                            { type: "text", text: visionPrompt },
+                            {
+                              type: "image_url",
+                              image_url: {
+                                url: `data:${mimeType2Original || "image/jpeg"};base64,${buffer2.toString("base64")}`,
+                                detail: "high",
+                              },
+                            },
+                          ],
+                        },
+                      ],
+                    }),
+                  });
+
+                  if (openAiRes.ok) {
+                    const oData = await openAiRes.json();
+                    const oText = oData?.choices?.[0]?.message?.content;
+                    if (oText && oText.trim().length > 0) {
+                      displaySystemBlueprint = oText.trim();
+                      console.log(
+                        `[DISPLAY_SYSTEM] ✅ Blueprint de Foto 2 extraído com sucesso via OpenAI (${vModel}):`,
+                        displaySystemBlueprint.substring(0, 120)
+                      );
+                      break;
+                    }
+                  } else {
+                    const errTxt = await openAiRes.text().catch(() => "");
+                    console.warn(`[DISPLAY_SYSTEM] OpenAI (${vModel}) retornou ${openAiRes.status}: ${errTxt.slice(0, 150)}`);
+                  }
+                } catch (vErr: any) {
+                  console.warn(`[DISPLAY_SYSTEM] Falha no modelo de visão OpenAI (${vModel}):`, vErr?.message);
+                }
+              }
+            }
+
+            // 2. Fallback para Google Gemini 2.5 Flash caso OpenAI não tenha retornado blueprint
+            if (!displaySystemBlueprint && apiKey) {
+              console.log("[DISPLAY_SYSTEM] 🧠 Acionando fallback de análise da Foto 2 para Gemini 2.5 Flash...");
               const visionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
               const visionRes = await fetch(visionUrl, {
                 method: "POST",
@@ -1681,7 +1735,7 @@ Respond with a concise 3-4 sentence photographic instruction to recreate this cl
                 if (vText) {
                   displaySystemBlueprint = vText.trim();
                   console.log(
-                    "[DISPLAY_SYSTEM] ✅ Blueprint extraído com sucesso:",
+                    "[DISPLAY_SYSTEM] ✅ Blueprint extraído com sucesso via Gemini 2.5 Flash:",
                     displaySystemBlueprint.substring(0, 120)
                   );
                 }
@@ -2047,62 +2101,96 @@ Cenário desejado e estilo: ${prompt}`;
 
         const openaiPrompt = `${heroProductRule} ${styleHeader}${displaySystemHeader} Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} The product must be sharply in focus, large-scale, with tactile textures and authentic material details. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            console.log(
-              `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando foto do produto para OpenAI /v1/images/edits (gpt-image-2 - Tentativa ${attempt}/3)...`
-            );
-            const editsFormData = new FormData();
-            const productBlob = new Blob([buffer1], { type: "image/png" });
-            editsFormData.append("image", productBlob, "product.png");
-            editsFormData.append("model", "gpt-image-2");
-            editsFormData.append("prompt", openaiPrompt);
-            editsFormData.append("n", "1");
-            editsFormData.append("size", "1152x1536");
+        const isHybridPersonScene = Boolean(secondaryFile);
+        const shouldRunOpenAiEdits = Boolean(openaiKey && (isProductPreset || isHybridPersonScene));
 
-            const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${openaiKey}`,
-              },
-              body: editsFormData,
-            });
+        let openAiPersonScenePrompt = "";
+        if (isHybridPersonScene) {
+          let integrationDirective = "";
+          if (hybridPriority === "scenario") {
+            integrationDirective =
+              "Position the person from the input image standing or posing harmoniously integrated into the architecture/setting, naturally placed as a realistic human presence, maintaining full body and facial identity, while the physical environment, facade and building structure described dominate the scene with high architectural fidelity.";
+          } else if (hybridPriority === "person") {
+            integrationDirective =
+              "The person from the input image is the clear hero and protagonist of the photograph, retaining accurate face, hair, and physique, dressed stylishly and naturally in the environment described.";
+          } else {
+            integrationDirective =
+              "Harmoniously blend the person from the input image with the physical environment and architecture described, with realistic contact lighting, shadows, and natural depth of field.";
+          }
 
-            if (openaiRes.ok) {
-              const resData = await openaiRes.json();
-              let b64 = resData?.data?.[0]?.b64_json;
-              if (!b64 && resData?.data?.[0]?.url) {
-                const imgRes = await fetch(resData.data[0].url);
-                if (imgRes.ok) {
-                  const ab = await imgRes.arrayBuffer();
-                  b64 = Buffer.from(ab).toString("base64");
+          const scenarioDesc = displaySystemBlueprint
+            ? `[ARCHITECTURAL & ENVIRONMENT BLUEPRINT FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
+            : "";
+
+          openAiPersonScenePrompt = `Commercial advertising and realistic lifestyle photography. Integrate the person from this input image into this exact physical architectural environment: ${scenarioDesc}${cleanPrompt || "modern real estate and lifestyle setting"}. ${integrationDirective} Professional photography, cinematic daylight, authentic textures, sharp focus, 8k resolution, photorealistic. ZERO written text, no watermarks, no artificial overlay badges.`;
+        }
+
+        const finalOpenAiPrompt = isHybridPersonScene ? openAiPersonScenePrompt : openaiPrompt;
+        const openAiModelsToTry = ["gpt-image-2.5-sunburst", "gpt-image-2"];
+
+        if (shouldRunOpenAiEdits) {
+          modelLoop: for (const currentOpenAiModel of openAiModelsToTry) {
+            for (let attempt = 1; attempt <= 2; attempt++) {
+              try {
+                console.log(
+                  `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando para OpenAI /v1/images/edits (${currentOpenAiModel} - Tentativa ${attempt}/2)...`
+                );
+                const editsFormData = new FormData();
+                const productBlob = new Blob([buffer1], { type: "image/png" });
+                editsFormData.append("image", productBlob, "subject.png");
+                editsFormData.append("model", currentOpenAiModel);
+                editsFormData.append("prompt", finalOpenAiPrompt);
+                editsFormData.append("n", "1");
+                editsFormData.append("size", "1152x1536");
+                if (currentOpenAiModel.includes("2.5") || currentOpenAiModel.startsWith("gpt-image-")) {
+                  editsFormData.append("quality", "auto");
+                }
+
+                const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openaiKey}`,
+                  },
+                  body: editsFormData,
+                });
+
+                if (openaiRes.ok) {
+                  const resData = await openaiRes.json();
+                  let b64 = resData?.data?.[0]?.b64_json;
+                  if (!b64 && resData?.data?.[0]?.url) {
+                    const imgRes = await fetch(resData.data[0].url);
+                    if (imgRes.ok) {
+                      const ab = await imgRes.arrayBuffer();
+                      b64 = Buffer.from(ab).toString("base64");
+                    }
+                  }
+                  if (b64) {
+                    imageBytes = b64;
+                    modelUsed = currentOpenAiModel;
+                    console.log(
+                      `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${currentOpenAiModel})!`
+                    );
+                    break modelLoop;
+                  }
+                } else {
+                  const errTxt = await openaiRes.text().catch(() => "");
+                  console.warn(
+                    `[NANOBANANA_REF] OpenAI /v1/images/edits (${currentOpenAiModel}) tentativa ${attempt} falhou:`,
+                    errTxt.slice(0, 160)
+                  );
+                  if (attempt < 2) {
+                    await new Promise((r) => setTimeout(r, 1500));
+                  }
+                }
+              } catch (openaiErr: any) {
+                console.warn(
+                  `[NANOBANANA_REF] Exceção no Image-to-Image (${currentOpenAiModel} - Tentativa ${attempt}):`,
+                  openaiErr.message
+                );
+                if (attempt < 2) {
+                  await new Promise((r) => setTimeout(r, 1500));
                 }
               }
-              if (b64) {
-                imageBytes = b64;
-                modelUsed = "gpt-image-2";
-                console.log(
-                  `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (gpt-image-2) na tentativa ${attempt}!`
-                );
-                break;
-              }
-            } else {
-              const errTxt = await openaiRes.text();
-              console.warn(
-                `[NANOBANANA_REF] OpenAI /v1/images/edits (gpt-image-2) tentativa ${attempt} falhou:`,
-                errTxt
-              );
-              if (attempt < 3) {
-                await new Promise((r) => setTimeout(r, attempt * 1500));
-              }
-            }
-          } catch (openaiErr: any) {
-            console.warn(
-              `[NANOBANANA_REF] Exceção no Image-to-Image (gpt-image-2 - Tentativa ${attempt}):`,
-              openaiErr.message
-            );
-            if (attempt < 3) {
-              await new Promise((r) => setTimeout(r, 1500));
             }
           }
         }
