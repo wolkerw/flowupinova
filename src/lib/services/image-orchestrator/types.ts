@@ -25,6 +25,8 @@ export interface NormalizedBrief {
   requestedTextOverlayMode: AIImageTextOverlayMode;
 }
 
+export type BrandLogoPlacement = "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
+
 export interface BrandContext {
   enabled: boolean;
   businessName: string;
@@ -44,6 +46,7 @@ export interface BrandContext {
   restrictions?: string[];
   logoUrl?: string;
   hasLocalOfficialLogo: boolean;
+  lastLogoPosition?: BrandLogoPlacement;
 }
 
 export interface Gpt5PlannerInput {
@@ -64,6 +67,8 @@ export interface Gpt5PlannerInput {
   negativeInstructions?: string;
   preferredModel?: string;
   referenceMode?: "style_only" | "campaign_identity";
+  logoPosition?: BrandLogoPlacement;
+  lastLogoPosition?: BrandLogoPlacement;
 }
 
 export interface SocialCaptionPlan {
@@ -101,6 +106,7 @@ export interface Gpt5VisualPlanResponse {
     enabled: boolean;
     useColors: boolean;
     useLogo: boolean;
+    logoPosition?: BrandLogoPlacement;
     brandElementsToPreserve: string[];
   };
   referenceInstructions?: Array<{

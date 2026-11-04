@@ -25,13 +25,15 @@ export class BrandContextBuilder {
     let snapshot = cachedSnapshot;
     if (!snapshot) {
       try {
-        const [onboardingDoc, profileDoc] = await Promise.all([
+        const [onboardingDoc, profileDoc, userDoc] = await Promise.all([
           adminDb.doc(`users/${userId}/business/onboarding`).get(),
           adminDb.doc(`users/${userId}/business/profile`).get(),
+          adminDb.doc(`users/${userId}`).get(),
         ]);
         const data = {
           ...(profileDoc.exists ? profileDoc.data() : {}),
           ...(onboardingDoc.exists ? onboardingDoc.data() : {}),
+          lastLogoPosition: userDoc.exists ? userDoc.data()?.lastLogoPosition : undefined,
         };
         const bk = data?.brandKit || {};
         snapshot = {
@@ -84,6 +86,7 @@ export class BrandContextBuilder {
       ],
       logoUrl: snapshot?.logoUrl || undefined,
       hasLocalOfficialLogo,
+      lastLogoPosition: snapshot?.lastLogoPosition || undefined,
     };
   }
 }

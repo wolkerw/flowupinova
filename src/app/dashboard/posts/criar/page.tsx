@@ -86,6 +86,7 @@ import {
 } from "@/lib/services/posts-service";
 import { isVideoMedia } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import {
@@ -1996,6 +1997,7 @@ export default function CriarConteudoPage() {
   const [isCapturingFrame, setIsCapturingFrame] = useState<boolean>(false);
 
   const { user } = useAuth();
+  const { canEditImages } = useSubscriptionGate();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -3675,6 +3677,25 @@ export default function CriarConteudoPage() {
                             </div>
                             {!isVideo && (
                               <div className="flex flex-col gap-1 w-full">
+                                {canEditImages && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setAiEditorImage({
+                                        url: item.publicUrl || item.previewUrl,
+                                        index,
+                                      });
+                                    }}
+                                    className="flex h-7 w-full items-center justify-center gap-1.5 rounded-md border-amber-300 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-700 shadow-2xs transition-all hover:bg-amber-500 hover:text-white"
+                                    title="Editar imagem com IA"
+                                  >
+                                    <Sparkles className="h-3 w-3 shrink-0 text-amber-500 group-hover:text-white" />
+                                    <span className="truncate">Editor com IA</span>
+                                  </Button>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -4352,6 +4373,24 @@ export default function CriarConteudoPage() {
                   </Tabs>
                   {mediaItems.some(item => item.type === "image") && (
                     <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                      {canEditImages && (
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const firstImageIndex = mediaItems.findIndex(item => item.type === "image");
+                            if (firstImageIndex !== -1) {
+                              setAiEditorImage({
+                                url: mediaItems[firstImageIndex].publicUrl || mediaItems[firstImageIndex].previewUrl,
+                                index: firstImageIndex,
+                              });
+                            }
+                          }}
+                          className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Editar Imagem com IA
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         type="button"
@@ -4962,7 +5001,7 @@ export default function CriarConteudoPage() {
               ? "story"
               : "portrait"
           }
-          title="Editar Imagem com IA (Editor GPT)"
+          title="Editar Imagem com IA"
           onSuccess={(newImageUrl) => {
             if (aiEditorImage.index >= 0 && aiEditorImage.index < mediaItems.length) {
               setMediaItems((prev) => {

@@ -437,7 +437,7 @@ export function PromptsViewer() {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Agente Fluxo Geral - Trava Estrutural de Produto (/productlock) */}
+        {/* Agente Fluxo Geral - Direção de Arte Criativa (/anticliche), Trava de Produto (/productlock) e Tipografia (/fontlock) */}
         <AccordionItem
           value="general_productlock"
           className="overflow-hidden rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-4"
@@ -445,28 +445,30 @@ export function PromptsViewer() {
           <AccordionTrigger className="text-emerald-200 hover:text-white hover:no-underline">
             <div className="flex items-center gap-3">
               <ImageIcon className="h-4 w-4 text-emerald-400" />
-              Agente: Fluxo Geral — Trava Estrutural de Produto (/productlock)
+              Agente: Fluxo Geral — Direção Criativa (/anticliche), Produto (/productlock), Tipografia (/fontlock) & Logo Dinâmica
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-300">
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-emerald-400">
                 <p>
-                  Diretrizes de preservação geométrica e mecânica (<code>/productlock</code>) para fotos de produtos e equipamentos enviadas na Etapa 5 do Fluxo Geral.
+                  Motor de Direção de Arte Publicitária Premiada (<code>/anticliche</code>), preservação de produtos (<code>/productlock</code>), tipografia (<code>/fontlock</code>) e alternância dinâmica de logomarca do Fluxo Geral.
                 </p>
                 <span className="rounded bg-emerald-900/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 border border-emerald-700/50">
-                  Product Geometry & Component Lock
+                  Agency Art Direction + Product & Font Lock
                 </span>
               </div>
               <Textarea
-                className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[160px]"
+                className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[210px]"
                 value={
                   prompts.general_productlock_prompt ||
-                  `TRAVA ESTRUTURAL E GEOMÉTRICA DE PRODUTO (/productlock ATIVA):
-1. PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (PRODUCT GEOMETRY & COMPONENT LOCK): Inspecione minuciosamente cada sub-componente do produto na foto enviada (ex: caixas de som superiores e inferiores, cornetas aparentes, tweeters expostos, grades em barras, cores exatas das laterais do gabinete, cabos, suportes e proporções). É TERMINANTEMENTE PROIBIDO "modernizar", redesenhar, substituir peças expostas por telas fechadas genéricas de catálogo ou alterar o formato do equipamento!
-2. PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS nos textos/títulos da arte. NUNCA redesenhe o produto físico nem estampe logotipos de terceiros sobre o equipamento se não existirem fisicamente na foto original enviada pelo usuário!
-3. DIFERENCIAÇÃO CONDICIONAL ETAPA 5 (LOGOMARCA VS PRODUTO): Se o arquivo enviado na Etapa 5 for identificado como uma LOGOMARCA, mantém-se o sorteio de arquétipos cenográficos (CREATIVE_LOGO_ARCHETYPES). Se for identificado como foto de PRODUTO/EQUIPAMENTO, é TERMINANTEMENTE PROIBIDO sortear arquétipos de logo ou desenhar qualquer logomarca na cena (placas de acrílico no balcão, totens, letreiros 3D).
-4. TRAVA TIPOGRÁFICA DO BRANDKIT (/fontlock): Sempre que houver texto na arte e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Geral (style), traduz a fonte (ex: "Branding SF") em diretrizes anatômicas rigorosas de família única (sans-serif geométrica corporativa uniforme, diferenciando texto normal e destaque apenas pelo peso Regular vs Bold da mesma família, proibindo serifas ou mistura de fontes).`
+                  `DIRETRIZES NATIVAS DO AGENTE DE FLUXO GERAL (/anticliche + /productlock + /fontlock):
+1. DIREÇÃO DE ARTE PUBLICITÁRIA PREMIADA & METÁFORAS VISUAIS (/anticliche): Quando não há produto físico engessado, o planejador sorteia e injeta arquétipos de direção criativa nível Cannes Lions (dioramas de contraste de escala para expressões como "cabe no bolso", explosão cenográfica 3D em gravidade zero, sets esculturais editoriais, portais de transformação luminosa e protagonistas no epicentro criativo), convertendo briefings simples em conceitos memoráveis sem intervenção manual no prompt.
+2. REGRA "SHOW, DON'T LIST" & BLOQUEIO DE CLICHÊS DE BANCO DE IMAGENS: Proíbe cenas genéricas ("mão segurando celular sobre mesa bege ao lado de café e plantinha"), proíbe 3-4 caixas brancas empilhadas tipo slide de PowerPoint (exigindo 70-75%+ de dominância visual e materializando entregáveis citados como objetos táteis 3D reais na cena) e proíbe botões falsos de CTA de site no rodapé ("Saiba mais >", "Conheça todas as possibilidades >"), salvo pedido explícito do usuário.
+3. PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (/productlock): Em fotos de produtos/equipamentos enviados na Etapa 5, preserva 100% dos sub-componentes, cornetas, grades, gabinetes e rótulos originais, proibindo redesenhar peças ou estampar marcas citadas apenas no texto.
+4. DIFERENCIAÇÃO CONDICIONAL ETAPA 5 (LOGOMARCA VS PRODUTO): Se o arquivo da Etapa 5 for LOGOMARCA, sorteia arquétipos cenográficos (CREATIVE_LOGO_ARCHETYPES). Se for PRODUTO/EQUIPAMENTO, bloqueia o sorteio de logos na cena.
+5. TRAVA TIPOGRÁFICA DO BRANDKIT (/fontlock): Impõe família sans-serif geométrica corporativa única em todas as linhas de texto, diferenciando hierarquia estritamente pelo peso Regular vs Bold da mesma família, sem serifas ou mistura de fontes.
+6. MEMÓRIA PERSISTENTE E ALTERNÂNCIA DINÂMICA DE LOGOMARCA DO BRANDKIT: A IA agora lembra no banco de dados do usuário (users/{userId}.lastLogoPosition) qual foi a última posição utilizada para a logomarca (Topo Esquerdo, Topo Direito, Topo Centralizado ou Rodapé Direito). Mesmo que o usuário gere apenas 1 única imagem hoje e outra amanhã, o sistema avança automaticamente para a próxima posição na sequência contínua com proteção anti-colisão, garantindo surpresa visual sem depender de ordens em lote.`
                 }
                 onChange={(e) => handleChange("general_productlock_prompt", e.target.value)}
               />

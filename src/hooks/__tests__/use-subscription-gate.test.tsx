@@ -107,4 +107,17 @@ describe("useSubscriptionGate", () => {
     expect(result.current.isSubscribed).toBe(false);
     expect(result.current.userPlan).toBe("free");
   });
+
+  it("retorna canEditImages = true quando o usuário é assinante Concierge", async () => {
+    mockFirestoreData = { plan: "pro", paymentStatus: "active", isConcierge: true };
+
+    const { result } = renderHook(() => useSubscriptionGate());
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(result.current.isConcierge).toBe(true);
+    expect(result.current.canEditImages).toBe(true);
+  });
 });

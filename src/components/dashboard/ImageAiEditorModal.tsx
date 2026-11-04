@@ -115,7 +115,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
   imageUrl,
   format = "portrait",
   onSuccess,
-  title = "Editar Imagem com GPT-image-2.5",
+  title = "Editar Imagem com IA",
 }) => {
   const [instruction, setInstruction] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -384,13 +384,11 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                   {title}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-gray-500">
-                  Refinamento cirúrgico de títulos, infográficos e elementos com OpenAI GPT-image-2.5
+                  Refinamento cirúrgico de títulos, infográficos e elementos com IA
                 </DialogDescription>
               </div>
             </div>
-            <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[11px] font-semibold px-2.5 py-0.5">
-              GPT 2.5 Image-to-Image
-            </Badge>
+
           </div>
         </DialogHeader>
 
@@ -459,7 +457,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                 <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                   <Loader2 className="h-10 w-10 text-amber-400 animate-spin" />
                   <p className="text-white text-sm font-bold">
-                    Refinando arte com GPT-image-2.5...
+                    Refinando arte com IA...
                   </p>
                   <span className="text-slate-400 text-xs max-w-xs">
                     Preservando estilo e aplicando ajustes cirúrgicos no texto e infográfico
@@ -722,7 +720,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                     Edição concluída com sucesso!
                   </div>
                   <p className="text-xs text-emerald-700 leading-relaxed">
-                    A imagem foi refinada pelo GPT-image-2.5 com base na sua instrução. Compare com a versão anterior no alternador acima.
+                    A imagem foi refinada pela IA com base na sua instrução. Compare com a versão anterior no alternador acima.
                   </p>
                 </div>
 

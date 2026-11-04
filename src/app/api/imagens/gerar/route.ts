@@ -96,14 +96,25 @@ export async function POST(request: NextRequest) {
     const userStoragePath = getUserStoragePathAdmin(userId);
     const bucket = admin.storage().bucket();
 
-    // 1. Carregar BrandKit / BrandSnapshot
+    // 1. Carregar BrandKit / BrandSnapshot e Memória Persistente de Posição da Logo
     let brandSnapshot: BrandSnapshot | null = null;
-    if (useBrandKit) {
-      try {
-        const [onboardingDoc, profileDoc] = await Promise.all([
-          adminDb.doc(`users/${userId}/business/onboarding`).get(),
-          adminDb.doc(`users/${userId}/business/profile`).get(),
-        ]);
+    let lastSavedLogoPosition: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" | undefined;
+
+    try {
+      const [onboardingDoc, profileDoc, userDoc] = await Promise.all([
+        adminDb.doc(`users/${userId}/business/onboarding`).get(),
+        adminDb.doc(`users/${userId}/business/profile`).get(),
+        adminDb.doc(`users/${userId}`).get(),
+      ]);
+
+      if (userDoc.exists) {
+        lastSavedLogoPosition = userDoc.data()?.lastLogoPosition;
+      }
+      if (!lastSavedLogoPosition && profileDoc.exists) {
+        lastSavedLogoPosition = profileDoc.data()?.lastLogoPosition;
+      }
+
+      if (useBrandKit) {
         const data = {
           ...(profileDoc.exists ? profileDoc.data() : {}),
           ...(onboardingDoc.exists ? onboardingDoc.data() : {}),
@@ -121,13 +132,17 @@ export async function POST(request: NextRequest) {
           toneOfVoice: data?.toneOfVoice || bk?.toneOfVoice || "",
           slogan: data?.slogan || bk?.slogan || "",
           personas: bk?.personas || data?.personas || [],
+          lastLogoPosition: lastSavedLogoPosition,
         };
-      } catch (bkErr) {
-        console.warn("[IMAGENS_GERAR] Aviso ao obter brand snapshot:", bkErr);
       }
+    } catch (bkErr) {
+      console.warn("[IMAGENS_GERAR] Aviso ao obter brand snapshot:", bkErr);
     }
 
-    // 1.1 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit, a menos que includeLogo seja false)
+    // 1.1 Cursor de alternância contínua baseado no histórico do Firestore
+    let runningLastLogoPos = lastSavedLogoPosition;
+
+    // 1.2 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit, a menos que includeLogo seja false)
     const effectiveLogoUrl =
       includeLogo === false
         ? ""
@@ -284,7 +299,7 @@ export async function POST(request: NextRequest) {
         );
       } else if (effectiveLogoUrl) {
         brandDirectives.push(
-          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly. ZERO-TEXT LOGO CLEARANCE ZONE: Leave the top-left quadrant (top 22% height x left 30% width) 100% CLEAN, BLANK, and ZERO-TEXT for external overlay. ABSOLUTELY NO text, titles, subtitles, eyebrows, or badges in the top-left area. It is STRICTLY FORBIDDEN to draw, paint, or render any floating logos, flower icons, sun icons, or artificial brand badges in the poster layout background. Real product packaging labels must remain authentic.]`
+          `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION: The official business logo will be integrated seamlessly with dynamic editorial placement (alternating between top-left, top-right, top-center and bottom corners). ZERO-TEXT LOGO CLEARANCE ZONE: Leave the designated brand quadrant 100% CLEAN, BLANK, and ZERO-TEXT for external overlay. ABSOLUTELY NO text, titles, subtitles, eyebrows, or badges in that reserved area. It is STRICTLY FORBIDDEN to draw, paint, or render any floating logos, flower icons, sun icons, or artificial brand badges in the poster layout background. Real product packaging labels must remain authentic.]`
         );
       } else if (isCreativeLogoExceptionMode) {
         brandDirectives.push(
@@ -338,7 +353,7 @@ export async function POST(request: NextRequest) {
         ? `with the main headline: "${productHeadline.trim()}"`
         : "with an impactful context-tailored commercial headline in Portuguese (pt-BR)";
       compiledPrompt +=
-        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC ADVERTISING DIRECTIVE: The AI has full creative freedom to decide the most fitting, modern infographic composition in Portuguese (pt-BR) tailored dynamically to the subject and briefing. Do NOT force a repetitive rigid template (do NOT force a mandatory warranty seal or a fixed row of 4 bottom cards). Instead, adapt the layout organically: (a) Floating feature callout tags with clean pointers to product/subject details, (b) A sleek modern sidebar or clean list of 2-4 key benefits with minimalist line icons, (c) Glassmorphic stat badges, step-by-step points, or comparative visual highlights, or (d) Integrated editorial typography harmonized naturally with the scene. Include: ${headlineDirective} in bold high-contrast Portuguese typography${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly adhering to the BrandKit typography system (Primary Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Sans-Serif Bold'}", Secondary Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Sans-Serif Regular'}", Style: "${brandSnapshot.fonts.style || 'Clean corporate sans-serif'}" — use a single unified sans-serif typeface family across all text lines, differentiating hierarchy strictly by Normal vs Bold weight with ZERO serifs)` : ""}, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. MANDATÓRIO: Deixar o quadrante superior esquerdo (topo 22% x esquerda 30%) 100% livre, limpo e com ZERO TEXTO para inserção da logomarca (todos os títulos, badges e textos devem começar abaixo de Y=22% ou alinhados ao centro/direita). JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
+        ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC & AGENCY ART DIRECTION DIRECTIVE (/anticliche): Elevate the composition to Cannes Lions agency-grade visual storytelling in Portuguese (pt-BR) where the visual scene and physical/3D hero elements dominate at least 70-75% of the canvas. SHOW, DON'T LIST: When the briefing mentions multiple deliverables, services, or features, materialize them as tangible, ultra-crafted 3D objects in the scene rather than listing them inside stacked opaque white rectangular bullet-point boxes! Adapt the editorial layout organically using subtle glassmorphic micro-callouts (at most 2-3 ultra-concise tags of 2-4 words each), fine pointer lines to real scene objects, or clean editorial typography harmonized naturally with spatial depth. Include: ${headlineDirective} in bold high-contrast Portuguese typography${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly adhering to the BrandKit typography system (Primary Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Sans-Serif Bold'}", Secondary Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Sans-Serif Regular'}", Style: "${brandSnapshot.fonts.style || 'Clean corporate sans-serif'}" — use a single unified sans-serif typeface family across all text lines, differentiating hierarchy strictly by Normal vs Bold weight with ZERO serifs)` : ""}, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. ANTI-CLICHÉ RULES: Unless explicitly requested by the user, NEVER render generic stock-photo clichés (such as a disembodied hand holding a smartphone over a beige desk next to a coffee mug and potted plant), NEVER stack 3-4 opaque white PowerPoint cards on the side, and NEVER draw fake clickable website CTA buttons/pills at the bottom (such as "Saiba mais >" or "Conheça todas as possibilidades >"). MANDATÓRIO: Respeitar a zona de respiro da logomarca (deixando o quadrante designado 100% livre, limpo e com ZERO TEXTO para a inserção da marca, diagramando títulos e textos fora da zona reservada). JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
     }
 
     if (negativeInstructions) {
@@ -498,6 +513,14 @@ export async function POST(request: NextRequest) {
       let usedPrompt = compiledPrompt;
       let lastError = "";
 
+      // Memória Persistente: determina a posição da logo para este slot mantendo a alternância contínua
+      let slotLogoPosition: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" | undefined;
+      if (effectiveLogoUrl) {
+        const nextPosObj = Gpt5PromptPlanner.getNextLogoPlacement(runningLastLogoPos);
+        slotLogoPosition = nextPosObj.id;
+        runningLastLogoPos = slotLogoPosition;
+      }
+
       try {
         const orchResult = await ImageGenerationOrchestrator.execute({
           userId,
@@ -515,6 +538,8 @@ export async function POST(request: NextRequest) {
           negativeInstructions,
           logoUrl: effectiveLogoUrl,
           includeLogo: Boolean(effectiveLogoUrl && includeLogo !== false),
+          logoPosition: slotLogoPosition,
+          lastLogoPosition: runningLastLogoPos,
           sourceAssetUrls,
           referenceAssetUrls,
           referenceMode,
@@ -654,6 +679,7 @@ export async function POST(request: NextRequest) {
         caption: fullPostCaption,
         hashtags: socialCaption?.hashtags || [],
         hasPrintedLogo: Boolean(effectiveLogoUrl),
+        logoPosition: slotLogoPosition,
         promptMetadata: {
           fullPrompt: usedPrompt,
           modelUsed,

@@ -117,10 +117,12 @@ export class ImageModelExecutor {
               openaiPrompt = `[STRICT PRODUCT GEOMETRY LOCK (/productlock) & ZERO SCENE LOGOS DIRECTIVE: The uploaded Step 5 reference image is a physical product, equipment, or person (NOT a logo). Preserve 100% of its exact geometry, upper and lower cabinets, exposed components (horns, tweeters, bar grilles, cables), side panel colors, and authentic product labels intact WITHOUT redesigning, covering exposed parts with generic grilles, or stamping brand logos from the headline onto the hardware. ABSOLUTELY DO NOT draw, invent, or render any company logo (such as NumVapt), acrylic tabletop plaque on counters/desks, totem, or wall sign anywhere in the scene! Keep the top-left quadrant (top 22% height x left 30% width) 100% blank negative space for digital overlay.] ${openaiPrompt}`;
             }
           } else if (hasLogo) {
-            if (!openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
+            if (!openaiPrompt.includes("MANDATORY LOGO INTEGRATION") && !openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               openaiPrompt += logoDirective;
             }
-            openaiPrompt = `[MANDATORY POST BRANDING & LOGO CLEARANCE DIRECTIVE: Top-left quadrant (top 22% height x left 30% width) must be completely clean, unbranded negative space with ZERO text, titles, or graphics for digital logo overlay. Do NOT generate floating logos or artificial brand marks in the scene background. CRITICAL: Physical product packaging and labels from user references MUST remain 100% intact with authentic printed text and branding.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos or text in the top-left corner. Keep authentic product packaging labels intact.]`;
+            if (!openaiPrompt.includes("ZERO-TEXT LOGO CLEARANCE ZONE")) {
+              openaiPrompt = `[MANDATORY POST BRANDING & LOGO CLEARANCE DIRECTIVE: Reserved logo area must be completely clean, unbranded negative space with ZERO text, titles, or graphics for digital logo overlay. Do NOT generate floating logos or artificial brand marks in the scene background. CRITICAL: Physical product packaging and labels from user references MUST remain 100% intact with authentic printed text and branding.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial brand logos or text overlapping the designated brand area. Keep authentic product packaging labels intact.]`;
+            }
           } else {
             // Sem logo do BrandKit e sem imagem na Etapa 5: garantir proibição de logos fictícias no layout
             if (!openaiPrompt.includes("POST BRANDING & EMPTY LOGO SPACE") && !openaiPrompt.includes("ABSOLUTE PROHIBITION")) {

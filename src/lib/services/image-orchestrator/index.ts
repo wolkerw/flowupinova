@@ -45,6 +45,8 @@ export interface OrchestratorRunParams {
   sourceAssetUrls?: string[];
   referenceAssetUrls?: string[];
   referenceMode?: "style_only" | "campaign_identity";
+  logoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
+  lastLogoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
 }
 
 export interface OrchestratorRunResult {
@@ -111,6 +113,8 @@ export class ImageGenerationOrchestrator {
       stylePreference: normalized.detectedStyle,
       useBrandKit: brandContext.enabled,
       brandKit: brandContext,
+      logoPosition: params.logoPosition,
+      lastLogoPosition: params.lastLogoPosition || brandContext.lastLogoPosition,
       referenceImages: references,
       textOverlayMode: normalized.requestedTextOverlayMode,
       productHeadline: normalized.explicitHeadline,
@@ -139,7 +143,27 @@ export class ImageGenerationOrchestrator {
     // 6.1 Aplicação digital cirúrgica da logomarca oficial do BrandKit via Jimp (canal alfa preservado)
     let finalBuffer = validated.buffer;
     if (effectiveLogoUrl) {
-      finalBuffer = await BrandLogoApplier.applyLogo(finalBuffer, effectiveLogoUrl);
+      const chosenLogoPos = planResult.visualPlan?.brandApplication?.logoPosition || params.logoPosition || "auto";
+      finalBuffer = await BrandLogoApplier.applyLogo(finalBuffer, effectiveLogoUrl, {
+        position: chosenLogoPos,
+        avoidCollisions: true,
+      });
+
+      // Persistência da Memória de Posição da Logomarca no Firestore do Usuário
+      if (chosenLogoPos !== "auto" && params.userId) {
+        try {
+          const { adminDb } = await import("@/lib/firebase-admin");
+          await adminDb.doc(`users/${params.userId}`).set(
+            {
+              lastLogoPosition: chosenLogoPos,
+              lastLogoAppliedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (savePosErr) {
+          console.warn("[ImageGenerationOrchestrator] Aviso ao persistir lastLogoPosition:", savePosErr);
+        }
+      }
     }
 
     // 7. Registro de Telemetria e Auditoria

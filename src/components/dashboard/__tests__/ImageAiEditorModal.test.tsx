@@ -22,8 +22,8 @@ describe("ImageAiEditorModal", () => {
       />
     );
 
-    expect(screen.getByText("Editar Imagem com GPT-image-2.5")).toBeInTheDocument();
-    expect(screen.getByText("GPT 2.5 Image-to-Image")).toBeInTheDocument();
+    expect(screen.getByText("Editar Imagem com IA")).toBeInTheDocument();
+    expect(screen.queryByText("GPT 2.5 Image-to-Image")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Altere o título principal para/i)).toBeInTheDocument();
   });
 

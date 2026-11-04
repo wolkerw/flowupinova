@@ -1866,32 +1866,15 @@ export function ImageGenerationWizard() {
                         </Button>
                       )}
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownload(asset.originalUrl, `numvapt_opcao_${idx + 1}.png`)}
-                          className="rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 h-9 flex items-center justify-center gap-1.5"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Baixar
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={removingBgAssetId === asset.id}
-                          onClick={() => handleRemoveBackground(asset)}
-                          className="rounded-xl text-xs font-bold border-slate-200 hover:bg-orange-50 hover:text-accent h-9 flex items-center justify-center gap-1.5"
-                        >
-                          {removingBgAssetId === asset.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Scissors className="h-3.5 w-3.5 text-accent" />
-                          )}
-                          Tirar Fundo
-                        </Button>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownload(asset.originalUrl, `numvapt_opcao_${idx + 1}.png`)}
+                        className="w-full rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 h-9 flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Baixar
+                      </Button>
                     </div>
 
                     <div className="pt-1 flex justify-center">

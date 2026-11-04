@@ -120,12 +120,12 @@ describe("Image Orchestrator Suite", () => {
     it("gera plano determinístico com zero logos quando nenhuma logo é fornecida", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Café especial aromático",
-        objective: "commercial",
+        objective: "commercial" as const,
         format: "portrait",
         width: 1080,
         height: 1350,
         quantity: 1,
-        stylePreference: "photographic",
+        stylePreference: "photographic" as const,
         useBrandKit: true,
         brandKit: {
           enabled: true,
@@ -148,12 +148,12 @@ describe("Image Orchestrator Suite", () => {
     it("gera plano determinístico com inclusão mandatória de logo quando logomarca é fornecida", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Café especial aromático",
-        objective: "commercial",
+        objective: "commercial" as const,
         format: "portrait",
         width: 1080,
         height: 1350,
         quantity: 1,
-        stylePreference: "photographic",
+        stylePreference: "photographic" as const,
         useBrandKit: true,
         brandKit: {
           enabled: true,
@@ -185,12 +185,12 @@ describe("Image Orchestrator Suite", () => {
     it("preserva rótulos de embalagens de produtos reais e ajusta negativePrompt quando product_subject é fornecido", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Pote de alho em pasta Agrosserra",
-        objective: "commercial",
+        objective: "commercial" as const,
         format: "portrait",
         width: 1080,
         height: 1350,
         quantity: 1,
-        stylePreference: "photographic",
+        stylePreference: "photographic" as const,
         useBrandKit: false,
         referenceImages: [
           {
@@ -219,12 +219,12 @@ describe("Image Orchestrator Suite", () => {
     it("ativa o Modo Exceção Criativa de Logomarca quando product_subject é enviado e a logo fixa do BrandKit está desabilitada", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Crie uma imagem para a minha marca usando a logomarca enviada",
-        objective: "commercial",
+        objective: "commercial" as const,
         format: "portrait",
         width: 1080,
         height: 1350,
         quantity: 1,
-        stylePreference: "photographic",
+        stylePreference: "photographic" as const,
         useBrandKit: true,
         brandKit: {
           enabled: true,
@@ -251,12 +251,12 @@ describe("Image Orchestrator Suite", () => {
     it("mantém a Inserção Criativa Cenográfica da Etapa 5 ativa mesmo quando a logo fixa do BrandKit também está habilitada", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Crie uma imagem com um personagem vestindo a camisa da marca",
-        objective: "commercial",
+        objective: "commercial" as const,
         format: "portrait",
         width: 1080,
         height: 1350,
         quantity: 1,
-        stylePreference: "photographic",
+        stylePreference: "photographic" as const,
         useBrandKit: true,
         brandKit: {
           enabled: true,
@@ -305,7 +305,7 @@ describe("Image Orchestrator Suite", () => {
         width: 1080,
         height: 1350,
         quantity: 1,
-        stylePreference: "photographic",
+        stylePreference: "photographic" as const,
         textOverlayMode: "TITLE_ONLY",
         productHeadline: "Se a gente escondesse a casca, você saberia dizer qual é Fuji e qual é Gala?",
         useBrandKit: true,
@@ -328,6 +328,211 @@ describe("Image Orchestrator Suite", () => {
       expect(planResult.compiledImagePrompt).toContain("Branding SF - BOLD");
       expect(planResult.compiledImagePrompt).toContain("Branding SF - NORMAL");
       expect(planResult.compiledImagePrompt).toContain("SINGLE unified, clean, modern corporate geometric sans-serif typeface family");
+    });
+
+    it("detecta metáforas de escala ('cabe no seu bolso') e alterna arquétipos criativos de agência sem exigir engenharia de prompt do usuário", () => {
+      const baseInput = {
+        userBrief: "crie um post mostrando que a NumVapt é mais do que um gestor de redes sociais, sendo uma agência de publicidade e marketing completa e que cabe no seu bolso. Além de toda a gestão das redes sociais integradas, a NumVapt permite criar artefatos que só uma agência de publicidade cria, como logomarcas, cartão de visitas, papel timbrado, campanhas completas de engajamento, branding, mockups, etc",
+        objective: "commercial" as const,
+        format: "portrait" as const,
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: true,
+      };
+
+      const c1 = Gpt5PromptPlanner.selectArtDirectionConcept(baseInput);
+      const c2 = Gpt5PromptPlanner.selectArtDirectionConcept(baseInput);
+
+      expect(c1).not.toBeNull();
+      expect(c1?.mode).toBe("metaphor_boost");
+      expect(c2).not.toBeNull();
+      expect(c1?.primary.id).not.toBe(c2?.primary.id);
+    });
+
+    it("aplica a trava Anti-Clichê (/anticliche), 'SHOW, DON\'T LIST' e bloqueia mão com celular + caixas PowerPoint + botão falso de site em prompts conceituais", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "crie um post mostrando que a NumVapt é mais do que um gestor de redes sociais, sendo uma agência de publicidade e marketing completa e que cabe no seu bolso",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        textOverlayMode: "INFOGRAPHIC",
+        useBrandKit: true,
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("/anticliche");
+      expect(planResult.compiledImagePrompt).toContain("SHOW, DON'T LIST");
+      expect(planResult.compiledImagePrompt).toContain("NO STOCK-PHOTO CLICHÉS");
+      expect(planResult.compiledImagePrompt).toContain("NO POWERPOINT SLIDE BOXES");
+      expect(planResult.compiledImagePrompt).toContain("NO FAKE WEBSITE CTA BUTTONS");
+    });
+
+    it("respeita pedido literal do usuário quando ele solicitar explicitamente mão segurando celular e botão na arte", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "crie uma foto de uma mão segurando um celular mostrando o app e adicione um botão no rodapé",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: false,
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("/anticliche");
+      expect(planResult.compiledImagePrompt).not.toContain("NO STOCK-PHOTO CLICHÉS");
+      expect(planResult.compiledImagePrompt).not.toContain("NO FAKE WEBSITE CTA BUTTONS");
+    });
+
+    it("desativa o sorteio de direção de arte /anticliche quando há foto real de produto (/productlock) na Etapa 5", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Destaque nosso equipamento profissional de som em ação",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: true,
+        referenceImages: [
+          {
+            role: "product_subject",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/jpeg",
+            url: "https://example.com/caixa-de-som.jpg",
+            description: "Equipamento enviado na Etapa 5",
+          },
+        ],
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("/productlock");
+      expect(planResult.compiledImagePrompt).not.toContain("/anticliche");
+    });
+
+    it("alterna dinamicamente a posição da logomarca entre posições editoriais", () => {
+      const p1 = Gpt5PromptPlanner.selectDynamicLogoPlacement({} as any);
+      const p2 = Gpt5PromptPlanner.selectDynamicLogoPlacement({} as any);
+      const p3 = Gpt5PromptPlanner.selectDynamicLogoPlacement({} as any);
+      const p4 = Gpt5PromptPlanner.selectDynamicLogoPlacement({} as any);
+
+      const positions = [p1.id, p2.id, p3.id, p4.id];
+      expect(positions).toContain("top-left");
+      expect(positions).toContain("top-right");
+      expect(positions).toContain("top-center");
+      expect(positions).toContain("bottom-right");
+    });
+
+    it("injeta a zona de respiro dinâmica e registra logoPosition no plano visual", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Café especial da manhã com xícara fumegante",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: true,
+        logoPosition: "top-right",
+        brandKit: {
+          enabled: true,
+          businessName: "Café NumVapt",
+          primaryColors: ["#0083C7"],
+          secondaryColors: [],
+          accentColors: [],
+          hasLocalOfficialLogo: true,
+          logoUrl: "https://example.com/cafe-logo.png",
+        },
+        referenceImages: [
+          {
+            role: "official_logo",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/cafe-logo.png",
+          },
+        ],
+      });
+
+      expect(planResult.visualPlan.brandApplication.logoPosition).toBe("top-right");
+      expect(planResult.compiledImagePrompt).toContain("ZERO-TEXT LOGO CLEARANCE ZONE");
+      expect(planResult.compiledImagePrompt).toContain("top-right");
+    });
+
+    it("calcula corretamente a próxima posição a partir do histórico (getNextLogoPlacement)", () => {
+      expect(Gpt5PromptPlanner.getNextLogoPlacement(undefined).id).toBe("top-left");
+      expect(Gpt5PromptPlanner.getNextLogoPlacement("top-left").id).toBe("top-right");
+      expect(Gpt5PromptPlanner.getNextLogoPlacement("top-right").id).toBe("top-center");
+      expect(Gpt5PromptPlanner.getNextLogoPlacement("top-center").id).toBe("bottom-right");
+      expect(Gpt5PromptPlanner.getNextLogoPlacement("bottom-right").id).toBe("top-left");
+    });
+
+    it("lembra da última posição registrada no Firestore (lastLogoPosition) e seleciona a próxima automaticamente mesmo com 1 imagem", async () => {
+      const plan1 = await Gpt5PromptPlanner.plan({
+        userBrief: "Foto comercial de sushi artesanal",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: true,
+        lastLogoPosition: "top-left",
+        brandKit: {
+          enabled: true,
+          businessName: "Sushi Vapt",
+          primaryColors: ["#0083C7"],
+          secondaryColors: [],
+          accentColors: [],
+          hasLocalOfficialLogo: true,
+          logoUrl: "https://example.com/sushi-logo.png",
+        },
+        referenceImages: [
+          {
+            role: "official_logo",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/sushi-logo.png",
+          },
+        ],
+      });
+
+      expect(plan1.visualPlan.brandApplication.logoPosition).toBe("top-right");
+      expect(plan1.compiledImagePrompt).toContain("top-right");
+
+      const plan2 = await Gpt5PromptPlanner.plan({
+        userBrief: "Foto comercial de sushi artesanal 2",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: true,
+        lastLogoPosition: "top-right",
+        brandKit: {
+          enabled: true,
+          businessName: "Sushi Vapt",
+          primaryColors: ["#0083C7"],
+          secondaryColors: [],
+          accentColors: [],
+          hasLocalOfficialLogo: true,
+          logoUrl: "https://example.com/sushi-logo.png",
+        },
+        referenceImages: [
+          {
+            role: "official_logo",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/sushi-logo.png",
+          },
+        ],
+      });
+
+      expect(plan2.visualPlan.brandApplication.logoPosition).toBe("top-center");
+      expect(plan2.compiledImagePrompt).toContain("top-center");
     });
   });
 

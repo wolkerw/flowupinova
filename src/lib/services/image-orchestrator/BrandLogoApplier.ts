@@ -1,5 +1,5 @@
 export interface ApplyLogoOptions {
-  position?: "top-left" | "top-right" | "top-center" | "auto";
+  position?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" | "auto";
   maxScale?: number; // Padrão: 0.18 (18% da largura da imagem)
   marginRatio?: number; // Padrão: 0.04 (4% de margem segura)
   avoidCollisions?: boolean; // Padrão: true (detecta texto/gráficos e busca a melhor posição limpa)
@@ -129,14 +129,29 @@ export class BrandLogoApplier {
       const requestedPos = options.position ?? "top-left";
       const avoidCollisions = options.avoidCollisions ?? true;
 
-      const candidates: Record<"top-left" | "top-right" | "top-center", { x: number; y: number }> = {
+      const candidates: Record<
+        "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left",
+        { x: number; y: number }
+      > = {
         "top-left": { x: margin, y: margin },
         "top-right": { x: mainW - targetLogoW - margin, y: margin },
         "top-center": { x: Math.round((mainW - targetLogoW) / 2), y: margin },
+        "bottom-right": { x: mainW - targetLogoW - margin, y: mainH - targetLogoH - margin },
+        "bottom-left": { x: margin, y: mainH - targetLogoH - margin },
       };
 
-      let chosenPos: "top-left" | "top-right" | "top-center" =
-        requestedPos === "auto" ? "top-left" : requestedPos;
+      const validPositions: ("top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left")[] = [
+        "top-left",
+        "top-right",
+        "top-center",
+        "bottom-right",
+        "bottom-left",
+      ];
+
+      let chosenPos: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" =
+        requestedPos !== "auto" && validPositions.includes(requestedPos as any)
+          ? (requestedPos as any)
+          : "top-left";
       let posX = candidates[chosenPos].x;
       let posY = candidates[chosenPos].y;
 
@@ -149,7 +164,7 @@ export class BrandLogoApplier {
 
         // Clutter score > 8.0 indica presença de texto com alto contraste ou elementos gráficos complexos
         if (preferredScore.clutterScore > 8.0) {
-          const scoredCandidates = (["top-left", "top-right", "top-center"] as const).map((posKey) => {
+          const scoredCandidates = validPositions.map((posKey) => {
             const coords = candidates[posKey];
             const analysis = this.analyzeRegion(mainImage, coords.x, coords.y, targetLogoW, targetLogoH);
             return { pos: posKey, ...coords, analysis };

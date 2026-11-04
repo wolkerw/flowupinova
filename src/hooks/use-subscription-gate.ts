@@ -67,15 +67,16 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
             setPaymentStatus(data?.paymentStatus || "inactive");
             setSubscriptionStatus(data?.subscriptionStatus || "inactive");
             setUserRole(data?.role || "free");
-            setCanEditImages(Boolean(data?.canEditImages) || data?.role === "admin" || data?.plan === "admin");
-            setIsConcierge(
-              Boolean(
-                data?.isConcierge ||
-                  data?.managedService?.serviceMode === "concierge" ||
-                  data?.role === "admin" ||
-                  data?.plan === "admin"
-              )
+            const isConciergeUser = Boolean(
+              data?.isConcierge ||
+                data?.managedService?.serviceMode === "concierge" ||
+                data?.conciergeRole === "creator" ||
+                Boolean(data?.clientApprover) ||
+                data?.role === "admin" ||
+                data?.plan === "admin"
             );
+            setCanEditImages(Boolean(data?.canEditImages) || isConciergeUser);
+            setIsConcierge(isConciergeUser);
           } else {
             setUserPlan("free");
             setPaymentStatus("inactive");

@@ -159,4 +159,40 @@ describe("BrandLogoApplier", () => {
     const posXUsed = callArgs[1];
     expect(posXUsed).toBeGreaterThan(500);
   });
+
+  it("posiciona a logomarca corretamente em top-right, top-center e bottom-right", async () => {
+    const { Jimp } = await import("jimp");
+    const mockComposite = vi.fn();
+    const mockMainImg = {
+      width: 1000,
+      height: 1000,
+      resize: vi.fn(),
+      composite: mockComposite,
+      getBuffer: vi.fn().mockResolvedValue(Buffer.from("composite-pos-test")),
+    };
+
+    (Jimp.read as any).mockImplementation((buf: any) => {
+      if (buf && buf.toString() === "logo-pos-buf") {
+        return Promise.resolve({ width: 100, height: 50, resize: vi.fn() });
+      }
+      return Promise.resolve(mockMainImg);
+    });
+
+    const imgBuf = Buffer.from("main-buf");
+    const logoBuf = Buffer.from("logo-pos-buf");
+
+    // Testar top-right
+    await BrandLogoApplier.applyLogo(imgBuf, logoBuf, { position: "top-right", avoidCollisions: false });
+    expect(mockComposite).toHaveBeenCalled();
+    const [, xRight, yTop] = mockComposite.mock.calls[0];
+    expect(xRight).toBeGreaterThan(500);
+    expect(yTop).toBeLessThan(100);
+
+    // Testar bottom-right
+    mockComposite.mockClear();
+    await BrandLogoApplier.applyLogo(imgBuf, logoBuf, { position: "bottom-right", avoidCollisions: false });
+    const [, xBottomRight, yBottomRight] = mockComposite.mock.calls[0];
+    expect(xBottomRight).toBeGreaterThan(500);
+    expect(yBottomRight).toBeGreaterThan(500);
+  });
 });

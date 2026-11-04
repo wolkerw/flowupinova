@@ -100,6 +100,7 @@ export interface BrandSnapshot {
   toneOfVoice?: string;
   slogan?: string;
   personas?: any[];
+  lastLogoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
 }
 
 export interface AIImageGenerationDoc {
@@ -158,6 +159,7 @@ export interface AIImageAssetDoc {
   caption?: string;
   hashtags?: string[];
   hasPrintedLogo?: boolean;
+  logoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
   galleryAssetId?: string;
   derivedFromAssetId?: string | null;
   error?: string | null;

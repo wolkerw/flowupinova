@@ -1,4 +1,5 @@
 import type {
+  BrandLogoPlacement,
   Gpt5PlannerInput,
   Gpt5VisualPlanResponse,
   OrchestratorPlanResult,
@@ -22,21 +23,32 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
      b) PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS para os textos/títulos da arte. NUNCA redesenhe o produto físico para parecer um modelo comercial padrão da marca citada (ex: NUNCA pinte laterais brancas de preto, NUNCA cubra cornetas aparentes com tela perfurada e NUNCA invente/cole o logotipo "JBL" ou qualquer outra marca na frente do equipamento se esse logotipo não existir fisicamente na foto original enviada pelo usuário)!
      c) PRESERVAÇÃO DE RÓTULOS E EMBALAGENS ORIGINAIS: O rótulo original, o nome da marca impresso na embalagem real, a tipografia do rótulo, os pesos, selos de qualidade e ilustrações da embalagem DEVEM SER RIGOROSAMENTE PRESERVADOS E DESCRITOS com máxima fidelidade. É TERMINANTEMENTE PROIBIDO higienizar, censurar, apagar os nomes originais ou transformar o rótulo em blocos de cores lisos!
    - CRÍTICO — SE FOR UMA LOGOMARCA / LOGOTIPO ENVIADA PELO USUÁRIO NA ETAPA 5 (INSERÇÃO CRIATIVA CENOGRÁFICA SEMPRE ATIVA): Sempre que a imagem enviada na Etapa 5 for uma logomarca, logotipo ou símbolo de marca (independentemente de a logo fixa do BrandKit estar ativa ou não), você DEVE PASSAR POR CIMA (OVERRIDE) das travas anti-logo para a cena! Inspecione e descreva minuciosamente a logomarca enviada na Etapa 5 (grafia exata do nome, tipografia, ícone/símbolo e cores exatas) e integre-a de forma CRIATIVA, CENOGRÁFICA, ORGÂNICA e DIFERENTE da simples colagem de canto do BrandKit (por exemplo: bordada/estampada com perfeição no peito da camisa polo/uniforme do protagonista, exibida na tela do smartphone/notebook segurado pelo personagem, aplicada em um letreiro/fachada 3D iluminada no cenário, estampada em uma caneca/sacola/embalagem ou integrada tridimensionalmente à composição). JAMAIS escreva "no logos", "absolutely no logos" ou proíba a logo na cena quando uma logomarca for enviada na Etapa 5!
-   [4. COMPOSITION & PLACEMENT]: Distribuição visual e pontos focais equilibrados. Se houver logomarca do BrandKit habilitada, respeitar estritamente a ZONA DE LIMPEZA DO TOPO ESQUERDO (os primeiros 22% do topo e 30% da esquerda devem ficar 100% livres de textos ou elementos focais).
+   [4. COMPOSITION & PLACEMENT]: Distribuição visual e pontos focais equilibrados. Se houver logomarca do BrandKit habilitada, respeitar estritamente a ZONA DE LIMPEZA DE LOGO dinâmica selecionada (top-left, top-right, top-center ou bottom-right, mantendo a área correspondente 100% livre de textos ou elementos conflitantes).
    [5. FRAMING & PERSPECTIVE]: Ângulo de câmera, lente (ex: 50mm, 85mm f/1.8), proporção.
    [6. LIGHTING & COLOR]: Iluminação profissional e paleta cromática harmônica inspirada nas cores da marca.
    [7. TEXTURES & FINISH]: Acabamentos de estúdio de alta fidelidade e realismo.
    [8. VISUAL STYLE]: Fotografia comercial moderna de alto padrão.
-   [9. LOGO DIRECTIVE]: DIRETIVA DE LOGOMARCA DO BRANDKIT (CANTO) vs. RÓTULO DO PRODUTO vs. LOGOMARCA CRIATIVA DA ETAPA 5 (CENA):
-   a) CANTO SUPERIOR ESQUERDO (ZONA DE LIMPEZA ABSOLUTA DE LOGO / ZERO-TEXT LOGO CLEARANCE ZONE): Se a logomarca do BrandKit estiver habilitada (ou se houver aplicação de logo fixa), o quadrante superior esquerdo (primeiros 22% de altura x 30% de largura à esquerda) DEVE PERMANECER 100% VAZIO E LIMPO (espaço negativo puro). É TERMINANTEMENTE PROIBIDO colocar qualquer texto, título, subtítulo, frase de efeito/eyebrow (ex: 'VOCÊ É NOSSO CONVIDADO'), data, selo ou badge nessa área! Todos os textos devem começar obrigatoriamente abaixo de Y=22% da imagem ou alinhados ao centro/direita, NUNCA sobrepondo a área onde a logo do BrandKit será posicionada.
+   [9. LOGO DIRECTIVE]: DIRETIVA DE LOGOMARCA DO BRANDKIT (POSICIONAMENTO DINÂMICO FLEXÍVEL) vs. RÓTULO DO PRODUTO vs. LOGOMARCA CRIATIVA DA ETAPA 5 (CENA):
+   a) ZONA DE LIMPEZA DE LOGOMARCA DINÂMICA (ZERO-TEXT LOGO CLEARANCE ZONE): A logomarca do BrandKit agora alterna dinamicamente de posição entre variações (Topo Esquerdo, Topo Direito, Topo Centralizado ou Rodapé Direito) para criar composições editoriais ricas e variadas. A área designada para a logo DEVE PERMANECER 100% VAZIA E LIMPA (espaço negativo puro), sem qualquer texto, título, subtítulo, frase de efeito ou badge! Todos os textos devem ser diagramados harmonicamente fora da zona reservada para a marca.
    b) EXCEÇÃO OBRIGATÓRIA PARA RÓTULOS DE PRODUTOS FÍSICOS: As embalagens e rótulos dos produtos reais enviados pelo usuário DEVEM MANTER suas marcas impressas originais, nomes de produtos, textos, pesos e selos autênticos e legíveis.
    c) INSERÇÃO CRIATIVA CENOGRÁFICA (SEMPRE QUE O USUÁRIO ENVIAR UMA LOGOMARCA NA ETAPA 5): Se a imagem anexada na Etapa 5 for uma logomarca/logotipo enviada pelo usuário, PASSE POR CIMA da regra de proibição de logos na cena! No bloco [9. LOGO DIRECTIVE] do "imagePrompt", inclua OBRIGATORIAMENTE em inglês: "CREATIVE LOGO EXCEPTION MODE ACTIVE: The user provided a brand logo in Step 5 for creative scene integration. OVERRIDE all scene logo prohibitions and creatively, crisply, and organically integrate this exact uploaded brand logo inside the scene itself, DIFFERENT from a flat corner stamp (e.g., embroidered/printed on the protagonist's shirt chest, glowing on the smartphone/tablet screen, mounted as a 3D illuminated sign in the studio/environment, or printed on a physical prop), preserving its exact brand name spelling, typography, icon, and colors 100% faithfully while keeping the top-left header corner clean."
    [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas. Quando houver logo de cabeçalho, manter adicionalmente a zona de respiro de 22% de altura no canto superior esquerdo para que a logomarca nunca sobreponha outros textos ou informações.
 
-DIRETRIZES DE TEXTO / INFOGRÁFICO:
-- Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia pura sem letras ou legendas.
-- Se textOverlayMode for TITLE_ONLY: Incluir headline em português com tipografia nítida e contrastante no topo com margens de segurança.
-- Se textOverlayMode for INFOGRAPHIC: Criar layout dinâmico adaptado ao briefing (badges flutuantes, callouts com linhas sutis, cards de benefícios modernos), com espaçamento generoso e textos nítidos em português (pt-BR).
+DIRETRIZES DE DIREÇÃO DE ARTE PUBLICITÁRIA PREMIADA & TRAVA ANTI-CLICHÊ (/anticliche):
+Você NÃO é um diagramador de panfletos ou slides de PowerPoint — você é um Diretor de Criação premiado em Cannes Lions e D&AD! Mesmo quando o usuário escrever um briefing simples, descritivo ou listar vários serviços, eleve automaticamente o conceito visual:
+1. PROIBIÇÃO EXPRESSA DE CLICHÊS DE BANCO DE IMAGENS:
+   - A menos que o usuário peça literalmente "uma mão segurando um celular ao lado de um café", é TERMINANTEMENTE PROIBIDO gerar a cena clichê de "mão avulsa segurando smartphone sobre mesa bege/branca ao lado de xícara de café e vasinho de planta"!
+   - É TERMINANTEMENTE PROIBIDO montar um layout de slide corporativo com 3 ou 4 retângulos brancos opacos empilhados na lateral repetindo o texto do briefing!
+   - É TERMINANTEMENTE PROIBIDO desenhar botões falsos de clique de site no rodapé da arte (ex: pílulas azuis/laranjas com "Conheça todas as possibilidades >", "Saiba mais >", "Clique aqui"), exceto se o usuário pedir explicitamente um botão no briefing! Post criativo de rede social NÃO é captura de landing page!
+2. REGRA DE OURO "SHOW, DON'T LIST" (MATERIALIZAÇÃO CENOGRÁFICA > LISTA DE TEXTO):
+   - Se o briefing citar múltiplos entregáveis, recursos ou diferenciais (ex: "logomarcas, cartão de visitas, papel timbrado, campanhas, branding, mockups, redes sociais"), NÃO transforme essa lista em blocos de texto! MATERIALIZE esses elementos como objetos físicos tridimensionais deslumbrantes, táteis e hiper-realistas compondo a cena (ex: cartões de visita em papel algodão com relevo/verniz flutuando em 3D, mostruários cromáticos Pantone, papelaria executiva, mockups táteis e interfaces holográficas translúcidas sem bordas orbitando em profundidade cinematográfica).
+3. METÁFORA VISUAL INTELIGENTE:
+   - Se o briefing usar expressões figuradas ou de contraste (ex: "cabe no seu bolso", "muito mais que...", "muito além das redes", "agência completa", "tudo em um só lugar"), traduza isso em uma METÁFORA VISUAL MEMORÁVEL (ex: um diorama hiper-detalhado de estúdio criativo completo emergindo em 3D com feixes de luz de dentro do bolso de um blazer elegante, ou uma explosão cenográfica em gravidade zero com iluminação volumétrica nas cores da marca).
+
+DIRETRIZES DE TEXTO / INFOGRÁFICO (ECONOMIA TIPOGRÁFICA DE AGÊNCIA):
+- Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia conceitual pura sem letras ou legendas.
+- Se textOverlayMode for TITLE_ONLY: Incluir 1 headline publicitária curta, magnética e memorável em português (pt-BR) com tipografia editorial de alto contraste e margens seguras.
+- Se textOverlayMode for INFOGRAPHIC (ou BOTH): A fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte! Use 1 Headline criativa de alto impacto (máx. 6 a 10 palavras) + no máximo 2 ou 3 micro-callouts/pills editoriais ultra-concisos (2 a 4 palavras cada, estilo glassmorphism sutil ou linhas finas apontando diretamente para os objetos reais da cena). JAMAIS crie listas longas de benefícios em caixas brancas empilhadas e JAMAIS adicione botão falso de CTA no rodapé sem pedido explícito!
 - REGRA CRÍTICA DE FIDELIDADE TIPOGRÁFICA DO BRANDKIT (/fontlock): Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE especificar essa tipografia em inglês no "imagePrompt" traduzindo sua anatomia visual exata! Como geradores de imagem não possuem arquivos .ttf de fontes comerciais específicas (como "Branding SF"), descreva explicitamente a anatomia da fonte (ex: se for "Branding SF" ou "sans-serif limpo, corporativo", exija "uniform modern geometric corporate sans-serif typeface across ALL lines of text, clean monolinear stroke terminals, ZERO serifs, ZERO semi-serifed or calligraphic flares"). Quando uma frase tiver parte em peso normal e parte em destaque/negrito, EXIJA que ambas pertençam EXATAMENTE À MESMA FAMÍLIA SANS-SERIF, mudando apenas o peso (Regular/Normal weight para o texto secundário e Bold/ExtraBold weight para o destaque principal), proibindo terminantemente misturar famílias tipográficas diferentes na mesma peça!
 
 DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
@@ -107,6 +119,59 @@ REGRAS DE CONFORMIDADE:
     },
   ];
 
+  public static readonly BRAND_LOGO_PLACEMENTS = [
+    {
+      id: "top-left" as const,
+      labelPt: "Canto Superior Esquerdo (editorial clássico de cabeçalho)",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 22% height x left 32% width) 100% blank, empty and clean for logo overlay.",
+      textPlacementPrompt: "Place headline starting below Y=22% or center/right.",
+    },
+    {
+      id: "top-right" as const,
+      labelPt: "Canto Superior Direito (editorial moderno com leitura balanceada)",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-right quadrant (top 22% height x right 32% width) 100% blank, empty and clean for logo overlay.",
+      textPlacementPrompt: "Place headline starting on the left (below Y=22%) or center, leaving top-right clean for the brand logo.",
+    },
+    {
+      id: "top-center" as const,
+      labelPt: "Topo Centralizado (estilo capa de revista de luxo / pôster icônico)",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-center area (top 18% height x center 50% width) 100% blank, empty and clean for logo overlay.",
+      textPlacementPrompt: "Place headline starting below Y=20% or in the midground, letting the centered top logo breathe.",
+    },
+    {
+      id: "bottom-right" as const,
+      labelPt: "Rodapé Direito (assinatura corporativa discreta e sofisticada)",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep bottom-right quadrant (bottom 16% height x right 32% width) 100% blank, empty and clean for logo overlay.",
+      textPlacementPrompt: "Keep bottom-right corner completely free of text or buttons for the official brand sign-off.",
+    },
+  ];
+
+  private static logoPlacementCursor = 0;
+
+  public static getNextLogoPlacement(lastPos?: BrandLogoPlacement): (typeof Gpt5PromptPlanner.BRAND_LOGO_PLACEMENTS)[number] {
+    if (!lastPos) return this.BRAND_LOGO_PLACEMENTS[0];
+    const currentIdx = this.BRAND_LOGO_PLACEMENTS.findIndex((p) => p.id === lastPos);
+    const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % this.BRAND_LOGO_PLACEMENTS.length : 0;
+    return this.BRAND_LOGO_PLACEMENTS[nextIdx];
+  }
+
+  public static selectDynamicLogoPlacement(input: Gpt5PlannerInput) {
+    if (input.logoPosition) {
+      const found = this.BRAND_LOGO_PLACEMENTS.find((p) => p.id === input.logoPosition);
+      if (found) return found;
+    }
+    // Memória Persistente do Usuário: se houver última posição registrada no Firestore, calcula a próxima da sequência
+    if (input.lastLogoPosition) {
+      const nextFromHistory = this.getNextLogoPlacement(input.lastLogoPosition);
+      input.logoPosition = nextFromHistory.id;
+      return nextFromHistory;
+    }
+    const idx = (this.logoPlacementCursor++) % this.BRAND_LOGO_PLACEMENTS.length;
+    const selected = this.BRAND_LOGO_PLACEMENTS[idx];
+    input.logoPosition = selected.id;
+    return selected;
+  }
+
   private static creativeArchetypeCursor = Math.floor(Math.random() * 8);
 
   public static selectCreativeLogoArchetype(userBrief = "") {
@@ -116,6 +181,128 @@ REGRAS DE CONFORMIDADE:
     const primary = this.CREATIVE_LOGO_ARCHETYPES[idx];
     const secondary = this.CREATIVE_LOGO_ARCHETYPES[(idx + 3) % len];
     return { primary, secondary, userBrief };
+  }
+
+  public static readonly CREATIVE_ART_DIRECTION_ARCHETYPES = [
+    {
+      id: "scale_metaphor_diorama",
+      labelPt: "Metáfora Visual de Escala & Diorama Publicitário (estilo Cannes Lions: um universo/estúdio criativo inteiro hiper-detalhado e iluminado emergindo em 3D de um bolso de alfaiataria ou portal compacto)",
+      promptEn: "Cannes Lions award-winning visual metaphor & hyper-detailed scale-contrast commercial art direction: a vibrant, tangible miniature creative agency universe (glowing studio key lights, embossed cotton business cards, Pantone color fan, tactile brand mockups, stationery, and frameless translucent holographic analytics) emerging organically and dramatically in 3D with volumetric brand-colored light from a tailored jacket/blazer pocket or sleek compact luminous core",
+    },
+    {
+      id: "levitating_tactile_ecosystem",
+      labelPt: "Explosão Cenográfica 3D em Gravidade Zero (entregáveis físicos reais e interfaces translúcidas levitando em múltiplas camadas de profundidade com iluminação dramática nas cores da marca)",
+      promptEn: "High-impact zero-gravity 3D studio hero showcase: tangible, ultra-crafted physical brand deliverables and artifacts corresponding to the brief (thick textured business cards with spot-UV finish, luxury letterhead stationery, bespoke packaging/merchandise mockups, color swatches, and sleek frameless glassmorphic social media frames) dynamically levitating in mid-air across foreground bokeh, razor-sharp midground focal point, and dramatic rim-lit architectural studio background",
+    },
+    {
+      id: "sculptural_editorial_set",
+      labelPt: "Cenografia Escultural Editorial & Chiaroscuro Comercial (composição artística em ângulo 45° sobre plintos arquitetônicos nobres com texturas ricas e sombras dramáticas)",
+      promptEn: "Bespoke sculptural set design & luxury magazine editorial photography shot at a dynamic 45-degree perspective with directional chiaroscuro studio lighting: real, touchable physical craft artifacts arranged on refined architectural plinths (matte stone, brushed metal, heavy embossed print collateral, dimensional brand pieces, and glowing glass data prisms) captured with an 85mm f/1.8 lens",
+    },
+    {
+      id: "protagonist_creative_epicenter",
+      labelPt: "Protagonista Carismático no Epicentro Criativo (empreendedor ou diretor criativo autêntico em ação cercado por artefatos táteis e luzes volumétricas orbitando em 3D)",
+      promptEn: "Charismatic, authentic creative director or modern entrepreneur in expressive medium-shot action at the epicenter of a contemporary design studio, surrounded by floating physical brand artifacts, real print/mockup deliverables, and subtle luminous glassmorphic elements orbiting in 3D space with cinematic brand-colored rim lighting",
+    },
+    {
+      id: "split_reality_transformation",
+      labelPt: "Portal de Transformação 'Muito Além do Básico' (feixe de luz volumétrica nas cores da marca expandindo o digital comum em um ecossistema físico completo e tangível)",
+      promptEn: "Bold conceptual advertising transformation scene: a powerful volumetric light prism in the brand's signature colors expanding a simple starting spark into a rich, multidimensional physical universe of complete brand identity artifacts, print collateral, real-world mockups, and omnichannel creative campaigns",
+    },
+    {
+      id: "tactile_macro_craftsmanship",
+      labelPt: "Fotografia Sensorial Macro-Editorial de Alto Impacto (foco dramático em texturas nobres, relevo, profundidade óptica e composição digna de capa de revista)",
+      promptEn: "Sensory macro-editorial commercial hero photography with shallow optical depth of field, rich tactile material textures (embossed paper fibers, metallic foil, ceramic glaze, woven fabric, glass reflections), dramatic side-key lighting, and bold award-winning magazine cover framing",
+    },
+  ];
+
+  private static artDirectionCursor = 0;
+
+  public static isExplicitHandPhoneRequested(userBrief = ""): boolean {
+    return /\b(mão segurando|mao segurando|segurando (um |o |seu )?(celular|smartphone|iphone|aparelho)|hand holding (a )?(phone|smartphone))\b/i.test(
+      userBrief
+    );
+  }
+
+  public static isExplicitCtaButtonRequested(userBrief = ""): boolean {
+    return /\b(botão|botao|cta clicável|coloque um botão|adicione um botão|button)\b/i.test(
+      userBrief
+    );
+  }
+
+  public static selectArtDirectionConcept(input: Gpt5PlannerInput) {
+    const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
+    const isStep5Logo = this.isStep5LogoUpload(input);
+    if ((subjectRef && !isStep5Logo) || input.referenceMode === "campaign_identity") {
+      return null;
+    }
+
+    const brief = input.userBrief || "";
+    const hasPocketOrScaleMetaphor =
+      /(cabe no (seu )?bolso|no seu bolso|na palma da m[ãa]o|ag[êe]ncia de bolso|compact[oa]|port[áa]til)/i.test(
+        brief
+      );
+    const hasEcosystemOrBeyondConcept =
+      /(mais (do )?que|muito al[ée]m|ag[êe]ncia completa|marketing completa|tudo em um|de ponta a ponta|ecossistema|cart[ãa]o de visita|papel timbrado|branding|mockups)/i.test(
+        brief
+      );
+
+    const all = this.CREATIVE_ART_DIRECTION_ARCHETYPES;
+    const cursor = this.artDirectionCursor++;
+
+    if (hasPocketOrScaleMetaphor) {
+      const pocketPool = [all[0], all[1], all[4]];
+      const primary = pocketPool[cursor % pocketPool.length];
+      const secondary = pocketPool[(cursor + 1) % pocketPool.length];
+      return { primary, secondary, mode: "metaphor_boost" as const };
+    }
+
+    if (hasEcosystemOrBeyondConcept) {
+      const ecoPool = [all[1], all[0], all[2], all[4]];
+      const primary = ecoPool[cursor % ecoPool.length];
+      const secondary = ecoPool[(cursor + 1) % ecoPool.length];
+      return { primary, secondary, mode: "ecosystem_showcase" as const };
+    }
+
+    const primary = all[cursor % all.length];
+    const secondary = all[(cursor + 2) % all.length];
+    return { primary, secondary, mode: "agency_creative" as const };
+  }
+
+  public static buildAntiClicheCreativeMandate(
+    input: Gpt5PlannerInput,
+    artConcept?: ReturnType<typeof Gpt5PromptPlanner.selectArtDirectionConcept>
+  ): string {
+    const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
+    const isStep5Logo = this.isStep5LogoUpload(input);
+    if ((subjectRef && !isStep5Logo) || input.referenceMode === "campaign_identity") {
+      return "";
+    }
+
+    const allowHandPhone = this.isExplicitHandPhoneRequested(input.userBrief);
+    const allowCtaButton = this.isExplicitCtaButtonRequested(input.userBrief);
+    const conceptClause = artConcept
+      ? ` Recommended Art Direction Concept (${artConcept.primary.id}): ${artConcept.primary.promptEn}.`
+      : "";
+
+    const prohibitions: string[] = [
+      "SHOW, DON'T LIST: Materialize mentioned deliverables/services as stunning, tactile 3D physical artifacts inside the scene instead of listing them in plain text boxes",
+    ];
+    if (!allowHandPhone) {
+      prohibitions.push(
+        "NO STOCK-PHOTO CLICHÉS: Strictly FORBIDDEN to depict a generic disembodied hand holding a smartphone over a beige/white desk next to a coffee mug and potted plant"
+      );
+    }
+    prohibitions.push(
+      "NO POWERPOINT SLIDE BOXES: Strictly FORBIDDEN to render 3 or 4 stacked opaque white rectangular bullet-point cards on the side; let the visual scene occupy 70-75%+ of the canvas, using at most ultra-concise 2-4 word editorial micro-callouts if infographic mode is active"
+    );
+    if (!allowCtaButton) {
+      prohibitions.push(
+        "NO FAKE WEBSITE CTA BUTTONS: Strictly FORBIDDEN to draw fake clickable web buttons/pills at the bottom (such as 'Saiba mais >' or 'Conheça todas as possibilidades >')"
+      );
+    }
+
+    return `[AWARD-WINNING CREATIVE ART DIRECTION & ANTI-CLICHÉ MANDATE (/anticliche):${conceptClause} ${prohibitions.join(" | ")}.]`;
   }
 
   public static isStep5LogoUpload(input: Gpt5PlannerInput): boolean {
@@ -264,6 +451,7 @@ REGRAS DE CONFORMIDADE:
 
   private static buildUserPrompt(input: Gpt5PlannerInput): string {
     const brand = input.brandKit;
+    const selectedPlacement = this.selectDynamicLogoPlacement(input);
     const brandSection =
       brand && brand.enabled
         ? `
@@ -350,17 +538,31 @@ Inspecione visualmente a imagem enviada na Etapa 5 (product_subject) e retorne n
   1. NÃO APLIQUE NENHUM ARQUÉTIPO DE LOGOMARCA! IGNORE completamente placas de acrílico, totens de bancada ou letreiros 3D!
   2. PROIBIÇÃO ABSOLUTA DE DESENHAR LOGOMARCAS NA CENA: É TERMINANTEMENTE PROIBIDO desenhar, inventar, renderizar ou estampar qualquer logomarca da empresa (como "${brand?.businessName || 'NumVapt'}") em placas de acrílico na mesa/balcão, totens, paredes ou equipamentos! ${
     hasLogo
-      ? "A logomarca do BrandKit será colada via software APENAS no canto superior esquerdo (mantenha o quadrante superior esquerdo de 22% de altura x 30% de largura 100% LIMPO e VAZIO)."
+      ? `A logomarca do BrandKit será aplicada via software na posição (${selectedPlacement.id}): mantenha a zona designada 100% LIMPA e VAZIA (${selectedPlacement.clearanceZonePrompt}).`
       : "Mantenha o canto superior limpo e NÃO desenhe nenhuma logomarca na cena."
   }
   3. TRAVA /productlock: Preserve 100% da geometria, partes superiores e inferiores, peças aparentes e cores reais do produto enviado.
 - CASO B — SOMENTE SE A IMAGEM ENVIADA NA ETAPA 5 FOR UMA LOGOMARCA / LOGOTIPO ISOLADO ("brand_logo" — isStep5Logo=${isStep5Logo}):
   1. MODO EXCEÇÃO CRIATIVA COM ROTAÇÃO DINÂMICA (${selectedArchetypes?.primary.id}): Aí sim, mantenha o sorteio de arquétipos e integre essa logomarca enviada na Etapa 5 de forma criativa na cena aplicando preferencialmente: "${selectedArchetypes?.primary.promptEn}" (ou "${selectedArchetypes?.secondary.promptEn}"), reproduzindo fielmente o nome, símbolo e cores da logomarca enviada!`
       : hasLogo
-        ? `REGRA MANDATÓRIA DE LOGOMARCA DO BRANDKIT (SOBREPOSIÇÃO DIGITAL & ZONA LIVRE DE TEXTO):
-A imagem da logomarca oficial do BrandKit foi anexada para aplicação DIGITAL no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A:\n1. MANTER O QUADRANTE SUPERIOR ESQUERDO (topo 22% de altura x esquerda 30% de largura) 100% LIMPO, VAZIO E LIVRE DE QUALQUER TEXTO, TÍTULO, SUBTÍTULO, EYEBROW (ex: frases de topo), DATA OU BADGE. Todos os textos devem começar abaixo de Y=22% ou no centro/direita.\n2. PROIBIR que a IA desenhe logotipos soltos ou marcas fictícias no layout. Rótulos de produtos físicos reais continuam autênticos e intactos.`
+        ? `REGRA MANDATÓRIA DE LOGOMARCA DO BRANDKIT (POSICIONAMENTO DINÂMICO FLEXÍVEL: ${selectedPlacement.labelPt}):
+A imagem da logomarca oficial do BrandKit foi anexada para aplicação DIGITAL no pós-processamento pelo sistema. Portanto, no "imagePrompt" você DEVE OBRIGATORIAMENTE INSTRUIR A IA A:\n1. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt}\n2. PROIBIR que a IA desenhe logotipos soltos ou marcas fictícias no layout. Rótulos de produtos físicos reais continuam autênticos e intactos.`
         : `REGRA ABSOLUTA DE LOGOMARCAS DE CABEÇALHO / POST:
 NENHUMA logomarca oficial foi fornecida. É TERMINANTEMENTE PROIBIDO inventar, desenhar ou renderizar qualquer logotipo solto, badge de marca no layout, mascote, florzinha ou solzinho flutuante no topo da arte. Deixe o canto superior da imagem COMPLETAMENTE LIMPO (espaço negativo livre).`;
+
+    const artConcept = this.selectArtDirectionConcept(input);
+    const creativeDirectionSection = artConcept
+      ? [
+          "DIREÇÃO DE ARTE PUBLICITÁRIA SORTEADA PARA ELEVAR A CRIATIVIDADE (/anticliche ATIVO):",
+          `- Conceito Visual Principal Sugerido (${artConcept.primary.id}): ${artConcept.primary.labelPt}`,
+          `  -> Diretriz em inglês: "${artConcept.primary.promptEn}"`,
+          `- Alternativa Criativa (${artConcept.secondary.id}): ${artConcept.secondary.labelPt}`,
+          "- INSTRUÇÃO CRÍTICA AO PLANEJADOR: Transforme o briefing do usuário em uma peça publicitária extraordinária, conceitual e memorável usando essa direção de arte (ou uma metáfora visual equivalente ainda mais genial para o tema). Materialize os itens citados pelo usuário fisicamente na cena ('Show, Don't List')!",
+          !this.isExplicitHandPhoneRequested(input.userBrief) ? "- PROIBIDO usar o clichê de mão segurando smartphone sobre mesa clara com xícara de café e plantinha!" : "",
+          "- PROIBIDO criar 3 ou 4 caixas brancas empilhadas estilo slide de PowerPoint!",
+          !this.isExplicitCtaButtonRequested(input.userBrief) ? "- PROIBIDO desenhar botão falso de clique de site no rodapé (ex: 'Conheça todas as possibilidades >' ou 'Saiba mais >')!" : "",
+        ].filter(Boolean).join("\n")
+      : "";
 
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
@@ -376,6 +578,7 @@ PARÂMETROS DE PRODUÇÃO:
 
 ${brandSection}
 ${referencesSection}
+${creativeDirectionSection}
 ${input.compiledPrompt ? `\nDIRETRIZES TÉCNICAS PRÉ-COMPILADAS:\n${input.compiledPrompt}\n` : ""}
 
 ${logoDirectiveText}
@@ -386,6 +589,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
 
   private static validateAndNormalizePlan(raw: any, input: Gpt5PlannerInput): Gpt5VisualPlanResponse {
     const brand = input.brandKit;
+    const selectedPlacement = this.selectDynamicLogoPlacement(input);
     const safeAspect = input.format === "portrait" ? "1024x1280" : input.format === "story" ? "864x1536" : "1024x1024";
     const logoRef = input.referenceImages?.find(
       (r) => (r.role === "business_logo" || r.role === "official_logo") && Boolean(r.base64)
@@ -427,6 +631,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         enabled: Boolean(brand?.enabled),
         useColors: Boolean(brand?.enabled),
         useLogo: hasLogo,
+        logoPosition: raw.visualPlan?.brandApplication?.logoPosition || selectedPlacement.id,
         brandElementsToPreserve: hasLogo
           ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais da marca"]
           : ["Cores oficiais e espaço reservado para logo manual"],
@@ -468,6 +673,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         if (fontMandate && !prompt.includes("/fontlock")) {
           prompt += ` ${fontMandate}`;
         }
+        const antiClicheMandate = this.buildAntiClicheCreativeMandate(input);
+        if (antiClicheMandate && !prompt.includes("/anticliche")) {
+          prompt += ` ${antiClicheMandate}`;
+        }
         return prompt;
       })(),
       negativePrompt: (() => {
@@ -479,7 +688,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
               .replace(/,?\s*no [a-zA-Z0-9_-]+ logo drawn in the poster/gi, "")
               .replace(/,?\s*no logos?/gi, "");
           }
-          return raw.negativePrompt;
+          const extraAntiCliche = !this.isExplicitHandPhoneRequested(input.userBrief)
+            ? ", generic stock photo cliché, disembodied hand holding smartphone over beige desk with coffee mug and potted plant, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom"
+            : "";
+          return `${raw.negativePrompt}${extraAntiCliche}`;
         }
         return hasSubject
           ? "redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped headline, cut off borders, low quality, artifacts"
@@ -506,6 +718,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
 
   private static createDeterministicPlan(input: Gpt5PlannerInput): Gpt5VisualPlanResponse {
     const brand = input.brandKit;
+    const selectedPlacement = this.selectDynamicLogoPlacement(input);
     const safeAspect = input.format === "portrait" ? "1024x1280" : input.format === "story" ? "864x1536" : "1024x1024";
     const logoRef = input.referenceImages?.find(
       (r) => (r.role === "business_logo" || r.role === "official_logo") && Boolean(r.base64)
@@ -542,6 +755,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         enabled: Boolean(brand?.enabled),
         useColors: Boolean(brand?.enabled),
         useLogo: hasLogo,
+        logoPosition: selectedPlacement.id,
         brandElementsToPreserve: hasLogo
           ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais"]
           : ["Cores oficiais", "Elemento/Logo enviado na Etapa 5"],
@@ -554,8 +768,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       negativePrompt: hasSubject
         ? this.isStep5LogoUpload(input) ? "competitor trademarks, distorted logo, warped branding, cropped typography, text touching borders, amateur framing" : "acrylic logo plaque on counter, tabletop logo totem, 3D wall logo sign, invented brand logo in scene, floating company emblem, redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing"
         : hasLogo
-          ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts"
-          : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped typography, text touching borders, amateur framing",
+          ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, generic stock photo hand holding smartphone with coffee cup, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts"
+          : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, generic stock photo hand holding smartphone with coffee cup, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom, cropped typography, text touching borders, amateur framing",
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margem segura de 20%"]
         : ["Foto/Logomarca da Etapa 5", "Integração criativa na cena", "Margem segura de 20%"],
@@ -585,17 +799,18 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const hasLogo = Boolean(logoRef);
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
 
+    const selectedPlacement = this.selectDynamicLogoPlacement(input);
     let textInstruction =
       "[CRITICAL MANDATE — ZERO TEXT: Clean photography with zero typography, letters or watermarks.]";
     if (isTitle) {
       const headline = input.productHeadline?.trim() || "Headline em português";
       textInstruction = hasLogo
-        ? `[HEADLINE POSTER DIRECTIVE & LOGO CLEARANCE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}". ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 22% height x left 30% width) 100% blank and clean for logo overlay; place headline starting below Y=22% or centered with generous breathing room and 20% safe margins.]`
+        ? `[HEADLINE POSTER DIRECTIVE & LOGO CLEARANCE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}". ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt} Maintain generous breathing room and 20% safe margins.]`
         : `[HEADLINE POSTER DIRECTIVE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}" with generous breathing room and 20% safe margins.]`;
     } else if (isInfographic) {
       const headline = input.productHeadline?.trim() || "Solução Inteligente";
       textInstruction = hasLogo
-        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders. ZERO-TEXT LOGO CLEARANCE ZONE: The top-left quadrant (top 22% height x left 30% width) MUST remain 100% blank negative space. All headlines, badges, and text callouts must start below Y=22% or center/right so they never overlap the brand logo.]`
+        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt}]`
         : `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders.]`;
     }
 
@@ -612,7 +827,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const logoMandate = subjectRef && isStep5Logo
       ? `[CRITICAL MANDATE — CREATIVE LOGO / SUBJECT EXCEPTION MODE (${fallbackArchetype?.primary.id}): The uploaded Step 5 reference image is a brand logo or emblem. OVERRIDE all scene logo restrictions and creatively, crisply, and organically integrate that exact uploaded brand logo inside the scene itself (different from any flat corner BrandKit stamp — specifically ${fallbackArchetype?.primary.promptEn}, or alternatively ${fallbackArchetype?.secondary.promptEn}) preserving its exact spelling, icon, and colors while keeping the top-left header corner clean.]`
       : hasLogo
-        ? "[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE: The official business logo is composited digitally. The diffusion AI MUST keep the top-left quadrant (top 22% height x left 30% width) 100% CLEAN, BLANK and EMPTY negative space. ABSOLUTE PROHIBITION: Do NOT place any text, titles, subtitles, eyebrows, dates, or badges in the top-left area. Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), acrylic tabletop plaques on counters, totens, wall signs, flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]"
+        ? `[CRITICAL MANDATE — MANDATORY LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE (${selectedPlacement.id.toUpperCase()}): The official business logo is composited digitally. The diffusion AI MUST obey ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt} ABSOLUTE PROHIBITION: Do NOT place any text, titles, subtitles, eyebrows, dates, or badges in the designated logo area. Do NOT draw, render, paint or invent any floating company logos, brand names as logos (including NumVapt), acrylic tabletop plaques on counters, totens, wall signs, flower icons, sun icons, or decorative badges in the poster layout. Real product packaging labels must remain authentic.]`
         : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, acrylic tabletop plaque, counter totem, wall sign, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion.]";
 
     const subjectMandate = subjectRef
@@ -646,6 +861,11 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (fontMandate && !p.includes("/fontlock")) {
         p += ` ${fontMandate}`;
       }
+      const fallbackConcept = this.selectArtDirectionConcept(input);
+      const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
+      if (antiCliche && !p.includes("/anticliche")) {
+        p += ` ${antiCliche}`;
+      }
       return p;
     }
 
@@ -653,7 +873,13 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       ? " [HIGH-PERFORMANCE VIDEO THUMBNAIL MANDATE: Dynamic magnetic video cover composition with dramatic high-contrast lighting, intense facial or subject focus, vibrant saturated color scheme, and extreme curiosity-inducing visual hook for maximum click-through rate (CTR) on YouTube, Reels, and TikTok.]"
       : "";
 
-    return `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere. ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    const fallbackConcept = this.selectArtDirectionConcept(input);
+    const creativeSceneLead = fallbackConcept
+      ? `Award-winning conceptual advertising campaign (${fallbackConcept.primary.promptEn}) inspired by brief: ${input.userBrief}.`
+      : `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere.`;
+    const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
+
+    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${antiCliche} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {
