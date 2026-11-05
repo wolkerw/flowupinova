@@ -46,7 +46,7 @@ interface UserSummary {
   postsCount: number;
   imagesCount: number;
   lastSignIn?: string;
-  subscriptionPlan?: "mensal" | "anual" | null;
+  subscriptionPlan?: "mensal" | "anual" | "trial_7d" | null;
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
   canEditImages?: boolean;
@@ -188,13 +188,15 @@ function UserSheet({
                 "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
                 user.paymentStatus === "blocked"
                   ? PLAN_COLORS.blocked
-                  : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
+                  : user.plan === "standard" && user.subscriptionPlan === "trial_7d"
+                    ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
+                    : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
               )}
             >
               {user.paymentStatus === "blocked"
                 ? "Bloqueado"
                 : user.plan === "standard"
-                  ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
+                  ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : user.subscriptionPlan === "trial_7d" ? "VIP 7 Dias" : "Mensal") : "Mensal"})`
                   : (PLAN_LABELS[user.plan] ?? user.plan)}
             </span>
           )}
@@ -437,6 +439,34 @@ function UserSheet({
               {/* Ações de Plano */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Ações de Plano</p>
+
+                {/* Ativar/Renovar Plano VIP (7 dias - Tudo Liberado) */}
+                <button
+                  onClick={() =>
+                    doAction(
+                      {
+                        activateVip7d: true,
+                        plan: "standard",
+                        subscriptionPlan: "trial_7d",
+                        paymentStatus: "active",
+                        canEditImages: true,
+                        isConcierge: true,
+                      },
+                      "activate-vip-7d"
+                    )
+                  }
+                  disabled={loading}
+                  className="flex w-full items-center gap-3 rounded-lg border border-purple-500/40 bg-purple-500/15 px-4 py-3 text-sm font-semibold text-purple-300 transition-colors hover:bg-purple-500/25 disabled:opacity-50 shadow-sm"
+                >
+                  {loading && action === "activate-vip-7d" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 text-purple-400" />
+                  )}
+                  {user.plan === "standard" && user.subscriptionPlan === "trial_7d"
+                    ? "Renovar Plano VIP (7 dias - Tudo Liberado)"
+                    : "Ativar Plano VIP (7 dias - Tudo Liberado)"}
+                </button>
 
                 {/* Ativar/Mudar para Plano Mensal */}
                 {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
@@ -904,13 +934,15 @@ export default function AdminUsuariosPage() {
                             "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
                             user.paymentStatus === "blocked"
                               ? PLAN_COLORS.blocked
-                              : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
+                              : user.plan === "standard" && user.subscriptionPlan === "trial_7d"
+                                ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
+                                : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
                           )}
                         >
                           {user.paymentStatus === "blocked"
                             ? "Bloqueado"
                             : user.plan === "standard"
-                              ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
+                              ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : user.subscriptionPlan === "trial_7d" ? "VIP 7 Dias" : "Mensal") : "Mensal"})`
                               : (PLAN_LABELS[user.plan] ?? user.plan)}
                         </span>
                       </td>

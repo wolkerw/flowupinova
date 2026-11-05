@@ -157,4 +157,75 @@ describe("PATCH /api/admin/users/[uid]", () => {
       })
     );
   });
+  it("ativa o plano VIP de 7 dias com todas as funções liberadas via activateVip7d", async () => {
+    vi.mocked(validateAdminToken).mockResolvedValue({ email: "admin@numvapt.com.br" } as any);
+
+    const mockUpdate = vi.fn().mockResolvedValue(undefined);
+    const mockDoc = vi.fn().mockReturnValue({ update: mockUpdate });
+    vi.mocked(adminDb.collection).mockReturnValue({ doc: mockDoc } as any);
+
+    const req = new NextRequest("http://localhost:9002/api/admin/users/user-vip-123", {
+      method: "PATCH",
+      body: JSON.stringify({ activateVip7d: true }),
+    });
+
+    const res = await PATCH(req, { params: Promise.resolve({ uid: "user-vip-123" }) });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+
+    expect(mockDoc).toHaveBeenCalledWith("user-vip-123");
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: "standard",
+        role: "pro",
+        subscriptionStatus: "active",
+        paymentStatus: "active",
+        subscriptionPlan: "trial_7d",
+        canEditImages: true,
+        isConcierge: true,
+        managedService: expect.objectContaining({
+          enabled: true,
+          serviceMode: "concierge",
+          status: "active",
+        }),
+        subscriptionExpiresAt: "mock-timestamp",
+      })
+    );
+  });
+
+  it("ativa o plano VIP de 7 dias com todas as funções liberadas via plan standard e subscriptionPlan trial_7d", async () => {
+    vi.mocked(validateAdminToken).mockResolvedValue({ email: "admin@numvapt.com.br" } as any);
+
+    const mockUpdate = vi.fn().mockResolvedValue(undefined);
+    const mockDoc = vi.fn().mockReturnValue({ update: mockUpdate });
+    vi.mocked(adminDb.collection).mockReturnValue({ doc: mockDoc } as any);
+
+    const req = new NextRequest("http://localhost:9002/api/admin/users/user-vip-456", {
+      method: "PATCH",
+      body: JSON.stringify({ plan: "standard", subscriptionPlan: "trial_7d" }),
+    });
+
+    const res = await PATCH(req, { params: Promise.resolve({ uid: "user-vip-456" }) });
+    expect(res.status).toBe(200);
+
+    expect(mockDoc).toHaveBeenCalledWith("user-vip-456");
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: "standard",
+        role: "pro",
+        subscriptionStatus: "active",
+        paymentStatus: "active",
+        subscriptionPlan: "trial_7d",
+        canEditImages: true,
+        isConcierge: true,
+        managedService: expect.objectContaining({
+          enabled: true,
+          serviceMode: "concierge",
+          status: "active",
+        }),
+        subscriptionExpiresAt: "mock-timestamp",
+      })
+    );
+  });
 });

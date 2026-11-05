@@ -15,7 +15,7 @@ export async function PATCH(
 
   const { uid } = await params;
   const body = await request.json();
-  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan, canEditImages, isConcierge } = body;
+  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan, canEditImages, isConcierge, activateVip7d } = body;
 
   if (!uid) {
     return NextResponse.json({ error: "UID do usuário é obrigatório." }, { status: 400 });
@@ -48,7 +48,24 @@ export async function PATCH(
 
     if (paymentStatus) updates.paymentStatus = paymentStatus;
 
-    if (plan) {
+    if (activateVip7d || (plan === "standard" && subscriptionPlan === "trial_7d")) {
+      updates.plan = "standard";
+      updates.role = "pro";
+      updates.subscriptionStatus = "active";
+      updates.paymentStatus = "active";
+      updates.subscriptionPlan = "trial_7d";
+      updates.canEditImages = true;
+      updates.isConcierge = true;
+      updates.managedService = {
+        enabled: true,
+        serviceMode: "concierge",
+        status: "active",
+        updatedAt: new Date(),
+      };
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 7);
+      updates.subscriptionExpiresAt = firebaseAdmin.firestore.Timestamp.fromDate(expirationDate);
+    } else if (plan) {
       if (plan === "standard") {
         updates.plan = "standard";
         updates.role = "pro";
