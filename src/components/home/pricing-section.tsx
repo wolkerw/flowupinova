@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
+import { useOptionalAuth } from "@/components/auth/auth-provider";
 
 const FadeInView = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => (
   <motion.div
@@ -19,6 +20,16 @@ const FadeInView = ({ children, delay = 0 }: { children: React.ReactNode; delay?
 );
 
 export const PricingSection = () => {
+  const auth = useOptionalAuth();
+  const user = auth?.user;
+
+  const getPlanLink = (plano: string) => {
+    if (user) {
+      return `/dashboard?assinar=${plano}`;
+    }
+    return `/acesso/cadastro?plano=${plano}`;
+  };
+
   return (
     <section id="planos" className="relative overflow-hidden bg-slate-50 py-24 scroll-mt-20">
       <div className="container mx-auto px-4 lg:px-8">
@@ -106,7 +117,7 @@ export const PricingSection = () => {
                 variant="outline"
                 className="h-12 w-full rounded-full border-slate-300 transition-transform hover:scale-[1.02] hover:bg-slate-50"
               >
-                <Link href="/acesso/cadastro">Começar Mensal</Link>
+                <Link href={getPlanLink("mensal")}>Começar Mensal</Link>
               </Button>
             </div>
           </FadeInView>
@@ -143,7 +154,7 @@ export const PricingSection = () => {
                 variant="outline"
                 className="h-12 w-full rounded-full border-slate-300 transition-transform hover:scale-[1.02] hover:bg-slate-50"
               >
-                <Link href="/acesso/cadastro">Começar Trimestral</Link>
+                <Link href={getPlanLink("trimestral")}>Começar Trimestral</Link>
               </Button>
             </div>
           </FadeInView>
@@ -182,7 +193,7 @@ export const PricingSection = () => {
                 variant="outline"
                 className="h-12 w-full rounded-full border-slate-300 transition-transform hover:scale-[1.02] hover:bg-slate-50"
               >
-                <Link href="/acesso/cadastro">Começar Semestral</Link>
+                <Link href={getPlanLink("semestral")}>Começar Semestral</Link>
               </Button>
             </div>
           </FadeInView>
@@ -233,7 +244,7 @@ export const PricingSection = () => {
                 asChild
                 className="h-12 w-full rounded-full bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-transform hover:scale-[1.02] hover:from-orange-600 hover:to-orange-500"
               >
-                <Link href="/acesso/cadastro">Começar Anual</Link>
+                <Link href={getPlanLink("anual")}>Começar Anual</Link>
               </Button>
             </div>
           </FadeInView>
@@ -283,7 +294,7 @@ export const PricingSection = () => {
                 variant="outline"
                 className="h-12 w-full rounded-full border-slate-300 transition-transform hover:scale-[1.02] hover:bg-slate-50"
               >
-                <Link href="/acesso/cadastro">Começar Tudo Pronto</Link>
+                <Link href={getPlanLink("tudo_pronto")}>Começar Tudo Pronto</Link>
               </Button>
             </div>
           </FadeInView>

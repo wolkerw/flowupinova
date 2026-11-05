@@ -31,6 +31,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
+import type { SubscriptionPlanModalidade } from "@/lib/types/contract";
 import {
   Sidebar,
   SidebarContent,
@@ -178,6 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isConcierge, setIsConcierge] = useState<boolean>(false);
   const [isClientApprover, setIsClientApprover] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [initialSubscriptionPlan, setInitialSubscriptionPlan] = useState<SubscriptionPlanModalidade | undefined>(undefined);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
@@ -328,6 +330,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const handleOpenSubscription = () => setShowSubscriptionModal(true);
     window.addEventListener("open-subscription-modal", handleOpenSubscription);
+
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const assinar = params.get("assinar") as SubscriptionPlanModalidade | null;
+        if (assinar) {
+          setInitialSubscriptionPlan(assinar);
+          setShowSubscriptionModal(true);
+        }
+      } catch (e) {
+        console.warn("Aviso ao ler parametro assinar:", e);
+      }
+    }
+
     return () => window.removeEventListener("open-subscription-modal", handleOpenSubscription);
   }, []);
 
@@ -371,6 +387,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
         userId={user.uid}
+        initialPlan={initialSubscriptionPlan}
       />
       <OnboardingWizard
         userId={user.uid}

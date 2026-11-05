@@ -231,19 +231,38 @@ export async function POST(request: NextRequest) {
       const userDocRef = adminDb.collection("users").doc(userId);
       if (status === "approved") {
         const now = new Date();
-        const durationDays = plan === "anual" ? 365 : 30;
+        const durationDays =
+          plan === "anual"
+            ? 395
+            : plan === "semestral"
+              ? 180
+              : plan === "trimestral"
+                ? 90
+                : 30;
         const expirationDate = new Date();
         expirationDate.setDate(now.getDate() + durationDays);
 
-        await userDocRef.set(
-          {
-            role: "pro",
-            subscriptionStatus: "active",
-            subscriptionPlan: plan,
-            subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
-          },
-          { merge: true }
-        );
+        const updatePayload: Record<string, any> = {
+          plan: "standard",
+          role: "pro",
+          paymentStatus: "active",
+          subscriptionStatus: "active",
+          subscriptionPlan: plan,
+          subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+          canEditImages: true,
+        };
+
+        if (plan === "tudo_pronto") {
+          updatePayload.isConcierge = true;
+          updatePayload.managedService = {
+            enabled: true,
+            serviceMode: "concierge",
+            status: "active",
+            updatedAt: new Date(),
+          };
+        }
+
+        await userDocRef.set(updatePayload, { merge: true });
         console.log(`[TRANSACTIONS_ADMIN] Usuário ${userId} atualizado para Pro com sucesso!`);
       } else {
         await userDocRef.set(

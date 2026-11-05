@@ -72,10 +72,26 @@ export async function PATCH(
         updates.subscriptionStatus = "active";
         updates.paymentStatus = "active";
 
-        const subPlan = subscriptionPlan === "anual" ? "anual" : "mensal";
+        const subPlan =
+          subscriptionPlan === "anual"
+            ? "anual"
+            : subscriptionPlan === "semestral"
+              ? "semestral"
+              : subscriptionPlan === "trimestral"
+                ? "trimestral"
+                : subscriptionPlan === "tudo_pronto"
+                  ? "tudo_pronto"
+                  : "mensal";
         updates.subscriptionPlan = subPlan;
 
-        const durationDays = subPlan === "anual" ? 365 : 30;
+        const durationDays =
+          subPlan === "anual"
+            ? 365
+            : subPlan === "semestral"
+              ? 180
+              : subPlan === "trimestral"
+                ? 90
+                : 30;
         const expirationDate = new Date();
         expirationDate.setDate(expirationDate.getDate() + durationDays);
         updates.subscriptionExpiresAt = firebaseAdmin.firestore.Timestamp.fromDate(expirationDate);

@@ -176,4 +176,81 @@ describe("Asaas Webhook Route", () => {
       { merge: true }
     );
   });
+  it("processa PAYMENT_RECEIVED para plano trimestral liberando 90 dias com plan standard e canEditImages", async () => {
+    const payload = {
+      event: "PAYMENT_RECEIVED",
+      payment: {
+        id: "pay_tri_123",
+        customer: "cus_12345",
+        value: 1323,
+        netValue: 1290,
+        billingType: "CREDIT_CARD",
+        status: "RECEIVED",
+        externalReference: "user_test_tri:trimestral:1700000000000",
+      },
+    };
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/asaas", {
+      method: "POST",
+      headers: {
+        "asaas-access-token": "test_webhook_token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    expect(mockUserSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: "standard",
+        role: "pro",
+        paymentStatus: "active",
+        subscriptionStatus: "active",
+        subscriptionPlan: "trimestral",
+        canEditImages: true,
+      }),
+      { merge: true }
+    );
+  });
+
+  it("processa PAYMENT_RECEIVED para plano semestral liberando 180 dias com plan standard e canEditImages", async () => {
+    const payload = {
+      event: "PAYMENT_RECEIVED",
+      payment: {
+        id: "pay_sem_456",
+        customer: "cus_12345",
+        value: 2499,
+        netValue: 2450,
+        billingType: "CREDIT_CARD",
+        status: "RECEIVED",
+        externalReference: "user_test_sem:semestral:1700000000000",
+      },
+    };
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/asaas", {
+      method: "POST",
+      headers: {
+        "asaas-access-token": "test_webhook_token",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    expect(mockUserSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: "standard",
+        role: "pro",
+        paymentStatus: "active",
+        subscriptionStatus: "active",
+        subscriptionPlan: "semestral",
+        canEditImages: true,
+      }),
+      { merge: true }
+    );
+  });
 });

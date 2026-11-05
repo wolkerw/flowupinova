@@ -99,7 +99,8 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
 8. **Minha Conta & Assinatura** -> [Minha Conta](/dashboard/minha-conta)
    - Gestão de plano, limite de créditos, dados cadastrais e faturas.
    - Planos de assinatura disponíveis:
-     * **Autoatendimento**: Mensal (R$ 490/mês), 3 Meses (R$ 450/mês), 6 Meses (R$ 430/mês) e Anual (R$ 400/mês).
+      * **Planos de Autoatendimento**: Mensal (R$ 490/mês), Trimestral (3x de R$ 441,00/mês - 10% OFF), Semestral (6x de R$ 416,50/mês - 15% OFF) e Anual (12x de R$ 399,00/mês com 1 mês grátis, equivalente a R$ 368,30/mês). Todos linkados diretamente na Landing Page e no modal de assinatura, liberados de forma 100% automática pelo webhook do Asaas assim que o pagamento é aprovado.
+      * **Degustação VIP (7 Dias - Tudo Liberado)**: Modelo de plano exclusivo acionado pelo administrador no painel de usuários ([Usuários](/admin/usuarios)) que libera por 7 dias todas as funções avançadas (Standard Pro, Editor GPT e Concierge).
      * **Módulo Tudo Pronto (Execução VIP)**: R$ 699/mês, modalidade gerenciada onde a equipe da NumVapt cria e agenda os posts e o cliente apenas revisa e aprova na [Central de Aprovações](/dashboard/aprovacoes). Pagamento via Pix e Cartão de Crédito recorrente sem travar o limite total.
 
 9. **Aprovadores de Clientes (Client Approvers & Concierge)**

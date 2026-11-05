@@ -28,6 +28,7 @@ const mockAuth = {
 vi.mock("@/components/auth/auth-provider", () => ({
   AuthProvider: ({ children }: any) => children,
   useAuth: () => mockAuth,
+  useOptionalAuth: () => mockAuth,
 }));
 
 describe("HomePage", () => {

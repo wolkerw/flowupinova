@@ -138,11 +138,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ) {
                   router.push("/dashboard/aprovacoes");
                 } else {
-                  router.push("/dashboard");
+                  let targetUrl = "/dashboard";
+                  try {
+                    if (typeof window !== "undefined") {
+                      const urlParams = new URLSearchParams(window.location.search);
+                      const plano = urlParams.get("plano") || localStorage.getItem("pending_subscription_plan");
+                      if (plano) {
+                        localStorage.removeItem("pending_subscription_plan");
+                        targetUrl = `/dashboard?assinar=${encodeURIComponent(plano)}`;
+                      }
+                    }
+                  } catch (e) {
+                    console.warn("Aviso ao ler plano pendente:", e);
+                  }
+                  router.push(targetUrl);
                 }
               })
               .catch(() => {
-                router.push("/dashboard");
+                let fallbackUrl = "/dashboard";
+                try {
+                  if (typeof window !== "undefined") {
+                    const plano = localStorage.getItem("pending_subscription_plan");
+                    if (plano) {
+                      localStorage.removeItem("pending_subscription_plan");
+                      fallbackUrl = `/dashboard?assinar=${encodeURIComponent(plano)}`;
+                    }
+                  }
+                } catch {}
+                router.push(fallbackUrl);
               });
           });
         });
@@ -385,4 +408,9 @@ export const useAuth = (): AuthContextType => {
     throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
+};
+
+export const useOptionalAuth = (): AuthContextType | null => {
+  const context = useContext(AuthContext);
+  return context ?? null;
 };

@@ -32,6 +32,7 @@ interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId?: string;
+  initialPlan?: SubscriptionPlanModalidade;
 }
 
 interface PaymentSettings {
@@ -45,7 +46,7 @@ interface PaymentSettings {
   creditLinkTudoPronto?: string;
 }
 
-export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModalProps) {
+export function SubscriptionModal({ isOpen, onClose, userId, initialPlan }: SubscriptionModalProps) {
   const { toast } = useToast();
   const { logout, getIdToken, user } = useAuth();
 
@@ -58,7 +59,13 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const [currentStep, setCurrentStep] = useState<"select-plan" | "review-contract" | "payment">("select-plan");
   const [isSigningContract, setIsSigningContract] = useState(false);
 
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanModalidade>("mensal");
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanModalidade>(initialPlan || "mensal");
+
+  useEffect(() => {
+    if (initialPlan) {
+      setSelectedPlan(initialPlan);
+    }
+  }, [initialPlan]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("pix");
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);

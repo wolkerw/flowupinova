@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Building, Loader2, Phone, Briefcase } from "lucide-react";
+import { Mail, Lock, Building, Loader2, Phone, Briefcase, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Card } from "@/components/ui/card";
 import {
@@ -54,9 +54,27 @@ const customZodResolver = (schema: z.ZodTypeAny) => (data: any) => {
   }
 };
 
+
+const PLAN_LABELS_CADASTRO: Record<string, string> = {
+  mensal: "Plano Mensal (R$ 490/mês)",
+  trimestral: "Plano Trimestral (R$ 441/mês - 10% OFF)",
+  semestral: "Plano Semestral (R$ 416,50/mês - 15% OFF)",
+  anual: "Plano Anual (R$ 399/mês + 1 Mês Grátis)",
+  tudo_pronto: "Módulo Tudo Pronto (R$ 699/mês)",
+};
+
 export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlanParam, setSelectedPlanParam] = useState<string>("");
   const { signUpWithEmail } = useAuth();
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const p = params.get("plano") || "";
+      if (p) setSelectedPlanParam(p);
+    }
+  }, []);
 
   const {
     register,
@@ -81,6 +99,13 @@ export default function CadastroPage() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
+    if (selectedPlanParam && typeof window !== "undefined") {
+      try {
+        localStorage.setItem("pending_subscription_plan", selectedPlanParam);
+      } catch (err) {
+        console.warn("Aviso ao salvar pending_subscription_plan:", err);
+      }
+    }
     const finalSegment = data.segment === "outro" ? data.customSegment : data.segment;
     await signUpWithEmail(data.name, data.email, data.password, data.phone, finalSegment || "");
     try {
@@ -94,6 +119,12 @@ export default function CadastroPage() {
   return (
     <Card className="w-full border shadow-sm rounded-lg bg-card p-6 md:p-8">
       <div className="text-center mb-6">
+        {selectedPlanParam && PLAN_LABELS_CADASTRO[selectedPlanParam] && (
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs font-semibold text-orange-600 shadow-xs">
+            <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+            <span>{PLAN_LABELS_CADASTRO[selectedPlanParam]}</span>
+          </div>
+        )}
         <h1 className="text-2xl font-bold text-slate-900 mb-2">
           Cadastro
         </h1>

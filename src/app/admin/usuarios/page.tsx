@@ -46,7 +46,7 @@ interface UserSummary {
   postsCount: number;
   imagesCount: number;
   lastSignIn?: string;
-  subscriptionPlan?: "mensal" | "anual" | "trial_7d" | null;
+  subscriptionPlan?: "mensal" | "trimestral" | "semestral" | "anual" | "trial_7d" | "tudo_pronto" | null;
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
   canEditImages?: boolean;
@@ -91,8 +91,19 @@ const Avatar = ({ name, email }: { name: string; email: string }) => {
   );
 };
 
+
+function getPlanBadgeLabel(plan: string, subPlan?: string | null) {
+  if (plan !== "standard") return PLAN_LABELS[plan] ?? plan;
+  if (subPlan === "trimestral") return "Standard (Trimestral)";
+  if (subPlan === "semestral") return "Standard (Semestral)";
+  if (subPlan === "anual") return "Standard (Anual)";
+  if (subPlan === "trial_7d") return "Standard (VIP 7 Dias)";
+  if (subPlan === "tudo_pronto") return "Standard (Tudo Pronto)";
+  return "Standard (Mensal)";
+}
+
 function UserSheet({
-  user,
+  user: initialUser,
   onClose,
   onUpdate,
   onViewContract,
@@ -102,15 +113,20 @@ function UserSheet({
   onUpdate: () => void;
   onViewContract?: (user: UserSummary) => void;
 }) {
+  const [currentUser, setCurrentUser] = useState<UserSummary>(initialUser);
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [action, setAction] = useState("");
+
+  useEffect(() => {
+    setCurrentUser(initialUser);
+  }, [initialUser]);
 
   const doAction = async (body: Record<string, unknown>, actionName: string) => {
     setLoading(true);
     setAction(actionName);
     try {
-      const res = await fetch(`/api/admin/users/${user.uid}`, {
+      const res = await fetch(`/api/admin/users/${currentUser.uid}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -120,6 +136,17 @@ function UserSheet({
         return;
       }
       if (!res.ok) throw new Error("Ação falhou");
+      setCurrentUser((prev) => {
+        const next: any = { ...prev, ...body };
+        if (body.activateVip7d) {
+          next.plan = "standard";
+          next.subscriptionPlan = "trial_7d";
+          next.paymentStatus = "active";
+          next.canEditImages = true;
+          next.isConcierge = true;
+        }
+        return next;
+      });
       onUpdate();
     } catch (err) {
       console.error(err);
@@ -137,7 +164,7 @@ function UserSheet({
     setLoading(true);
     setAction("delete");
     try {
-      const res = await fetch(`/api/admin/users/${user.uid}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/users/${currentUser.uid}`, { method: "DELETE" });
       if (res.status === 403 || res.status === 401) {
         window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;
@@ -153,17 +180,17 @@ function UserSheet({
     }
   };
 
-  const createdAt = new Date(user.createdAt);
+  const createdAt = new Date(currentUser.createdAt);
 
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-slate-900 border-l border-slate-700/60 shadow-2xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-700/60 px-6 py-4">
         <div className="flex items-center gap-3">
-          <Avatar name={user.displayName} email={user.email} />
+          <Avatar name={currentUser.displayName} email={currentUser.email} />
           <div>
-            <h2 className="font-semibold text-white">{user.displayName}</h2>
-            <p className="text-xs text-slate-400">{user.email}</p>
+            <h2 className="font-semibold text-white">{currentUser.displayName}</h2>
+            <p className="text-xs text-slate-400">{currentUser.email}</p>
           </div>
         </div>
         <button
@@ -178,7 +205,7 @@ function UserSheet({
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Status badges */}
         <div className="flex flex-wrap gap-2">
-          {user.isClientApprover ? (
+          {currentUser.isClientApprover ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FA6305]/30 bg-[#FA6305]/10 px-2.5 py-1 text-xs font-semibold text-[#FA6305]">
               <CheckSquare className="h-3.5 w-3.5" /> Client Approver (Aprovador)
             </span>
@@ -186,34 +213,32 @@ function UserSheet({
             <span
               className={cn(
                 "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
-                user.paymentStatus === "blocked"
+                currentUser.paymentStatus === "blocked"
                   ? PLAN_COLORS.blocked
-                  : user.plan === "standard" && user.subscriptionPlan === "trial_7d"
+                  : currentUser.plan === "standard" && currentUser.subscriptionPlan === "trial_7d"
                     ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
-                    : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
+                    : (PLAN_COLORS[currentUser.plan] ?? PLAN_COLORS.trial)
               )}
             >
-              {user.paymentStatus === "blocked"
+              {currentUser.paymentStatus === "blocked"
                 ? "Bloqueado"
-                : user.plan === "standard"
-                  ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : user.subscriptionPlan === "trial_7d" ? "VIP 7 Dias" : "Mensal") : "Mensal"})`
-                  : (PLAN_LABELS[user.plan] ?? user.plan)}
+                : getPlanBadgeLabel(currentUser.plan, currentUser.subscriptionPlan)}
             </span>
           )}
-          {!user.isClientApprover && user.plan === "trial" && (
+          {!currentUser.isClientApprover && currentUser.plan === "trial" && (
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
-                user.trialExpired
+                currentUser.trialExpired
                   ? "border-red-500/20 bg-red-500/10 text-red-400"
                   : "border-blue-500/20 bg-blue-500/10 text-blue-400"
               )}
             >
               <Clock className="h-3 w-3" />
-              {user.trialExpired ? "Trial Expirado" : `${user.trialDaysLeft} dias restantes`}
+              {currentUser.trialExpired ? "Trial Expirado" : `${currentUser.trialDaysLeft} dias restantes`}
             </span>
           )}
-          {!user.isClientApprover && user.hasSignedContract && (
+          {!currentUser.isClientApprover && currentUser.hasSignedContract && (
             <span className="inline-flex items-center gap-1 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400">
               <CheckCircle className="h-3 w-3" /> Contrato Assinado
             </span>
@@ -228,17 +253,17 @@ function UserSheet({
           <div className="grid grid-cols-2 gap-2">
             {(() => {
               const cards: Array<{ label: string; value: string | number; icon: React.ElementType }> = [
-                { label: "Posts Criados", value: user.postsCount, icon: FileText },
-                { label: "Imagens Geradas", value: user.imagesCount, icon: ImageIcon },
+                { label: "Posts Criados", value: currentUser.postsCount, icon: FileText },
+                { label: "Imagens Geradas", value: currentUser.imagesCount, icon: ImageIcon },
               ];
-              if (user.plan === "trial") {
+              if (currentUser.plan === "trial") {
                 cards.push({
                   label: "Expiração Trial",
-                  value: user.trialExpired ? "Expirado" : `${user.trialDaysLeft}d restantes`,
+                  value: currentUser.trialExpired ? "Expirado" : `${currentUser.trialDaysLeft}d restantes`,
                   icon: Clock,
                 });
-              } else if (user.plan === "standard" && user.subscriptionExpiresAt) {
-                const expDate = new Date(user.subscriptionExpiresAt);
+              } else if (currentUser.plan === "standard" && currentUser.subscriptionExpiresAt) {
+                const expDate = new Date(currentUser.subscriptionExpiresAt);
                 cards.push({
                   label: "Vencimento",
                   value: expDate.toLocaleDateString("pt-BR"),
@@ -257,15 +282,15 @@ function UserSheet({
             ))}
           </div>
 
-          {user.segment && (
+          {currentUser.segment && (
             <div className="rounded-lg bg-slate-800/60 p-3 text-xs text-slate-400">
-              <span className="font-medium text-slate-300">Segmento:</span> {user.segment}
+              <span className="font-medium text-slate-300">Segmento:</span> {currentUser.segment}
             </div>
           )}
-          {user.phone && (
+          {currentUser.phone && (
             <div className="flex items-center gap-2 rounded-lg bg-slate-800/60 p-3 text-xs text-slate-400">
               <Phone className="h-3.5 w-3.5" />
-              {user.phone}
+              {currentUser.phone}
             </div>
           )}
           <div className="rounded-lg bg-slate-800/60 p-3 text-xs text-slate-400">
@@ -279,7 +304,7 @@ function UserSheet({
                 <FileText className="h-4 w-4 text-[#0083C7]" />
                 Contrato Digital NumVapt
               </div>
-              {user.hasSignedContract ? (
+              {currentUser.hasSignedContract ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-400 border border-green-500/20">
                   <CheckCircle className="h-3 w-3" /> Assinado
                 </span>
@@ -290,19 +315,19 @@ function UserSheet({
               )}
             </div>
 
-            {user.hasSignedContract && user.activeContract && (
+            {currentUser.hasSignedContract && currentUser.activeContract && (
               <div className="text-xs text-slate-400 space-y-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
                 <p>
-                  Modalidade: <span className="font-medium text-slate-200 uppercase">{user.activeContract.modalidade}</span>
+                  Modalidade: <span className="font-medium text-slate-200 uppercase">{currentUser.activeContract.modalidade}</span>
                 </p>
-                {user.activeContract.signedAtFormatted && (
+                {currentUser.activeContract.signedAtFormatted && (
                   <p>
-                    Data: <span className="text-slate-300">{user.activeContract.signedAtFormatted}</span>
+                    Data: <span className="text-slate-300">{currentUser.activeContract.signedAtFormatted}</span>
                   </p>
                 )}
-                {user.activeContract.id && (
+                {currentUser.activeContract.id && (
                   <p className="font-mono text-[10px] text-slate-500 truncate">
-                    Protocolo: {user.activeContract.id}
+                    Protocolo: {currentUser.activeContract.id}
                   </p>
                 )}
               </div>
@@ -310,15 +335,15 @@ function UserSheet({
 
             <button
               type="button"
-              onClick={() => onViewContract?.(user)}
+              onClick={() => onViewContract?.(currentUser)}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#0083C7]/40 bg-[#0083C7]/10 py-2.5 text-xs font-medium text-[#0083C7] transition-colors hover:bg-[#0083C7]/20"
             >
               <Eye className="h-3.5 w-3.5" />
-              {user.hasSignedContract ? "Visualizar Contrato Assinado" : "Consultar Minuta Padrão"}
+              {currentUser.hasSignedContract ? "Visualizar Contrato Assinado" : "Consultar Minuta Padrão"}
             </button>
           </div>
 
-          {user.isClientApprover ? (
+          {currentUser.isClientApprover ? (
             /* Detalhes específicos de Client Approver */
             <div className="space-y-3">
               <div className="rounded-xl border border-[#FA6305]/40 bg-[#FA6305]/10 p-4 space-y-3">
@@ -329,11 +354,11 @@ function UserSheet({
                 <p className="text-xs text-slate-300 leading-relaxed">
                   Esta conta foi criada exclusivamente para aprovação de conteúdo do modo NumVapt Concierge. O usuário possui acesso restrito apenas à Central de Aprovações para revisar e aprovar publicações.
                 </p>
-                {user.linkedWorkspaceId && (
+                {currentUser.linkedWorkspaceId && (
                   <div className="text-xs text-slate-400 pt-2 border-t border-[#FA6305]/20 flex items-center justify-between">
                     <span>Workspace Vinculado:</span>
                     <span className="font-mono text-white text-[11px] bg-slate-900 px-2 py-0.5 rounded border border-slate-700 select-all">
-                      {user.linkedWorkspaceId}
+                      {currentUser.linkedWorkspaceId}
                     </span>
                   </div>
                 )}
@@ -360,25 +385,25 @@ function UserSheet({
                     <button
                       type="button"
                       onClick={() =>
-                        doAction({ canEditImages: !user.canEditImages }, "toggle-ai-editor")
+                        doAction({ canEditImages: !currentUser.canEditImages }, "toggle-ai-editor")
                       }
                       disabled={loading}
                       aria-label="Alternar permissão do editor de imagens"
                       className={cn(
                         "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                        user.canEditImages ? "bg-amber-500" : "bg-slate-700"
+                        currentUser.canEditImages ? "bg-amber-500" : "bg-slate-700"
                       )}
                     >
                       <span
                         className={cn(
                           "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                          user.canEditImages ? "translate-x-5" : "translate-x-0"
+                          currentUser.canEditImages ? "translate-x-5" : "translate-x-0"
                         )}
                       />
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
-                    {user.canEditImages ? (
+                    {currentUser.canEditImages ? (
                       <span className="text-amber-400 font-medium">
                         ✓ Liberado: Este usuário pode editar textos e refinar imagens com IA.
                       </span>
@@ -405,25 +430,25 @@ function UserSheet({
                     <button
                       type="button"
                       onClick={() =>
-                        doAction({ isConcierge: !user.isConcierge }, "toggle-concierge")
+                        doAction({ isConcierge: !currentUser.isConcierge }, "toggle-concierge")
                       }
                       disabled={loading}
                       aria-label="Alternar modo NumVapt Concierge"
                       className={cn(
                         "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                        user.isConcierge ? "bg-[#FA6305]" : "bg-slate-700"
+                        currentUser.isConcierge ? "bg-[#FA6305]" : "bg-slate-700"
                       )}
                     >
                       <span
                         className={cn(
                           "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                          user.isConcierge ? "translate-x-5" : "translate-x-0"
+                          currentUser.isConcierge ? "translate-x-5" : "translate-x-0"
                         )}
                       />
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-700/40">
-                    {user.isConcierge ? (
+                    {currentUser.isConcierge ? (
                       <span className="text-[#FA6305] font-medium">
                         ✓ Ativado: Gestão terceirizada ativa com aprovação por Link Mágico.
                       </span>
@@ -463,13 +488,13 @@ function UserSheet({
                   ) : (
                     <Sparkles className="h-4 w-4 text-purple-400" />
                   )}
-                  {user.plan === "standard" && user.subscriptionPlan === "trial_7d"
+                  {currentUser.plan === "standard" && currentUser.subscriptionPlan === "trial_7d"
                     ? "Renovar Plano VIP (7 dias - Tudo Liberado)"
                     : "Ativar Plano VIP (7 dias - Tudo Liberado)"}
                 </button>
 
                 {/* Ativar/Mudar para Plano Mensal */}
-                {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
+                {!(currentUser.plan === "standard" && currentUser.subscriptionPlan === "mensal") && (
                   <button
                     onClick={() =>
                       doAction(
@@ -485,14 +510,60 @@ function UserSheet({
                     ) : (
                       <CheckCircle className="h-4 w-4" />
                     )}
-                    {user.plan === "standard"
+                    {currentUser.plan === "standard"
                       ? "Mudar para Plano Mensal"
                       : "Ativar Plano Mensal (30 dias)"}
                   </button>
                 )}
 
+                {/* Ativar/Mudar para Plano Trimestral */}
+                {!(currentUser.plan === "standard" && currentUser.subscriptionPlan === "trimestral") && (
+                  <button
+                    onClick={() =>
+                      doAction(
+                        { plan: "standard", subscriptionPlan: "trimestral", paymentStatus: "active" },
+                        "activate-trimestral"
+                      )
+                    }
+                    disabled={loading}
+                    className="flex w-full items-center gap-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-sky-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "activate-trimestral" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    {currentUser.plan === "standard"
+                      ? "Mudar para Plano Trimestral"
+                      : "Ativar Plano Trimestral (90 dias)"}
+                  </button>
+                )}
+
+                {/* Ativar/Mudar para Plano Semestral */}
+                {!(currentUser.plan === "standard" && currentUser.subscriptionPlan === "semestral") && (
+                  <button
+                    onClick={() =>
+                      doAction(
+                        { plan: "standard", subscriptionPlan: "semestral", paymentStatus: "active" },
+                        "activate-semestral"
+                      )
+                    }
+                    disabled={loading}
+                    className="flex w-full items-center gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm font-medium text-indigo-400 transition-colors hover:bg-indigo-500/20 disabled:opacity-50"
+                  >
+                    {loading && action === "activate-semestral" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Crown className="h-4 w-4" />
+                    )}
+                    {currentUser.plan === "standard"
+                      ? "Mudar para Plano Semestral"
+                      : "Ativar Plano Semestral (180 dias)"}
+                  </button>
+                )}
+
                 {/* Ativar/Mudar para Plano Anual */}
-                {!(user.plan === "standard" && user.subscriptionPlan === "anual") && (
+                {!(currentUser.plan === "standard" && currentUser.subscriptionPlan === "anual") && (
                   <button
                     onClick={() =>
                       doAction(
@@ -508,13 +579,13 @@ function UserSheet({
                     ) : (
                       <Crown className="h-4 w-4" />
                     )}
-                    {user.plan === "standard"
+                    {currentUser.plan === "standard"
                       ? "Mudar para Plano Anual"
                       : "Ativar Plano Anual (365 dias)"}
                   </button>
                 )}
 
-                {user.plan !== "trial" && (
+                {currentUser.plan !== "trial" && (
                   <button
                     onClick={() => doAction({ plan: "trial", paymentStatus: "inactive" }, "trial")}
                     disabled={loading}
@@ -564,10 +635,10 @@ function UserSheet({
           {/* Ações de Conta */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              {user.isClientApprover ? "Controle da Conta" : "Controle de Acesso"}
+              {currentUser.isClientApprover ? "Controle da Conta" : "Controle de Acesso"}
             </p>
 
-            {user.paymentStatus !== "blocked" ? (
+            {currentUser.paymentStatus !== "blocked" ? (
               <button
                 onClick={() => doAction({ paymentStatus: "blocked" }, "block")}
                 disabled={loading}
@@ -647,7 +718,12 @@ export default function AdminUsuariosPage() {
       }
       if (!res.ok) throw new Error("Falha ao carregar usuários");
       const data = await res.json();
-      setUsers(data.users ?? []);
+      const newUsers = data.users ?? [];
+      setUsers(newUsers);
+      setSelectedUser((prev) => {
+        if (!prev) return null;
+        return newUsers.find((u: UserSummary) => u.uid === prev.uid) || prev;
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -941,9 +1017,7 @@ export default function AdminUsuariosPage() {
                         >
                           {user.paymentStatus === "blocked"
                             ? "Bloqueado"
-                            : user.plan === "standard"
-                              ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : user.subscriptionPlan === "trial_7d" ? "VIP 7 Dias" : "Mensal") : "Mensal"})`
-                              : (PLAN_LABELS[user.plan] ?? user.plan)}
+                            : getPlanBadgeLabel(user.plan, user.subscriptionPlan)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">

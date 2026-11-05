@@ -97,20 +97,32 @@ export async function POST(request: NextRequest) {
         const expirationDate = new Date(baseDate);
         expirationDate.setDate(expirationDate.getDate() + durationDays);
 
-        await userDocRef.set(
-          {
-            role: "pro",
-            subscriptionStatus: "active",
-            subscriptionPlan: plan === "anual_recorrente" ? "anual" : plan,
-            billingCycle: plan === "anual_recorrente" ? "monthly_recurrent" : "standard",
-            subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
-            asaasCustomerId: payment.customer || null,
-            lastPaymentId: payment.id,
-            lastPaymentMethod: payment.billingType?.toLowerCase() || "credit_card",
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
+        const userUpdatePayload: Record<string, any> = {
+          plan: "standard",
+          role: "pro",
+          paymentStatus: "active",
+          subscriptionStatus: "active",
+          subscriptionPlan: plan === "anual_recorrente" ? "anual" : plan,
+          billingCycle: plan === "anual_recorrente" ? "monthly_recurrent" : "standard",
+          subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+          canEditImages: true,
+          asaasCustomerId: payment.customer || null,
+          lastPaymentId: payment.id,
+          lastPaymentMethod: payment.billingType?.toLowerCase() || "credit_card",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        if (plan === "tudo_pronto") {
+          userUpdatePayload.isConcierge = true;
+          userUpdatePayload.managedService = {
+            enabled: true,
+            serviceMode: "concierge",
+            status: "active",
+            updatedAt: new Date(),
+          };
+        }
+
+        await userDocRef.set(userUpdatePayload, { merge: true });
 
         console.log(`[ASAAS_WEBHOOK] Usuário ${userId} ativado/renovado como PRO com sucesso até ${expirationDate.toISOString()}.`);
       }

@@ -25,7 +25,7 @@ export interface UserSummary {
   postsCount: number;
   imagesCount: number;
   lastSignIn?: string;
-  subscriptionPlan?: "mensal" | "anual" | "trial_7d" | null;
+  subscriptionPlan?: "mensal" | "trimestral" | "semestral" | "anual" | "trial_7d" | "tudo_pronto" | null;
   subscriptionExpiresAt?: string | null;
   hasSignedContract?: boolean;
   canEditImages?: boolean;
@@ -297,7 +297,7 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         : 0;
       const trialExpired = plan === "trial" && trialDaysLeft === 0;
 
-      const subscriptionPlan = data.subscriptionPlan as "mensal" | "anual" | "trial_7d" | null | undefined;
+      const subscriptionPlan = data.subscriptionPlan as "mensal" | "trimestral" | "semestral" | "anual" | "trial_7d" | "tudo_pronto" | null | undefined;
       let subscriptionExpiresAt: string | null = null;
       if (data.subscriptionExpiresAt) {
         subscriptionExpiresAt = data.subscriptionExpiresAt.toDate?.()?.toISOString() ?? null;
