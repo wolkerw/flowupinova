@@ -59,7 +59,13 @@ interface GalleryMediaItem {
   isPublished?: boolean;
   publishedPlatforms?: string[];
   publishedAt?: any;
-  type?: "image" | "video";
+  type?: "image" | "video" | "carousel";
+  hasPrintedLogo?: boolean;
+  skipAutoLogo?: boolean;
+  brandKitApplied?: boolean;
+  mediaUrls?: string[];
+  itemCount?: number;
+  groupedDocIds?: string[];
 }
 
 export default function GaleriaPage() {
@@ -382,6 +388,12 @@ export default function GaleriaPage() {
         rawGalleryItems = snapshot.docs.map((docSnap) => {
           const data = docSnap.data();
           const isCar = data.type === "carousel" || (Array.isArray(data.mediaUrls) && data.mediaUrls.length > 1);
+          const hasLogo = Boolean(
+            data.hasPrintedLogo ||
+            data.skipAutoLogo ||
+            data.brandKitApplied ||
+            (data.source === "ai_image_general" && data.brandKitApplied !== false)
+          );
           return {
             id: docSnap.id,
             url: data.url,
@@ -395,6 +407,9 @@ export default function GaleriaPage() {
             type: isCar ? "carousel" : data.type || "image",
             mediaUrls: Array.isArray(data.mediaUrls) ? data.mediaUrls : undefined,
             itemCount: data.itemCount || (Array.isArray(data.mediaUrls) ? data.mediaUrls.length : 1),
+            hasPrintedLogo: hasLogo,
+            skipAutoLogo: hasLogo,
+            brandKitApplied: Boolean(data.brandKitApplied),
           };
         });
         syncItems();
@@ -464,6 +479,8 @@ export default function GaleriaPage() {
           caption: item.caption || null,
           type: isCarousel ? "carousel" : isVideo ? "video" : "image",
           mediaUrls: isCarousel ? item.mediaUrls : undefined,
+          hasPrintedLogo: Boolean(item.hasPrintedLogo || item.skipAutoLogo),
+          skipAutoLogo: Boolean(item.hasPrintedLogo || item.skipAutoLogo),
         })
       );
       toast({

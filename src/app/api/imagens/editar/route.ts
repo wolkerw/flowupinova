@@ -263,7 +263,8 @@ export async function POST(request: NextRequest) {
 
     // 6. Registrar na galeria de mídia do usuário preservando a legenda original do post
     let preservedCaption = typeof body.caption === "string" && body.caption.trim() ? body.caption.trim() : null;
-    if (!preservedCaption && imageUrl) {
+    let origHasPrintedLogo = true;
+    if (imageUrl) {
       try {
         const origMediaSnap = await adminDb
           .collection(`users/${userId}/mediaGallery`)
@@ -271,10 +272,14 @@ export async function POST(request: NextRequest) {
           .limit(1)
           .get();
         if (!origMediaSnap.empty) {
-          preservedCaption = origMediaSnap.docs[0].data()?.caption || null;
+          const origData = origMediaSnap.docs[0].data();
+          if (!preservedCaption) {
+            preservedCaption = origData?.caption || null;
+          }
+          origHasPrintedLogo = Boolean(origData?.hasPrintedLogo ?? origData?.brandKitApplied ?? true);
         }
       } catch (e) {
-        console.warn("[IMAGENS_EDITAR] Aviso ao buscar caption original:", e);
+        console.warn("[IMAGENS_EDITAR] Aviso ao buscar dados originais:", e);
       }
     }
 
@@ -287,6 +292,8 @@ export async function POST(request: NextRequest) {
       prompt: instruction,
       modelUsed,
       type: "image-edit",
+      hasPrintedLogo: origHasPrintedLogo,
+      skipAutoLogo: origHasPrintedLogo,
       // Date é persistido como Timestamp pelo Admin SDK (não usar string ISO: quebra ordenação/leitura no admin)
       createdAt: new Date(),
       updatedAt: new Date(),

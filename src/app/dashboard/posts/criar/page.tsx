@@ -154,6 +154,8 @@ type MediaItem = {
   thumbnailFile?: File;
   videoDuration?: number;
   thumbnailTime?: number;
+  hasPrintedLogo?: boolean;
+  skipAutoLogo?: boolean;
 };
 
 export const captureVideoFrame = (
@@ -2093,7 +2095,16 @@ export default function CriarConteudoPage() {
       setPlatforms(initialPlatforms);
 
       // Carregar automaticamente a logomarca do Brand Kit se existir, nenhuma estiver selecionada e a imagem não possuir logo impressa por IA
-      if (profile?.logo?.url && !logoPreviewUrlRef.current && !skipAutoLogoRef.current) {
+      const hasLogoInMedia =
+        skipAutoLogoRef.current ||
+        mediaItemsRef.current.some((m) => m.hasPrintedLogo || m.skipAutoLogo) ||
+        (typeof window !== "undefined" &&
+          Boolean(
+            sessionStorage.getItem("preloaded_gallery_image")?.includes('"skipAutoLogo":true') ||
+            sessionStorage.getItem("preloaded_gallery_image")?.includes('"hasPrintedLogo":true')
+          ));
+
+      if (profile?.logo?.url && !logoPreviewUrlRef.current && !hasLogoInMedia) {
         setLogoPreviewUrl(profile.logo.url);
         setLogoOpacity(100);
 
@@ -2270,12 +2281,16 @@ export default function CriarConteudoPage() {
         const isReels = !isCarousel && (item.type === "reels" || Boolean(item.isReels));
         const isVideo = !isCarousel && (isReels || item.type === "video" || isVideoMedia(item.url || item.storagePath || ""));
 
+        const hasLogo = Boolean(item.skipAutoLogo || item.hasPrintedLogo);
+
         if (isCarousel && Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0) {
           const newMediaItems: MediaItem[] = item.mediaUrls.map((mediaUrl: string, idx: number) => ({
             file: new File([], `slide_${idx + 1}.jpg`),
             previewUrl: mediaUrl,
             publicUrl: mediaUrl,
             type: "image",
+            hasPrintedLogo: hasLogo,
+            skipAutoLogo: hasLogo,
           }));
           setMediaItems(newMediaItems);
           setSelectedType("carousel");
@@ -2285,6 +2300,8 @@ export default function CriarConteudoPage() {
             previewUrl: item.url,
             publicUrl: item.url,
             type: isVideo ? "video" : "image",
+            hasPrintedLogo: hasLogo,
+            skipAutoLogo: hasLogo,
           };
           setMediaItems([newMediaItem]);
           setSelectedType(isReels ? "reels" : isVideo ? "story" : "single_post");
@@ -2308,7 +2325,7 @@ export default function CriarConteudoPage() {
           };
         }
 
-        if (item.skipAutoLogo || item.hasPrintedLogo) {
+        if (hasLogo) {
           skipAutoLogoRef.current = true;
           setLogoPreviewUrl(null);
           setLogoFile(null);
@@ -2367,6 +2384,7 @@ export default function CriarConteudoPage() {
       }
     }
 
+    const hasLogo = Boolean(item.hasPrintedLogo || item.skipAutoLogo);
     const newMediaItem: MediaItem = {
       file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
       previewUrl: item.url,
@@ -2375,6 +2393,8 @@ export default function CriarConteudoPage() {
       thumbnailUrl: thumbUrl,
       videoDuration: dur,
       thumbnailTime: 0.1,
+      hasPrintedLogo: hasLogo,
+      skipAutoLogo: hasLogo,
     };
 
     if (selectedType === "carousel") {
@@ -4066,7 +4086,26 @@ export default function CriarConteudoPage() {
                 )}
 
                 <div className="space-y-4 border-t pt-4">
-                  <h4 className="font-semibold">Personalização da Marca</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-gray-900">Personalização da Marca</h4>
+                    {mediaItems.some((m) => m.hasPrintedLogo || m.skipAutoLogo) && !logoPreviewUrl && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                        Logo já na arte
+                      </span>
+                    )}
+                  </div>
+                  {mediaItems.some((m) => m.hasPrintedLogo || m.skipAutoLogo) && !logoPreviewUrl && (
+                    <div className="flex items-start gap-2 rounded-lg bg-emerald-50/80 border border-emerald-200 p-2.5 text-xs text-emerald-900">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-emerald-950">Logomarca já integrada à imagem</p>
+                        <p className="text-emerald-800 text-[11px]">
+                          Esta arte já contém seu logotipo oficial. A sobreposição automática foi desativada para evitar logomarcas duplicadas. Você pode selecionar uma logo abaixo se desejar forçar a aplicação.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <input
                     type="file"
                     ref={logoInputRef}

@@ -195,6 +195,36 @@ describe("GaleriaPage - Cards de Carrossel Unificados", () => {
     // Deve redirecionar para a rota de criação
     expect(mockPush).toHaveBeenCalledWith("/dashboard/posts/criar?from_gallery=true");
   });
+  it("repassa hasPrintedLogo e skipAutoLogo para sessionStorage ao criar post a partir de imagem com logo", async () => {
+    mockGalleryDocs = [
+      {
+        id: "gal_with_logo_1",
+        url: "https://example.com/imagem-com-logo.jpg",
+        caption: "Post com logo já impressa",
+        createdAt: { seconds: 1730300000 },
+        isPublished: false,
+        hasPrintedLogo: true,
+        source: "ai_image_general",
+      },
+    ];
+
+    render(<GaleriaPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Post com logo já impressa")).toBeDefined();
+    });
+
+    const criarPostBtn = screen.getByRole("button", { name: /Criar Post/i });
+    fireEvent.click(criarPostBtn);
+
+    const stored = sessionStorage.getItem("preloaded_gallery_image");
+    expect(stored).not.toBeNull();
+    const parsed = JSON.parse(stored!);
+    expect(parsed.hasPrintedLogo).toBe(true);
+    expect(parsed.skipAutoLogo).toBe(true);
+    expect(mockPush).toHaveBeenCalledWith("/dashboard/posts/criar?from_gallery=true");
+  });
+
 
   it("ao clicar no botão de maximizar em um carrossel, abre o modal de visualização permitindo folhear os slides", async () => {
     mockGalleryDocs = [
