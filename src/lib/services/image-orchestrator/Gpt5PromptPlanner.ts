@@ -5,6 +5,15 @@ import type {
   OrchestratorPlanResult,
 } from "./types";
 
+export interface DynamicTypographyStyle {
+  id: string;
+  labelPt: string;
+  weightHierarchyEn: string;
+  colorHarmonyEn: string;
+  containerAndFrameEn: string;
+  fullDirectiveEn: string;
+}
+
 export class Gpt5PromptPlanner {
   private static readonly SYSTEM_PROMPT = `
 Você é o Diretor Criativo e Especialista Sênior em Planejamento Visual da NumVapt.
@@ -37,18 +46,38 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
 DIRETRIZES DE DIREÇÃO DE ARTE PUBLICITÁRIA PREMIADA & TRAVA ANTI-CLICHÊ (/anticliche):
 Você NÃO é um diagramador de panfletos ou slides de PowerPoint — você é um Diretor de Criação premiado em Cannes Lions e D&AD! Mesmo quando o usuário escrever um briefing simples, descritivo ou listar vários serviços, eleve automaticamente o conceito visual:
 1. PROIBIÇÃO EXPRESSA DE CLICHÊS DE BANCO DE IMAGENS:
-   - A menos que o usuário peça literalmente "uma mão segurando um celular ao lado de um café", é TERMINANTEMENTE PROIBIDO gerar a cena clichê de "mão avulsa segurando smartphone sobre mesa bege/branca ao lado de xícara de café e vasinho de planta"!
+   - A menos que o usuário peça literalmente "uma mão segurando um celular ao lado de um café", é TERMINANTEMENTE PROIBIDO gerar a cena clichê de "mão avulsa segurando smartphone sobre mesa bege/branca ao lado de xícara de café e vasinho de planta"! Se for utilizada perspectiva em primeira pessoa (POV) com smartphone para demonstrar uma transformação ("antes e depois" ou "da foto simples ao anúncio profissional"), essa perspectiva DEVE ser dinâmica, ativa e integrada a um ambiente real autêntico e pulsante, conectada por feixes de luz ou fita tridimensional de neon nas cores da marca.
    - É TERMINANTEMENTE PROIBIDO montar um layout de slide corporativo com 3 ou 4 retângulos brancos opacos empilhados na lateral repetindo o texto do briefing!
    - É TERMINANTEMENTE PROIBIDO desenhar botões falsos de clique de site no rodapé da arte (ex: pílulas azuis/laranjas com "Conheça todas as possibilidades >", "Saiba mais >", "Clique aqui"), exceto se o usuário pedir explicitamente um botão no briefing! Post criativo de rede social NÃO é captura de landing page!
-2. REGRA DE OURO "SHOW, DON'T LIST" (MATERIALIZAÇÃO CENOGRÁFICA > LISTA DE TEXTO):
+2. PROIBIÇÃO TOTAL DE FUNDOS LISOS / VAZIOS BEGE DE ESTÚDIO (MANDATO DE AMBIENTAÇÃO REAL):
+   - É TERMINANTEMENTE PROIBIDO gerar cenas com fundos lisos monocromáticos, paredes beges/cinzas sem graça ou vazios artificiais de estúdio!
+   - O ambiente DEVE SEMPRE ser um espaço real, ricamente texturizado, atmosférico e autêntico ao nicho de atuação do cliente (ex: pizzaria/restaurante acolhedor com forno a lenha aceso, brasas e madeira rústica; escritório nobre com estantes de mogno e luz suave de janela; ateliê artesanal; clínica moderna com plantas naturais; ou set comercial com iluminação volumétrica dual-tone quente/fria e profundidade de campo bokeh cinematográfica).
+3. REGRA DE OURO "SHOW, DON'T LIST" (MATERIALIZAÇÃO CENOGRÁFICA > LISTA DE TEXTO):
    - Se o briefing citar múltiplos entregáveis, recursos ou diferenciais (ex: "logomarcas, cartão de visitas, papel timbrado, campanhas, branding, mockups, redes sociais"), NÃO transforme essa lista em blocos de texto! MATERIALIZE esses elementos como objetos físicos tridimensionais deslumbrantes, táteis e hiper-realistas compondo a cena (ex: cartões de visita em papel algodão com relevo/verniz flutuando em 3D, mostruários cromáticos Pantone, papelaria executiva, mockups táteis e interfaces holográficas translúcidas sem bordas orbitando em profundidade cinematográfica).
-3. METÁFORA VISUAL INTELIGENTE:
-   - Se o briefing usar expressões figuradas ou de contraste (ex: "cabe no seu bolso", "muito mais que...", "muito além das redes", "agência completa", "tudo em um só lugar"), traduza isso em uma METÁFORA VISUAL MEMORÁVEL (ex: um diorama hiper-detalhado de estúdio criativo completo emergindo em 3D com feixes de luz de dentro do bolso de um blazer elegante, ou uma explosão cenográfica em gravidade zero com iluminação volumétrica nas cores da marca).
+4. METÁFORA VISUAL INTELIGENTE & STORYTELLING DE TRANSFORMAÇÃO:
+   - Se o briefing usar expressões figuradas ou de contraste (ex: "cabe no seu bolso", "muito mais que...", "da sua foto simples ao anúncio premium", "agência completa", "tudo em um só lugar"), traduza isso em uma METÁFORA VISUAL MEMORÁVEL OU TRANSFORMAÇÃO EM PRIMEIRA PESSOA (POV) (ex: smartphone em primeiro plano capturando o produto em estado bruto, conectado por uma fita luminosa de energia neon 3D em azul e laranja vibrante que viaja pelo espaço até o profissional no seu ambiente real de trabalho com o produto pronto e perfeito, ou uma explosão cenográfica em gravidade zero com artefatos físicos e iluminação volumétrica).
+   - NUNCA gere miniaturas literais ou dioramas saindo de bolsos de roupas!
 
-DIRETRIZES DE TEXTO / INFOGRÁFICO (ECONOMIA TIPOGRÁFICA DE AGÊNCIA):
+DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & ALTERNÂNCIA DINÂMICA DE TEXTO (/typolayout):
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia conceitual pura sem letras ou legendas.
-- Se textOverlayMode for TITLE_ONLY: Incluir 1 headline publicitária curta, magnética e memorável em português (pt-BR) com tipografia editorial de alto contraste e margens seguras.
-- Se textOverlayMode for INFOGRAPHIC (ou BOTH): A fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte! Use 1 Headline criativa de alto impacto (máx. 6 a 10 palavras) + no máximo 2 ou 3 micro-callouts/pills editoriais ultra-concisos (2 a 4 palavras cada, estilo glassmorphism sutil ou linhas finas apontando diretamente para os objetos reais da cena). JAMAIS crie listas longas de benefícios em caixas brancas empilhadas e JAMAIS adicione botão falso de CTA no rodapé sem pedido explícito!
+- Se textOverlayMode for TITLE_ONLY ou INFOGRAPHIC (ou BOTH):
+  1. HIERARQUIA TIPOGRÁFICA E CONTRASTE DE PESOS (BOLD + BLACK + REGULAR):
+     - NUNCA utilize um único peso de fonte uniforme em todo o texto!
+     - Estruture a Headline principal em camadas contrastantes:
+       a) Frase de Preparação / Setup: em peso Bold ou Semi-Bold (700) (ex: "Da sua foto simples", "Mais presença");
+       b) Palavra-Chave de Impacto / Punchline: em peso Heavy ou Black (900) para máxima tração visual (ex: "ao anúncio premium.", "para advogar.");
+       c) Subtítulo Explicativo: em peso Regular ou Light (400), com entrelinha elegante e tamanho menor proporcional (contraste de escala display vs. texto corrido).
+  2. HARMONIA CROMÁTICA MULTI-TOM (DUAL-TONE COLOR HARMONY):
+     - Combine cores para leitura dinâmica e magnética: texto de preparação em Branco Puro (#FFFFFF) + palavra-chave de destaque na cor vibrante da marca (ex: Laranja NumVapt #FA6305 ou Ciano Elétrico #0083C7 / #00D2FF com sutil brilho luminoso).
+  3. FUNDOS, MOLDURAS, CARDS & BADGES DINÂMICOS:
+     - No modo INFOGRAPHIC ou BOTH, a fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte!
+     - Alterne dinamicamente o layout dos elementos de apoio:
+       a) Card Glassmorphic Flutuante (estilo Print 2): cartão translúcido escuro de vidro fosco (25-30% de opacidade com desfoque de fundo e borda fina neon de 1px) contendo 2 a 3 tópicos com ícones circulares brilhantes;
+       b) Badges em Pílula Luminosa (Capsule Pills): passos ou chamadas (ex: "1. Foto simples" / "2. Arte profissional") emoldurados em cápsulas arredondadas com borda neon sutil;
+       c) Moldura de Destaque Boxed: caixa geométrica translúcida envolvendo apenas a palavra-chave central do título;
+       d) Tipografia Flutuante Arquitetural: texto flutuando sobre o cenário com sombra de contato suave (drop shadow volumétrica) para 100% de legibilidade sem caixas fechadas;
+       e) Linha Hairline Neon: traço sutil de 1px separando título do subtítulo.
+     - JAMAIS crie listas longas em caixas brancas empilhadas e JAMAIS adicione botões falsos de CTA sem pedido explícito!
 - REGRA CRÍTICA DE FIDELIDADE TIPOGRÁFICA DO BRANDKIT (/fontlock): Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE especificar essa tipografia em inglês no "imagePrompt" traduzindo sua anatomia visual exata! Como geradores de imagem não possuem arquivos .ttf de fontes comerciais específicas (como "Branding SF"), descreva explicitamente a anatomia da fonte (ex: se for "Branding SF" ou "sans-serif limpo, corporativo", exija "uniform modern geometric corporate sans-serif typeface across ALL lines of text, clean monolinear stroke terminals, ZERO serifs, ZERO semi-serifed or calligraphic flares"). Quando uma frase tiver parte em peso normal e parte em destaque/negrito, EXIJA que ambas pertençam EXATAMENTE À MESMA FAMÍLIA SANS-SERIF, mudando apenas o peso (Regular/Normal weight para o texto secundário e Bold/ExtraBold weight para o destaque principal), proibindo terminantemente misturar famílias tipográficas diferentes na mesma peça!
 
 DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
@@ -172,6 +201,67 @@ REGRAS DE CONFORMIDADE:
     return selected;
   }
 
+  public static readonly DYNAMIC_TYPOGRAPHY_STYLES: DynamicTypographyStyle[] = [
+    {
+      id: "glassmorphic_duotone_glow",
+      labelPt: "Card Glassmorphic Translúcido com Brilho Neon & Título Dual-Tone (Estilo Print 2)",
+      weightHierarchyEn: "Dynamic weight hierarchy: Headline setup phrase in Bold/Semi-Bold (700 weight), core punchline keyword in Heavy/Black (900 weight) for maximum visual punch, and supporting subtitle in clean Regular (400 weight)",
+      colorHarmonyEn: "Dual-tone color contrast: Setup words in crisp Pure White (#FFFFFF), highlighted action keyword in vibrant Electric Brand Orange (#FA6305) with subtle luminous glow, and subtitle in clean neutral light (#E2E8F0)",
+      containerAndFrameEn: "Framing & containers: Left-aligned sleek dark translucent frosted glassmorphic card (25% opacity, backdrop blur, subtle 1px glowing cyan/orange neon border, rounded corners 16px) housing 2-3 feature rows with minimalist glowing circular icons, plus dual capsule pill badges ('1. Foto simples' in electric cyan / '2. Arte profissional' in warm orange)",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Glassmorphic Card & Dual-Tone Headline): Render the headline with dynamic weight alternation (Bold setup words in crisp White #FFFFFF, followed by the core punchline keyword in Heavy/Black 900 weight in radiant Electric Brand Orange #FA6305). Place an elegant, dark frosted glassmorphic card (25% opacity, soft backdrop blur, fine glowing 1px neon stroke, rounded corners 16px) containing 2-3 concise editorial feature callouts with sleek circular glowing line icons, accompanied by modern floating pill badges with subtle ambient light.",
+    },
+    {
+      id: "architectural_frameless_bold",
+      labelPt: "Tipografia Flutuante Arquitetural com Sombra de Contato & Destaque Ciano",
+      weightHierarchyEn: "Bold scale and weight contrast: Lead phrase in Semi-Bold (600 weight), monumental display keyword in Heavy/Black (900 weight), and compact context subtitle in ultra-crisp Regular (400 weight)",
+      colorHarmonyEn: "High-contrast electric cyan and white: Headline in crisp Pure White (#FFFFFF), core differentiator keyword in Vibrant NumVapt Electric Blue/Cyan (#0083C7 / #00D2FF), and subtitle in bright off-white",
+      containerAndFrameEn: "Framing & containers: Frameless floating display typography organically integrated into the atmospheric negative space, backed by soft cinematic ambient drop shadows for 100% legibility over any textured background, with zero visual clutter and clean geometric alignment",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Architectural Floating Typography & Cyan Highlight): Render a high-impact, frameless editorial headline floating directly over the atmospheric scene with soft volumetric ambient drop shadows for razor-sharp legibility. Use monumental scale and weight contrast (lead phrase in Semi-Bold White #FFFFFF, core power keyword in Heavy/Black 900 weight in vibrant Electric Cyan #0083C7 / #00D2FF, and clean Regular 400 subtitle below).",
+    },
+    {
+      id: "luxury_gold_boxed_accent",
+      labelPt: "Moldura de Destaque Boxed na Palavra-Chave & Tom Ouro/Âmbar Quente",
+      weightHierarchyEn: "Editorial weight hierarchy: Setup statement in Semi-Bold (600 weight), core value keyword in Heavy/Black (900 weight) inside an accent container, and subtitle in refined Light/Regular (300-400 weight)",
+      colorHarmonyEn: "Warm luxury harmony: Warm off-white / pearl (#FFF8F0) headline text, paired with the core punchline keyword in Radiant Amber / Warm Gold (#FFB800 / #FA6305), and subtitle in soft silver-grey (#CBD5E1)",
+      containerAndFrameEn: "Framing & containers: The central power keyword of the headline is enclosed in a sleek, semi-transparent frosted highlight box with a fine 1px golden/amber glowing stroke and subtle corner radius (8px), drawing immediate focal gravity, paired with clean minimalist line accents",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Boxed Keyword Highlight & Warm Amber Tone): Render an ultra-refined luxury headline where the central punchline keyword is framed inside a sleek, semi-transparent frosted glass highlight box with a delicate 1px golden/amber (#FFB800 / #FA6305) glowing outline. Alternate weights smoothly (Semi-Bold for setup text in warm pearl #FFF8F0, Heavy/Black 900 for the boxed keyword, and Light/Regular 400 for the subtitle).",
+    },
+    {
+      id: "editorial_capsule_pills",
+      labelPt: "Badges em Pílula Luminosa & Divisor Neon Hairline",
+      weightHierarchyEn: "Modern badge hierarchy: Headline in Bold (700 weight), punchline keyword in Heavy/Black (900 weight), supporting features in uppercase Medium (500 weight) pill badges, and explanatory subtitle in Regular (400 weight)",
+      colorHarmonyEn: "Vibrant brand dual-tone: Crisp Pure White (#FFFFFF) primary text with Brand Accent (#FA6305 / #0083C7) highlights, glowing capsule pills with subtle dark-glass fill and neon colored stroke",
+      containerAndFrameEn: "Framing & containers: A delicate 1px vertical or horizontal neon hairline rule separates the headline from the subtitle, while supporting features or steps are framed inside floating rounded capsule pills with subtle ambient backlight",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Neon Capsule Pills & Hairline Rule): Render the headline with dynamic weight contrast (Bold setup in White #FFFFFF + Black 900 punchline keyword in brand orange #FA6305), anchored by a delicate 1px neon hairline accent rule. Frame supporting feature callouts inside modern rounded capsule pill badges with subtle luminous borders and dark-glass fill.",
+    },
+    {
+      id: "clean_high_contrast_split",
+      labelPt: "Diagramação Editorial Split com Contraste Extremo de Escala",
+      weightHierarchyEn: "Monumental scale contrast: Large punchy display headline in Heavy/Black (900 weight) with setup words in Bold (700), paired with a compact 2-line subtitle in clean Regular (400 weight)",
+      colorHarmonyEn: "Multi-tone balance: High-contrast Pure White (#FFFFFF) text paired with vivid primary and secondary brand colors (#0083C7 NumVapt Blue and #FA6305 Orange) against deep atmospheric shadows",
+      containerAndFrameEn: "Framing & containers: Clean geometric layout with generous safe margins (20%), subtle floating translucent tags, and pristine typographic alignment",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Split Scale Contrast & Multi-Tone Brand Harmony): Render monumental display typography with dramatic scale and weight contrast (large punchy headline with Heavy/Black 900 power words in White #FFFFFF and Brand Accent #FA6305, paired with a compact, ultra-sharp 2-line subtitle in Regular 400 weight). Maintain 20% safe margins with pristine editorial balance.",
+    },
+  ];
+
+  private static typographyStyleCursor = 0;
+
+  public static selectDynamicTypographyStyle(input?: Gpt5PlannerInput): DynamicTypographyStyle {
+    const styles = this.DYNAMIC_TYPOGRAPHY_STYLES;
+    const idx = (this.typographyStyleCursor++) % styles.length;
+    return styles[idx];
+  }
+
+  public static buildDynamicTypographyMandate(
+    input: Gpt5PlannerInput,
+    style?: DynamicTypographyStyle
+  ): string {
+    if (!input.textOverlayMode || input.textOverlayMode === "NONE") return "";
+    const selectedStyle = style || this.selectDynamicTypographyStyle(input);
+    return `[DYNAMIC TYPOGRAPHIC & LAYOUT MANDATE (/typolayout): ${selectedStyle.fullDirectiveEn}. Weight contrast: ${selectedStyle.weightHierarchyEn}. Color harmony: ${selectedStyle.colorHarmonyEn}. Containers & frames: ${selectedStyle.containerAndFrameEn}.]`;
+  }
+
+
   private static creativeArchetypeCursor = Math.floor(Math.random() * 8);
 
   public static selectCreativeLogoArchetype(userBrief = "") {
@@ -185,34 +275,34 @@ REGRAS DE CONFORMIDADE:
 
   public static readonly CREATIVE_ART_DIRECTION_ARCHETYPES = [
     {
-      id: "scale_metaphor_diorama",
-      labelPt: "Metáfora Visual de Escala & Diorama Publicitário (estilo Cannes Lions: um universo/estúdio criativo inteiro hiper-detalhado e iluminado emergindo em 3D de um bolso de alfaiataria ou portal compacto)",
-      promptEn: "Cannes Lions award-winning visual metaphor & hyper-detailed scale-contrast commercial art direction: a vibrant, tangible miniature creative agency universe (glowing studio key lights, embossed cotton business cards, Pantone color fan, tactile brand mockups, stationery, and frameless translucent holographic analytics) emerging organically and dramatically in 3D with volumetric brand-colored light from a tailored jacket/blazer pocket or sleek compact luminous core",
+      id: "pov_split_reality_transformation",
+      labelPt: "Transformação em Primeira Pessoa (POV) com Fita de Neon 3D & Ambiente Real (estilo Print 2: smartphone em primeiro plano capturando a ação, fita dinâmica de neon 3D azul e laranja conectando ao profissional no ambiente real de trabalho com o resultado premium)",
+      promptEn: "High-end commercial advertising with dynamic first-person POV transformation: in the foreground, a modern smartphone held naturally captures a raw photo of the craft/action on its screen, connected seamlessly via a glowing volumetric 3D dual-tone neon energy ribbon (electric cyan and vibrant brand orange #FA6305) sweeping across space into the razor-sharp midground where a proud, charismatic business owner or artisan smiles in their authentic, deeply textured real-world workspace (warm wood, stone, ambient embers or architectural lamplight, background bokeh) presenting the finished premium commercial masterpiece",
+    },
+    {
+      id: "workplace_authority_in_habitat",
+      labelPt: "Autoridade Profissional no Habitat Autêntico (especialista carismático em seu ambiente real ricamente texturizado — escritório nobre, cozinha gourmet, clínica moderna ou ateliê — com iluminação volumétrica e cards flutuantes glassmorphic)",
+      promptEn: "Award-winning commercial portrait of an authentic, charismatic professional in their genuine, deeply textured work habitat (rich architectural textures, warm ambient window light, natural depth of field, shallow focus) complemented by subtle floating glassmorphic feature pills and cinematic brand-colored rim lighting, with absolutely zero flat studio voids",
+    },
+    {
+      id: "hero_editorial_magazine_cover",
+      labelPt: "Capa Editorial de Luxo & Iluminação Dual-Tone (enquadramento cinematográfico de alto impacto com luz de recorte azul/laranja, chiaroscuro refinado e profundidade de campo profunda)",
+      promptEn: "Cinematic magazine cover hero photography: dramatic dual-tone chiaroscuro lighting (warm amber key light paired with cool electric blue rim light), rich environmental depth (85mm f/1.4 lens bokeh), tactile real-world surroundings, and bold scale contrast commanding immediate visual authority",
     },
     {
       id: "levitating_tactile_ecosystem",
-      labelPt: "Explosão Cenográfica 3D em Gravidade Zero (entregáveis físicos reais e interfaces translúcidas levitando em múltiplas camadas de profundidade com iluminação dramática nas cores da marca)",
-      promptEn: "High-impact zero-gravity 3D studio hero showcase: tangible, ultra-crafted physical brand deliverables and artifacts corresponding to the brief (thick textured business cards with spot-UV finish, luxury letterhead stationery, bespoke packaging/merchandise mockups, color swatches, and sleek frameless glassmorphic social media frames) dynamically levitating in mid-air across foreground bokeh, razor-sharp midground focal point, and dramatic rim-lit architectural studio background",
+      labelPt: "Explosão Cenográfica 3D em Gravidade Zero & Artefatos Físicos Táteis (entregáveis reais e interfaces translúcidas levitando em camadas com iluminação volumétrica)",
+      promptEn: "High-impact zero-gravity 3D studio hero showcase: tangible, ultra-crafted physical brand deliverables and artifacts corresponding to the brief (thick textured cotton cards with spot-UV finish, bespoke merchandise, packaging, and sleek frameless glassmorphic cards) dynamically levitating across foreground bokeh, razor-sharp midground focal point, and atmospheric architectural background with volumetric brand lighting",
     },
     {
       id: "sculptural_editorial_set",
-      labelPt: "Cenografia Escultural Editorial & Chiaroscuro Comercial (composição artística em ângulo 45° sobre plintos arquitetônicos nobres com texturas ricas e sombras dramáticas)",
-      promptEn: "Bespoke sculptural set design & luxury magazine editorial photography shot at a dynamic 45-degree perspective with directional chiaroscuro studio lighting: real, touchable physical craft artifacts arranged on refined architectural plinths (matte stone, brushed metal, heavy embossed print collateral, dimensional brand pieces, and glowing glass data prisms) captured with an 85mm f/1.8 lens",
-    },
-    {
-      id: "protagonist_creative_epicenter",
-      labelPt: "Protagonista Carismático no Epicentro Criativo (empreendedor ou diretor criativo autêntico em ação cercado por artefatos táteis e luzes volumétricas orbitando em 3D)",
-      promptEn: "Charismatic, authentic creative director or modern entrepreneur in expressive medium-shot action at the epicenter of a contemporary design studio, surrounded by floating physical brand artifacts, real print/mockup deliverables, and subtle luminous glassmorphic elements orbiting in 3D space with cinematic brand-colored rim lighting",
-    },
-    {
-      id: "split_reality_transformation",
-      labelPt: "Portal de Transformação 'Muito Além do Básico' (feixe de luz volumétrica nas cores da marca expandindo o digital comum em um ecossistema físico completo e tangível)",
-      promptEn: "Bold conceptual advertising transformation scene: a powerful volumetric light prism in the brand's signature colors expanding a simple starting spark into a rich, multidimensional physical universe of complete brand identity artifacts, print collateral, real-world mockups, and omnichannel creative campaigns",
+      labelPt: "Cenografia Escultural & Chiaroscuro Comercial (composição artística com texturas táteis nobres e sombras dramáticas em ambiente tridimensional rico)",
+      promptEn: "Bespoke sculptural set design & luxury editorial commercial art shot at dynamic 45-degree angle with directional chiaroscuro lighting: real, touchable physical craft artifacts on textured architectural plinths (matte stone, brushed metal, heavy embossed print, dimensional brand elements) captured with authentic environmental depth",
     },
     {
       id: "tactile_macro_craftsmanship",
-      labelPt: "Fotografia Sensorial Macro-Editorial de Alto Impacto (foco dramático em texturas nobres, relevo, profundidade óptica e composição digna de capa de revista)",
-      promptEn: "Sensory macro-editorial commercial hero photography with shallow optical depth of field, rich tactile material textures (embossed paper fibers, metallic foil, ceramic glaze, woven fabric, glass reflections), dramatic side-key lighting, and bold award-winning magazine cover framing",
+      labelPt: "Fotografia Sensorial Macro de Alto Impacto (foco dramático em texturas nobres, vapor/brasas/detalhes e composição de revista)",
+      promptEn: "Sensory macro commercial hero photography with shallow optical depth of field, rich tactile material textures (warm glowing embers, fresh raw ingredients, embossed paper fibers, polished glass), dramatic side-key lighting, and bold award-winning composition",
     },
   ];
 
@@ -287,14 +377,15 @@ REGRAS DE CONFORMIDADE:
 
     const prohibitions: string[] = [
       "SHOW, DON'T LIST: Materialize mentioned deliverables/services as stunning, tactile 3D physical artifacts inside the scene instead of listing them in plain text boxes",
+      "STRICT BAN ON FLAT STUDIO WALLS & BEIGE VOIDS: Strictly FORBIDDEN to render flat monochrome studio backdrops, empty beige or grey walls, or sterile studio voids. Every scene must be grounded in an authentic, atmospheric, deeply textured real-world setting matching the profession (e.g. warm artisanal kitchen with wood and embers, prestigious mahogany office with warm lamplight, modern clinic with greenery, bespoke workshop, or cinematic architectural set with volumetric depth)",
     ];
     if (!allowHandPhone) {
       prohibitions.push(
-        "NO STOCK-PHOTO CLICHÉS: Strictly FORBIDDEN to depict a generic disembodied hand holding a smartphone over a beige/white desk next to a coffee mug and potted plant"
+        "NO STOCK-PHOTO CLICHÉS: Strictly FORBIDDEN to depict a generic disembodied hand holding a smartphone over a beige/white desk next to a coffee mug and potted plant. If a POV smartphone is used for transformation storytelling, it must be an active high-concept comparison with a glowing 3D neon energy ribbon connecting to an authentic real-world workspace"
       );
     }
     prohibitions.push(
-      "NO POWERPOINT SLIDE BOXES: Strictly FORBIDDEN to render 3 or 4 stacked opaque white rectangular bullet-point cards on the side; let the visual scene occupy 70-75%+ of the canvas, using at most ultra-concise 2-4 word editorial micro-callouts if infographic mode is active"
+      "NO POWERPOINT SLIDE BOXES: Strictly FORBIDDEN to render 3 or 4 stacked opaque white rectangular bullet-point cards on the side; let the visual scene occupy 70-75%+ of the canvas, using at most ultra-concise 2-4 word editorial micro-callouts or a sleek frosted glassmorphic card if infographic mode is active"
     );
     if (!allowCtaButton) {
       prohibitions.push(
@@ -558,10 +649,25 @@ NENHUMA logomarca oficial foi fornecida. É TERMINANTEMENTE PROIBIDO inventar, d
           `  -> Diretriz em inglês: "${artConcept.primary.promptEn}"`,
           `- Alternativa Criativa (${artConcept.secondary.id}): ${artConcept.secondary.labelPt}`,
           "- INSTRUÇÃO CRÍTICA AO PLANEJADOR: Transforme o briefing do usuário em uma peça publicitária extraordinária, conceitual e memorável usando essa direção de arte (ou uma metáfora visual equivalente ainda mais genial para o tema). Materialize os itens citados pelo usuário fisicamente na cena ('Show, Don't List')!",
-          !this.isExplicitHandPhoneRequested(input.userBrief) ? "- PROIBIDO usar o clichê de mão segurando smartphone sobre mesa clara com xícara de café e plantinha!" : "",
+          "- PROIBIDO GERAR FUNDO LISO OU VAZIO BEGE DE ESTÚDIO: crie sempre um ambiente real autêntico e texturizado!",
+          !this.isExplicitHandPhoneRequested(input.userBrief) ? "- PROIBIDO usar o clichê de mão avulsa com smartphone sobre mesa clara com café e plantinha (use apenas POV de transformação autêntica com fita 3D de neon)!" : "",
           "- PROIBIDO criar 3 ou 4 caixas brancas empilhadas estilo slide de PowerPoint!",
           !this.isExplicitCtaButtonRequested(input.userBrief) ? "- PROIBIDO desenhar botão falso de clique de site no rodapé (ex: 'Conheça todas as possibilidades >' ou 'Saiba mais >')!" : "",
         ].filter(Boolean).join("\n")
+      : "";
+
+    const dynamicTypo = input.textOverlayMode && input.textOverlayMode !== "NONE"
+      ? this.selectDynamicTypographyStyle(input)
+      : null;
+    const typographySection = dynamicTypo
+      ? `
+ESTILO TIPOGRÁFICO & LAYOUT DINÂMICO SELECIONADO (/typolayout):
+- Arquétipo Tipográfico: ${dynamicTypo.labelPt}
+- Hierarquia de Pesos: ${dynamicTypo.weightHierarchyEn}
+- Harmonia Cromática: ${dynamicTypo.colorHarmonyEn}
+- Molduras, Cards & Fundos: ${dynamicTypo.containerAndFrameEn}
+- Diretiva em Inglês para o imagePrompt: "${dynamicTypo.fullDirectiveEn}"
+- INSTRUÇÃO OBRIGATÓRIA: Garanta alternância dinâmica de pesos (Bold no setup + Black no punchline) e contraste de cores no imagePrompt!`
       : "";
 
     return `
@@ -579,6 +685,7 @@ PARÂMETROS DE PRODUÇÃO:
 ${brandSection}
 ${referencesSection}
 ${creativeDirectionSection}
+${typographySection}
 ${input.compiledPrompt ? `\nDIRETRIZES TÉCNICAS PRÉ-COMPILADAS:\n${input.compiledPrompt}\n` : ""}
 
 ${logoDirectiveText}
@@ -673,6 +780,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         if (fontMandate && !prompt.includes("/fontlock")) {
           prompt += ` ${fontMandate}`;
         }
+        const typoMandate = this.buildDynamicTypographyMandate(input);
+        if (typoMandate && !prompt.includes("/typolayout")) {
+          prompt += ` ${typoMandate}`;
+        }
         const antiClicheMandate = this.buildAntiClicheCreativeMandate(input);
         if (antiClicheMandate && !prompt.includes("/anticliche")) {
           prompt += ` ${antiClicheMandate}`;
@@ -760,9 +871,19 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
           ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais"]
           : ["Cores oficiais", "Elemento/Logo enviado na Etapa 5"],
       },
-      textLayers: input.productHeadline
-        ? [{ text: input.productHeadline, type: "headline", position: "top" }]
-        : [],
+      textLayers: (() => {
+        if (!input.productHeadline && input.textOverlayMode === "NONE") return [];
+        const rawHeadline = input.productHeadline?.trim() || (input.textOverlayMode === "INFOGRAPHIC" ? "Solução Inteligente" : "");
+        if (!rawHeadline) return [];
+        const parts = rawHeadline.split(/(?<=[.!?])\s+|\s+—\s+|\s+-\s+/);
+        if (parts.length >= 2) {
+          return [
+            { text: parts[0], type: "headline" as const, position: "top" },
+            { text: parts.slice(1).join(" "), type: "subtitle" as const, position: "top" },
+          ];
+        }
+        return [{ text: rawHeadline, type: "headline" as const, position: "top" }];
+      })(),
       socialCaption: this.generateFallbackSocialCaption(input),
       imagePrompt: this.buildFallbackImagePrompt(input),
       negativePrompt: hasSubject
@@ -800,18 +921,19 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
 
     const selectedPlacement = this.selectDynamicLogoPlacement(input);
+    const typoStyle = this.selectDynamicTypographyStyle(input);
     let textInstruction =
       "[CRITICAL MANDATE — ZERO TEXT: Clean photography with zero typography, letters or watermarks.]";
     if (isTitle) {
       const headline = input.productHeadline?.trim() || "Headline em português";
       textInstruction = hasLogo
-        ? `[HEADLINE POSTER DIRECTIVE & LOGO CLEARANCE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}". ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt} Maintain generous breathing room and 20% safe margins.]`
-        : `[HEADLINE POSTER DIRECTIVE: Render bold, elegant, high-contrast typography in Portuguese (pt-BR) saying "${headline}" with generous breathing room and 20% safe margins.]`;
+        ? `[DYNAMIC HEADLINE DIRECTIVE & LOGO CLEARANCE (/typolayout): Render premium multi-weight typography in Portuguese (pt-BR) saying "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt} Maintain generous breathing room and 20% safe margins.]`
+        : `[DYNAMIC HEADLINE DIRECTIVE (/typolayout): Render premium multi-weight typography in Portuguese (pt-BR) saying "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. Maintain generous breathing room and 20% safe margins.]`;
     } else if (isInfographic) {
       const headline = input.productHeadline?.trim() || "Solução Inteligente";
       textInstruction = hasLogo
-        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt}]`
-        : `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE: Clean editorial layout in Portuguese (pt-BR) with headline "${headline}", modern floating callout badges or sleek highlight tags, minimalist line icons, and 20% safe margins from all outer borders.]`;
+        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE (/typolayout): Clean editorial layout in Portuguese (pt-BR) with headline "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. 20% safe margins from all outer borders. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt}]`
+        : `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE (/typolayout): Clean editorial layout in Portuguese (pt-BR) with headline "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. 20% safe margins from all outer borders.]`;
     }
 
     const brandInstruction =
@@ -861,6 +983,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (fontMandate && !p.includes("/fontlock")) {
         p += ` ${fontMandate}`;
       }
+      const typoMandate = this.buildDynamicTypographyMandate(input, typoStyle);
+      if (typoMandate && !p.includes("/typolayout")) {
+        p += ` ${typoMandate}`;
+      }
       const fallbackConcept = this.selectArtDirectionConcept(input);
       const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
       if (antiCliche && !p.includes("/anticliche")) {
@@ -879,7 +1005,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       : `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere.`;
     const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
 
-    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${antiCliche} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${antiCliche} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {

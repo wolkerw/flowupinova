@@ -534,6 +534,57 @@ describe("Image Orchestrator Suite", () => {
       expect(plan2.visualPlan.brandApplication.logoPosition).toBe("top-center");
       expect(plan2.compiledImagePrompt).toContain("top-center");
     });
+    it("alterna dinamicamente estilos tipográficos premium com contraste de pesos, cores e molduras", () => {
+      const s1 = Gpt5PromptPlanner.selectDynamicTypographyStyle();
+      const s2 = Gpt5PromptPlanner.selectDynamicTypographyStyle();
+      const s3 = Gpt5PromptPlanner.selectDynamicTypographyStyle();
+
+      expect(s1.id).toBeDefined();
+      expect(s2.id).toBeDefined();
+      expect(s1.id).not.toBe(s2.id);
+      expect(s2.id).not.toBe(s3.id);
+      expect(Gpt5PromptPlanner.DYNAMIC_TYPOGRAPHY_STYLES.length).toBeGreaterThanOrEqual(5);
+    });
+
+    it("injeta diretiva /typolayout e trava contra fundos lisos de estúdio quando textOverlayMode for TITLE_ONLY ou INFOGRAPHIC", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Da sua foto simples ao anúncio premium de pizzaria gourmet",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        textOverlayMode: "TITLE_ONLY",
+        productHeadline: "Da sua foto simples ao anúncio premium",
+        useBrandKit: true,
+        brandKit: {
+          enabled: true,
+          businessName: "Pizzaria Bella",
+          primaryColors: ["#0083C7"],
+          secondaryColors: ["#FA6305"],
+          accentColors: ["#FFFFFF"],
+          restrictions: [],
+          hasLocalOfficialLogo: false,
+        },
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("/typolayout");
+      expect(planResult.compiledImagePrompt).toContain("STRICT BAN ON FLAT STUDIO WALLS");
+      expect(planResult.compiledImagePrompt).toMatch(/(Bold|Black|Heavy|Semi-Bold)/);
+      expect(planResult.compiledImagePrompt).toMatch(/(color|Pure White|contrast)/i);
+    });
+
+    it("contém arquétipo de transformação POV com fita 3D de neon em ambiente real no repertório criativo", () => {
+      const povArchetype = Gpt5PromptPlanner.CREATIVE_ART_DIRECTION_ARCHETYPES.find(
+        (a) => a.id === "pov_split_reality_transformation"
+      );
+      expect(povArchetype).toBeDefined();
+      expect(povArchetype?.promptEn).toContain("first-person POV transformation");
+      expect(povArchetype?.promptEn).toContain("neon energy ribbon");
+      expect(povArchetype?.promptEn).toContain("deeply textured real-world workspace");
+    });
+
   });
 
   describe("ImageModelExecutor", () => {
