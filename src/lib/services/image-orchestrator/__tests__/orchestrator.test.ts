@@ -545,11 +545,15 @@ describe("Image Orchestrator Suite", () => {
       expect(s2.id).not.toBe(s3.id);
 
       const styles = Gpt5PromptPlanner.DYNAMIC_TYPOGRAPHY_STYLES;
-      expect(styles.length).toBeGreaterThanOrEqual(6);
+      expect(styles.length).toBe(10);
       expect(styles.some((s) => s.id === "display_monumental_poster")).toBe(true);
+      expect(styles.some((s) => s.id === "magazine_depth_layering")).toBe(true);
+      expect(styles.some((s) => s.id === "cinematic_lower_third_hero")).toBe(true);
+      expect(styles.some((s) => s.id === "asymmetric_corner_anchor")).toBe(true);
       expect(styles.some((s) => s.id === "editorial_luxury_magazine")).toBe(true);
       expect(styles.some((s) => s.id === "solid_badge_highlight_invert")).toBe(true);
       expect(styles.some((s) => s.id === "spatial_architectural_light")).toBe(true);
+      expect(styles.some((s) => s.id === "vertical_sidebar_editorial")).toBe(true);
 
       const mandate = Gpt5PromptPlanner.buildDynamicTypographyMandate({
         textOverlayMode: "TITLE_ONLY",

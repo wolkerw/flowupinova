@@ -74,14 +74,18 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia conceitual pura sem letras ou legendas.
 - Se textOverlayMode for TITLE_ONLY ou INFOGRAPHIC (ou BOTH):
   Você NÃO deve aplicar uma fórmula mecânica e previsível a todos os títulos! Atue como um Diretor de Arte Tipográfico Sênior e surpreenda com composições visuais variadas, autorais e ricas:
-  1. DIVERSIDADE DE ARQUITETURAS TIPOGRÁFICAS (PLURALIDADE VISUAL DE TÍTULOS):
-     - Varie a concepção gráfica da Headline entre diferentes arquétipos editoriais para nunca gerar artes monótonas:
-       a) Pôster Monumental Big-Type: Headline de grande escala display ocupando a área superior ou lateral com presença imponente, letras de alto contraste e sombras volumétricas suaves;
-       b) Capa Editorial de Luxo: Caixa alta com tracking espaçado (letter-spacing refinado), sobriedade monocromática (Branco Puro #FFFFFF ou Pérola) e espaçamento elegante de respiro;
-       c) Tarja Sólida Invertida (Highlighted Block): Palavra-chave de impacto colocada dentro de uma tarja geométrica sólida na cor da marca (Laranja #FA6305 ou Ciano #0083C7) com letras em negativo (branco vazado), e as outras palavras flutuantes;
-       d) Card Glassmorphic & Badges Flutuantes: Cartão translúcido de vidro fosco (25% opacidade, borda fina neon 1px) contendo tópicos com ícones circulares e badges em cápsula;
-       e) Tipografia Espacial Integrada: Letras interagindo volumetricamente com a luz e profundidade do ambiente (drop shadows realistas e reflexos sutis de estúdio);
-       f) Diagramação Split Assimétrica: Linhas divididas por traço hairline de 1px ou colunas desiguais com contraste de proporção.
+  1. DIVERSIDADE DE ARQUITETURAS E LAYOUTS ESPACIAIS DE TÍTULOS (PRIORIZANDO AS FONTES DO BRANDKIT):
+     - Priorize rigorosamente a família tipográfica oficial do BrandKit (/fontlock), mas exercite LIBERDADE TOTAL na geometria, posicionamento e arquitetura espacial do layout do título para nunca gerar artes monótonas ou sempre no mesmo bloco horizontal:
+       a) Pôster Monumental Big-Type: Headline de grande escala display ocupando a área superior ou lateral com presença imponente, contraste extremo entre palavra-chave colossal e linha de apoio compacta;
+       b) Profundidade 3D Estilo Capa de Revista (Magazine Depth Layering): Headline monumental posicionada na camada de plano médio, passando sutilmente por trás do topo dos ombros/cabeça do protagonista ou produto em primeiro plano (efeito Time / GQ / Vogue), mantendo 100% de leitura das palavras;
+       c) Terço Inferior Cinematográfico (Cinematic Lower-Third Hero): Topo e centro livres para a fotografia respirar, ancorando o título de forma imponente no terço inferior da composição com barra de acento e subtítulo alinhado;
+       d) Diagramação em "L" / Âncora em Cantos Opostos (Asymmetric Corner Anchor): Frase de preparação ancorada na zona superior livre e palavra de impacto gigante ou fechamento ancorado na base ou lateral oposta, abraçando a cena fotográfica;
+       e) Capa Editorial de Luxo: Caixa alta com tracking espaçado (letter-spacing refinado), filete hairline de 1px e sobriedade monocromática (Branco Puro #FFFFFF ou Pérola);
+       f) Tarja / Pill Geométrico Sólido Invertido: Palavra-chave de impacto dentro de uma tarja sólida ou levemente inclinada na cor da marca (Laranja #FA6305 ou Ciano #0083C7) com letras em negativo (branco vazado);
+       g) Card Glassmorphic & Badges Flutuantes: Cartão translúcido de vidro fosco (25% opacidade, borda fina neon 1px) contendo tópicos com ícones circulares e badges em cápsula;
+       h) Tipografia Espacial Integrada: Letras interagindo volumetricamente com a perspectiva, luz de recorte e profundidade do ambiente;
+       i) Diagramação Split em Duas Colunas: Palavra-líder gigante à esquerda separada por divisor vertical neon de 2px de um bloco compacto de subtítulo à direita;
+       j) Assinatura Lateral Vertical + Headline de Impacto (Vertical Sidebar Editorial): Rótulo editorial rotacionado a 90° acompanhando a margem lateral combinado com a headline principal horizontal de alto impacto.
   2. LIBERDADE CROMÁTICA E ELIMINAÇÃO DA FÓRMULA RÍGIDA DE 2 CORES:
      - É expressamente PERMITIDO e INCENTIVADO variar os esquemas de cores dos títulos:
        * Título Monocromático Nobre: 100% Branco Puro com sombra suave em cenas escuras, ou Preto Grafite em fundos claros;
@@ -219,51 +223,83 @@ REGRAS DE CONFORMIDADE:
   public static readonly DYNAMIC_TYPOGRAPHY_STYLES: DynamicTypographyStyle[] = [
     {
       id: "display_monumental_poster",
-      labelPt: "Pôster Monumental Big-Type (Escala Display Imponente com Letras Altas & Foco Tipográfico)",
-      weightHierarchyEn: "Dramatic scale & display dominance: Monumental headline with massive display scale anchoring the visual space, bold power words in monumental heavy display font, accompanied by a clean, razor-sharp compact subtitle",
-      colorHarmonyEn: "Sophisticated monochrome high-contrast: Crisp Pure White (#FFFFFF) display typography over atmospheric depth with soft volumetric contact shadows, treating the typography as a majestic graphic centerpiece without forced orange/blue splits",
-      containerAndFrameEn: "Framing & space: Frameless, monumental typography floating with breathing room and geometric precision, commanding immediate visual authority like an international film or design festival poster",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Monumental Big-Type Poster): Render a striking, monumental display headline with dramatic scale dominance. Use powerful, large-scale typography that anchors the scene like a high-end cultural or campaign poster, with soft volumetric contact shadows for 100% legibility and zero visual clutter.",
+      labelPt: "Pôster Monumental Big-Type (Escala Display Imponente com Letras Gigantes & Contraste Dramático)",
+      weightHierarchyEn: "Dramatic scale & display dominance using the BrandKit typeface family: Monumental headline with massive display scale anchoring the visual space, bold power words in ExtraBold/Black weight (900), accompanied by a razor-sharp compact subtitle in Regular weight (400)",
+      colorHarmonyEn: "Sophisticated monochrome high-contrast: Crisp Pure White (#FFFFFF) display typography over atmospheric depth with soft volumetric contact shadows, treating the typography as a majestic graphic centerpiece",
+      containerAndFrameEn: "Framing & space: Frameless, monumental typography floating with generous breathing room and geometric precision, commanding immediate visual authority like an international design festival poster",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Monumental Big-Type Poster): Using the BrandKit font family, render a striking, monumental display headline with dramatic scale dominance that anchors the scene like a high-end campaign poster, with soft volumetric contact shadows for 100% legibility.",
+    },
+    {
+      id: "magazine_depth_layering",
+      labelPt: "Camada de Profundidade 3D Estilo Capa de Revista (Título Monumental no Plano Médio Integrado Atrás dos Ombros do Sujeito)",
+      weightHierarchyEn: "Magazine-cover depth hierarchy: Colossal ExtraBold (900 weight) display headline in the midground plane paired with a crisp foreground supporting subline in Medium weight (500), strictly adhering to the BrandKit typeface anatomy",
+      colorHarmonyEn: "High-contrast editorial white (#FFFFFF) or brand-tinted luminous display letters with subtle ambient occlusion where the foreground subject slightly overlaps the bottom 10-15% of the giant letters without ever obscuring word legibility",
+      containerAndFrameEn: "Framing & 3D depth: Iconic Time/GQ/Vogue magazine cover layering where the monumental title sits between the background environment and the hero subject's shoulders, creating authentic 3D spatial depth",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (3D Magazine Cover Depth Layering): Render a monumental BrandKit headline in the midground plane right behind the top of the hero subject's shoulders (Time/GQ cover depth effect), keeping 100% of every letter and word unmistakably legible while creating breathtaking 3D spatial layering.",
+    },
+    {
+      id: "cinematic_lower_third_hero",
+      labelPt: "Terço Inferior Cinematográfico de Campanha (Topo Livre para Fotografia & Título Imponente na Base)",
+      weightHierarchyEn: "Cinematic movie-poster hierarchy: Leave the upper and central canvas open to showcase the photography, anchoring a powerful ExtraBold (800-900 weight) headline in the lower-third zone accompanied by an aligned Regular (400 weight) subtitle",
+      colorHarmonyEn: "Cinematic contrast: Crisp Pure White (#FFFFFF) primary headline paired with a warm Brand Orange (#FA6305) or Cyan (#0083C7) vertical accent bar over a subtle dark atmospheric vignette at the bottom",
+      containerAndFrameEn: "Framing & space: Lower-third architectural composition (Y=68% to Y=84%) structured by a 3px vertical brand-colored accent bar on the left margin, leaving the top 65% of the artwork pure and uncluttered",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Cinematic Lower-Third Campaign Layout): Keep the upper canvas open for the hero photography and anchor the BrandKit headline boldly in the lower-third zone, structured by a sleek vertical brand-colored accent bar and a subtle bottom vignette for razor-sharp contrast.",
+    },
+    {
+      id: "asymmetric_corner_anchor",
+      labelPt: "Diagramação em 'L' / Âncora Assimétrica em Cantos Opostos (Abertura no Topo & Fechamento de Impacto na Base)",
+      weightHierarchyEn: "Dynamic split-zone hierarchy: Setup phrase in clean Medium/Semi-Bold (600 weight) anchored in the upper editorial zone, counterbalanced by the core punchline in massive ExtraBold (900 weight) anchored in the opposite lower zone",
+      colorHarmonyEn: "Balanced editorial contrast: Crisp White (#FFFFFF) upper setup text and high-impact White + Brand Accent (#FA6305 or #0083C7) lower punchline framing the central hero subject",
+      containerAndFrameEn: "Framing & space: Architectural L-shaped / diagonal-corner editorial balance that frames the central action from two opposing zones without crowding the middle of the scene",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Dual-Zone Corner Anchor): Break away from a single static text block by splitting the BrandKit headline into an editorial L-frame: place the setup phrase cleanly in the upper zone and anchor the monumental punchline in the lower/opposite zone, framing the hero subject dynamically.",
     },
     {
       id: "editorial_luxury_magazine",
       labelPt: "Capa Editorial de Luxo & All-Caps Expandido (Elegância Minimalista com Tracking Largo)",
-      weightHierarchyEn: "Refined editorial hierarchy: All-caps display lettering with generous letter-spacing (wide tracking), elegant medium-light weight, paired with an understated, ultra-clean subline",
-      colorHarmonyEn: "Noble warm pearl & platinum: Pristine warm pearl white (#FFFDF8) and soft silver-grey (#E2E8F0) typography, completely ditching cliché bright colored words for pure high-end luxury sophistication",
-      containerAndFrameEn: "Framing & space: Pure architectural negative space, generous margins (22%), delicate 1px hairline rule accent, and impeccable editorial magazine masthead balance (Vogue / GQ style)",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Luxury Magazine Masthead & All-Caps): Render an ultra-refined luxury editorial title with widely-tracked all-caps lettering in noble pearl white (#FFFDF8). Focus on airy breathing space, understated elegance, and delicate proportions rather than heavy blocky text.",
+      weightHierarchyEn: "Refined editorial hierarchy: All-caps BrandKit lettering with generous letter-spacing (wide tracking), elegant Medium weight, paired with an understated, ultra-clean subline",
+      colorHarmonyEn: "Noble warm pearl & platinum: Pristine warm pearl white (#FFFDF8) and soft silver-grey (#E2E8F0) typography for pure high-end luxury sophistication",
+      containerAndFrameEn: "Framing & space: Pure architectural negative space, generous margins (22%), delicate 1px hairline rule accent, and impeccable editorial magazine masthead balance",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Luxury Magazine Masthead & All-Caps): Render an ultra-refined luxury editorial title using the BrandKit typeface with widely-tracked all-caps lettering in noble pearl white (#FFFDF8) and a delicate 1px hairline divider.",
     },
     {
       id: "solid_badge_highlight_invert",
-      labelPt: "Tarja de Destaque Sólida Invertida (Palavra-Chave em Bloco Geométrico de Cor da Marca)",
-      weightHierarchyEn: "Punchy block contrast: Setup phrase in clean Bold (700 weight), while the core punchline keyword is encased in a solid rectangular tag/badge with bold negative cutout lettering",
+      labelPt: "Tarja / Pill Geométrico Sólido Invertido (Palavra-Chave em Bloco Sólido ou Levemente Inclinado na Cor da Marca)",
+      weightHierarchyEn: "Punchy block contrast: Setup phrase in clean Bold (700 weight), while the core punchline keyword is encased in a solid geometric tag/pill with ExtraBold negative cutout lettering",
       colorHarmonyEn: "High-impact brand block: Setup words in Pure White (#FFFFFF), and the central keyword enclosed in a vibrant solid block in Brand Accent (#FA6305 Orange or #0083C7 Blue) with crisp white text inside",
-      containerAndFrameEn: "Framing & space: Modern solid geometric tag (sharp or subtle 4px rounded corners) creating a magnetic visual magnet, cleanly separated from the secondary information",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Solid Inverted Brand Highlight Tag): Render the headline with a modern inverted block accent: the core keyword is housed inside a vibrant solid brand-colored rectangular tag (#FA6305 or #0083C7) with crisp negative white text, while setup text floats cleanly beside it.",
+      containerAndFrameEn: "Framing & space: Modern solid geometric rectangular or slightly angled (-2 deg) sticker/pill tag creating a magnetic focal point cleanly separated from secondary text",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Solid Inverted Brand Highlight Tag): Render the BrandKit headline with a modern inverted block accent: house the core keyword inside a vibrant solid brand-colored tag/pill (#FA6305 or #0083C7) with crisp negative white text, while setup text floats cleanly beside or above it.",
     },
     {
       id: "glassmorphic_duotone_glow",
-      labelPt: "Card Glassmorphic Translúcido com Brilho Neon & Título Dual-Tone (Estilo Print 2)",
+      labelPt: "Card Glassmorphic Translúcido com Brilho Neon & Título Dual-Tone",
       weightHierarchyEn: "Dynamic weight hierarchy: Headline setup phrase in Bold/Semi-Bold (700 weight), core punchline keyword in Heavy/Black (900 weight) for maximum visual punch, and supporting subtitle in clean Regular (400 weight)",
       colorHarmonyEn: "Dual-tone color contrast: Setup words in crisp Pure White (#FFFFFF), highlighted action keyword in vibrant Electric Brand Orange (#FA6305) with subtle luminous glow, and subtitle in clean neutral light (#E2E8F0)",
-      containerAndFrameEn: "Framing & containers: Left-aligned sleek dark translucent frosted glassmorphic card (25% opacity, backdrop blur, subtle 1px glowing cyan/orange neon border, rounded corners 16px) housing 2-3 feature rows with minimalist glowing circular icons, plus dual capsule pill badges ('1. Foto simples' in electric cyan / '2. Arte profissional' in warm orange)",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Glassmorphic Card & Dual-Tone Headline): Render the headline with dynamic weight alternation (Bold setup words in crisp White #FFFFFF, followed by the core punchline keyword in Heavy/Black 900 weight in radiant Electric Brand Orange #FA6305). Place an elegant, dark frosted glassmorphic card (25% opacity, soft backdrop blur, fine glowing 1px neon stroke, rounded corners 16px) containing 2-3 concise editorial feature callouts with sleek circular glowing line icons, accompanied by modern floating pill badges with subtle ambient light.",
+      containerAndFrameEn: "Framing & containers: Sleek dark translucent frosted glassmorphic card (25% opacity, backdrop blur, subtle 1px glowing cyan/orange neon border, rounded corners 16px) housing concise editorial callouts",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Glassmorphic Card & Dual-Tone Headline): Render the BrandKit headline with dynamic weight alternation (Bold setup words in crisp White #FFFFFF, core punchline in Heavy/Black 900 weight in Brand Orange #FA6305) paired with an elegant dark frosted glassmorphic card.",
     },
     {
       id: "spatial_architectural_light",
-      labelPt: "Tipografia Espacial Integrada com Iluminação Cenográfica e Sombras Volumétricas",
-      weightHierarchyEn: "Three-dimensional weight integration: Bold architectural letterforms with depth and physical presence, seamlessly harmonized with the room's perspective",
-      colorHarmonyEn: "Volumetric light interaction: Clean white letterfaces illuminated by the studio's directional key light and colored rim lights, casting realistic ambient drop shadows on the surfaces behind them",
-      containerAndFrameEn: "Framing & space: Frameless spatial placement interacting naturally with the scene's depth of field, background bokeh, and architectural elements",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Environmental Typography): Render high-impact letterforms organically embedded in the 3D space, interacting with the scene's volumetric lighting, subtle rim glows, and ambient contact shadows for a stunning cinematic campaign look.",
+      labelPt: "Tipografia Espacial Integrada à Perspectiva e Iluminação Cenográfica Volumétrica",
+      weightHierarchyEn: "Three-dimensional weight integration: Bold architectural BrandKit letterforms with physical presence, seamlessly harmonized with the environment's perspective and depth",
+      colorHarmonyEn: "Volumetric light interaction: Clean white letterfaces illuminated by the studio's directional key light and colored rim lights, casting realistic ambient drop shadows",
+      containerAndFrameEn: "Framing & space: Frameless spatial placement interacting naturally with the scene's depth of field, background bokeh, and architectural lines",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Environmental Typography): Render high-impact BrandKit letterforms organically embedded in the 3D space, interacting with the scene's volumetric lighting, subtle rim glows, and ambient contact shadows.",
     },
     {
       id: "split_column_editorial",
-      labelPt: "Diagramação Editorial em Duas Colunas Assimétricas com Linha Hairline Neon",
-      weightHierarchyEn: "Asymmetric editorial contrast: Large display lead word on the left, paired with a compact, ultra-sharp two-line sub-phrase aligned along a fine vertical divider",
-      colorHarmonyEn: "High-contrast dynamic balance: Pure White (#FFFFFF) text anchored by an electric cyan (#00D2FF) or brand orange hairline rule, delivering high visual energy",
-      containerAndFrameEn: "Framing & space: Delicate 1px vertical or horizontal neon hairline rule structuring the layout with architectural precision and generous breathing space",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Split Editorial & Hairline Rule): Render an asymmetrical editorial headline structured by a delicate 1px brand-colored hairline accent rule, pairing bold display scale with elegant typographic rhythm.",
+      labelPt: "Diagramação Editorial em Duas Colunas Assimétricas com Barra Vertical Neon",
+      weightHierarchyEn: "Asymmetric editorial contrast: Large display lead word on the left in ExtraBold (900 weight), paired with a compact, ultra-sharp two-line sub-phrase in Regular/Medium weight aligned along a vertical divider",
+      colorHarmonyEn: "High-contrast dynamic balance: Pure White (#FFFFFF) text anchored by an electric cyan (#00D2FF) or brand orange (#FA6305) vertical rule",
+      containerAndFrameEn: "Framing & space: Delicate 2px vertical neon hairline rule structuring a two-column editorial layout with architectural precision and generous breathing space",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Two-Column Split Editorial): Render an asymmetrical two-column BrandKit headline structured by a vertical brand-colored hairline rule, pairing a giant lead word on the left with a sharp multi-line continuation on the right.",
+    },
+    {
+      id: "vertical_sidebar_editorial",
+      labelPt: "Eixo Lateral Vertical a 90° + Headline Principal de Impacto (Editorial Sidebar Architecture)",
+      weightHierarchyEn: "Editorial sidebar contrast: A sleek vertical 90-degree rotated category/eyebrow accent along the side margin in Medium tracked all-caps, paired with a bold horizontal ExtraBold main headline",
+      colorHarmonyEn: "Refined agency palette: Vertical sidebar tag in Brand Accent (#FA6305 or #0083C7) or soft silver, paired with Pure White (#FFFFFF) main display typography",
+      containerAndFrameEn: "Framing & space: Contemporary design-magazine grid combining a vertical margin axis line with an asymmetric horizontal display block",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Vertical Sidebar Axis & Display Headline): Create a contemporary agency grid using the BrandKit typeface: pair a sleek 90-degree rotated vertical editorial eyebrow/tag along the safe side margin with a bold, high-contrast horizontal main headline.",
     },
   ];
 
@@ -445,11 +481,11 @@ REGRAS DE CONFORMIDADE:
         `${primary} ${secondary} ${style}`
       ) && !/\b(serifa|serifada|classic serif|times|garamond|playfair|bodoni)\b/i.test(`${primary} ${secondary} ${style}`);
 
-    return `[CRITICAL MANDATE — BRAND KIT TYPOGRAPHY LOCK (/fontlock): All rendered text MUST strictly follow the brand's official typography system — Primary Font (Titles / Bold Highlights): "${primary}"; Secondary Font (Body / Setup Text): "${secondary}"; General Typographic Style: "${style}". ${
+    return `[CRITICAL MANDATE — BRAND KIT TYPOGRAPHY LOCK & PRIORITY (/fontlock): PRIORITIZE THE BRANDKIT FONTS ABOVE ALL ELSE! All rendered text MUST strictly follow the brand's official typography system — Primary Font (Titles / Bold Highlights): "${primary}"; Secondary Font (Body / Setup Text): "${secondary}"; General Typographic Style: "${style}". ${
       isSansSerif
         ? "ANATOMICAL FONT ENFORCEMENT: Render ALL text lines using a SINGLE unified, clean, modern corporate geometric sans-serif typeface family (matching Branding SF / Montserrat / Inter aesthetics) with crisp straight terminals and uniform stroke geometry. Differentiate setup lines vs. bold emphasis lines STRICTLY by font weight (Normal/Regular weight vs. Bold/ExtraBold weight of the EXACT SAME sans-serif family). It is STRICTLY FORBIDDEN to use serifs, semi-serifed flared terminals, humanist calligraphic strokes, slab serifs, or mix two different font families in the same text block!"
         : "ANATOMICAL FONT ENFORCEMENT: Maintain 100% typographic family consistency across all text lines, differentiating hierarchy strictly by weight (Normal vs. Bold) within the exact specified brand typeface family."
-    }]`;
+    } CREATIVE LAYOUT FREEDOM WITHIN BRAND FONTS: While keeping 100% fidelity to the BrandKit typeface anatomy above, exercise maximum creative freedom in the spatial layout, geometric positioning (lower-third, magazine depth behind subject, L-frame, split-column, vertical sidebar, or monumental header), scale contrast, and framing of the title!]`;
   }
 
 
