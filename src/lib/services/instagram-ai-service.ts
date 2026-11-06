@@ -21,7 +21,8 @@ A NumVapt é a plataforma inteligente que automatiza o marketing digital de empr
 • Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
 • Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
 • Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
-• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando os 13 meses de acesso, o valor mensal equivale a R$ 368,30/mês).
+• Plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis): Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando os 13 meses de acesso, o valor mensal equivale a R$ 368,30/mês).
+• Plano Tudo Pronto (Execução VIP pela Equipe NumVapt): R$ 699,00/mês (Oferece todas as ferramentas da plataforma com execução de marketing 100% feita pelo time NumVapt. O cliente recebe acesso de "aprovador" e só precisa aprovar os criativos prontos na Central de Aprovações).
 
 # REGRA DE PAGAMENTO (RECORRÊNCIA SEM TRAVAR LIMITE)
 • Todos os planos são cobrados na modalidade "Assinatura Mensal Recorrente", ou seja, NÃO compromete nem trava o limite total do cartão de crédito do cliente!
@@ -103,9 +104,21 @@ export async function generateInstagramAIResponse(
 
       const conversationParts: any[] = [];
       for (const msg of history.slice(-6)) {
+        const msgText = msg.text || "";
+        // BLINDAGEM ANTI-CONTAMINAÇÃO DE HISTÓRICO:
+        // Ignora mensagens corrompidas ou alucinações antigas do histórico para não influenciar a IA
+        if (
+          msg.role === "assistant" &&
+          (msgText.includes("79,90") ||
+            msgText.includes("79.90") ||
+            msgText.includes("79 reais") ||
+            msgText.includes("/planos"))
+        ) {
+          continue;
+        }
         conversationParts.push({
           role: msg.role === "assistant" ? "model" : "user",
-          parts: [{ text: msg.text }],
+          parts: [{ text: msgText }],
         });
       }
 
@@ -140,6 +153,28 @@ export async function generateInstagramAIResponse(
             if (textResponse) {
               const cleaned = textResponse.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
               const parsed: InstagramAIResponse = JSON.parse(cleaned);
+
+              // GUARDA DE SAÍDA (OUTPUT GUARDRAIL / SANITIZER):
+              if (parsed && typeof parsed.replyText === "string") {
+                // Bloqueia e corrige links fictícios como /planos
+                parsed.replyText = parsed.replyText.replace(
+                  /https?:\/\/[^\s]*\/planos/gi,
+                  "https://numvapt.com.br/acesso/cadastro"
+                );
+
+                // Bloqueia e corrige qualquer alucinação residual de preço
+                if (
+                  parsed.replyText.includes("79,90") ||
+                  parsed.replyText.includes("79.90") ||
+                  parsed.replyText.includes("79 reais")
+                ) {
+                  console.warn("[INSTAGRAM_AI_GUARDRAIL] Preço incorreto detectado e retificado para R$ 490,00/mês.");
+                  parsed.replyText = parsed.replyText
+                    .replace(/R\$\s*79[,.]90(\/mês)?/gi, "R$ 490,00/mês")
+                    .replace(/79\s*reais(\s*por\s*mês)?/gi, "R$ 490,00/mês");
+                }
+              }
+
               return parsed;
             }
           }
@@ -156,12 +191,19 @@ export async function generateInstagramAIResponse(
   const textLower = incomingMessage.toLowerCase();
 
   // Dúvida de Planos / Preços
-  if (textLower.includes("preço") || textLower.includes("plano") || textLower.includes("valor") || textLower.includes("quanto")) {
+  if (
+    textLower.includes("preço") ||
+    textLower.includes("plano") ||
+    textLower.includes("valor") ||
+    textLower.includes("quanto") ||
+    textLower.includes("custa")
+  ) {
     const planosText =
-      `• Plano Mensal: R$ 490,00/mês\n` +
-      `• Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% OFF)\n` +
-      `• Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% OFF)\n` +
-      `• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês grátis, saindo por R$ 368,30/mês)`;
+      `• Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser)\n` +
+      `• Plano Trimestral: Cobrado 3x de R$ 441,00/mês (10% OFF | R$ 1.323/trimestre)\n` +
+      `• Plano Semestral: Cobrado 6x de R$ 416,50/mês (15% OFF | R$ 2.499/semestre)\n` +
+      `• Plano Anual: Cobrado 12x de R$ 399,00/mês (+ 1 mês grátis bônus, saindo por R$ 368,30/mês)\n` +
+      `• Plano Tudo Pronto: R$ 699,00/mês (equipe da NumVapt executa 100% do marketing para você)`;
 
     return {
       replyText:

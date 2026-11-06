@@ -167,7 +167,9 @@ export default function AdminInstagramPage() {
 
   // Scroll automático para a última mensagem
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (typeof messagesEndRef.current?.scrollIntoView === "function") {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   // Alternar controle de IA
@@ -251,6 +253,50 @@ export default function AdminInstagramPage() {
       console.error("Erro ao enviar mensagem manual:", err);
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  // Excluir mensagem individual
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!selectedChat) return;
+    if (!confirm("Deseja realmente excluir esta mensagem do histórico?")) return;
+
+    try {
+      const senderId = selectedChat.senderId || selectedChat.id;
+      const res = await fetch(`/api/admin/instagram?senderId=${senderId}&messageId=${messageId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+    } catch (err) {
+      console.error("Erro ao excluir mensagem:", err);
+    }
+  };
+
+  // Limpar todo o histórico de mensagens da conversa
+  const handleClearHistory = async () => {
+    if (!selectedChat) return;
+    if (!confirm("ATENÇÃO: Deseja apagar todas as mensagens desta conversa? Essa ação não pode ser desfeita.")) return;
+
+    try {
+      const senderId = selectedChat.senderId || selectedChat.id;
+      const res = await fetch(`/api/admin/instagram?senderId=${senderId}&clearAll=true`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setMessages([]);
+        setSelectedChat((prev) => (prev ? { ...prev, lastMessageText: "" } : null));
+        setChats((prev) =>
+          prev.map((c) =>
+            (c.senderId || c.id) === senderId ? { ...c, lastMessageText: "" } : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Erro ao limpar histórico da conversa:", err);
     }
   };
 
@@ -521,9 +567,20 @@ export default function AdminInstagramPage() {
                     </div>
                   </div>
 
-                  {/* Toggle de IA */}
-                  <button
-                    onClick={handleToggleAi}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleClearHistory}
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+                      title="Limpar todas as mensagens desta conversa"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Limpar Chat
+                    </button>
+
+                    {/* Toggle de IA */}
+                    <button
+                      onClick={handleToggleAi}
                     disabled={updatingAiToggle}
                     className={cn(
                       "flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shadow-sm transition disabled:opacity-50",
@@ -546,6 +603,7 @@ export default function AdminInstagramPage() {
                       </>
                     )}
                   </button>
+                  </div>
                 </div>
 
                 {/* Histórico de Mensagens */}
@@ -568,31 +626,41 @@ export default function AdminInstagramPage() {
                         <div
                           key={m.id}
                           className={cn(
-                            "flex flex-col max-w-[80%] md:max-w-[70%]",
+                            "group flex flex-col max-w-[80%] md:max-w-[70%] relative",
                             isUser ? "mr-auto items-start" : "ml-auto items-end"
                           )}
                         >
-                          <div className="mb-1 flex items-center gap-1.5 text-[11px] text-slate-400">
-                            {isUser && <span>{selectedChat.contactName || "Seguidor"}</span>}
-                            {isAssistant && (
-                              <span className="flex items-center gap-1 font-semibold text-blue-600">
-                                <Sparkles className="h-3 w-3" /> Maia (NumVapt IA)
+                          <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-400 w-full">
+                            <div className="flex items-center gap-1.5">
+                              {isUser && <span>{selectedChat.contactName || "Seguidor"}</span>}
+                              {isAssistant && (
+                                <span className="flex items-center gap-1 font-semibold text-blue-600">
+                                  <Sparkles className="h-3 w-3" /> Maia (NumVapt IA)
+                                </span>
+                              )}
+                              {isAdmin && (
+                                <span className="flex items-center gap-1 font-semibold text-emerald-600">
+                                  <User className="h-3 w-3" /> Atendente Humano
+                                </span>
+                              )}
+                              <span>•</span>
+                              <span>
+                                {m.timestamp
+                                  ? new Date(m.timestamp).toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : ""}
                               </span>
-                            )}
-                            {isAdmin && (
-                              <span className="flex items-center gap-1 font-semibold text-emerald-600">
-                                <User className="h-3 w-3" /> Atendente Humano
-                              </span>
-                            )}
-                            <span>•</span>
-                            <span>
-                              {m.timestamp
-                                ? new Date(m.timestamp).toLocaleTimeString("pt-BR", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
-                                : ""}
-                            </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(m.id)}
+                              className="opacity-0 group-hover:opacity-100 hover:text-rose-600 transition p-0.5 text-slate-400"
+                              title="Excluir mensagem do histórico"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </div>
 
                           <div

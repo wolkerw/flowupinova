@@ -210,3 +210,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Falha ao enviar mensagem manual pelo Instagram." }, { status: 500 });
   }
 }
+
+/**
+ * DELETE: Excluir mensagem específica ou limpar histórico de um chat
+ */
+export async function DELETE(request: NextRequest) {
+  const token = request.cookies.get("firebase-id-token")?.value ?? null;
+  const admin = await validateAdminToken(token);
+
+  if (!admin) {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const senderId = searchParams.get("senderId");
+  const messageId = searchParams.get("messageId");
+  const clearAll = searchParams.get("clearAll") === "true";
+
+  if (!senderId) {
+    return NextResponse.json({ error: "senderId é obrigatório." }, { status: 400 });
+  }
+
+  try {
+    const chatRef = adminDb.collection("instagram_chats").doc(senderId);
+
+    if (messageId) {
+      await chatRef.collection("messages").doc(messageId).delete();
+      return NextResponse.json({ success: true, deletedMessageId: messageId }, { status: 200 });
+    }
+
+    if (clearAll) {
+      const snap = await chatRef.collection("messages").get();
+      const batch = adminDb.batch();
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      await chatRef.update({ lastMessageText: "", updatedAt: new Date().toISOString() });
+      return NextResponse.json({ success: true, cleared: true }, { status: 200 });
+    }
+
+    return NextResponse.json({ error: "Informe messageId ou clearAll=true." }, { status: 400 });
+  } catch (err: any) {
+    console.error("[ADMIN_INSTAGRAM_DELETE_ERROR]:", err);
+    return NextResponse.json({ error: "Falha ao excluir mensagem." }, { status: 500 });
+  }
+}

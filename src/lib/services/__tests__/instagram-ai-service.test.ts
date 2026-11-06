@@ -115,4 +115,78 @@ describe("Instagram AI Service", () => {
     expect(systemInstruction).toContain("https://numvapt.com.br/dashboard/configuracoes");
     expect(systemInstruction).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA INSTAGRAM DIRECT (MAIA)");
   });
+  it("aplica guardrail de saída caso o modelo alucine preço de R$ 79,90 ou link /planos", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+
+    const mockAiJson = JSON.stringify({
+      replyText: "O plano mensal custa R$ 79,90 por mês. Veja no site https://numvapt.com.br/planos!",
+      needsHumanSupport: false,
+      suggestedAction: "plan_details",
+      planMentioned: "mensal",
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: mockAiJson }] } }],
+      }),
+    });
+
+    const res = await generateInstagramAIResponse({
+      incomingMessage: "Quanto custa o plano mensal?",
+      senderName: "Luiz",
+    });
+
+    expect(res.replyText).not.toContain("79,90");
+    expect(res.replyText).toContain("R$ 490,00/mês");
+    expect(res.replyText).not.toContain("/planos");
+    expect(res.replyText).toContain("https://numvapt.com.br/acesso/cadastro");
+  });
+
+  it("filtra mensagens corrompidas do histórico para não contaminar o contexto do modelo", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+
+    const mockAiJson = JSON.stringify({
+      replyText: "O plano mensal oficial é R$ 490,00/mês.",
+      needsHumanSupport: false,
+      suggestedAction: "plan_details",
+      planMentioned: "mensal",
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: mockAiJson }] } }],
+      }),
+    });
+
+    await generateInstagramAIResponse({
+      incomingMessage: "Mas quanto custa por mês?",
+      history: [
+        {
+          id: "old_msg_1",
+          role: "assistant",
+          text: "O plano custa R$ 79,90 no site /planos",
+          timestamp: "2026-09-21T00:00:00Z",
+          senderId: "numvapt_bot",
+        },
+        {
+          id: "old_msg_2",
+          role: "user",
+          text: "ok",
+          timestamp: "2026-09-21T00:01:00Z",
+          senderId: "user_1",
+        },
+      ],
+      senderName: "Luiz",
+    });
+
+    const fetchArgs = (global.fetch as any).mock.calls[0];
+    const requestBody = JSON.parse(fetchArgs[1].body);
+    const contents = requestBody.contents;
+
+    // A mensagem antiga da IA com 79,90 não deve ter sido enviada
+    const hasCorrupted = contents.some((c: any) => c.parts[0].text.includes("79,90"));
+    expect(hasCorrupted).toBe(false);
+  });
 });

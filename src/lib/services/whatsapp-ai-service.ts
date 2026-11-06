@@ -35,6 +35,7 @@ Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no númer
 • *Plano Trimestral*: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
 • *Plano Semestral*: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
 • *Plano Anual*: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando 13 meses de acesso, o valor mensal equivale a R$ 368,30/mês). Cobrança mensal debitada mês a mês sem travar o limite total de crédito no cartão.
+• *Plano Tudo Pronto (Execução VIP)*: R$ 699,00/mês (A equipe da NumVapt executa 100% da criação, postagens e campanhas, e o cliente apenas aprova na Central de Aprovações).
 • Link Oficial de Cadastro para Teste Grátis: https://numvapt.com.br/acesso/cadastro (ou Checkout Direto: https://www.asaas.com/c/2unkh9p3t6apkcvm)
 
 # REGRA CRÍTICA ANTI-ALUCINAÇÃO
@@ -90,9 +91,20 @@ export async function generateWhatsAppAIResponse(
   const conversationParts: any[] = [];
 
   for (const msg of history.slice(-6)) {
+    const msgText = msg.text || "";
+    // Blindagem anti-contaminação de histórico
+    if (
+      msg.role === "assistant" &&
+      (msgText.includes("79,90") ||
+        msgText.includes("79.90") ||
+        msgText.includes("79 reais") ||
+        msgText.includes("/planos"))
+    ) {
+      continue;
+    }
     conversationParts.push({
       role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.text }],
+      parts: [{ text: msgText }],
     });
   }
 
@@ -202,6 +214,23 @@ export async function generateWhatsAppAIResponse(
         .trim();
 
       const parsed: WhatsAppAIResponse = JSON.parse(cleaned);
+
+      if (parsed && typeof parsed.replyText === "string") {
+        parsed.replyText = parsed.replyText.replace(
+          /https?:\/\/[^\s]*\/planos/gi,
+          "https://numvapt.com.br/acesso/cadastro"
+        );
+        if (
+          parsed.replyText.includes("79,90") ||
+          parsed.replyText.includes("79.90") ||
+          parsed.replyText.includes("79 reais")
+        ) {
+          console.warn("[WHATSAPP_AI_GUARDRAIL] Preço incorreto detectado e retificado para R$ 490,00/mês.");
+          parsed.replyText = parsed.replyText
+            .replace(/R\$\s*79[,.]90(\/mês)?/gi, "R$ 490,00/mês")
+            .replace(/79\s*reais(\s*por\s*mês)?/gi, "R$ 490,00/mês");
+        }
+      }
       return parsed;
     } catch (err: any) {
       console.warn(`[WHATSAPP_AI] Falha com modelo ${model}:`, err?.message || err);
