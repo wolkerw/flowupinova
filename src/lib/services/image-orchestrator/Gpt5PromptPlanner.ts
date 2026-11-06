@@ -70,26 +70,29 @@ Você deve garantir padrão de excelência de estúdio fotográfico de campanha 
    - PROIBIÇÃO DE PELE PLÁSTICA / CERA / BONECO: É expressamente proibido aspecto plástico, pele encerada de manequim de shopping, acabamento de boneca de porcelana ou aerografia artificial ("airbrushed look").
    - ILUMINAÇÃO DE ESTÚDIO DE CAMPANHA: Lente prime 85mm f/1.8 com profundidade de campo óptica suave, iluminação de recorte (rim light) sutil destacando a silhueta, luz principal difusa por softbox duplo e sombras de contato coerentes (ambient occlusion) onde mãos e objetos se tocam.
 
-DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & ALTERNÂNCIA DINÂMICA DE TEXTO (/typolayout):
+DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE DE TÍTULOS (/typolayout):
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia conceitual pura sem letras ou legendas.
 - Se textOverlayMode for TITLE_ONLY ou INFOGRAPHIC (ou BOTH):
-  1. HIERARQUIA TIPOGRÁFICA E CONTRASTE DE PESOS (BOLD + BLACK + REGULAR):
-     - NUNCA utilize um único peso de fonte uniforme em todo o texto!
-     - Estruture a Headline principal em camadas contrastantes:
-       a) Frase de Preparação / Setup: em peso Bold ou Semi-Bold (700) (ex: "Da sua foto simples", "Mais presença");
-       b) Palavra-Chave de Impacto / Punchline: em peso Heavy ou Black (900) para máxima tração visual (ex: "ao anúncio premium.", "para advogar.");
-       c) Subtítulo Explicativo: em peso Regular ou Light (400), com entrelinha elegante e tamanho menor proporcional (contraste de escala display vs. texto corrido).
-  2. HARMONIA CROMÁTICA MULTI-TOM (DUAL-TONE COLOR HARMONY):
-     - Combine cores para leitura dinâmica e magnética: texto de preparação em Branco Puro (#FFFFFF) + palavra-chave de destaque na cor vibrante da marca (ex: Laranja NumVapt #FA6305 ou Ciano Elétrico #0083C7 / #00D2FF com sutil brilho luminoso).
-  3. FUNDOS, MOLDURAS, CARDS & BADGES DINÂMICOS:
-     - No modo INFOGRAPHIC ou BOTH, a fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte!
-     - Alterne dinamicamente o layout dos elementos de apoio:
-       a) Card Glassmorphic Flutuante (estilo Print 2): cartão translúcido escuro de vidro fosco (25-30% de opacidade com desfoque de fundo e borda fina neon de 1px) contendo 2 a 3 tópicos com ícones circulares brilhantes;
-       b) Badges em Pílula Luminosa (Capsule Pills): passos ou chamadas (ex: "1. Foto simples" / "2. Arte profissional") emoldurados em cápsulas arredondadas com borda neon sutil;
-       c) Moldura de Destaque Boxed: caixa geométrica translúcida envolvendo apenas a palavra-chave central do título;
-       d) Tipografia Flutuante Arquitetural: texto flutuando sobre o cenário com sombra de contato suave (drop shadow volumétrica) para 100% de legibilidade sem caixas fechadas;
-       e) Linha Hairline Neon: traço sutil de 1px separando título do subtítulo.
-     - JAMAIS crie listas longas em caixas brancas empilhadas e JAMAIS adicione botões falsos de CTA sem pedido explícito!
+  Você NÃO deve aplicar uma fórmula mecânica e previsível a todos os títulos! Atue como um Diretor de Arte Tipográfico Sênior e surpreenda com composições visuais variadas, autorais e ricas:
+  1. DIVERSIDADE DE ARQUITETURAS TIPOGRÁFICAS (PLURALIDADE VISUAL DE TÍTULOS):
+     - Varie a concepção gráfica da Headline entre diferentes arquétipos editoriais para nunca gerar artes monótonas:
+       a) Pôster Monumental Big-Type: Headline de grande escala display ocupando a área superior ou lateral com presença imponente, letras de alto contraste e sombras volumétricas suaves;
+       b) Capa Editorial de Luxo: Caixa alta com tracking espaçado (letter-spacing refinado), sobriedade monocromática (Branco Puro #FFFFFF ou Pérola) e espaçamento elegante de respiro;
+       c) Tarja Sólida Invertida (Highlighted Block): Palavra-chave de impacto colocada dentro de uma tarja geométrica sólida na cor da marca (Laranja #FA6305 ou Ciano #0083C7) com letras em negativo (branco vazado), e as outras palavras flutuantes;
+       d) Card Glassmorphic & Badges Flutuantes: Cartão translúcido de vidro fosco (25% opacidade, borda fina neon 1px) contendo tópicos com ícones circulares e badges em cápsula;
+       e) Tipografia Espacial Integrada: Letras interagindo volumetricamente com a luz e profundidade do ambiente (drop shadows realistas e reflexos sutis de estúdio);
+       f) Diagramação Split Assimétrica: Linhas divididas por traço hairline de 1px ou colunas desiguais com contraste de proporção.
+  2. LIBERDADE CROMÁTICA E ELIMINAÇÃO DA FÓRMULA RÍGIDA DE 2 CORES:
+     - É expressamente PERMITIDO e INCENTIVADO variar os esquemas de cores dos títulos:
+       * Título Monocromático Nobre: 100% Branco Puro com sombra suave em cenas escuras, ou Preto Grafite em fundos claros;
+       * Título com Palavra-Chave em Destaque Cromático da marca (Laranja #FA6305 ou Ciano #0083C7);
+       * Título com Tarja de Cor Sólida Invertida;
+       * Título com iluminação cenográfica sutil.
+       * É TERMINANTEMENTE PROIBIDO gerar sempre o mesmo título mecânico com metade em branco e metade em laranja!
+  3. HIERARQUIA E PROPORÇÃO:
+     - Crie contraste dramático de escala (palavras principais maiores e de impacto display; frases de apoio mais compactas e elegantes).
+     - No modo INFOGRAPHIC ou BOTH, a fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte.
+     - JAMAIS crie caixas brancas empilhadas estilo PowerPoint e JAMAIS adicione botões falsos de CTA sem pedido explícito!
 - REGRA CRÍTICA DE FIDELIDADE TIPOGRÁFICA DO BRANDKIT (/fontlock): Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE especificar essa tipografia em inglês no "imagePrompt" traduzindo sua anatomia visual exata! Como geradores de imagem não possuem arquivos .ttf de fontes comerciais específicas (como "Branding SF"), descreva explicitamente a anatomia da fonte (ex: se for "Branding SF" ou "sans-serif limpo, corporativo", exija "uniform modern geometric corporate sans-serif typeface across ALL lines of text, clean monolinear stroke terminals, ZERO serifs, ZERO semi-serifed or calligraphic flares"). Quando uma frase tiver parte em peso normal e parte em destaque/negrito, EXIJA que ambas pertençam EXATAMENTE À MESMA FAMÍLIA SANS-SERIF, mudando apenas o peso (Regular/Normal weight para o texto secundário e Bold/ExtraBold weight para o destaque principal), proibindo terminantemente misturar famílias tipográficas diferentes na mesma peça!
 
 DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
@@ -215,6 +218,30 @@ REGRAS DE CONFORMIDADE:
 
   public static readonly DYNAMIC_TYPOGRAPHY_STYLES: DynamicTypographyStyle[] = [
     {
+      id: "display_monumental_poster",
+      labelPt: "Pôster Monumental Big-Type (Escala Display Imponente com Letras Altas & Foco Tipográfico)",
+      weightHierarchyEn: "Dramatic scale & display dominance: Monumental headline with massive display scale anchoring the visual space, bold power words in monumental heavy display font, accompanied by a clean, razor-sharp compact subtitle",
+      colorHarmonyEn: "Sophisticated monochrome high-contrast: Crisp Pure White (#FFFFFF) display typography over atmospheric depth with soft volumetric contact shadows, treating the typography as a majestic graphic centerpiece without forced orange/blue splits",
+      containerAndFrameEn: "Framing & space: Frameless, monumental typography floating with breathing room and geometric precision, commanding immediate visual authority like an international film or design festival poster",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Monumental Big-Type Poster): Render a striking, monumental display headline with dramatic scale dominance. Use powerful, large-scale typography that anchors the scene like a high-end cultural or campaign poster, with soft volumetric contact shadows for 100% legibility and zero visual clutter.",
+    },
+    {
+      id: "editorial_luxury_magazine",
+      labelPt: "Capa Editorial de Luxo & All-Caps Expandido (Elegância Minimalista com Tracking Largo)",
+      weightHierarchyEn: "Refined editorial hierarchy: All-caps display lettering with generous letter-spacing (wide tracking), elegant medium-light weight, paired with an understated, ultra-clean subline",
+      colorHarmonyEn: "Noble warm pearl & platinum: Pristine warm pearl white (#FFFDF8) and soft silver-grey (#E2E8F0) typography, completely ditching cliché bright colored words for pure high-end luxury sophistication",
+      containerAndFrameEn: "Framing & space: Pure architectural negative space, generous margins (22%), delicate 1px hairline rule accent, and impeccable editorial magazine masthead balance (Vogue / GQ style)",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Luxury Magazine Masthead & All-Caps): Render an ultra-refined luxury editorial title with widely-tracked all-caps lettering in noble pearl white (#FFFDF8). Focus on airy breathing space, understated elegance, and delicate proportions rather than heavy blocky text.",
+    },
+    {
+      id: "solid_badge_highlight_invert",
+      labelPt: "Tarja de Destaque Sólida Invertida (Palavra-Chave em Bloco Geométrico de Cor da Marca)",
+      weightHierarchyEn: "Punchy block contrast: Setup phrase in clean Bold (700 weight), while the core punchline keyword is encased in a solid rectangular tag/badge with bold negative cutout lettering",
+      colorHarmonyEn: "High-impact brand block: Setup words in Pure White (#FFFFFF), and the central keyword enclosed in a vibrant solid block in Brand Accent (#FA6305 Orange or #0083C7 Blue) with crisp white text inside",
+      containerAndFrameEn: "Framing & space: Modern solid geometric tag (sharp or subtle 4px rounded corners) creating a magnetic visual magnet, cleanly separated from the secondary information",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Solid Inverted Brand Highlight Tag): Render the headline with a modern inverted block accent: the core keyword is housed inside a vibrant solid brand-colored rectangular tag (#FA6305 or #0083C7) with crisp negative white text, while setup text floats cleanly beside it.",
+    },
+    {
       id: "glassmorphic_duotone_glow",
       labelPt: "Card Glassmorphic Translúcido com Brilho Neon & Título Dual-Tone (Estilo Print 2)",
       weightHierarchyEn: "Dynamic weight hierarchy: Headline setup phrase in Bold/Semi-Bold (700 weight), core punchline keyword in Heavy/Black (900 weight) for maximum visual punch, and supporting subtitle in clean Regular (400 weight)",
@@ -223,36 +250,20 @@ REGRAS DE CONFORMIDADE:
       fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Glassmorphic Card & Dual-Tone Headline): Render the headline with dynamic weight alternation (Bold setup words in crisp White #FFFFFF, followed by the core punchline keyword in Heavy/Black 900 weight in radiant Electric Brand Orange #FA6305). Place an elegant, dark frosted glassmorphic card (25% opacity, soft backdrop blur, fine glowing 1px neon stroke, rounded corners 16px) containing 2-3 concise editorial feature callouts with sleek circular glowing line icons, accompanied by modern floating pill badges with subtle ambient light.",
     },
     {
-      id: "architectural_frameless_bold",
-      labelPt: "Tipografia Flutuante Arquitetural com Sombra de Contato & Destaque Ciano",
-      weightHierarchyEn: "Bold scale and weight contrast: Lead phrase in Semi-Bold (600 weight), monumental display keyword in Heavy/Black (900 weight), and compact context subtitle in ultra-crisp Regular (400 weight)",
-      colorHarmonyEn: "High-contrast electric cyan and white: Headline in crisp Pure White (#FFFFFF), core differentiator keyword in Vibrant NumVapt Electric Blue/Cyan (#0083C7 / #00D2FF), and subtitle in bright off-white",
-      containerAndFrameEn: "Framing & containers: Frameless floating display typography organically integrated into the atmospheric negative space, backed by soft cinematic ambient drop shadows for 100% legibility over any textured background, with zero visual clutter and clean geometric alignment",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Architectural Floating Typography & Cyan Highlight): Render a high-impact, frameless editorial headline floating directly over the atmospheric scene with soft volumetric ambient drop shadows for razor-sharp legibility. Use monumental scale and weight contrast (lead phrase in Semi-Bold White #FFFFFF, core power keyword in Heavy/Black 900 weight in vibrant Electric Cyan #0083C7 / #00D2FF, and clean Regular 400 subtitle below).",
+      id: "spatial_architectural_light",
+      labelPt: "Tipografia Espacial Integrada com Iluminação Cenográfica e Sombras Volumétricas",
+      weightHierarchyEn: "Three-dimensional weight integration: Bold architectural letterforms with depth and physical presence, seamlessly harmonized with the room's perspective",
+      colorHarmonyEn: "Volumetric light interaction: Clean white letterfaces illuminated by the studio's directional key light and colored rim lights, casting realistic ambient drop shadows on the surfaces behind them",
+      containerAndFrameEn: "Framing & space: Frameless spatial placement interacting naturally with the scene's depth of field, background bokeh, and architectural elements",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Environmental Typography): Render high-impact letterforms organically embedded in the 3D space, interacting with the scene's volumetric lighting, subtle rim glows, and ambient contact shadows for a stunning cinematic campaign look.",
     },
     {
-      id: "luxury_gold_boxed_accent",
-      labelPt: "Moldura de Destaque Boxed na Palavra-Chave & Tom Ouro/Âmbar Quente",
-      weightHierarchyEn: "Editorial weight hierarchy: Setup statement in Semi-Bold (600 weight), core value keyword in Heavy/Black (900 weight) inside an accent container, and subtitle in refined Light/Regular (300-400 weight)",
-      colorHarmonyEn: "Warm luxury harmony: Warm off-white / pearl (#FFF8F0) headline text, paired with the core punchline keyword in Radiant Amber / Warm Gold (#FFB800 / #FA6305), and subtitle in soft silver-grey (#CBD5E1)",
-      containerAndFrameEn: "Framing & containers: The central power keyword of the headline is enclosed in a sleek, semi-transparent frosted highlight box with a fine 1px golden/amber glowing stroke and subtle corner radius (8px), drawing immediate focal gravity, paired with clean minimalist line accents",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Boxed Keyword Highlight & Warm Amber Tone): Render an ultra-refined luxury headline where the central punchline keyword is framed inside a sleek, semi-transparent frosted glass highlight box with a delicate 1px golden/amber (#FFB800 / #FA6305) glowing outline. Alternate weights smoothly (Semi-Bold for setup text in warm pearl #FFF8F0, Heavy/Black 900 for the boxed keyword, and Light/Regular 400 for the subtitle).",
-    },
-    {
-      id: "editorial_capsule_pills",
-      labelPt: "Badges em Pílula Luminosa & Divisor Neon Hairline",
-      weightHierarchyEn: "Modern badge hierarchy: Headline in Bold (700 weight), punchline keyword in Heavy/Black (900 weight), supporting features in uppercase Medium (500 weight) pill badges, and explanatory subtitle in Regular (400 weight)",
-      colorHarmonyEn: "Vibrant brand dual-tone: Crisp Pure White (#FFFFFF) primary text with Brand Accent (#FA6305 / #0083C7) highlights, glowing capsule pills with subtle dark-glass fill and neon colored stroke",
-      containerAndFrameEn: "Framing & containers: A delicate 1px vertical or horizontal neon hairline rule separates the headline from the subtitle, while supporting features or steps are framed inside floating rounded capsule pills with subtle ambient backlight",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Neon Capsule Pills & Hairline Rule): Render the headline with dynamic weight contrast (Bold setup in White #FFFFFF + Black 900 punchline keyword in brand orange #FA6305), anchored by a delicate 1px neon hairline accent rule. Frame supporting feature callouts inside modern rounded capsule pill badges with subtle luminous borders and dark-glass fill.",
-    },
-    {
-      id: "clean_high_contrast_split",
-      labelPt: "Diagramação Editorial Split com Contraste Extremo de Escala",
-      weightHierarchyEn: "Monumental scale contrast: Large punchy display headline in Heavy/Black (900 weight) with setup words in Bold (700), paired with a compact 2-line subtitle in clean Regular (400 weight)",
-      colorHarmonyEn: "Multi-tone balance: High-contrast Pure White (#FFFFFF) text paired with vivid primary and secondary brand colors (#0083C7 NumVapt Blue and #FA6305 Orange) against deep atmospheric shadows",
-      containerAndFrameEn: "Framing & containers: Clean geometric layout with generous safe margins (20%), subtle floating translucent tags, and pristine typographic alignment",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Split Scale Contrast & Multi-Tone Brand Harmony): Render monumental display typography with dramatic scale and weight contrast (large punchy headline with Heavy/Black 900 power words in White #FFFFFF and Brand Accent #FA6305, paired with a compact, ultra-sharp 2-line subtitle in Regular 400 weight). Maintain 20% safe margins with pristine editorial balance.",
+      id: "split_column_editorial",
+      labelPt: "Diagramação Editorial em Duas Colunas Assimétricas com Linha Hairline Neon",
+      weightHierarchyEn: "Asymmetric editorial contrast: Large display lead word on the left, paired with a compact, ultra-sharp two-line sub-phrase aligned along a fine vertical divider",
+      colorHarmonyEn: "High-contrast dynamic balance: Pure White (#FFFFFF) text anchored by an electric cyan (#00D2FF) or brand orange hairline rule, delivering high visual energy",
+      containerAndFrameEn: "Framing & space: Delicate 1px vertical or horizontal neon hairline rule structuring the layout with architectural precision and generous breathing space",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Split Editorial & Hairline Rule): Render an asymmetrical editorial headline structured by a delicate 1px brand-colored hairline accent rule, pairing bold display scale with elegant typographic rhythm.",
     },
   ];
 
@@ -274,7 +285,7 @@ REGRAS DE CONFORMIDADE:
   ): string {
     if (!input.textOverlayMode || input.textOverlayMode === "NONE") return "";
     const selectedStyle = style || this.selectDynamicTypographyStyle(input);
-    return `[DYNAMIC TYPOGRAPHIC & LAYOUT MANDATE (/typolayout): ${selectedStyle.fullDirectiveEn}. Weight contrast: ${selectedStyle.weightHierarchyEn}. Color harmony: ${selectedStyle.colorHarmonyEn}. Containers & frames: ${selectedStyle.containerAndFrameEn}.]`;
+    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}. MANDATE: Avoid repetitive generic formulas; craft a distinctive, bespoke editorial title layout tailored to the brief while maintaining 100% legibility and safe margins.]`;
   }
 
 
@@ -677,13 +688,13 @@ NENHUMA logomarca oficial foi fornecida. É TERMINANTEMENTE PROIBIDO inventar, d
       : null;
     const typographySection = dynamicTypo
       ? `
-ESTILO TIPOGRÁFICO & LAYOUT DINÂMICO SELECIONADO (/typolayout):
-- Arquétipo Tipográfico: ${dynamicTypo.labelPt}
-- Hierarquia de Pesos: ${dynamicTypo.weightHierarchyEn}
+DIREÇÃO DE ARTE TIPOGRÁFICA SELECIONADA (/typolayout):
+- Conceito Visual: ${dynamicTypo.labelPt}
+- Escala e Hierarquia: ${dynamicTypo.weightHierarchyEn}
 - Harmonia Cromática: ${dynamicTypo.colorHarmonyEn}
-- Molduras, Cards & Fundos: ${dynamicTypo.containerAndFrameEn}
+- Molduras, Fundos e Espaço: ${dynamicTypo.containerAndFrameEn}
 - Diretiva em Inglês para o imagePrompt: "${dynamicTypo.fullDirectiveEn}"
-- INSTRUÇÃO OBRIGATÓRIA: Garanta alternância dinâmica de pesos (Bold no setup + Black no punchline) e contraste de cores no imagePrompt!`
+- INSTRUÇÃO DE LIBERDADE CRIATIVA: Atue como Diretor de Arte Sênior! Crie uma composição tipográfica surpreendente, autoral e personalizada para este nicho, variando alinhamentos, contrastes de escala display e esquemas de cores no imagePrompt. NUNCA gere sempre a mesma fórmula repetitiva de duas cores (metade branco e metade laranja)!`
       : "";
 
     return `
@@ -959,13 +970,13 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     if (isTitle) {
       const headline = input.productHeadline?.trim() || "Headline em português";
       textInstruction = hasLogo
-        ? `[DYNAMIC HEADLINE DIRECTIVE & LOGO CLEARANCE (/typolayout): Render premium multi-weight typography in Portuguese (pt-BR) saying "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt} Maintain generous breathing room and 20% safe margins.]`
-        : `[DYNAMIC HEADLINE DIRECTIVE (/typolayout): Render premium multi-weight typography in Portuguese (pt-BR) saying "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. Maintain generous breathing room and 20% safe margins.]`;
+        ? `[ART-DIRECTED HEADLINE & LOGO CLEARANCE (/typolayout): Render bespoke, award-winning editorial typography in Portuguese (pt-BR) saying "${headline}". Style Concept (${typoStyle.id}): ${typoStyle.fullDirectiveEn}. Scale & hierarchy: ${typoStyle.weightHierarchyEn}. Color harmony: ${typoStyle.colorHarmonyEn}. Framing: ${typoStyle.containerAndFrameEn}. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt} Maintain generous breathing room and 20% safe margins.]`
+        : `[ART-DIRECTED HEADLINE (/typolayout): Render bespoke, award-winning editorial typography in Portuguese (pt-BR) saying "${headline}". Style Concept (${typoStyle.id}): ${typoStyle.fullDirectiveEn}. Scale & hierarchy: ${typoStyle.weightHierarchyEn}. Color harmony: ${typoStyle.colorHarmonyEn}. Framing: ${typoStyle.containerAndFrameEn}. Maintain generous breathing room and 20% safe margins.]`;
     } else if (isInfographic) {
       const headline = input.productHeadline?.trim() || "Solução Inteligente";
       textInstruction = hasLogo
-        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE (/typolayout): Clean editorial layout in Portuguese (pt-BR) with headline "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. 20% safe margins from all outer borders. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt}]`
-        : `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE (/typolayout): Clean editorial layout in Portuguese (pt-BR) with headline "${headline}". ${typoStyle.weightHierarchyEn}. ${typoStyle.colorHarmonyEn}. ${typoStyle.containerAndFrameEn}. 20% safe margins from all outer borders.]`;
+        ? `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE & LOGO CLEARANCE (/typolayout): Clean editorial layout in Portuguese (pt-BR) with headline "${headline}". Style Concept (${typoStyle.id}): ${typoStyle.fullDirectiveEn}. Scale: ${typoStyle.weightHierarchyEn}. Color harmony: ${typoStyle.colorHarmonyEn}. Framing: ${typoStyle.containerAndFrameEn}. 20% safe margins from all outer borders. ${selectedPlacement.clearanceZonePrompt} ${selectedPlacement.textPlacementPrompt}]`
+        : `[DYNAMIC MODERN INFOGRAPHIC DIRECTIVE (/typolayout): Clean editorial layout in Portuguese (pt-BR) with headline "${headline}". Style Concept (${typoStyle.id}): ${typoStyle.fullDirectiveEn}. Scale: ${typoStyle.weightHierarchyEn}. Color harmony: ${typoStyle.colorHarmonyEn}. Framing: ${typoStyle.containerAndFrameEn}. 20% safe margins from all outer borders.]`;
     }
 
     const brandInstruction =

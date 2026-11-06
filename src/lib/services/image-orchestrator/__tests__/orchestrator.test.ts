@@ -534,7 +534,7 @@ describe("Image Orchestrator Suite", () => {
       expect(plan2.visualPlan.brandApplication.logoPosition).toBe("top-center");
       expect(plan2.compiledImagePrompt).toContain("top-center");
     });
-    it("alterna dinamicamente estilos tipográficos premium com contraste de pesos, cores e molduras", () => {
+    it("alterna dinamicamente estilos tipográficos premium com liberdade criativa e arquétipos plurais", () => {
       const s1 = Gpt5PromptPlanner.selectDynamicTypographyStyle();
       const s2 = Gpt5PromptPlanner.selectDynamicTypographyStyle();
       const s3 = Gpt5PromptPlanner.selectDynamicTypographyStyle();
@@ -543,7 +543,20 @@ describe("Image Orchestrator Suite", () => {
       expect(s2.id).toBeDefined();
       expect(s1.id).not.toBe(s2.id);
       expect(s2.id).not.toBe(s3.id);
-      expect(Gpt5PromptPlanner.DYNAMIC_TYPOGRAPHY_STYLES.length).toBeGreaterThanOrEqual(5);
+
+      const styles = Gpt5PromptPlanner.DYNAMIC_TYPOGRAPHY_STYLES;
+      expect(styles.length).toBeGreaterThanOrEqual(6);
+      expect(styles.some((s) => s.id === "display_monumental_poster")).toBe(true);
+      expect(styles.some((s) => s.id === "editorial_luxury_magazine")).toBe(true);
+      expect(styles.some((s) => s.id === "solid_badge_highlight_invert")).toBe(true);
+      expect(styles.some((s) => s.id === "spatial_architectural_light")).toBe(true);
+
+      const mandate = Gpt5PromptPlanner.buildDynamicTypographyMandate({
+        textOverlayMode: "TITLE_ONLY",
+      } as any);
+      expect(mandate).toContain("/typolayout");
+      expect(mandate).toContain("creative visual diversity");
+      expect(mandate).toContain("Avoid repetitive generic formulas");
     });
 
     it("injeta diretiva /typolayout e trava contra fundos lisos de estúdio quando textOverlayMode for TITLE_ONLY ou INFOGRAPHIC", async () => {
