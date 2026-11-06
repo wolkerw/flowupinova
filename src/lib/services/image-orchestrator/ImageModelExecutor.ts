@@ -64,6 +64,9 @@ export class ImageModelExecutor {
     const zeroLogoDirective =
       " [CRITICAL MANDATE — POST BRANDING & EMPTY LOGO SPACE: The top-left corner of the poster layout MUST remain completely empty, clean and free blank negative space. Do NOT generate floating digital logos, artificial company emblems, or brand watermarks in the background or corners. CRITICAL EXCEPTION FOR PHYSICAL PRODUCTS: Real physical products, packaging, jars, bottles, and merchandise from reference photos MUST preserve their authentic printed labels, original brand names, typography, and graphics 100% intact. Do NOT erase or abstract packaging labels into blank color patches.]";
 
+    const handAnatomyAndStudioDirective =
+      " [CRITICAL MANDATE — PRECISE 5-FINGER HAND INTEGRITY & STUDIO QUALITY (/handlock & /agencystudio): Strictly enforce natural human hand anatomy with precisely five fingers per hand, natural knuckles, realistic grip ergonomics, authentic textured human skin without plastic sheen, and coherent contact shadows. Absolutely NO extra fingers, six fingers, fused digits, mutated hands, or floating disembodied hands.]";
+
     const logoDirective =
       " [CRITICAL MANDATE — MANDATORY BUSINESS LOGO INTEGRATION & ZERO-TEXT CLEARANCE ZONE: The official logo is added digitally in post-processing. The top-left quadrant (top 22% height x left 30% width) MUST remain 100% BLANK, EMPTY and UNBRANDED negative space. ABSOLUTELY NO text, titles, subtitles, eyebrows, dates, or badges in the top-left area. All headlines and text layers must be placed below Y=22% or centered/right. Do NOT draw floating logos or brand badges in the poster layout. Real product packaging labels must remain authentic.]";
 
@@ -129,6 +132,10 @@ export class ImageModelExecutor {
               openaiPrompt += zeroLogoDirective;
             }
             openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos.]`;
+          }
+
+          if (!openaiPrompt.includes("/handlock")) {
+            openaiPrompt += handAnatomyAndStudioDirective;
           }
 
           const isGpt25 = cfg.model.includes("2.5");
@@ -260,6 +267,10 @@ export class ImageModelExecutor {
             if (!geminiPrompt.includes("ZERO LOGOS") && !geminiPrompt.includes("ABSOLUTE PROHIBITION")) {
               geminiPrompt += zeroLogoDirective;
             }
+          }
+
+          if (!geminiPrompt.includes("/handlock")) {
+            geminiPrompt = `${geminiPrompt}\n\n${handAnatomyAndStudioDirective}`;
           }
 
           const styleRef = params.references?.find((r) => r.role === "style_reference");

@@ -58,6 +58,18 @@ Você NÃO é um diagramador de panfletos ou slides de PowerPoint — você é u
    - Se o briefing usar expressões figuradas ou de contraste (ex: "cabe no seu bolso", "muito mais que...", "da sua foto simples ao anúncio premium", "agência completa", "tudo em um só lugar"), traduza isso em uma METÁFORA VISUAL MEMORÁVEL OU TRANSFORMAÇÃO EM PRIMEIRA PESSOA (POV) (ex: smartphone em primeiro plano capturando o produto em estado bruto, conectado por uma fita luminosa de energia neon 3D em azul e laranja vibrante que viaja pelo espaço até o profissional no seu ambiente real de trabalho com o produto pronto e perfeito, ou uma explosão cenográfica em gravidade zero com artefatos físicos e iluminação volumétrica).
    - NUNCA gere miniaturas literais ou dioramas saindo de bolsos de roupas!
 
+DIRETRIZES DE AGÊNCIA PUBLICITÁRIA PREMIUM & TRAVA ANATÔMICA DE MÃOS E PELE REALISTA (/agencystudio & /handlock):
+Você deve garantir padrão de excelência de estúdio fotográfico de campanha publicitária internacional:
+1. TRAVA ANATÔMICA RIGOROSA DE MÃOS E DEDOS (/handlock):
+   - MÃOS HUMANAS PRECISAS COM EXATAMENTE 5 DEDOS: Sempre que pessoas, mãos ou gestos aparecerem na cena, cada mão visível DEVE ter rigorosamente cinco dedos distintos e anatomicamente perfeitos (um polegar e quatro dedos).
+   - ARTICULAÇÕES E UNHAS NATURAIS: Descreva falanges proporcionais, juntas anatômicas nítidas, unhas realistas com cutículas e curvatura natural.
+   - POSTURAS ERGONÔMICAS E APOIADAS: As mãos devem estar sempre em posições ergonomicamente verossímeis e apoiadas (ex: segurando firmemente um produto ou smartphone com os dedos envolvendo o corpo do aparelho sem fusão; com as mãos nos bolsos da calça/blazer; braços cruzados relaxados; apoiadas suavemente sobre o balcão ou mesa de trabalho).
+   - PROIBIÇÃO TERMINANTE: É terminantemente proibido gerar dedos extras, seis dedos (polidactilia), dedos fundidos ou colados, dedos atrofiados ou faltando, mãos com nós invertidos, dedos de borracha derretida ou mãos flutuantes sem corpo!
+2. PADRÃO ESTÚDIO DE AGÊNCIA & TEXTURA DE PELE HIPER-REALISTA (/agencystudio):
+   - TEXTURA DE PELE ORGÂNICA COM MICROPÓROS: Pele humana autêntica com poros naturais microscópicos, textura tátil real, penugem sutil e dispersão de luz subsuperficial (subsurface scattering).
+   - PROIBIÇÃO DE PELE PLÁSTICA / CERA / BONECO: É expressamente proibido aspecto plástico, pele encerada de manequim de shopping, acabamento de boneca de porcelana ou aerografia artificial ("airbrushed look").
+   - ILUMINAÇÃO DE ESTÚDIO DE CAMPANHA: Lente prime 85mm f/1.8 com profundidade de campo óptica suave, iluminação de recorte (rim light) sutil destacando a silhueta, luz principal difusa por softbox duplo e sombras de contato coerentes (ambient occlusion) onde mãos e objetos se tocam.
+
 DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & ALTERNÂNCIA DINÂMICA DE TEXTO (/typolayout):
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia conceitual pura sem letras ou legendas.
 - Se textOverlayMode for TITLE_ONLY ou INFOGRAPHIC (ou BOTH):
@@ -250,6 +262,10 @@ REGRAS DE CONFORMIDADE:
     const styles = this.DYNAMIC_TYPOGRAPHY_STYLES;
     const idx = (this.typographyStyleCursor++) % styles.length;
     return styles[idx];
+  }
+
+  public static buildAgencyQualityAndAnatomyMandate(input?: Gpt5PlannerInput): string {
+    return "[PREMIUM AGENCY STUDIO QUALITY & 5-FINGER HAND ANATOMY LOCK (/agencystudio & /handlock): Render with high-end commercial advertising studio standards shot on 85mm f/1.8 lens with shallow optical depth of field and soft cinematic bokeh. STRICT HUMAN HAND ANATOMY LOCK: Every human hand depicted MUST feature precisely 5 distinct, anatomically accurate fingers (one thumb and four fingers) with natural knuckles, proportional phalanges, and realistic fingernails. Hands must adopt grounded, biomechanically natural postures (firm ergonomic grip around products/smartphone, resting naturally on surfaces, or neatly in pockets) with coherent contact shadows. ZERO EXTRA FINGERS, ZERO FUSED DIGITS. AUTHENTIC SKIN TEXTURE: Render natural human skin with visible microscopic pores, subtle epidermal texture, and organic subsurface scattering. Strictly FORBIDDEN: plastic waxy skin, porcelain doll face, airbrushed mannequin sheen, deformed hands, six fingers, mutated digits, or disembodied floating hands.]";
   }
 
   public static buildDynamicTypographyMandate(
@@ -686,6 +702,11 @@ ${brandSection}
 ${referencesSection}
 ${creativeDirectionSection}
 ${typographySection}
+DIRETRIZES DE AGÊNCIA DE ELITE & ANATOMIA DE MÃOS (/handlock & /agencystudio):
+- Garanta anatomia humana perfeita: exatamente 5 dedos por mão (1 polegar e 4 dedos), articulações naturais, unhas proporcionais e pegada ergonômica verossímil.
+- Proíba dedos extras, 6 dedos, dedos colados, mãos atrofiadas ou soltas.
+- Aplique acabamento de estúdio publicitário com lente 85mm f/1.8, bokeh suave, iluminação de recorte e pele hiper-realista com microporos (banindo aspecto plástico ou encerado).
+
 ${input.compiledPrompt ? `\nDIRETRIZES TÉCNICAS PRÉ-COMPILADAS:\n${input.compiledPrompt}\n` : ""}
 
 ${logoDirectiveText}
@@ -788,6 +809,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         if (antiClicheMandate && !prompt.includes("/anticliche")) {
           prompt += ` ${antiClicheMandate}`;
         }
+        const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
+        if (agencyMandate && !prompt.includes("/handlock")) {
+          prompt += ` ${agencyMandate}`;
+        }
         return prompt;
       })(),
       negativePrompt: (() => {
@@ -799,16 +824,18 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
               .replace(/,?\s*no [a-zA-Z0-9_-]+ logo drawn in the poster/gi, "")
               .replace(/,?\s*no logos?/gi, "");
           }
+          const anatomicalNegatives = ", extra fingers, six fingers, 6 fingers, fused fingers, webbed fingers, missing fingers, mutated hands, malformed hands, deformed fingers, extra limbs, extra hands, missing thumb, backwards hands, melted fingers, unnatural hand poses, poorly drawn hands, disembodied hands floating, plastic skin, waxy skin, airbrushed skin, mannequin skin, porcelain doll face, bad anatomy, bad proportions, unnatural joints";
           const extraAntiCliche = !this.isExplicitHandPhoneRequested(input.userBrief)
             ? ", generic stock photo cliché, disembodied hand holding smartphone over beige desk with coffee mug and potted plant, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom"
             : "";
-          return `${raw.negativePrompt}${extraAntiCliche}`;
+          return `${raw.negativePrompt}${anatomicalNegatives}${extraAntiCliche}`;
         }
+        const anatomicalNegatives = ", extra fingers, six fingers, 6 fingers, fused fingers, webbed fingers, missing fingers, mutated hands, malformed hands, deformed fingers, extra limbs, extra hands, missing thumb, backwards hands, melted fingers, unnatural hand poses, poorly drawn hands, disembodied hands floating, plastic skin, waxy skin, airbrushed skin, mannequin skin, porcelain doll face, bad anatomy, bad proportions, unnatural joints";
         return hasSubject
-          ? "redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped headline, cut off borders, low quality, artifacts"
+          ? `redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped headline, cut off borders, low quality, artifacts${anatomicalNegatives}`
           : hasLogo
-            ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, cropped headline, cut off borders, blank product label, erased packaging text, low quality, artifacts"
-            : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts";
+            ? `distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, cropped headline, cut off borders, blank product label, erased packaging text, low quality, artifacts${anatomicalNegatives}`
+            : `logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts${anatomicalNegatives}`;
       })(),
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margens seguras"]
@@ -886,11 +913,16 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       })(),
       socialCaption: this.generateFallbackSocialCaption(input),
       imagePrompt: this.buildFallbackImagePrompt(input),
-      negativePrompt: hasSubject
-        ? this.isStep5LogoUpload(input) ? "competitor trademarks, distorted logo, warped branding, cropped typography, text touching borders, amateur framing" : "acrylic logo plaque on counter, tabletop logo totem, 3D wall logo sign, invented brand logo in scene, floating company emblem, redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing"
-        : hasLogo
-          ? "distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, generic stock photo hand holding smartphone with coffee cup, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts"
-          : "logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, generic stock photo hand holding smartphone with coffee cup, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom, cropped typography, text touching borders, amateur framing",
+      negativePrompt: (() => {
+        const anatomicalNegatives = ", extra fingers, six fingers, 6 fingers, fused fingers, webbed fingers, missing fingers, mutated hands, malformed hands, deformed fingers, extra limbs, extra hands, missing thumb, backwards hands, melted fingers, unnatural hand poses, poorly drawn hands, disembodied hands floating, plastic skin, waxy skin, airbrushed skin, mannequin skin, porcelain doll face, bad anatomy, bad proportions, unnatural joints";
+        return hasSubject
+          ? this.isStep5LogoUpload(input)
+            ? `competitor trademarks, distorted logo, warped branding, cropped typography, text touching borders, amateur framing${anatomicalNegatives}`
+            : `acrylic logo plaque on counter, tabletop logo totem, 3D wall logo sign, invented brand logo in scene, floating company emblem, redesigned product geometry, altered speaker top cabinets, generic mesh grille replacing exposed horns, stamping headline brand logos onto hardware, changed cabinet side colors, competitor trademarks, blank product label, erased packaging typography, missing label text, blurry label, censored product packaging, solid color block label, cropped typography, text touching borders, amateur framing${anatomicalNegatives}`
+          : hasLogo
+            ? `distorted logo, warped branding, text overlapping logo, typography in top-left corner, headline in top-left corner, title overlapping logo, competitor trademarks, fake text, generic stock photo hand holding smartphone with coffee cup, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom, cropped typography, text touching borders, blank product label, erased packaging text, low quality, artifacts${anatomicalNegatives}`
+            : `logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, generic stock photo hand holding smartphone with coffee cup, stacked opaque white PowerPoint bullet boxes, fake website CTA button pill at bottom, cropped typography, text touching borders, amateur framing${anatomicalNegatives}`;
+      })(),
       preserve: hasLogo
         ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margem segura de 20%"]
         : ["Foto/Logomarca da Etapa 5", "Integração criativa na cena", "Margem segura de 20%"],
@@ -992,6 +1024,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (antiCliche && !p.includes("/anticliche")) {
         p += ` ${antiCliche}`;
       }
+      const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
+      if (agencyMandate && !p.includes("/handlock")) {
+        p += ` ${agencyMandate}`;
+      }
       return p;
     }
 
@@ -1005,7 +1041,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       : `Commercial advertising artwork: ${input.userBrief}. Modern studio photography, crisp details, natural lighting, elegant atmosphere.`;
     const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
 
-    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${antiCliche} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
+    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {

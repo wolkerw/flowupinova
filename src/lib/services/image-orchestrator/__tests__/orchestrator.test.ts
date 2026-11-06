@@ -585,6 +585,38 @@ describe("Image Orchestrator Suite", () => {
       expect(povArchetype?.promptEn).toContain("deeply textured real-world workspace");
     });
 
+    it("constrói mandato de agência e trava de mãos (/handlock & /agencystudio) com 5 dedos e pele autêntica", () => {
+      const mandate = Gpt5PromptPlanner.buildAgencyQualityAndAnatomyMandate();
+      expect(mandate).toContain("/handlock");
+      expect(mandate).toContain("/agencystudio");
+      expect(mandate).toContain("precisely 5 distinct, anatomically accurate fingers");
+      expect(mandate).toContain("85mm f/1.8");
+      expect(mandate).toContain("ZERO EXTRA FINGERS, ZERO FUSED DIGITS");
+      expect(mandate).toContain("visible microscopic pores");
+      expect(mandate).toContain("plastic waxy skin");
+    });
+
+    it("injeta trava anatômica de mãos (/handlock) e negativos de deformidades no plano gerado", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Retrato de uma advogada no seu escritório segurando um smartphone",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic" as const,
+        useBrandKit: false,
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("/handlock");
+      expect(planResult.compiledImagePrompt).toContain("/agencystudio");
+      expect(planResult.compiledNegativePrompt).toContain("extra fingers");
+      expect(planResult.compiledNegativePrompt).toContain("six fingers");
+      expect(planResult.compiledNegativePrompt).toContain("fused fingers");
+      expect(planResult.compiledNegativePrompt).toContain("mutated hands");
+      expect(planResult.compiledNegativePrompt).toContain("plastic skin");
+      expect(planResult.compiledNegativePrompt).toContain("waxy skin");
+    });
   });
 
   describe("ImageModelExecutor", () => {
@@ -641,6 +673,34 @@ describe("Image Orchestrator Suite", () => {
       expect(res.modelUsed).toBe("gpt-image-2.5-sunburst");
       expect(capturedBody.quality).toBe("low");
       expect(capturedBody.size).toBe("1024x1024");
+    });
+
+    it("injeta a trava crítica de anatomia de mãos (/handlock & /agencystudio) no prompt enviado para a IA", async () => {
+      process.env.OPENAI_API_KEY = "test-key";
+      let capturedBody: any = null;
+
+      global.fetch = vi.fn().mockImplementation((url, opts) => {
+        if (opts && opts.body) {
+          capturedBody = JSON.parse(opts.body as string);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: [{ b64_json: Buffer.from("fake-b64-image").toString("base64") }],
+          }),
+        });
+      });
+
+      await ImageModelExecutor.execute({
+        prompt: "Business portrait of a lawyer",
+        format: "portrait",
+        preferredModel: "gpt-image-2",
+      });
+
+      expect(capturedBody.prompt).toContain("/handlock");
+      expect(capturedBody.prompt).toContain("/agencystudio");
+      expect(capturedBody.prompt).toContain("precisely five fingers per hand");
+      expect(capturedBody.prompt).toContain("NO extra fingers, six fingers, fused digits");
     });
   });
 

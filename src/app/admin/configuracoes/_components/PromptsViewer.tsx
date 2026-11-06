@@ -445,24 +445,24 @@ export function PromptsViewer() {
           <AccordionTrigger className="text-emerald-200 hover:text-white hover:no-underline">
             <div className="flex items-center gap-3">
               <ImageIcon className="h-4 w-4 text-emerald-400" />
-              Agente: Fluxo Geral — Direção Criativa (/anticliche), Produto (/productlock), Tipografia (/fontlock) & Logo Dinâmica
+              Agente: Fluxo Geral — Trava Anatômica (/handlock), Estúdio (/agencystudio), Criatividade (/anticliche) & Produto (/productlock)
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-300">
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-emerald-400">
                 <p>
-                  Motor de Direção de Arte Publicitária Premiada (<code>/anticliche</code>), Tipografia Dinâmica & Molduras (<code>/typolayout</code>), preservação de produtos (<code>/productlock</code>), tipografia (<code>/fontlock</code>) e alternância de logomarca do Fluxo Geral.
+                  Motor de Trava Anatômica de Mãos (<code>/handlock</code>), Padrão Estúdio de Agência & Pele Realista (<code>/agencystudio</code>), Direção de Arte Premiada (<code>/anticliche</code>), Tipografia Dinâmica (<code>/typolayout</code>) e preservação de produtos (<code>/productlock</code>) do Fluxo Geral.
                 </p>
                 <span className="rounded bg-emerald-900/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 border border-emerald-700/50">
-                  Agency Art Direction + Dynamic Typo & Product Lock
+                  Handlock + Agency Studio + Art Direction & Typo
                 </span>
               </div>
               <Textarea
                 className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[210px]"
                 value={
                   prompts.general_productlock_prompt ||
-                  `DIRETRIZES NATIVAS DO AGENTE DE FLUXO GERAL (/anticliche + /typolayout + /productlock + /fontlock):
+                  `DIRETRIZES NATIVAS DO AGENTE DE FLUXO GERAL (/handlock + /agencystudio + /anticliche + /typolayout + /productlock):
 1. DIREÇÃO DE ARTE PUBLICITÁRIA PREMIADA & POV COM FITA 3D DE NEON (/anticliche): Injeta arquétipos cinematográficos de alto impacto (Transformação em Primeira Pessoa POV com fita 3D luminosa de neon azul e laranja conectando a foto crua do celular ao especialista no ambiente real, Autoridade no Habitat Autêntico ricamente texturizado, Capa Editorial Dual-Tone com chiaroscuro refinado, e Explosão Cenográfica 3D em Gravidade Zero).
 2. PROIBIÇÃO TOTAL DE FUNDOS LISOS / VAZIOS BEGE DE ESTÚDIO: É terminantemente proibido renderizar paredes lisas monocromáticas ou vazios beges/cinzas sem graça. A cena deve sempre ser ambientada em um espaço real autêntico e pulsante (pizzaria com forno a lenha aceso e brasas, escritório nobre de advocacia com estantes de mogno e luz de janela, clínica moderna, etc.).
 3. MOTOR TIPOGRÁFICO DINÂMICO & MOLDURAS PREMIUM (/typolayout): Alterne dinamicamente a anatomia dos textos:
@@ -472,7 +472,8 @@ export function PromptsViewer() {
 4. REGRA "SHOW, DON'T LIST" & TRAVAS DE CLICHÊ: Proíbe fotos clichês de banco de imagens (mão avulsa sobre mesa bege com café e vasinho), proíbe caixas brancas empilhadas de PowerPoint e proíbe botões falsos de CTA de site no rodapé.
 5. PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (/productlock): Preserva 100% dos sub-componentes, cornetas, grades, gabinetes e rótulos de produtos enviados na Etapa 5, sem redesenhar ou inventar logos sobre o hardware.
 6. DIFERENCIAÇÃO CONDICIONAL ETAPA 5 (LOGOMARCA VS PRODUTO): Integração criativa para logos da Etapa 5 (CREATIVE_LOGO_ARCHETYPES) e bloqueio total para produtos físicos.
-7. MEMÓRIA PERSISTENTE E ALTERNÂNCIA DINÂMICA DE LOGOMARCA DO BRANDKIT: Alternância contínua entre posições editoriais (Topo Esquerdo, Topo Direito, Topo Centralizado e Rodapé Direito) persistida no banco de dados do usuário (users/{userId}.lastLogoPosition).`
+7. MEMÓRIA PERSISTENTE E ALTERNÂNCIA DINÂMICA DE LOGOMARCA DO BRANDKIT: Alternância contínua entre posições editoriais (Topo Esquerdo, Topo Direito, Topo Centralizado e Rodapé Direito) persistida no banco de dados do usuário (users/{userId}.lastLogoPosition).
+8. TRAVA ANATÔMICA DE MÃOS E ESTÚDIO DE AGÊNCIA DE ELITE (/handlock & /agencystudio): Mãos humanas perfeitas com rigorosamente 5 dedos distintos (um polegar e quatro dedos), juntas e unhas naturais, posturas ergonômicas apoiadas (segurando produtos/smartphone com firmeza, mãos nos bolsos ou descansando em superfícies) com sombras coerentes de contato. Proibição terminante de dedos extras, 6 dedos, dedos colados, atrofiados ou mãos flutuantes. Fotografia de estúdio publicitário com lente 85mm f/1.8 com profundidade de campo suave, luz de recorte sutil, luz difusa por softbox duplo e pele hiper-realista com microporos orgânicos (banindo aspecto plástico, cera ou boneco de porcelana).`
                 }
                 onChange={(e) => handleChange("general_productlock_prompt", e.target.value)}
               />
