@@ -143,6 +143,12 @@ describe("ImageAiEditorModal", () => {
     fireEvent.click(replaceAreaBtn);
 
     expect(textarea.value).toContain("substitua o conteúdo atual por");
+
+    // Clica na sugestão de inserir área
+    const insertAreaBtn = screen.getByText("Inserir Elemento na Área");
+    fireEvent.click(insertAreaBtn);
+
+    expect(textarea.value).toContain("insira: [DIGITE O QUE DESEJA INSERIR]");
   });
 
   it("permite escolher fazer novo ajuste sobre a arte editada (nova versão)", async () => {

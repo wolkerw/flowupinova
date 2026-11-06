@@ -298,4 +298,72 @@ describe("POST /api/imagens/editar (GPT-image-2.5 Edition)", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
   });
+
+  it("deve processar com sucesso a edição com selectedArea e ação insert", async () => {
+    const { getAuthenticatedUser } = await import("@/lib/api-auth");
+    (getAuthenticatedUser as any).mockResolvedValueOnce({
+      uid: "user-area-insert-123",
+      email: "area-insert@numvapt.com.br",
+    });
+
+    mockUserData = {
+      canEditImages: true,
+      role: "user",
+    };
+
+    let capturedPrompt = "";
+    const fakeImageBuffer = Buffer.from("fake-image-bytes");
+    const fakeEditedB64 = Buffer.from("edited-area-bytes").toString("base64");
+
+    global.fetch = vi.fn().mockImplementation((url: string, opts?: any) => {
+      if (url === "https://example.com/original.png") {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer),
+        });
+      }
+      if (url.includes("api.openai.com/v1/images/edits")) {
+        if (opts && opts.body) {
+          const formData = opts.body as FormData;
+          capturedPrompt = (formData.get("prompt") as string) || "";
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              data: [{ b64_json: fakeEditedB64 }],
+            }),
+        });
+      }
+      return Promise.reject(new Error("URL desconhecida"));
+    });
+
+    const fakeMaskBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    const req = new NextRequest("http://localhost:9002/api/imagens/editar", {
+      method: "POST",
+      body: JSON.stringify({
+        imageUrl: "https://example.com/original.png",
+        instruction: "Inserir selo de garantia de 1 ano",
+        format: "portrait",
+        selectedArea: {
+          x: 60,
+          y: 70,
+          width: 25,
+          height: 15,
+          action: "insert",
+          description: "canto inferior direito",
+        },
+        maskDataUrl: fakeMaskBase64,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(capturedPrompt).toContain("SURGICAL INPAINTING — INSERT ELEMENT IN AREA");
+  });
 });

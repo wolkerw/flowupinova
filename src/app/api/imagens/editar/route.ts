@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         y: number;
         width: number;
         height: number;
-        action: "erase" | "replace";
+        action: "erase" | "replace" | "insert";
         description?: string;
       };
       maskDataUrl?: string;
@@ -130,10 +130,17 @@ export async function POST(request: NextRequest) {
 
     let areaDirective = "";
     if (selectedArea) {
-      const actionText =
-        selectedArea.action === "erase"
-          ? "SURGICAL INPAINTING — ERASE & RECONSTRUCT: Completely remove and eliminate the element in the targeted area. Seamlessly inpaint and reconstruct the background with natural textures, lighting, and ambient shadows, making it look as if the element was never there."
-          : "SURGICAL INPAINTING — REPLACE CONTENT: Replace the content inside the targeted region with the newly requested text/graphic. Ensure the new element fits seamlessly with surrounding typography and colors.";
+      let actionText = "";
+      if (selectedArea.action === "erase") {
+        actionText =
+          "SURGICAL INPAINTING — ERASE & RECONSTRUCT: Completely remove and eliminate the element in the targeted area. Seamlessly inpaint and reconstruct the background with natural textures, lighting, and ambient shadows, making it look as if the element was never there.";
+      } else if (selectedArea.action === "insert") {
+        actionText =
+          "SURGICAL INPAINTING — INSERT ELEMENT IN AREA: In the specified bounding area, organically insert and blend the requested new element or graphic. Seamlessly integrate shadows, ambient contact occlusion, lighting, reflections, and perspective with the surrounding scene, preserving 100% of the rest of the image completely untouched.";
+      } else {
+        actionText =
+          "SURGICAL INPAINTING — REPLACE CONTENT: Replace the content inside the targeted region with the newly requested text/graphic. Ensure the new element fits seamlessly with surrounding typography and colors.";
+      }
       areaDirective = `[TARGET REGION: ${selectedArea.description || `bounding area approx. (${Math.round(selectedArea.x)}%, ${Math.round(selectedArea.y)}%) to (${Math.round(selectedArea.x + selectedArea.width)}%, ${Math.round(selectedArea.y + selectedArea.height)}%)`}] [DIRECTIVE: ${actionText}]`;
     }
 

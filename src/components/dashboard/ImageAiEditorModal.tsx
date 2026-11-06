@@ -32,6 +32,7 @@ import {
   Layers,
   RotateCcw,
   History,
+  PlusCircle,
 } from "lucide-react";
 import type { AIImageFormat } from "@/lib/types/ai-image-general";
 
@@ -83,6 +84,14 @@ const QUICK_SUGGESTIONS = [
     isAreaAction: true,
     actionType: "erase" as const,
     template: "Remova e apague completamente o elemento localizado na área selecionada da imagem. Preencha o espaço harmonizando com a textura, iluminação e cores do fundo original.",
+  },
+  {
+    id: "insert_area",
+    icon: PlusCircle,
+    label: "Inserir Elemento na Área",
+    isAreaAction: true,
+    actionType: "insert" as const,
+    template: "Na área selecionada da imagem, insira: [DIGITE O QUE DESEJA INSERIR]. Integre o novo elemento perfeitamente com iluminação, sombras de contato, reflexos e perspectiva do cenário, sem alterar o restante da imagem.",
   },
   {
     id: "replace_area",
@@ -145,7 +154,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
 
   // Estados de Seleção de Área (Inpainting)
   const [isSelectingArea, setIsSelectingArea] = useState<boolean>(false);
-  const [areaAction, setAreaAction] = useState<"erase" | "replace" | null>(null);
+  const [areaAction, setAreaAction] = useState<"erase" | "replace" | "insert" | null>(null);
   const [selectedBox, setSelectedBox] = useState<AreaBox | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
@@ -188,11 +197,15 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
   };
 
   const updateInstructionForBox = useCallback(
-    (box: AreaBox, action: "erase" | "replace") => {
+    (box: AreaBox, action: "erase" | "replace" | "insert") => {
       const desc = getAreaDescription(box);
       if (action === "erase") {
         setInstruction(
           `Remova e apague completamente o elemento localizado na área selecionada (${desc}). Preencha o espaço de forma natural e invisível, harmonizando com a textura, iluminação e cores do fundo da imagem original.`
+        );
+      } else if (action === "insert") {
+        setInstruction(
+          `Na área selecionada (${desc}), insira: [DIGITE AQUI O QUE DESEJA ADICIONAR]. Integre o novo elemento perfeitamente à cena, respeitando perspectiva, iluminação, sombras de contato e o estilo da arte, sem alterar o restante da imagem.`
         );
       } else {
         setInstruction(
@@ -239,7 +252,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
     setInstruction("");
   };
 
-  const handleToggleAreaAction = (action: "erase" | "replace") => {
+  const handleToggleAreaAction = (action: "erase" | "replace" | "insert") => {
     setAreaAction(action);
     if (selectedBox) {
       updateInstructionForBox(selectedBox, action);
@@ -430,7 +443,7 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                   <span>
                     {selectedBox
                       ? "Área demarcada! Escolha se deseja apagar ou substituir:"
-                      : `Clique e arraste na imagem para marcar a área para ${areaAction === "erase" ? "apagar" : "substituir"}`}
+                      : `Clique e arraste na imagem para marcar a área para ${areaAction === "erase" ? "apagar" : areaAction === "insert" ? "inserir elemento" : "substituir"}`}
                   </span>
                 </div>
                 <button
@@ -485,17 +498,25 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                       className={`absolute pointer-events-none rounded border-2 border-dashed z-20 transition-all ${
                         areaAction === "erase"
                           ? "border-rose-500 bg-rose-500/25 shadow-md shadow-rose-950/40"
-                          : "border-sky-400 bg-sky-500/25 shadow-md shadow-sky-950/40"
+                          : areaAction === "insert"
+                            ? "border-emerald-500 bg-emerald-500/25 shadow-md shadow-emerald-950/40"
+                            : "border-sky-400 bg-sky-500/25 shadow-md shadow-sky-950/40"
                       }`}
                     >
                       <div
                         className={`absolute -top-6 left-0 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap flex items-center gap-1 ${
                           areaAction === "erase"
                             ? "bg-rose-600 text-white"
-                            : "bg-sky-600 text-white"
+                            : areaAction === "insert"
+                              ? "bg-emerald-600 text-white"
+                              : "bg-sky-600 text-white"
                         }`}
                       >
-                        {areaAction === "erase" ? "🗑️ Área a Apagar" : "✏️ Área a Substituir"}
+                        {areaAction === "erase"
+                          ? "🗑️ Área a Apagar"
+                          : areaAction === "insert"
+                            ? "➕ Área para Inserir"
+                            : "✏️ Área a Substituir"}
                       </div>
                     </div>
                   )}
@@ -553,6 +574,19 @@ export const ImageAiEditorModal: React.FC<ImageAiEditorModalProps> = ({
                   >
                     <Eraser className="h-3.5 w-3.5" />
                     <span>Apagar da Área</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAreaAction("insert")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                      areaAction === "insert"
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span>Inserir na Área</span>
                   </button>
 
                   <button
