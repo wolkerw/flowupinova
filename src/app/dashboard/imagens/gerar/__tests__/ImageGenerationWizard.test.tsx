@@ -324,4 +324,28 @@ describe("ImageGenerationWizard", () => {
       );
     });
   });
+  it("exibe o botão 'Assistir Vídeo Tutorial' e abre o modal explicativo do Fluxo Geral ao clicar", async () => {
+    render(<ImageGenerationWizard />);
+
+    const tutorialBtn = screen.getByRole("button", { name: /Assistir Vídeo Tutorial/i });
+    expect(tutorialBtn).toBeInTheDocument();
+
+    fireEvent.click(tutorialBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Tutorial: Como Criar Imagens com IA (Fluxo Geral)")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Aprenda o passo a passo para gerar criativos publicitários completos/i)
+      ).toBeInTheDocument();
+      expect(screen.getByText("Descreva sua Ideia & Formato")).toBeInTheDocument();
+      expect(screen.getByText("Personalize Estilo e Títulos")).toBeInTheDocument();
+      expect(screen.getByText("Gere e Aproveite")).toBeInTheDocument();
+    });
+
+    const closeBtn = screen.getByRole("button", { name: /Entendi, Vamos Começar!/i });
+    expect(closeBtn).toBeInTheDocument();
+    fireEvent.click(closeBtn);
+  });
 });
