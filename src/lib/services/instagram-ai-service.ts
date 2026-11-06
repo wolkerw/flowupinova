@@ -35,6 +35,14 @@ A NumVapt é a plataforma inteligente que automatiza o marketing digital de empr
 3. Se o cliente perguntar o valor do plano mensal, o valor é R$ 490,00/mês.
 4. Se o usuário perguntar algo que não conste nesta instrução ou na Central de Conhecimento, NÃO invente: oriente a falar com a equipe humana e passe o WhatsApp oficial: (51) 92004-4035 (link: https://wa.me/5551920044035).
 
+
+# EXEMPLOS OBRIGATÓRIOS DE RESPOSTA (FEW-SHOT):
+• Se o seguidor perguntar: "Mas quanto custa por mês?" ou "Qual o valor por mês?":
+  Resposta exata: "O plano mensal da NumVapt custa R$ 490,00/mês (sem fidelidade, você pode cancelar quando quiser). ✨ Se preferir economizar, no plano anual a cobrança é mensal no cartão por R$ 399,00/mês (sem comprometer o limite total) e você ainda ganha 1 mês bônus gratuito! Crie sua conta para testar: https://numvapt.com.br/acesso/cadastro"
+
+• Se o seguidor perguntar: "Quais são os planos?" ou "Qual o valor dos planos?":
+  Resposta exata: "Nossos planos oficiais são:\n• Plano Mensal: R$ 490,00/mês (sem fidelidade)\n• Plano Trimestral: 3x de R$ 441,00/mês (10% OFF | R$ 1.323/trimestre)\n• Plano Semestral: 6x de R$ 416,50/mês (15% OFF | R$ 2.499/semestre)\n• Plano Anual: 12x de R$ 399,00/mês (+ 1 mês grátis bônus, saindo R$ 368,30/mês)\n• Plano Tudo Pronto: R$ 699,00/mês (equipe NumVapt cria e executa tudo)\n\nTodos os planos no cartão utilizam Assinatura Mensal Recorrente, ou seja, NÃO comprometem o limite total do cartão! Crie sua conta grátis: https://numvapt.com.br/acesso/cadastro"
+
 # TOM DE VOZ NO DIRECT
 1. Seja sempre acolhedora, amigável, consultiva e direta.
 2. Não repita saudações formais a cada mensagem quando a conversa já estiver em andamento.
@@ -140,7 +148,7 @@ export async function generateInstagramAIResponse(
               },
               contents: conversationParts,
               generationConfig: {
-                temperature: 0.5, // Temperatura controlada para máxima precisão e zero alucinação
+                temperature: 0.1, // Temperatura ultrabaixa para precisão factual estrita e zero alucinação
                 maxOutputTokens: 2500,
                 responseMimeType: "application/json",
               },
@@ -156,20 +164,22 @@ export async function generateInstagramAIResponse(
 
               // GUARDA DE SAÍDA (OUTPUT GUARDRAIL / SANITIZER):
               if (parsed && typeof parsed.replyText === "string") {
-                // Bloqueia e corrige links fictícios como /planos
-                parsed.replyText = parsed.replyText.replace(
-                  /https?:\/\/[^\s]*\/planos/gi,
-                  "https://numvapt.com.br/acesso/cadastro"
-                );
+                // 1. Bloqueia e corrige links fictícios como /planos ou sem .br
+                parsed.replyText = parsed.replyText
+                  .replace(/https?:\/\/[^\s]*\/planos/gi, "https://numvapt.com.br/acesso/cadastro")
+                  .replace(/https?:\/\/numvapt\.com(?![.\w])/gi, "https://numvapt.com.br");
 
-                // Bloqueia e corrige qualquer alucinação residual de preço
-                if (
+                // 2. Bloqueia e corrige qualquer alucinação residual de preço
+                const hasInvalidPrice =
+                  /R\$\s*(?:79[,.]90|79|89|97|99|149|199|299)(?:\/mês|\s*por\s*mês)?/i.test(parsed.replyText) ||
                   parsed.replyText.includes("79,90") ||
                   parsed.replyText.includes("79.90") ||
-                  parsed.replyText.includes("79 reais")
-                ) {
+                  parsed.replyText.includes("79 reais");
+
+                if (hasInvalidPrice) {
                   console.warn("[INSTAGRAM_AI_GUARDRAIL] Preço incorreto detectado e retificado para R$ 490,00/mês.");
                   parsed.replyText = parsed.replyText
+                    .replace(/R\$\s*(?:79[,.]90|79|89|97|99|149|199|299)(?:\/mês|\s*por\s*mês)?/gi, "R$ 490,00/mês")
                     .replace(/R\$\s*79[,.]90(\/mês)?/gi, "R$ 490,00/mês")
                     .replace(/79\s*reais(\s*por\s*mês)?/gi, "R$ 490,00/mês");
                 }

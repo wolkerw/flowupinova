@@ -930,7 +930,7 @@ export default function AdminInstagramPage() {
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
                 <span className="font-bold text-slate-900 block mb-1">1. URL do Webhook da NumVapt</span>
                 <code className="rounded bg-slate-200 px-2 py-1 text-slate-900 select-all font-mono text-[11px]">
-                  https://numvapt.com/api/webhooks/instagram
+                  https://numvapt.com.br/api/webhooks/instagram
                 </code>
                 <p className="mt-1.5 text-slate-500 text-[11px]">
                   Cole essa URL no campo <strong>Callback URL</strong> do produto <em>Instagram &gt; Webhooks</em> no seu painel da Meta.
@@ -978,7 +978,7 @@ export default function AdminInstagramPage() {
                     <li>No painel do produto <strong>Instagram</strong>, abra o item <strong>"Configuração da API com login empresarial no Instagram"</strong> (App ID: <code className="font-mono bg-blue-100 px-1 rounded">1290699978892113</code>).</li>
                     <li>No item <strong className="font-semibold">2. Configure webhooks</strong>:
                       <ul className="list-disc list-inside pl-4 mt-1 space-y-0.5 text-[10.5px] text-blue-900">
-                        <li><strong>URL de callback:</strong> <code className="bg-blue-100 px-1 rounded font-mono">https://numvapt.com/api/webhooks/instagram</code> <em>(ou a URL do ngrok para testes locais)</em></li>
+                        <li><strong>URL de callback:</strong> <code className="bg-blue-100 px-1 rounded font-mono">https://numvapt.com.br/api/webhooks/instagram</code> <em>(ou a URL do ngrok para testes locais)</em></li>
                         <li><strong>Verificar token:</strong> <code className="bg-blue-100 px-1 rounded font-mono">numvapt_instagram_verify_token</code></li>
                       </ul>
                     </li>

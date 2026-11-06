@@ -121,4 +121,28 @@ describe("whatsapp-ai-service", () => {
     expect(res.needsHumanSupport).toBe(true);
     expect(res.suggestedAction).toBe("human_transfer");
   });
+  it("aplica guardrail de saída no WhatsApp para preços incorretos como R$ 97 ou link /planos", async () => {
+    const mockAiJson = JSON.stringify({
+      replyText: "O plano mensal custa R$ 97/mês no site https://numvapt.com/planos!",
+      needsHumanSupport: false,
+      suggestedAction: "plan_details",
+      planMentioned: "mensal",
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: mockAiJson }] } }],
+      }),
+    });
+
+    const res = await generateWhatsAppAIResponse({
+      incomingMessage: "Quanto custa o plano?",
+      senderName: "Carlos",
+    });
+
+    expect(res.replyText).not.toContain("97");
+    expect(res.replyText).toContain("R$ 490,00/mês");
+    expect(res.replyText).toContain("https://numvapt.com.br/acesso/cadastro");
+  });
 });

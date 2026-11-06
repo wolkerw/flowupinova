@@ -189,4 +189,37 @@ describe("Instagram AI Service", () => {
     const hasCorrupted = contents.some((c: any) => c.parts[0].text.includes("79,90"));
     expect(hasCorrupted).toBe(false);
   });
+  it("injeta exemplos few-shot de precificação no prompt e sanitiza outros preços incorretos como R$ 97 e R$ 199", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini-key";
+
+    const mockAiJson = JSON.stringify({
+      replyText: "O plano mensal custa R$ 97/mês no site https://numvapt.com/planos!",
+      needsHumanSupport: false,
+      suggestedAction: "plan_details",
+      planMentioned: "mensal",
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: mockAiJson }] } }],
+      }),
+    });
+
+    const res = await generateInstagramAIResponse({
+      incomingMessage: "Qual o valor por mês?",
+      senderName: "Luiz",
+    });
+
+    const fetchArgs = (global.fetch as any).mock.calls[0];
+    const requestBody = JSON.parse(fetchArgs[1].body);
+    const systemInstruction = requestBody.systemInstruction.parts[0].text;
+
+    expect(systemInstruction).toContain("EXEMPLOS OBRIGATÓRIOS DE RESPOSTA (FEW-SHOT)");
+    expect(systemInstruction).toContain("O plano mensal da NumVapt custa R$ 490,00/mês");
+    expect(res.replyText).not.toContain("97");
+    expect(res.replyText).toContain("R$ 490,00/mês");
+    expect(res.replyText).toContain("https://numvapt.com.br/acesso/cadastro");
+  });
 });
+

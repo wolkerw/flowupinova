@@ -38,6 +38,21 @@ Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no númer
 • *Plano Tudo Pronto (Execução VIP)*: R$ 699,00/mês (A equipe da NumVapt executa 100% da criação, postagens e campanhas, e o cliente apenas aprova na Central de Aprovações).
 • Link Oficial de Cadastro para Teste Grátis: https://numvapt.com.br/acesso/cadastro (ou Checkout Direto: https://www.asaas.com/c/2unkh9p3t6apkcvm)
 
+
+# EXEMPLOS OBRIGATÓRIOS DE ATENDIMENTO (FEW-SHOT):
+• Se o cliente perguntar: "quanto custa?" ou "quanto custa por mês?" ou "qual o valor?":
+  Resposta direta: "O *Plano Mensal* da NumVapt custa R$ 490,00/mês (sem fidelidade, você pode cancelar quando quiser). ✨ Se você optar pelo *Plano Anual*, a cobrança é mensal no cartão por R$ 399,00/mês (sem travar o limite total de crédito) e você ainda ganha o 13º mês grátis! Crie sua conta gratuita para experimentar agora mesmo: https://numvapt.com.br/acesso/cadastro"
+
+• Se o cliente perguntar sobre todos os planos:
+  Resposta: "Confira nossos planos oficiais:
+• *Plano Mensal*: R$ 490,00/mês
+• *Plano Trimestral*: 3x de R$ 441,00/mês (10% OFF | R$ 1.323/trimestre)
+• *Plano Semestral*: 6x de R$ 416,50/mês (15% OFF | R$ 2.499/semestre)
+• *Plano Anual*: 12x de R$ 399,00/mês (+ 1 mês grátis, saindo R$ 368,30/mês)
+• *Plano Tudo Pronto*: R$ 699,00/mês (equipe da NumVapt executa 100% das postagens e anúncios)
+
+Todos são cobrados na modalidade Assinatura Mensal Recorrente, sem comprometer o limite total do cartão de crédito! Você pode criar sua conta para testar: https://numvapt.com.br/acesso/cadastro"
+
 # REGRA CRÍTICA ANTI-ALUCINAÇÃO
 - NUNCA invente outros planos, preços, cupons ou URLs não oficiais (como /planos).
 - Esclareça que todos os planos no cartão utilizam Assinatura Mensal Recorrente, de modo que NÃO comprometem o limite total do cartão de crédito.
@@ -186,7 +201,7 @@ export async function generateWhatsAppAIResponse(
           },
           contents: conversationParts,
           generationConfig: {
-            temperature: 0.5,
+            temperature: 0.1, // Ultrabaixa para precisão factual estrita
             maxOutputTokens: 2500,
             thinkingConfig: {
               thinkingBudget: 150,
@@ -216,17 +231,20 @@ export async function generateWhatsAppAIResponse(
       const parsed: WhatsAppAIResponse = JSON.parse(cleaned);
 
       if (parsed && typeof parsed.replyText === "string") {
-        parsed.replyText = parsed.replyText.replace(
-          /https?:\/\/[^\s]*\/planos/gi,
-          "https://numvapt.com.br/acesso/cadastro"
-        );
-        if (
+        parsed.replyText = parsed.replyText
+          .replace(/https?:\/\/[^\s]*\/planos/gi, "https://numvapt.com.br/acesso/cadastro")
+          .replace(/https?:\/\/numvapt\.com(?![.\w])/gi, "https://numvapt.com.br");
+
+        const hasInvalidPrice =
+          /R\$\s*(?:79[,.]90|79|89|97|99|149|199|299)(?:\/mês|\s*por\s*mês)?/i.test(parsed.replyText) ||
           parsed.replyText.includes("79,90") ||
           parsed.replyText.includes("79.90") ||
-          parsed.replyText.includes("79 reais")
-        ) {
+          parsed.replyText.includes("79 reais");
+
+        if (hasInvalidPrice) {
           console.warn("[WHATSAPP_AI_GUARDRAIL] Preço incorreto detectado e retificado para R$ 490,00/mês.");
           parsed.replyText = parsed.replyText
+            .replace(/R\$\s*(?:79[,.]90|79|89|97|99|149|199|299)(?:\/mês|\s*por\s*mês)?/gi, "R$ 490,00/mês")
             .replace(/R\$\s*79[,.]90(\/mês)?/gi, "R$ 490,00/mês")
             .replace(/79\s*reais(\s*por\s*mês)?/gi, "R$ 490,00/mês");
         }
