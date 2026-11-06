@@ -461,7 +461,31 @@ describe("Image Orchestrator Suite", () => {
       expect(planResult.compiledImagePrompt).toContain("top-right");
     });
 
-    it("calcula corretamente a próxima posição a partir do histórico (getNextLogoPlacement)", () => {
+    it("aplica perfis criativos e tipográficos específicos para cada um dos 6 objetivos da Etapa 3 (/objectivelayout)", () => {
+      const objectives = ["commercial", "social", "ad", "presentation", "concept", "thumbnail"];
+      for (const obj of objectives) {
+        const mandate = Gpt5PromptPlanner.buildObjectiveCreativeMandate({
+          userBrief: "Teste de objetivo",
+          objective: obj as any,
+          format: "portrait",
+          width: 1080,
+          height: 1350,
+          quantity: 1,
+          stylePreference: "photographic",
+          useBrandKit: true,
+        });
+        expect(mandate).toContain("/objectivelayout");
+        expect(mandate).toContain("BrandKit typeface family");
+      }
+      expect(
+        Gpt5PromptPlanner.buildObjectiveCreativeMandate({ objective: "commercial" } as any)
+      ).toContain("COMMERCIAL HERO PRODUCT");
+      expect(
+        Gpt5PromptPlanner.buildObjectiveCreativeMandate({ objective: "presentation" } as any)
+      ).toContain("EXECUTIVE AUTHORITY");
+    });
+
+        it("calcula corretamente a próxima posição a partir do histórico (getNextLogoPlacement)", () => {
       expect(Gpt5PromptPlanner.getNextLogoPlacement(undefined).id).toBe("top-left");
       expect(Gpt5PromptPlanner.getNextLogoPlacement("top-left").id).toBe("top-right");
       expect(Gpt5PromptPlanner.getNextLogoPlacement("top-right").id).toBe("top-center");

@@ -225,8 +225,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (objective === "thumbnail") {
-      compiledPrompt += " [OBJETIVO VISUAL: THUMB DE ALTA PERFORMANCE — Capa de vídeo extremamente chamativa, magnética e de alto CTR para YouTube, Reels e TikTok. Ponto focal marcante, expressões fortes, contraste vibrante e composição irresistível para atrair cliques imediatos.]";
+    const objectiveCreativeMap: Record<string, string> = {
+      commercial: " [OBJETIVO VISUAL: VITRINE FLAGSHIP & HERO PRODUCT EDITORIAL (Vender Produto) — Fotografia publicitária de desejo com foco tátil no produto/entregável em seu habitat real. PROIBIDO aspecto de panfleto tradicional ou título engessado sempre no topo: explore diagramação de campanha internacional (terço inferior cinematográfico, profundidade 3D atrás do produto, moldura em L ou split-column) priorizando 100% as fontes do BrandKit.]",
+      social: " [OBJETIVO VISUAL: EDITORIAL LIFESTYLE & SCROLL-STOPPING DE FEED (Post para Redes) — Estética de revista contemporânea e conexão autêntica que interrompe o scroll no Instagram/LinkedIn. Título integrado com liberdade espacial (camada de profundidade 3D estilo capa Time/GQ atrás dos ombros, eixo lateral vertical a 90° ou âncora assimétrica) priorizando 100% as fontes do BrandKit.]",
+      ad: " [OBJETIVO VISUAL: CAMPANHA DE ALTA CONVERSÃO & IMPACTO PUBLICITÁRIO (Anúncio / Oferta) — Alta energia visual, ponto focal magnético e hierarquia de leitura instantânea para tráfego pago. Use arquitetura ousada de títulos (tarja/pill geométrico sólido invertido nas cores da marca, pôster monumental big-type ou contraste extremo de escala) mantendo 100% a anatomia das fontes do BrandKit.]",
+      presentation: " [OBJETIVO VISUAL: AUTORIDADE EXECUTIVA CONTEMPORÂNEA & KEY VISUAL DE MARCA (Empresa & Serviços) — Credibilidade e sofisticação dignas de capa da Forbes e Architectural Digest no habitat real do negócio. PROIBIDO layout corporativo careta ou monótono: aplique diagramação editorial nobre (terço inferior com barra vertical de acento, capa de luxo com tracking refinado ou duas colunas assimétricas) com as fontes oficiais do BrandKit.]",
+      institutional: " [OBJETIVO VISUAL: AUTORIDADE EXECUTIVA CONTEMPORÂNEA & KEY VISUAL DE MARCA (Empresa & Serviços) — Credibilidade e sofisticação dignas de capa da Forbes e Architectural Digest no habitat real do negócio. PROIBIDO layout corporativo careta ou monótono: aplique diagramação editorial nobre com as fontes oficiais do BrandKit.]",
+      concept: " [OBJETIVO VISUAL: DIREÇÃO DE ARTE CONCEITUAL PREMIADA CANNES LIONS (Conceito Criativo) — Liberdade artística e poética máxima, metáfora visual surpreendente e iluminação dramática dual-tone. O título interage como obra gráfica viva na cena (tipografia espacial 3D na luz volumétrica, profundidade entre planos ou pôster monumental) fiel às fontes do BrandKit.]",
+      creative: " [OBJETIVO VISUAL: DIREÇÃO DE ARTE CONCEITUAL PREMIADA CANNES LIONS (Conceito Criativo) — Liberdade artística e poética máxima, metáfora visual surpreendente e iluminação dramática dual-tone com título integrado espacialmente usando as fontes do BrandKit.]",
+      thumbnail: " [OBJETIVO VISUAL: THUMB DE ALTA PERFORMANCE — Capa de vídeo extremamente chamativa, magnética e de alto CTR para YouTube, Reels e TikTok. Ponto focal marcante, expressões fortes, contraste vibrante, título colossal de leitura instantânea (com tarja sólida ou profundidade 3D) nas fontes do BrandKit e composição irresistível para atrair cliques imediatos.]",
+    };
+    if (objective && objectiveCreativeMap[objective]) {
+      compiledPrompt += objectiveCreativeMap[objective];
     }
 
     // 3.2. Integração do BrandKit & Personas da Marca no Prompt

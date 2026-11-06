@@ -23,7 +23,7 @@ Você deve analisar o briefing, as diretrizes de marca (BrandKit), o objetivo e 
 
 DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
 1. O prompt gerado para o gpt-image-2 deve ser rico, minucioso e estruturado em 10 blocos:
-   [1. INTENDED GOAL]: Objetivo comercial/editorial claro.
+   [1. INTENDED GOAL]: Objetivo comercial/editorial claro e personalidade de direção de arte conforme a Etapa 3 (Vender Produto, Post para Redes, Anúncio/Oferta, Empresa & Serviços, Conceito Criativo ou Thumb de Alta Performance). REGRA ANTI-VIÉS CONSERVADOR: Mesmo quando o objetivo for "commercial" (Vender Produto), "presentation" (Empresa & Serviços) ou "ad" (Anúncio/Oferta), é TERMINANTEMENTE PROIBIDO adotar um layout engessado, careta ou com título sempre reto e centralizado no topo! Todos os objetivos devem exibir direção de arte ousada de agência internacional e liberdade espacial de títulos (/typolayout), priorizando 100% as fontes do BrandKit (/fontlock).
    [2. SCENE & CONTEXT]: Descrição do ambiente publicitário, iluminação e atmosfera.
    [3. HERO SUBJECT]: Detalhes fiéis do sujeito, produto ou logomarca principal. Se o usuário enviou imagem na Etapa 5, examine a imagem anexada com atenção extrema:
    - Se for PESSOA: descreva com precisão as características físicas (idade, gênero, etnia, cabelo, traços, roupas).
@@ -322,6 +322,75 @@ REGRAS DE CONFORMIDADE:
     if (!input.textOverlayMode || input.textOverlayMode === "NONE") return "";
     const selectedStyle = style || this.selectDynamicTypographyStyle(input);
     return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}. MANDATE: Avoid repetitive generic formulas; craft a distinctive, bespoke editorial title layout tailored to the brief while maintaining 100% legibility and safe margins.]`;
+  }
+
+  public static readonly OBJECTIVE_CREATIVE_PROFILES: Record<
+    string,
+    { labelPt: string; directivePt: string; mandateEn: string }
+  > = {
+    commercial: {
+      labelPt: "Vender Produto (Vitrine Flagship de Desejo & Hero Product Editorial)",
+      directivePt:
+        "Foco em desejo imediato pelo produto/entregável com fotografia de vitrine internacional. PROIBIDO criar layout de panfleto comum ou travar o título no topo: posicione a tipografia do BrandKit de forma autoral (terço inferior cinematográfico, profundidade 3D atrás do produto, moldura em L ou duas colunas) valorizando a presença física do produto.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — COMMERCIAL HERO PRODUCT): Craft a flagship desire-driven product showcase with tactile lighting. Strictly avoid generic supermarket flyer layouts or repetitive top-centered titles; deploy bold spatial title placement (lower-third, 3D midground depth behind product, L-frame, or split-column) strictly using the BrandKit typeface family.]",
+    },
+    social: {
+      labelPt: "Post para Redes (Editorial Lifestyle & Scroll-Stopping de Feed)",
+      directivePt:
+        "Estética de revista contemporânea e conexão humana autêntica que interrompe o scroll no Instagram/LinkedIn. Integre o título com ritmo editorial moderno (camada de profundidade 3D estilo capa Time/GQ atrás dos ombros, eixo lateral vertical a 90° + headline ou cantos opostos), priorizando 100% as fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — SOCIAL SCROLL-STOPPING EDITORIAL): Design a contemporary magazine-worthy social feed visual with authentic human connection and dynamic editorial title architecture (3D magazine-cover depth behind subject shoulders, 90-degree vertical sidebar axis, or asymmetric corner anchor) strictly using the BrandKit typeface family.]",
+    },
+    ad: {
+      labelPt: "Anúncio / Oferta (Campanha de Alta Conversão & Impacto Publicitário)",
+      directivePt:
+        "Alta energia visual, ponto focal magnético e leitura instantânea em 1 segundo para tráfego pago. Aplique arquitetura tipográfica de alto impacto (palavra-chave em tarja/pill geométrico sólido invertido nas cores da marca, pôster monumental big-type ou contraste extremo de escala), mantendo 100% a anatomia das fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — HIGH-CONVERSION AD CAMPAIGN): Engineer an immediate-impact paid-traffic visual hook with high-contrast focal energy and punchy title architecture (solid inverted brand-colored pill/tag highlight, monumental big-type poster scale, or asymmetric split hierarchy) strictly using the BrandKit typeface family.]",
+    },
+    presentation: {
+      labelPt: "Empresa & Serviços (Autoridade Executiva Contemporânea & Key Visual de Marca)",
+      directivePt:
+        "Credibilidade, solidez e inovação dignas de capa da Forbes, Monocle e Architectural Digest no habitat real do negócio. PROIBIDO viés corporativo careta, monótono ou título estático no topo: aplique diagramação editorial nobre (terço inferior com barra vertical de acento, capa de luxo com tracking refinado ou duas colunas assimétricas) com as fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — EXECUTIVE AUTHORITY & BRAND KEY VISUAL): Project prestigious Forbes/Architectural Digest editorial authority in an authentic workspace. Strictly forbid stiff, boring corporate banner layouts; structure the title with refined architectural grid precision (cinematic lower-third with vertical accent rule, luxury tracked masthead, or split-column editorial) strictly using the BrandKit typeface family.]",
+    },
+    institutional: {
+      labelPt: "Empresa & Serviços (Autoridade Executiva Contemporânea & Key Visual de Marca)",
+      directivePt:
+        "Credibilidade, solidez e inovação dignas de capa da Forbes e Architectural Digest no habitat real do negócio, sem viés corporativo engessado, priorizando as fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — EXECUTIVE AUTHORITY & BRAND KEY VISUAL): Project prestigious Forbes/Architectural Digest editorial authority with refined architectural title grid precision strictly using the BrandKit typeface family.]",
+    },
+    concept: {
+      labelPt: "Conceito Criativo (Direção de Arte Conceitual Premiada Cannes Lions / D&AD)",
+      directivePt:
+        "Liberdade artística e poética máxima, metáfora visual surpreendente e iluminação dramática dual-tone. O título deve atuar como parte viva e tridimensional da obra (tipografia espacial 3D interagindo com a luz volumétrica da cena, profundidade entre planos ou pôster monumental) fiel às fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — CANNES LIONS CONCEPTUAL ART DIRECTION): Unleash maximum conceptual storytelling, visual metaphor, and dramatic dual-tone lighting, integrating the BrandKit typeface family spatially as a living 3D graphic element within the scene's depth and volumetric light.]",
+    },
+    creative: {
+      labelPt: "Conceito Criativo (Direção de Arte Conceitual Premiada Cannes Lions / D&AD)",
+      directivePt:
+        "Liberdade artística e poética máxima com metáfora visual surpreendente e título integrado espacialmente à cena usando as fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — CANNES LIONS CONCEPTUAL ART DIRECTION): Unleash maximum conceptual storytelling and integrate the BrandKit typeface family spatially within the scene's depth and volumetric light.]",
+    },
+    thumbnail: {
+      labelPt: "Thumb de Alta Performance (Capa Magnética de Alto CTR para YouTube / Reels / TikTok)",
+      directivePt:
+        "Composição magnética de altíssimo CTR com foco dramático na expressão/sujeito, contraste extremo e título colossal de leitura instantânea em telas móveis (com tarja sólida de contraste ou profundidade 3D atrás do sujeito), fiel às fontes do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — HIGH-CTR VIDEO THUMBNAIL): Dynamic magnetic video cover composition with dramatic high-contrast lighting, intense subject focus, vibrant color contrast, and colossal instant-read BrandKit typeface family (with solid contrast badge or 3D midground depth) for maximum click-through rate.]",
+    },
+  };
+
+  public static buildObjectiveCreativeMandate(input: Gpt5PlannerInput): string {
+    const objKey = (input?.objective || "commercial").toLowerCase();
+    const profile =
+      this.OBJECTIVE_CREATIVE_PROFILES[objKey] || this.OBJECTIVE_CREATIVE_PROFILES.commercial;
+    return profile.mandateEn;
   }
 
 
@@ -719,6 +788,15 @@ NENHUMA logomarca oficial foi fornecida. É TERMINANTEMENTE PROIBIDO inventar, d
         ].filter(Boolean).join("\n")
       : "";
 
+    const objKey = (input.objective || "commercial").toLowerCase();
+    const objProfile =
+      this.OBJECTIVE_CREATIVE_PROFILES[objKey] || this.OBJECTIVE_CREATIVE_PROFILES.commercial;
+    const objectiveCreativeSection = `
+DIRETRIZ CRIATIVA E TIPOGRÁFICA DO OBJETIVO SELECIONADO NA ETAPA 3 (/objectivelayout):
+- Objetivo Selecionado: ${objProfile.labelPt}
+- Diretriz de Cena e Título: ${objProfile.directivePt}
+- REGRA ANTI-VIÉS CONSERVADOR: Independentemente do objetivo escolhido, NUNCA gere um layout engessado com título sempre reto e centralizado no topo! Combine a personalidade deste objetivo com o Arquétipo Tipográfico Sorteado abaixo, priorizando 100% as fontes do BrandKit.`;
+
     const dynamicTypo = input.textOverlayMode && input.textOverlayMode !== "NONE"
       ? this.selectDynamicTypographyStyle(input)
       : null;
@@ -747,6 +825,7 @@ PARÂMETROS DE PRODUÇÃO:
 
 ${brandSection}
 ${referencesSection}
+${objectiveCreativeSection}
 ${creativeDirectionSection}
 ${typographySection}
 DIRETRIZES DE AGÊNCIA DE ELITE & ANATOMIA DE MÃOS (/handlock & /agencystudio):
@@ -851,6 +930,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         const typoMandate = this.buildDynamicTypographyMandate(input);
         if (typoMandate && !prompt.includes("/typolayout")) {
           prompt += ` ${typoMandate}`;
+        }
+        const objMandate = this.buildObjectiveCreativeMandate(input);
+        if (objMandate && !prompt.includes("/objectivelayout")) {
+          prompt += ` ${objMandate}`;
         }
         const antiClicheMandate = this.buildAntiClicheCreativeMandate(input);
         if (antiClicheMandate && !prompt.includes("/anticliche")) {
@@ -1066,6 +1149,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (typoMandate && !p.includes("/typolayout")) {
         p += ` ${typoMandate}`;
       }
+      const objMandate = this.buildObjectiveCreativeMandate(input);
+      if (objMandate && !p.includes("/objectivelayout")) {
+        p += ` ${objMandate}`;
+      }
       const fallbackConcept = this.selectArtDirectionConcept(input);
       const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
       if (antiCliche && !p.includes("/anticliche")) {
@@ -1089,7 +1176,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
 
     const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
-    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${this.buildObjectiveCreativeMandate(input)} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {

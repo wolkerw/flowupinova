@@ -55,12 +55,21 @@ export async function POST(request: NextRequest) {
           const primaryColor = data?.primaryColor || bk?.primaryColor;
           const secondaryColor = data?.secondaryColor || bk?.secondaryColor;
           const guidelines = bk?.visualGuidelines;
+          const fonts = bk?.fonts;
+          const fontInfo = fonts && (fonts.primaryFont || fonts.secondaryFont || fonts.style)
+            ? [
+                fonts.primaryFont ? `Primária (Títulos): "${fonts.primaryFont}"` : "",
+                fonts.secondaryFont ? `Secundária (Apoio): "${fonts.secondaryFont}"` : "",
+                fonts.style ? `Estilo: "${fonts.style}"` : "",
+              ].filter(Boolean).join(" | ")
+            : "Sans-serif geométrica moderna";
 
           brandContext = `
 Dados da Marca / Negócio do Usuário:
 - Nome: ${name || "Não informado"}
 - Segmento: ${segment || "Não informado"}
 - Cores da marca: Primária ${primaryColor || "N/A"}, Secundária ${secondaryColor || "N/A"}
+- Tipografia Oficial do BrandKit (Prioridade Máxima): ${fontInfo}
 - Diretrizes Visuais: ${guidelines || "N/A"}
 `;
         }
@@ -112,8 +121,8 @@ Parâmetros do Pedido:
 
 REGRAS RÍGIDAS DE DIREÇÃO VISUAL:
 1. Responda em Português do Brasil de forma clara, estética e profissional.
-2. Se o modo de texto for INFOGRAPHIC ou BOTH, planeje a cena como um cartaz publicitário comercial de agência, com espaço para headline no topo, selo de qualidade, cards com ícones de diferenciais e rodapé de slogan, com margem segura de respiro de 20%.
-3. Se o modo de texto for TITLE_ONLY, planeje espaço harmônico no topo para tipografia de headline comercial nítida.
+2. Se o modo de texto for INFOGRAPHIC ou BOTH, planeje a cena como uma peça publicitária autoral de agência premiada (a cena fotográfica deve dominar 70-75% da arte), com zonas negativas dinâmicas para o título (NÃO engesse sempre no topo — varie entre terço inferior cinematográfico, camada de profundidade 3D atrás dos ombros do sujeito, moldura em 'L' em cantos opostos, split em duas colunas, eixo lateral vertical ou topo monumental) e callouts glassmorphic concisos, priorizando 100% as fontes do BrandKit e margem segura de 20%.
+3. Se o modo de texto for TITLE_ONLY, planeje uma composição com liberdade criativa espacial para o título (evitando repetir sempre o mesmo bloco no topo — explore terço inferior cinematográfico, profundidade 3D estilo capa de revista atrás do sujeito, âncora assimétrica em cantos opostos, lateral vertical ou pôster monumental), priorizando rigorosamente a família tipográfica oficial do BrandKit.
 4. Se o modo de texto for NONE, a composição deve ser puramente fotográfica sem textos.
 5. Não invente certificações falsas ou preços não citados.
 6. Se o briefing for ambíguo, gere até 2 variações adicionais no array "alternativeDirections".
@@ -197,7 +206,7 @@ REGRAS RÍGIDAS DE DIREÇÃO VISUAL:
     const fallbackDirection: VisualDirectionResponse = {
       interpretation: `Criação visual para "${brief}" com foco em qualidade publicitária e estética profissional.`,
       subject: brief,
-      composition: "Composição harmônica centralizada com respiro e margens seguras de 20%.",
+      composition: "Composição editorial dinâmica com zonas de respiro versáteis para tipografia (terço inferior, plano médio 3D ou cantos opostos) e margens seguras de 20%.",
       lighting: "Iluminação suave difusa de estúdio com destaque no sujeito principal.",
       style: style === "automatic" ? "Fotografia contemporânea de alta resolução" : style,
       brandApplication: useBrandKit
