@@ -569,7 +569,9 @@ describe("Image Orchestrator Suite", () => {
       expect(s2.id).not.toBe(s3.id);
 
       const styles = Gpt5PromptPlanner.DYNAMIC_TYPOGRAPHY_STYLES;
-      expect(styles.length).toBe(10);
+      expect(styles.length).toBe(12);
+      expect(styles.some((s) => s.id === "floating_depth_interlocking")).toBe(true);
+      expect(styles.some((s) => s.id === "swiss_minimalist_grid")).toBe(true);
       expect(styles.some((s) => s.id === "display_monumental_poster")).toBe(true);
       expect(styles.some((s) => s.id === "magazine_depth_layering")).toBe(true);
       expect(styles.some((s) => s.id === "cinematic_lower_third_hero")).toBe(true);

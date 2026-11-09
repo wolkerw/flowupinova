@@ -74,7 +74,7 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
 - Se textOverlayMode for NONE: Instruir ZERO TEXT, fotografia conceitual pura sem letras ou legendas.
 - Se textOverlayMode for TITLE_ONLY ou INFOGRAPHIC (ou BOTH):
   Você NÃO deve aplicar uma fórmula mecânica e previsível a todos os títulos! Atue como um Diretor de Arte Tipográfico Sênior e surpreenda com composições visuais variadas, autorais e ricas:
-  1. DIVERSIDADE DE ARQUITETURAS E LAYOUTS ESPACIAIS DE TÍTULOS (PRIORIZANDO AS FONTES DO BRANDKIT):
+  1. DIVERSIDADE DE ARQUITETURAS E LAYOUTS ESPACIAIS DE TÍTULOS (12 ARQUÉTIPOS COM PRIORIDADE TOTAL ÀS FONTES DO BRANDKIT):
      - Priorize rigorosamente a família tipográfica oficial do BrandKit (/fontlock), mas exercite LIBERDADE TOTAL na geometria, posicionamento e arquitetura espacial do layout do título para nunca gerar artes monótonas ou sempre no mesmo bloco horizontal:
        a) Pôster Monumental Big-Type: Headline de grande escala display ocupando a área superior ou lateral com presença imponente, contraste extremo entre palavra-chave colossal e linha de apoio compacta;
        b) Profundidade 3D Estilo Capa de Revista (Magazine Depth Layering): Headline monumental posicionada na camada de plano médio, passando sutilmente por trás do topo dos ombros/cabeça do protagonista ou produto em primeiro plano (efeito Time / GQ / Vogue), mantendo 100% de leitura das palavras;
@@ -85,7 +85,9 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
        g) Card Glassmorphic & Badges Flutuantes: Cartão translúcido de vidro fosco (25% opacidade, borda fina neon 1px) contendo tópicos com ícones circulares e badges em cápsula;
        h) Tipografia Espacial Integrada: Letras interagindo volumetricamente com a perspectiva, luz de recorte e profundidade do ambiente;
        i) Diagramação Split em Duas Colunas: Palavra-líder gigante à esquerda separada por divisor vertical neon de 2px de um bloco compacto de subtítulo à direita;
-       j) Assinatura Lateral Vertical + Headline de Impacto (Vertical Sidebar Editorial): Rótulo editorial rotacionado a 90° acompanhando a margem lateral combinado com a headline principal horizontal de alto impacto.
+       j) Assinatura Lateral Vertical + Headline de Impacto (Vertical Sidebar Editorial): Rótulo editorial rotacionado a 90° acompanhando a margem lateral combinado com a headline principal horizontal de alto impacto;
+        k) Entrelaçamento Espacial 3D em Profundidade (Spatial Depth Interlocking): Título interagindo volumetricamente entre planos, passando sutilmente por trás de ombros ou produtos com sombras de contato realistas;
+        l) Grid Contemporâneo Suíço (Swiss Editorial / Neue Grafik): Grid arquitetônico assimétrico minimalista, contraste colossal de escala e generoso respiro de espaço negativo.
   2. LIBERDADE CROMÁTICA E ELIMINAÇÃO DA FÓRMULA RÍGIDA DE 2 CORES:
      - É expressamente PERMITIDO e INCENTIVADO variar os esquemas de cores dos títulos:
        * Título Monocromático Nobre: 100% Branco Puro com sombra suave em cenas escuras, ou Preto Grafite em fundos claros;
@@ -256,7 +258,7 @@ REGRAS DE CONFORMIDADE:
     {
       id: "editorial_luxury_magazine",
       labelPt: "Capa Editorial de Luxo & All-Caps Expandido (Elegância Minimalista com Tracking Largo)",
-      weightHierarchyEn: "Refined editorial hierarchy: All-caps BrandKit lettering with generous letter-spacing (wide tracking), elegant Medium weight, paired with an understated, ultra-clean subline",
+      weightHierarchyEn: "Refined editorial hierarchy: High-contrast all-caps BrandKit lettering in Bold (700 weight) with generous letter-spacing (wide tracking), paired with an understated, ultra-clean Regular/Medium subline",
       colorHarmonyEn: "Noble warm pearl & platinum: Pristine warm pearl white (#FFFDF8) and soft silver-grey (#E2E8F0) typography for pure high-end luxury sophistication",
       containerAndFrameEn: "Framing & space: Pure architectural negative space, generous margins (22%), delicate 1px hairline rule accent, and impeccable editorial magazine masthead balance",
       fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Luxury Magazine Masthead & All-Caps): Render an ultra-refined luxury editorial title using the BrandKit typeface with widely-tracked all-caps lettering in noble pearl white (#FFFDF8) and a delicate 1px hairline divider.",
@@ -301,6 +303,22 @@ REGRAS DE CONFORMIDADE:
       containerAndFrameEn: "Framing & space: Contemporary design-magazine grid combining a vertical margin axis line with an asymmetric horizontal display block",
       fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Vertical Sidebar Axis & Display Headline): Create a contemporary agency grid using the BrandKit typeface: pair a sleek 90-degree rotated vertical editorial eyebrow/tag along the safe side margin with a bold, high-contrast horizontal main headline.",
     },
+    {
+      id: "floating_depth_interlocking",
+      labelPt: "Entrelaçamento Espacial 3D em Profundidade (Palavras Interagindo em Camadas com o Sujeito e Elementos de Cena)",
+      weightHierarchyEn: "Multi-depth typographic weaving: Headline split into dynamic spatial tiers using the BrandKit typeface family, where key punchline words weave between the hero subject, rim lights, and atmospheric particles without sacrificing legibility",
+      colorHarmonyEn: "Atmospheric depth lighting: Crisp Pure White (#FFFFFF) letterforms catching directional studio lighting and colored rim glows with authentic contact drop shadows",
+      containerAndFrameEn: "Framing & space: Organic 3D depth integration weaving seamlessly around the hero subject while preserving a generous 20% safe margin from all outer borders",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Interlocking & Depth Weaving): Create an award-winning editorial poster where the BrandKit headline weaves organically through the scene's spatial planes (Time/GQ cover depth and physical scene interaction), interacting naturally with depth of field and ambient lighting with 100% legibility.",
+    },
+    {
+      id: "swiss_minimalist_grid",
+      labelPt: "Grid Contemporâneo Suíço & Diagramação Assimétrica (Swiss Editorial Design / Neue Grafik)",
+      weightHierarchyEn: "Pure Swiss editorial hierarchy: High-contrast geometric BrandKit typography structured on a clean asymmetric grid, pairing a monumental bold title block with generous negative space and micro-tracked metadata",
+      colorHarmonyEn: "Noble minimalist palette: Pure White (#FFFFFF) or Deep Charcoal typography paired with a single Brand Accent element (#FA6305 or #0083C7) and subtle 1px architectural hairline dividers",
+      containerAndFrameEn: "Framing & space: Strict architectural alignment, generous asymmetrical negative space (at least 25% open breathing room), and impeccable 20% safe margins",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Contemporary Swiss Grid / Neue Grafik): Render a sophisticated, design-magazine worthy title layout using the BrandKit typeface, leveraging bold scale contrast, clean asymmetric alignment, and luxurious negative space for ultimate editorial elegance.",
+    },
   ];
 
   private static typographyStyleCursor = 0;
@@ -321,7 +339,12 @@ REGRAS DE CONFORMIDADE:
   ): string {
     if (!input.textOverlayMode || input.textOverlayMode === "NONE") return "";
     const selectedStyle = style || this.selectDynamicTypographyStyle(input);
-    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}. MANDATE: Avoid repetitive generic formulas; craft a distinctive, bespoke editorial title layout tailored to the brief while maintaining 100% legibility and safe margins.]`;
+    const brandFonts = input.brandKit?.fonts;
+    const fontLockDirective =
+      brandFonts && (brandFonts.primaryFont || brandFonts.secondaryFont || brandFonts.style)
+        ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Adhere 100% to the official BrandKit typeface anatomy (Primary Title Font: "${brandFonts.primaryFont || 'Clean Geometric Sans-Serif Bold'}", Secondary Body: "${brandFonts.secondaryFont || 'Clean Geometric Sans-Serif Regular'}", Style: "${brandFonts.style || 'Clean corporate sans-serif'}") — zero serifs, zero font mixing across the same headline; establish hierarchy exclusively through weight (Normal vs ExtraBold/Black) and scale.`
+        : "";
+    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}.${fontLockDirective} MANDATE — MAXIMUM TITLE LAYOUT DESIGN FREEDOM: Avoid repetitive generic formulas; liberate the title layout from monotonous top-centered banners! Freely innovate with lower-third hero anchoring, 3D magazine depth layering behind shoulders, asymmetric L-frames, split columns, or solid brand-colored pills, while maintaining 100% legibility and 20% safe margins.]`;
   }
 
   public static readonly OBJECTIVE_CREATIVE_PROFILES: Record<
