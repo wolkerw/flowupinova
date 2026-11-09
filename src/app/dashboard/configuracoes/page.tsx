@@ -1,3 +1,4 @@
+import type { BrandBookData } from "@/lib/types/brandbook";
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -1127,6 +1128,7 @@ export default function ConfiguracoesPage() {
     visualGuidelines: string;
     personas: OnboardingPersona[];
     description: string;
+    brandBook?: BrandBookData;
   }) => {
     setPrimaryColor(data.primaryColor);
     setSecondaryColor(data.secondaryColor);
@@ -1166,11 +1168,13 @@ export default function ConfiguracoesPage() {
           targetAudience: data.targetAudience,
           mainBenefits: data.mainBenefits,
           description: description || data.description,
+          brandBook: data.brandBook || profile?.brandBook || null,
           brandKit: {
             ...profile?.brandKit,
             primaryColor: data.primaryColor,
             secondaryColor: data.secondaryColor,
             visualGuidelines: data.visualGuidelines,
+            brandBook: data.brandBook || profile?.brandKit?.brandBook || null,
             fonts: {
               primaryFont: data.primaryFont,
               secondaryFont: data.secondaryFont,
@@ -2697,6 +2701,7 @@ export default function ConfiguracoesPage() {
             website={website}
             currentBrandName={name}
             currentSegment={category}
+            initialBrandBook={profile?.brandBook || profile?.brandKit?.brandBook || null}
             onApplyToBrain={handleApplyBrandBookToBrain}
           />
         </TabsContent>

@@ -57,11 +57,13 @@ interface BrandBookGeneratorTabProps {
     visualGuidelines: string;
     personas: OnboardingPersona[];
     description: string;
+    brandBook?: BrandBookData;
   }) => Promise<void>;
   currentBrandName?: string;
   currentSegment?: string;
   userId?: string;
   website?: string;
+  initialBrandBook?: BrandBookData | null;
 }
 
 export function BrandBookGeneratorTab({
@@ -70,6 +72,7 @@ export function BrandBookGeneratorTab({
   currentSegment = "",
   userId = "",
   website = "",
+  initialBrandBook = null,
 }: BrandBookGeneratorTabProps) {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
   const [syncWithSettings, setSyncWithSettings] = useState(true);
@@ -96,7 +99,14 @@ export function BrandBookGeneratorTab({
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState(1);
-  const [brandBook, setBrandBook] = useState<BrandBookData | null>(null);
+  const [brandBook, setBrandBook] = useState<BrandBookData | null>(initialBrandBook || null);
+  const [showGenerateForm, setShowGenerateForm] = useState(!initialBrandBook);
+
+  React.useEffect(() => {
+    if (initialBrandBook) {
+      setBrandBook(initialBrandBook);
+    }
+  }, [initialBrandBook]);
   const [isApplying, setIsApplying] = useState(false);
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
   const [identifiedCompetitors, setIdentifiedCompetitors] = useState<string[]>([]);
@@ -233,6 +243,7 @@ export function BrandBookGeneratorTab({
         visualGuidelines: `${brandBook.direcaoDeArteEFotografia.direcaoFotografia}\n\nDiretrizes IA: ${brandBook.direcaoDeArteEFotografia.diretrizesParaImagensIA}`,
         personas: mappedPersonas,
         description: brandBook.posicionamento.propostaDeValor || brandBook.fundamentos.missao,
+        brandBook: brandBook,
       });
 
       toast({
@@ -264,7 +275,51 @@ export function BrandBookGeneratorTab({
 
   return (
     <div className="space-y-8">
+      {/* Banner de Brand Book Salvo e Ativo */}
+      {brandBook && !showGenerateForm && (
+        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/60 via-white to-slate-50 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 shadow-sm">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200/60">
+                      <Check className="h-3 w-3" /> Brand Book Ativo no Cérebro do Negócio
+                    </span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      • {brandBook.meta?.generatedAt || "Versão Homologada"}
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900 mt-1">
+                    {brandBook.meta?.brandName || "Sua Marca"} • Manual Estratégico Oficial
+                  </h2>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Todas as 12 seções estratégicas estão salvas na sua conta e disponíveis abaixo para consulta, impressão e cópia de slogans e mensagens.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowGenerateForm(true)}
+                  className="text-xs font-semibold gap-1.5 border-slate-300 hover:bg-slate-100"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Gerar Nova Versão com IA
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Card de Apresentação e Upload */}
+      {(!brandBook || showGenerateForm) && (
       <Card className="border-blue-100 bg-gradient-to-br from-blue-50/40 via-white to-slate-50 shadow-md">
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -478,26 +533,40 @@ export function BrandBookGeneratorTab({
             )}
           </div>
 
-          <Button
-            type="button"
-            onClick={handleGenerateBrandBook}
-            disabled={!logoPreview || isGenerating}
-            className="w-full sm:w-auto bg-primary text-white shadow-md hover:bg-primary/90 h-11 px-6 font-semibold"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Gerando Brand Book...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Gerar Brand Book Completo
-              </>
+          <div className="flex items-center gap-2">
+            {brandBook && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowGenerateForm(false)}
+                disabled={isGenerating}
+                className="h-11 px-4 text-xs font-semibold border-slate-300 hover:bg-slate-100"
+              >
+                Voltar e Ver Brand Book Atual
+              </Button>
             )}
-          </Button>
+            <Button
+              type="button"
+              onClick={handleGenerateBrandBook}
+              disabled={!logoPreview || isGenerating}
+              className="w-full sm:w-auto bg-primary text-white shadow-md hover:bg-primary/90 h-11 px-6 font-semibold"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Gerando Brand Book...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Gerar Brand Book Completo
+                </>
+              )}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
+      )}
 
       {/* Stepper de Progresso quando está gerando */}
       {isGenerating && (

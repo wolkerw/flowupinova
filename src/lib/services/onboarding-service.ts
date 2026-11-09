@@ -1,3 +1,4 @@
+import type { BrandBookData } from "@/lib/types/brandbook";
 "use client";
 
 import { db } from "@/lib/firebase";
@@ -87,6 +88,7 @@ export interface OnboardingProfileData {
   cnpjLocked?: boolean;
   hasPendingCnpjRequest?: boolean;
   logos?: OnboardingLogosCollection;
+  brandBook?: BrandBookData | null;
   brandKit?: {
     primaryColor?: string;
     secondaryColor?: string;
@@ -94,6 +96,7 @@ export interface OnboardingProfileData {
     pdfManualPath?: string;
     pdfManualUrl?: string;
     pdfUploadedAt?: any;
+    brandBook?: BrandBookData | null;
     fonts?: {
       primaryFont?: string;
       secondaryFont?: string;
@@ -205,9 +208,11 @@ export async function getOnboardingProfile(userId: string): Promise<OnboardingPr
           secondary: { ...defaultLogo, ...data?.logos?.secondary },
           extraLogos: Array.isArray(data?.logos?.extraLogos) ? data.logos.extraLogos : [],
         },
+        brandBook: data?.brandBook || data?.brandKit?.brandBook || null,
         brandKit: {
           ...defaultOnboardingProfile.brandKit,
           ...data?.brandKit,
+          brandBook: data?.brandKit?.brandBook || data?.brandBook || null,
         },
       } as OnboardingProfileData;
     } else {
