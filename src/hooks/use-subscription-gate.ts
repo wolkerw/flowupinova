@@ -6,6 +6,13 @@ import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
+const ADMIN_EMAILS = [
+  "fernando.home@hotmail.com",
+  "contato@wolker.com.br",
+  "bruno@muranmarketing.com.br",
+  "flowupinova@gmail.com",
+];
+
 export interface SubscriptionGateStatus {
   isSubscribed: boolean;
   userPlan: string;
@@ -104,9 +111,15 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
     }
   }, [user]);
 
-  // Considera ativo se o plano for pago (standard, pro, mensal, anual, etc) e liberado por paymentStatus, subscriptionStatus ou role
+  const isAdminEmail = Boolean(
+    user?.email &&
+      ADMIN_EMAILS.some((e) => e.toLowerCase() === user.email?.toLowerCase().trim())
+  );
+
+  // Considera ativo se for email administrativo, ou se o plano for pago (standard, pro, mensal, anual, etc) e liberado por paymentStatus, subscriptionStatus ou role
   const isSubscribed = Boolean(
-    userRole === "admin" ||
+    isAdminEmail ||
+      userRole === "admin" ||
       userPlan === "admin" ||
       userRole === "pro" ||
       (userPlan === "standard" &&
@@ -152,10 +165,10 @@ export function useSubscriptionGate(): SubscriptionGateStatus {
 
   return {
     isSubscribed,
-    userPlan,
-    paymentStatus,
-    canEditImages,
-    isConcierge,
+    userPlan: isAdminEmail ? "admin" : userPlan,
+    paymentStatus: isAdminEmail ? "active" : paymentStatus,
+    canEditImages: isAdminEmail || canEditImages,
+    isConcierge: isAdminEmail || isConcierge,
     loading: authLoading || loading,
     checkSubscriptionOrPrompt,
     openSubscriptionModal,

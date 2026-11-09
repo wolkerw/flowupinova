@@ -85,6 +85,23 @@ describe("useSubscriptionGate", () => {
     );
   });
 
+  it("retorna isSubscribed = true quando o email pertence a ADMIN_EMAILS", async () => {
+    mockUser = { uid: "admin-user", email: "contato@wolker.com.br" };
+    mockFirestoreData = { plan: "free", paymentStatus: "inactive" };
+
+    const { result } = renderHook(() => useSubscriptionGate());
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(result.current.isSubscribed).toBe(true);
+    expect(result.current.userPlan).toBe("admin");
+    expect(result.current.canEditImages).toBe(true);
+    expect(result.current.isConcierge).toBe(true);
+    expect(result.current.checkSubscriptionOrPrompt("criar post")).toBe(true);
+  });
+
   it("retorna isSubscribed = true quando liberado pelo admin com standard e subscriptionStatus active", async () => {
     mockFirestoreData = { plan: "standard", subscriptionStatus: "active", paymentStatus: "inactive", role: "pro" };
 
