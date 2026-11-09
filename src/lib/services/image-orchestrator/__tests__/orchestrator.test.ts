@@ -589,6 +589,26 @@ describe("Image Orchestrator Suite", () => {
       expect(mandate).toContain("Avoid repetitive generic formulas");
     });
 
+    it("destrava a regra do anticlichê e aplica o arquétipo de alta densidade quando objective for flyer", async () => {
+      const mandate = Gpt5PromptPlanner.buildAntiClicheCreativeMandate({
+        objective: "flyer" as any,
+        userBrief: "Panfleto do aplicativo NumVapt de marketing para corretores",
+        brandKit: {
+          enabled: true,
+          fonts: {
+            primaryFont: "Poppins",
+            secondaryFont: "Inter",
+          },
+        } as any,
+      } as any);
+
+      expect(mandate).toContain("FLYER EXCEPTION");
+      expect(mandate).toContain("UNLOCKED");
+      expect(mandate).toContain("STRICT BRANDKIT FONT LOCK");
+      expect(mandate).toContain("Poppins");
+      expect(mandate).toContain("Inter");
+    });
+
     it("injeta diretiva /typolayout e trava contra fundos lisos de estúdio quando textOverlayMode for TITLE_ONLY ou INFOGRAPHIC", async () => {
       const planResult = await Gpt5PromptPlanner.plan({
         userBrief: "Da sua foto simples ao anúncio premium de pizzaria gourmet",

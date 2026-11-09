@@ -324,6 +324,45 @@ describe("ImageGenerationWizard", () => {
       );
     });
   });
+
+  it("permite selecionar a nova opção de objetivo Panfleto Digital / Flyer na Etapa 3", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        generationId: "gen-flyer-123",
+        assets: [{ id: "asset_flyer_1", status: "ready" }],
+      }),
+    });
+
+    render(<ImageGenerationWizard />);
+
+    const flyerOption = screen.getByText("Panfleto Digital / Flyer");
+    expect(flyerOption).toBeInTheDocument();
+    expect(
+      screen.getByText(/Flyer comercial completo: lista de benefícios com ícones, mockup e chamada para ação/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(flyerOption);
+
+    const textarea = screen.getByPlaceholderText(
+      /Crie uma foto publicitária de um bolo de chocolate/i
+    );
+    fireEvent.change(textarea, { target: { value: "Imóveis de luxo no litoral com o app NumVapt" } });
+
+    const generateBtn = screen.getByRole("button", { name: /Gerar Imagem com IA/i });
+    fireEvent.click(generateBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/imagens/gerar",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"objective":"flyer"'),
+        })
+      );
+    });
+  });
   it("exibe o botão 'Assistir Vídeo Tutorial' e abre o modal explicativo do Fluxo Geral ao clicar", async () => {
     render(<ImageGenerationWizard />);
 

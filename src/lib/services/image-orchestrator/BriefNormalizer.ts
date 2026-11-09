@@ -70,6 +70,8 @@ export class BriefNormalizer {
     if (!params.objective) {
       if (lower.includes("thumb") || lower.includes("capa de video") || lower.includes("capa de vídeo")) {
         detectedObjective = "thumbnail";
+      } else if (lower.includes("panfleto") || lower.includes("flyer") || lower.includes("folheto") || lower.includes("alta densidade")) {
+        detectedObjective = "flyer";
       }
     }
 

@@ -109,6 +109,13 @@ const OBJECTIVE_OPTIONS: {
     icon: "🎬",
     desc: "Crie uma capa extremamente chamativa para seu vídeo com alto poder de atração e clique",
   },
+  {
+    id: "flyer",
+    label: "Panfleto Digital / Flyer",
+    icon: "📄",
+    desc: "Flyer comercial completo: lista de benefícios com ícones, mockup e chamada para ação",
+    badge: "Alta Conversão",
+  },
 ];
 
 // Opções de Formato com representação visual de proporção de tela

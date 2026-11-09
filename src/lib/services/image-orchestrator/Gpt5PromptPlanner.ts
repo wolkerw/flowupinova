@@ -44,6 +44,7 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    [10. CRITICAL SAFE MARGINS]: REGRA DE ZERO CROP. Deixar 15% a 20% de margem de respiro livre em todas as bordas externas (superior, inferior e laterais). Nenhum texto ou elemento essencial pode encostar nas bordas. Quando houver logo de cabeçalho, manter adicionalmente a zona de respiro de 22% de altura no canto superior esquerdo para que a logomarca nunca sobreponha outros textos ou informações.
 
 DIRETRIZES DE DIREÇÃO DE ARTE PUBLICITÁRIA PREMIADA & TRAVA ANTI-CLICHÊ (/anticliche):
+- EXCEÇÃO OFICIAL PARA O OBJETIVO "flyer" (Panfleto Digital / Flyer de Alta Densidade): Quando o objetivo for "flyer", a trava anti-lista e a trava anti-botão são expressamente suspensas! A IA é instruída a gerar um panfleto comercial completo com coluna lateral de 3 a 5 benefícios com ícones circulares, tela de smartphone rica com UI do app/produto e rodapé com selo e botão de CTA, rigorosamente submisso às fontes e cores do BrandKit.
 Você NÃO é um diagramador de panfletos ou slides de PowerPoint — você é um Diretor de Criação premiado em Cannes Lions e D&AD! Mesmo quando o usuário escrever um briefing simples, descritivo ou listar vários serviços, eleve automaticamente o conceito visual:
 1. PROIBIÇÃO EXPRESSA DE CLICHÊS DE BANCO DE IMAGENS:
    - A menos que o usuário peça literalmente "uma mão segurando um celular ao lado de um café", é TERMINANTEMENTE PROIBIDO gerar a cena clichê de "mão avulsa segurando smartphone sobre mesa bege/branca ao lado de xícara de café e vasinho de planta"! Se for utilizada perspectiva em primeira pessoa (POV) com smartphone para demonstrar uma transformação ("antes e depois" ou "da foto simples ao anúncio profissional"), essa perspectiva DEVE ser dinâmica, ativa e integrada a um ambiente real autêntico e pulsante, conectada por feixes de luz ou fita tridimensional de neon nas cores da marca.
@@ -407,6 +408,13 @@ REGRAS DE CONFORMIDADE:
       mandateEn:
         "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — HIGH-CTR VIDEO THUMBNAIL): Dynamic magnetic video cover composition with dramatic high-contrast lighting, intense subject focus, vibrant color contrast, and colossal instant-read BrandKit typeface family (with solid contrast badge or 3D midground depth) for maximum click-through rate.]",
     },
+    flyer: {
+      labelPt: "Panfleto Digital / Flyer (Alta Densidade Informativa & Vendas Diretas)",
+      directivePt:
+        "Layout completo de panfleto publicitário de alta conversão: título de autoridade no topo, coluna lateral estruturada com 3 a 5 benefícios acompanhados de ícones temáticos circulares, mockup de tela de aplicativo ou produto na mão do protagonista, e rodapé com selo de localização e botão de CTA destacado nas cores oficiais do BrandKit. Para este objetivo, a trava anti-lista e anti-botão é expressamente destravada, mantendo submissão estrita à tipografia e paleta do BrandKit.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — DIGITAL FLYER / HIGH-DENSITY COMMERCIAL POSTER): Engineer a high-density, complete commercial flyer poster layout in Portuguese (pt-BR): (1) Prominent authority headline and subtitle in the upper area strictly adhering to the BrandKit typeface family and colors; (2) Dedicated side column featuring 3 to 5 clear benefit callouts with stylized circular icons in Brand colors (#0083C7 / #FA6305); (3) Charismatic protagonist holding a smartphone facing the camera with a rich, detailed app interface mockup or showcasing the core deliverable; (4) Structured footer banner with location badge and a prominent solid brand-colored CTA pill/button; (5) ANTICLICHE EXCEPTION: For this flyer objective, benefit lists with circular icons and footer CTA pills are explicitly AUTHORIZED and ENCOURAGED, provided they strictly follow the BrandKit font system (/fontlock) and maintain 20% safe margins.]",
+    },
   };
 
   public static buildObjectiveCreativeMandate(input: Gpt5PlannerInput): string {
@@ -524,8 +532,18 @@ REGRAS DE CONFORMIDADE:
       return "";
     }
 
-    const allowHandPhone = this.isExplicitHandPhoneRequested(input.userBrief);
-    const allowCtaButton = this.isExplicitCtaButtonRequested(input.userBrief);
+    const isFlyer = input.objective === "flyer";
+    const allowHandPhone = isFlyer || this.isExplicitHandPhoneRequested(input.userBrief);
+    const allowCtaButton = isFlyer || this.isExplicitCtaButtonRequested(input.userBrief);
+
+    if (isFlyer) {
+      const brandFonts = input.brandKit?.fonts;
+      const fontLock = brandFonts && (brandFonts.primaryFont || brandFonts.secondaryFont)
+        ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Render all titles, list items and footer labels strictly adhering to "${brandFonts.primaryFont || 'Geometric Sans-Serif Bold'}" and "${brandFonts.secondaryFont || 'Geometric Sans-Serif Regular'}" with zero font deviations.`
+        : "";
+      return `[AWARD-WINNING CREATIVE ART DIRECTION & HIGH-DENSITY FLYER ARCHITECTURE (/anticliche — FLYER EXCEPTION): For this Panfleto Digital / Flyer objective, the anti-list and anti-CTA button restrictions are UNLOCKED. Render a rich, full-fledged commercial flyer layout in Portuguese (pt-BR): (1) Authority headline at the top; (2) Side column with 3 to 5 structured benefit items with stylized circular icons in brand accent colors (#FA6305 / #0083C7); (3) Dynamic hero subject presenting a high-res app UI mockup on a smartphone or hero product; (4) Structured footer banner with location badge and a prominent brand-colored CTA button/pill; (5)${fontLock} Ban flat sterile beige walls; ground the flyer in a real, atmospheric environment with 20% safe margins.]`;
+    }
+
     const conceptClause = artConcept
       ? ` Recommended Art Direction Concept (${artConcept.primary.id}): ${artConcept.primary.promptEn}.`
       : "";
