@@ -971,7 +971,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margens seguras"]
         : ["Foto/Logomarca da Etapa 5", "Integração criativa na cena", "Margens seguras"],
       generationParameters: {
-        model: "gpt-image-2",
+        model: "gpt-image-2.6-sunburst",
         quality: "high",
         size: safeAspect,
         background: "opaque",
@@ -1057,7 +1057,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margem segura de 20%"]
         : ["Foto/Logomarca da Etapa 5", "Integração criativa na cena", "Margem segura de 20%"],
       generationParameters: {
-        model: "gpt-image-2",
+        model: "gpt-image-2.6-sunburst",
         quality: "high",
         size: safeAspect,
         background: "opaque",

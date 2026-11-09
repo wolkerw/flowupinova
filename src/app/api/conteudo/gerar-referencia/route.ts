@@ -1341,6 +1341,8 @@ ${yamlAnalysis}`;
 
       // Cadeia de modelos: gpt-image-2.5-sunburst primeiro como motor oficial
       const MODELS_CHAIN = [
+        { provider: "openai", model: "gpt-image-2.6-sunburst" },
+        { provider: "openai", model: "gpt-image-2.6-flare" },
         { provider: "openai", model: "gpt-image-2.5-sunburst" },
         { provider: "openai", model: "gpt-image-2.5-flare" },
         { provider: "openai", model: "gpt-image-2" },
@@ -2104,6 +2106,8 @@ Cenário desejado e estilo: ${prompt}`;
 
         const finalOpenAiPrompt = isHybridPersonScene ? openAiPersonScenePrompt : openaiPrompt;
         const openAiModelsToTry = [
+          "gpt-image-2.6-sunburst",
+          "gpt-image-2.6-flare",
           "gpt-image-2.5-sunburst",
           "gpt-image-2.5-flare",
           "gpt-image-2",

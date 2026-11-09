@@ -805,7 +805,7 @@ describe("Image Orchestrator Suite", () => {
       });
 
       expect(res.plannerModelUsed).toBe("gpt-6.1-sol");
-      expect(res.imageModelUsed).toBe("gpt-image-2.5-sunburst");
+      expect(res.imageModelUsed).toBe("gpt-image-2.6-sunburst");
       expect(res.width).toBe(1080);
       expect(res.height).toBe(1350);
       expect(res.planResult.visualPlan).toBeDefined();
@@ -874,7 +874,7 @@ describe("Image Orchestrator Suite", () => {
       expect(gpt6Attempted).toBe(true);
       expect(gpt5Attempted).toBe(true);
       expect(res.plannerModelUsed).toBe("gpt-5");
-      expect(res.imageModelUsed).toBe("gpt-image-2.5-sunburst");
+      expect(res.imageModelUsed).toBe("gpt-image-2.6-sunburst");
     });
   });
 });

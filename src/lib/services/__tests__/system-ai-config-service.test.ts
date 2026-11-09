@@ -68,9 +68,11 @@ describe("SystemAIConfigService", () => {
     expect(updated.updatedAt).toBeDefined();
   });
 
-  it("deve conter os novos modelos gpt-image-2.5-sunburst e gpt-image-2.5-flare nas opcoes disponiveis", async () => {
+  it("deve conter os novos modelos gpt-image-2.6 e 2.5 nas opcoes disponiveis", async () => {
     const { AVAILABLE_AI_MODELS } = await import("../system-ai-config-service");
     const ids = AVAILABLE_AI_MODELS.imageGenerators.map((m) => m.id);
+    expect(ids).toContain("gpt-image-2.6-sunburst");
+    expect(ids).toContain("gpt-image-2.6-flare");
     expect(ids).toContain("gpt-image-2.5-sunburst");
     expect(ids).toContain("gpt-image-2.5-flare");
   });

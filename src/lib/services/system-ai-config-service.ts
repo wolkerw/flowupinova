@@ -22,9 +22,11 @@ export const AVAILABLE_AI_MODELS = {
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Google - Rápido)", provider: "google" },
   ],
   imageGenerators: [
-    { id: "gpt-image-2.5-sunburst", label: "GPT-Image-2.5 Sunburst (OpenAI - Qualidade Máxima)", provider: "openai" },
-    { id: "gpt-image-2.5-flare", label: "GPT-Image-2.5 Flare (OpenAI - Alta Velocidade)", provider: "openai" },
-    { id: "gpt-image-2", label: "GPT Image 2 (OpenAI - Alta Fidelidade)", provider: "openai" },
+    { id: "gpt-image-2.6-sunburst", label: "GPT-Image-2.6 Sunburst (OpenAI - Qualidade Máxima / Padrão)", provider: "openai" },
+    { id: "gpt-image-2.6-flare", label: "GPT-Image-2.6 Flare (OpenAI - Alta Velocidade)", provider: "openai" },
+    { id: "gpt-image-2.5-sunburst", label: "GPT-Image-2.5 Sunburst (OpenAI - Alta Fidelidade)", provider: "openai" },
+    { id: "gpt-image-2.5-flare", label: "GPT-Image-2.5 Flare (OpenAI)", provider: "openai" },
+    { id: "gpt-image-2", label: "GPT Image 2 (OpenAI - Legado)", provider: "openai" },
     { id: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image (Google)", provider: "google" },
     { id: "gemini-3-pro-image", label: "Gemini 3 Pro Image (Google Pro)", provider: "google" },
     { id: "dall-e-3", label: "DALL-E 3 (OpenAI Standard)", provider: "openai" },
@@ -52,8 +54,8 @@ export const AVAILABLE_AI_MODELS = {
 
 export const DEFAULT_AI_MODELS_CONFIG: AIModelsConfig = {
   generalPlannerModel: "gpt-6.1-sol",
-  generalImageModel: "gpt-image-2.5-sunburst",
-  generalFallbackImageModel: "gemini-2.5-flash-image",
+  generalImageModel: "gpt-image-2.6-sunburst",
+  generalFallbackImageModel: "gpt-image-2.6-flare",
   imageQuality: "medium",
   chatModel: "gemini-2.5-flash",
   promptsIdeaModel: "gemini-2.5-flash",

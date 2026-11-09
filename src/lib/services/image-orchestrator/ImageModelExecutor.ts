@@ -87,10 +87,12 @@ export class ImageModelExecutor {
     const getProvider = (m: string): "openai" | "google" =>
       m.startsWith("gemini") ? "google" : "openai";
 
-    const preferred = params.preferredModel || "gpt-image-2.5-sunburst";
-    const fallback = params.fallbackModel || "gemini-2.5-flash-image";
+    const preferred = params.preferredModel || "gpt-image-2.6-sunburst";
+    const fallback = params.fallbackModel || "gpt-image-2.6-flare";
 
     const defaultList = [
+      { provider: "openai" as const, model: "gpt-image-2.6-sunburst" },
+      { provider: "openai" as const, model: "gpt-image-2.6-flare" },
       { provider: "openai" as const, model: "gpt-image-2.5-sunburst" },
       { provider: "openai" as const, model: "gpt-image-2.5-flare" },
       { provider: "openai" as const, model: "gpt-image-2" },
@@ -138,7 +140,7 @@ export class ImageModelExecutor {
             openaiPrompt += handAnatomyAndStudioDirective;
           }
 
-          const isGpt25 = cfg.model.includes("2.5");
+          const isGpt25 = cfg.model.includes("2.5") || cfg.model.includes("2.6");
           const isGptImage = cfg.model.startsWith("gpt-image-");
           const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 

@@ -222,6 +222,8 @@ export async function POST(request: Request) {
 
     // 2. Modelo Principal Estrito: gpt-image-2.5-sunburst (OpenAI) é SEMPRE o motor primário absoluto
     const MODELS_CHAIN = [
+      { provider: "openai", model: "gpt-image-2.6-sunburst" },
+      { provider: "openai", model: "gpt-image-2.6-flare" },
       { provider: "openai", model: "gpt-image-2.5-sunburst" },
       { provider: "openai", model: "gpt-image-2.5-flare" },
       { provider: "openai", model: "gpt-image-2" },

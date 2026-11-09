@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = authUser.uid;
-    const userStoragePath = getUserStoragePathAdmin(userId);
+    const userStoragePath = await getUserStoragePathAdmin(userId);
     const bucket = admin.storage().bucket();
 
     // 1. Carregar BrandKit / BrandSnapshot e Memória Persistente de Posição da Logo
@@ -517,7 +517,7 @@ export async function POST(request: NextRequest) {
     const generateSingleImage = async (slotId: string, orderIndex: number): Promise<AIImageAssetDoc> => {
       const slotRef = adminDb.doc(`users/${userId}/aiImageAssets/${slotId}`);
       let imageBuffer: Buffer | null = null;
-      let modelUsed = "gpt-image-2";
+      let modelUsed = "gpt-image-2.6-sunburst";
       let plannerModelUsed = "gpt-6.1-sol";
       let visualPlan: any = null;
       let usedPrompt = compiledPrompt;

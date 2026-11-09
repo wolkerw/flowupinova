@@ -297,7 +297,7 @@ describe("API /api/imagens/gerar", () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     expect(openAiCalled).toBe(true);
-    expect(openAiPayload.model).toBe("gpt-image-2.5-sunburst");
+    expect(openAiPayload.model).toBe("gpt-image-2.6-sunburst");
     expect(openAiPayload.size).toBe("1024x1280"); // Proporção nativa 4:5 exata para a OpenAI
     expect(openAiPayload.prompt).toContain("FORMATO E ENQUADRAMENTO VERTICAL MANDATÓRIO — FEED RETRATO 4:5");
     expect(openAiPayload.prompt).toContain("ZERO TEXT CROPPING & SAFE MARGINS");
@@ -305,8 +305,8 @@ describe("API /api/imagens/gerar", () => {
     expect(openAiPayload.prompt).toContain("SUJEITO REAL DA ETAPA 5");
 
     const data = await res.json();
-    expect(data.assets[0].modelUsed).toBe("gpt-image-2.5-sunburst");
-    expect(data.assets[0].promptMetadata.modelUsed).toBe("gpt-image-2.5-sunburst");
+    expect(data.assets[0].modelUsed).toBe("gpt-image-2.6-sunburst");
+    expect(data.assets[0].promptMetadata.modelUsed).toBe("gpt-image-2.6-sunburst");
   });
 
   it("executa fallback para Google Gemini Multimodal se a OpenAI falhar e anexa imagem em parts", async () => {
