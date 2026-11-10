@@ -14,6 +14,20 @@ export interface DynamicTypographyStyle {
   fullDirectiveEn: string;
 }
 
+export type DynamicHeadlineTreatmentId =
+  | "classic_contrast_pure_white"
+  | "brand_duotone_split"
+  | "brand_duotone_with_solid_stripe"
+  | "single_brand_color_with_stripe"
+  | "brand_pill_badge_invert";
+
+export interface DynamicHeadlineTreatment {
+  id: DynamicHeadlineTreatmentId;
+  labelPt: string;
+  directivePt: string;
+  treatmentDirectiveEn: string;
+}
+
 export class Gpt5PromptPlanner {
   private static readonly SYSTEM_PROMPT = `
 Você é o Diretor Criativo e Especialista Sênior em Planejamento Visual da NumVapt.
@@ -89,13 +103,15 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
        j) Assinatura Lateral Vertical + Headline de Impacto (Vertical Sidebar Editorial): Rótulo editorial rotacionado a 90° acompanhando a margem lateral combinado com a headline principal horizontal de alto impacto;
         k) Entrelaçamento Espacial 3D em Profundidade (Spatial Depth Interlocking): Título interagindo volumetricamente entre planos, passando sutilmente por trás de ombros ou produtos com sombras de contato realistas;
         l) Grid Contemporâneo Suíço (Swiss Editorial / Neue Grafik): Grid arquitetônico assimétrico minimalista, contraste colossal de escala e generoso respiro de espaço negativo.
-  2. LIBERDADE CROMÁTICA E ELIMINAÇÃO DA FÓRMULA RÍGIDA DE 2 CORES:
-     - É expressamente PERMITIDO e INCENTIVADO variar os esquemas de cores dos títulos:
-       * Título Monocromático Nobre: 100% Branco Puro com sombra suave em cenas escuras, ou Preto Grafite em fundos claros;
-       * Título com Palavra-Chave em Destaque Cromático da marca (Laranja #FA6305 ou Ciano #0083C7);
-       * Título com Tarja de Cor Sólida Invertida;
-       * Título com iluminação cenográfica sutil.
-       * É TERMINANTEMENTE PROIBIDO gerar sempre o mesmo título mecânico com metade em branco e metade em laranja!
+  2. LIBERDADE CROMÁTICA E TRATAMENTO DINÂMICO DOS TÍTULOS PRINCIPAIS (/headlinetreatment):
+     - Para máxima riqueza visual e variedade entre gerações, NUNCA gere sempre a mesma cor mecânica em todas as artes!
+     - Alterne dinamicamente o tratamento cromático e estrutural do título principal entre os seguintes modos sorteados:
+       * 1) Contraste Clássico em Branco Puro (Classic Pure White): Título principal 100% em Branco Puro (#FFFFFF) com leve sombra de contato para contraste cinematográfico sobre o ambiente.
+       * 2) Título em Duas Cores (Brand Duotone Split): Título dividido em duas cores usando a paleta do BrandKit — por exemplo, a frase/palavra de abertura em Branco Puro (#FFFFFF) e a palavra de maior impacto ou punchline na Cor Primária oficial do BrandKit (ex: Laranja #FA6305 ou Ciano/Azul #0083C7), criando um contraste editorial moderno.
+       * 3) Título em Duas Cores com Faixa/Tarja em uma das palavras (Brand Duotone with Stripe/Highlight): Uma parte do título em Branco Puro (#FFFFFF) e a palavra de ação/destaque encasulada sobre uma faixa/tarja retangular sólida ou marcador estético na Cor Primária do BrandKit com o texto contrastando por cima.
+       * 4) Título Monocromático com Faixa/Tarja atrás de uma das palavras (Single Brand Color with Stripe): Título estilizado em uma cor principal acompanhado por uma faixa/tarja sólida ou retângulo geométrico atrás de uma das palavras-chave para criar ancoragem visual imediata em 1 segundo.
+       * 5) Tarja / Pill Sólido Invertido (Brand Pill Badge Invert): Frase de entrada limpa e palavra principal totalmente invertida dentro de uma cápsula/tag na cor da marca.
+     - É expressamente PERMITIDO e INCENTIVADO variar os esquemas de cores dos títulos respeitando essas diretrizes cromáticas do BrandKit!
   3. HIERARQUIA E PROPORÇÃO:
      - Crie contraste dramático de escala (palavras principais maiores e de impacto display; frases de apoio mais compactas e elegantes).
      - No modo INFOGRAPHIC ou BOTH, a fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte.
@@ -328,6 +344,69 @@ REGRAS DE CONFORMIDADE:
     const styles = this.DYNAMIC_TYPOGRAPHY_STYLES;
     const idx = (this.typographyStyleCursor++) % styles.length;
     return styles[idx];
+  }
+
+  public static readonly DYNAMIC_HEADLINE_TREATMENTS: DynamicHeadlineTreatment[] = [
+    {
+      id: "classic_contrast_pure_white",
+      labelPt: "Contraste Clássico em Branco Puro (Pure White Contrast)",
+      directivePt:
+        "Título principal renderizado 100% em Branco Puro (#FFFFFF) com leve sombra de contato para contraste cinematográfico e máxima legibilidade móvel.",
+      treatmentDirectiveEn:
+        "Classic High-Contrast Pure White: Render the entire primary headline in crisp, luminous Pure White (#FFFFFF) with subtle contact drop shadows, ensuring flawless readability against the rich textured background.",
+    },
+    {
+      id: "brand_duotone_split",
+      labelPt: "Título em Duas Cores (Brand Duotone Split)",
+      directivePt:
+        "Título dividido harmonicamente em duas cores: frase de abertura/contexto em Branco Puro (#FFFFFF) e palavra-chave de impacto na Cor Primária do BrandKit.",
+      treatmentDirectiveEn:
+        "Dynamic Brand Duotone Split: Render the headline dynamically in two harmonized colors — the setup words in crisp Pure White (#FFFFFF) and the core punchline/power word rendered in the client's official BrandKit primary accent color, creating sophisticated editorial contrast.",
+    },
+    {
+      id: "brand_duotone_with_solid_stripe",
+      labelPt: "Título em Duas Cores com Faixa/Tarja em uma das Palavras (Brand Duotone with Stripe)",
+      directivePt:
+        "Título em duas cores, onde uma parte está em Branco Puro (#FFFFFF) e a palavra de maior impacto é destacada sobre uma faixa/tarja retangular sólida ou marcador estético na Cor Primária do BrandKit.",
+      treatmentDirectiveEn:
+        "Brand Duotone with Solid Highlight Stripe: Split the headline dynamically with the setup words in crisp Pure White (#FFFFFF), and encase the primary action/impact keyword inside or over a bold, solid rectangular highlight stripe/brush band filled with the client's BrandKit primary accent color, with high-contrast text inside.",
+    },
+    {
+      id: "single_brand_color_with_stripe",
+      labelPt: "Título com Uma Cor e Faixa/Tarja atrás de uma das Palavras (Single Brand Color with Stripe)",
+      directivePt:
+        "Título estruturado em uma cor dominante com uma faixa/tarja sólida ou bloco geométrico atrás de uma das palavras-chave para criar ancoragem visual imediata.",
+      treatmentDirectiveEn:
+        "Single Dominant Color with Solid Backdrop Stripe: Render the headline text in a unified high-contrast color, placing a vibrant solid geometric highlight band/stripe (filled with the BrandKit accent color) directly behind one decisive power word, anchoring the eye instantly.",
+    },
+    {
+      id: "brand_pill_badge_invert",
+      labelPt: "Palavra-Chave em Tarja/Pill Sólido Invertido (Brand Inverted Pill Badge)",
+      directivePt:
+        "Palavra principal invertida dentro de uma cápsula/tag sólida nas cores oficiais da marca com texto vazado e setup em branco.",
+      treatmentDirectiveEn:
+        "Modern Brand Inverted Pill Tag: Setup words float in crisp White (#FFFFFF), while the core power keyword is encased inside a modern solid brand-colored rectangular pill/tag with crisp cutout letters, creating an unmistakable advertising hook.",
+    },
+  ];
+
+  private static headlineTreatmentCursor = 0;
+
+  public static selectDynamicHeadlineTreatment(input?: Gpt5PlannerInput): DynamicHeadlineTreatment {
+    const treatments = this.DYNAMIC_HEADLINE_TREATMENTS;
+    const idx = (this.headlineTreatmentCursor++) % treatments.length;
+    return treatments[idx];
+  }
+
+  public static buildDynamicHeadlineTreatmentMandate(
+    input: Gpt5PlannerInput,
+    treatment?: DynamicHeadlineTreatment
+  ): string {
+    if (!input.textOverlayMode || input.textOverlayMode === "NONE") return "";
+    const selected = treatment || this.selectDynamicHeadlineTreatment(input);
+    const brandColors = input.brandKit?.primaryColors?.length
+      ? input.brandKit.primaryColors.join(", ")
+      : "#0083C7 / #FA6305";
+    return `[DYNAMIC HEADLINE CHROMATIC & STRIPE TREATMENT (/headlinetreatment — ${selected.id}): Selected Treatment: ${selected.labelPt}. Directive: ${selected.treatmentDirectiveEn} Brand Color Reference: ${brandColors}. Ensure 100% legibility and adherence to the BrandKit typeface anatomy without generic repeating formulas.]`;
   }
 
   public static buildAgencyQualityAndAnatomyMandate(input?: Gpt5PlannerInput): string {
@@ -841,6 +920,9 @@ DIRETRIZ CRIATIVA E TIPOGRÁFICA DO OBJETIVO SELECIONADO NA ETAPA 3 (/objectivel
     const dynamicTypo = input.textOverlayMode && input.textOverlayMode !== "NONE"
       ? this.selectDynamicTypographyStyle(input)
       : null;
+    const dynamicTreatment = input.textOverlayMode && input.textOverlayMode !== "NONE"
+      ? this.selectDynamicHeadlineTreatment(input)
+      : null;
     const typographySection = dynamicTypo
       ? `
 DIREÇÃO DE ARTE TIPOGRÁFICA SELECIONADA (/typolayout):
@@ -849,7 +931,11 @@ DIREÇÃO DE ARTE TIPOGRÁFICA SELECIONADA (/typolayout):
 - Harmonia Cromática: ${dynamicTypo.colorHarmonyEn}
 - Molduras, Fundos e Espaço: ${dynamicTypo.containerAndFrameEn}
 - Diretiva em Inglês para o imagePrompt: "${dynamicTypo.fullDirectiveEn}"
-- INSTRUÇÃO DE LIBERDADE CRIATIVA: Atue como Diretor de Arte Sênior! Crie uma composição tipográfica surpreendente, autoral e personalizada para este nicho, variando alinhamentos, contrastes de escala display e esquemas de cores no imagePrompt. NUNCA gere sempre a mesma fórmula repetitiva de duas cores (metade branco e metade laranja)!`
+- TRATAMENTO CROMÁTICO E DE FAIXA/TARJA DO TÍTULO PRINCIPAL (/headlinetreatment):
+  * Modo Sorteado: ${dynamicTreatment?.labelPt || "Contraste Dinâmico"}
+  * Instrução Técnica: ${dynamicTreatment?.directivePt || ""}
+  * Diretriz em Inglês: "${dynamicTreatment?.treatmentDirectiveEn || ""}"
+- INSTRUÇÃO DE LIBERDADE CRIATIVA: Atue como Diretor de Arte Sênior! Crie uma composição tipográfica surpreendente, autoral e personalizada para este nicho, variando alinhamentos, contrastes de escala display, palavras destacadas em faixas/tarjas sólidas da marca e esquemas de cores no imagePrompt. NUNCA gere sempre a mesma fórmula repetitiva!`
       : "";
 
     return `
@@ -971,6 +1057,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         const typoMandate = this.buildDynamicTypographyMandate(input);
         if (typoMandate && !prompt.includes("/typolayout")) {
           prompt += ` ${typoMandate}`;
+        }
+        const headlineTreatmentMandate = this.buildDynamicHeadlineTreatmentMandate(input);
+        if (headlineTreatmentMandate && !prompt.includes("/headlinetreatment")) {
+          prompt += ` ${headlineTreatmentMandate}`;
         }
         const objMandate = this.buildObjectiveCreativeMandate(input);
         if (objMandate && !prompt.includes("/objectivelayout")) {
@@ -1190,6 +1280,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (typoMandate && !p.includes("/typolayout")) {
         p += ` ${typoMandate}`;
       }
+      const headlineTreatmentMandate = this.buildDynamicHeadlineTreatmentMandate(input);
+      if (headlineTreatmentMandate && !p.includes("/headlinetreatment")) {
+        p += ` ${headlineTreatmentMandate}`;
+      }
       const objMandate = this.buildObjectiveCreativeMandate(input);
       if (objMandate && !p.includes("/objectivelayout")) {
         p += ` ${objMandate}`;
@@ -1217,7 +1311,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
     const antiCliche = this.buildAntiClicheCreativeMandate(input, fallbackConcept);
 
     const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
-    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${this.buildObjectiveCreativeMandate(input)} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    const headlineTreatmentMandate = this.buildDynamicHeadlineTreatmentMandate(input);
+    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${this.buildObjectiveCreativeMandate(input)} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${headlineTreatmentMandate} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {

@@ -589,6 +589,33 @@ describe("Image Orchestrator Suite", () => {
       expect(mandate).toContain("Avoid repetitive generic formulas");
     });
 
+    it("alterna dinamicamente tratamentos cromáticos e faixas nos títulos principais (/headlinetreatment)", () => {
+      const treatments = Gpt5PromptPlanner.DYNAMIC_HEADLINE_TREATMENTS;
+      expect(treatments.length).toBe(5);
+      expect(treatments.some((t) => t.id === "classic_contrast_pure_white")).toBe(true);
+      expect(treatments.some((t) => t.id === "brand_duotone_split")).toBe(true);
+      expect(treatments.some((t) => t.id === "brand_duotone_with_solid_stripe")).toBe(true);
+      expect(treatments.some((t) => t.id === "single_brand_color_with_stripe")).toBe(true);
+      expect(treatments.some((t) => t.id === "brand_pill_badge_invert")).toBe(true);
+
+      const t1 = Gpt5PromptPlanner.selectDynamicHeadlineTreatment();
+      const t2 = Gpt5PromptPlanner.selectDynamicHeadlineTreatment();
+      expect(t1.id).toBeDefined();
+      expect(t2.id).toBeDefined();
+      expect(t1.id).not.toBe(t2.id);
+
+      const mandate = Gpt5PromptPlanner.buildDynamicHeadlineTreatmentMandate({
+        textOverlayMode: "TITLE_ONLY",
+        brandKit: {
+          enabled: true,
+          primaryColors: ["#FA6305", "#0083C7"],
+        } as any,
+      } as any);
+
+      expect(mandate).toContain("/headlinetreatment");
+      expect(mandate).toContain("#FA6305, #0083C7");
+    });
+
     it("destrava a regra do anticlichê e aplica o arquétipo de alta densidade quando objective for flyer", async () => {
       const mandate = Gpt5PromptPlanner.buildAntiClicheCreativeMandate({
         objective: "flyer" as any,
