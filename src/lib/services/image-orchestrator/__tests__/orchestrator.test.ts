@@ -618,14 +618,25 @@ describe("Image Orchestrator Suite", () => {
 
     it("alterna dinamicamente perfis de diversidade humana e personagens (/personadiversity)", () => {
       const profiles = Gpt5PromptPlanner.DYNAMIC_PERSONA_PROFILES;
-      expect(profiles.length).toBe(7);
+      expect(profiles.length).toBe(12);
       expect(profiles.some((p) => p.id === "latina_executive_mid30s")).toBe(true);
       expect(profiles.some((p) => p.id === "afro_descendant_male_leader")).toBe(true);
       expect(profiles.some((p) => p.id === "caucasian_female_specialist")).toBe(true);
       expect(profiles.some((p) => p.id === "latino_male_entrepreneur_mid30s")).toBe(true);
       expect(profiles.some((p) => p.id === "afro_descendant_female_entrepreneur")).toBe(true);
       expect(profiles.some((p) => p.id === "latino_male_director_mature")).toBe(true);
+      expect(profiles.some((p) => p.id === "caucasian_male_innovator")).toBe(true);
+      expect(profiles.some((p) => p.id === "latina_female_creative_lead")).toBe(true);
+      expect(profiles.some((p) => p.id === "afro_descendant_male_consultant")).toBe(true);
+      expect(profiles.some((p) => p.id === "senior_female_executive")).toBe(true);
+      expect(profiles.some((p) => p.id === "young_adult_tech_specialist")).toBe(true);
       expect(profiles.some((p) => p.id === "collaborative_diverse_duo")).toBe(true);
+
+      // Testa rotação determinística persistente a partir de lastPersonaId
+      const nextFromP1 = Gpt5PromptPlanner.getNextPersonaProfile("latina_executive_mid30s");
+      expect(nextFromP1.id).toBe("afro_descendant_male_leader");
+      const nextFromLast = Gpt5PromptPlanner.getNextPersonaProfile("collaborative_diverse_duo");
+      expect(nextFromLast.id).toBe("latina_executive_mid30s");
 
       const p1 = Gpt5PromptPlanner.selectDynamicPersonaProfile();
       const p2 = Gpt5PromptPlanner.selectDynamicPersonaProfile();

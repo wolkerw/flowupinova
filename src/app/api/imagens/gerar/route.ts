@@ -96,9 +96,10 @@ export async function POST(request: NextRequest) {
     const userStoragePath = await getUserStoragePathAdmin(userId);
     const bucket = admin.storage().bucket();
 
-    // 1. Carregar BrandKit / BrandSnapshot e Memória Persistente de Posição da Logo
+    // 1. Carregar BrandKit / BrandSnapshot e Memória Persistente de Posição da Logo & Persona
     let brandSnapshot: BrandSnapshot | null = null;
     let lastSavedLogoPosition: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" | undefined;
+    let lastSavedPersonaId: string | undefined;
 
     try {
       const [onboardingDoc, profileDoc, userDoc] = await Promise.all([
@@ -109,9 +110,13 @@ export async function POST(request: NextRequest) {
 
       if (userDoc.exists) {
         lastSavedLogoPosition = userDoc.data()?.lastLogoPosition;
+        lastSavedPersonaId = userDoc.data()?.lastPersonaId;
       }
       if (!lastSavedLogoPosition && profileDoc.exists) {
         lastSavedLogoPosition = profileDoc.data()?.lastLogoPosition;
+      }
+      if (!lastSavedPersonaId && profileDoc.exists) {
+        lastSavedPersonaId = profileDoc.data()?.lastPersonaId;
       }
 
       if (useBrandKit) {
@@ -133,6 +138,7 @@ export async function POST(request: NextRequest) {
           slogan: data?.slogan || bk?.slogan || "",
           personas: bk?.personas || data?.personas || [],
           lastLogoPosition: lastSavedLogoPosition,
+          lastPersonaId: lastSavedPersonaId,
         };
       }
     } catch (bkErr) {
@@ -141,6 +147,7 @@ export async function POST(request: NextRequest) {
 
     // 1.1 Cursor de alternância contínua baseado no histórico do Firestore
     let runningLastLogoPos = lastSavedLogoPosition;
+    let runningLastPersonaId = lastSavedPersonaId;
 
     // 1.2 Logomarca Efetiva (prioriza logo enviada explicitamente ou do BrandKit, a menos que includeLogo seja false)
     const effectiveLogoUrl =
@@ -529,13 +536,16 @@ export async function POST(request: NextRequest) {
       let usedPrompt = compiledPrompt;
       let lastError = "";
 
-      // Memória Persistente: determina a posição da logo para este slot mantendo a alternância contínua
+      // Memória Persistente: determina a posição da logo e persona para este slot mantendo a alternância contínua
       let slotLogoPosition: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" | undefined;
       if (effectiveLogoUrl) {
         const nextPosObj = Gpt5PromptPlanner.getNextLogoPlacement(runningLastLogoPos);
         slotLogoPosition = nextPosObj.id;
         runningLastLogoPos = slotLogoPosition;
       }
+      const nextPersonaObj = Gpt5PromptPlanner.getNextPersonaProfile(runningLastPersonaId);
+      const slotPersonaId = nextPersonaObj.id;
+      runningLastPersonaId = slotPersonaId;
 
       try {
         const orchResult = await ImageGenerationOrchestrator.execute({
@@ -556,6 +566,8 @@ export async function POST(request: NextRequest) {
           includeLogo: Boolean(effectiveLogoUrl && includeLogo !== false),
           logoPosition: slotLogoPosition,
           lastLogoPosition: runningLastLogoPos,
+          personaId: slotPersonaId,
+          lastPersonaId: runningLastPersonaId,
           sourceAssetUrls,
           referenceAssetUrls,
           referenceMode,

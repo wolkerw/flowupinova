@@ -102,6 +102,7 @@ export interface BrandSnapshot {
   slogan?: string;
   personas?: any[];
   lastLogoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
+  lastPersonaId?: string;
 }
 
 export interface AIImageGenerationDoc {

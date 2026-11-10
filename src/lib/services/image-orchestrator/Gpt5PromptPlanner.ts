@@ -35,6 +35,11 @@ export type DynamicPersonaDiversityId =
   | "latino_male_entrepreneur_mid30s"
   | "afro_descendant_female_entrepreneur"
   | "latino_male_director_mature"
+  | "caucasian_male_innovator"
+  | "latina_female_creative_lead"
+  | "afro_descendant_male_consultant"
+  | "senior_female_executive"
+  | "young_adult_tech_specialist"
   | "collaborative_diverse_duo";
 
 export interface DynamicPersonaDiversityProfile {
@@ -475,6 +480,41 @@ REGRAS DE CONFORMIDADE:
       directiveEn: "Experienced, distinguished senior male director in his early 50s with dignified salt-and-pepper hair, subtle laughter lines conveying deep market wisdom, sharp bespoke Italian blazer, relaxed yet commanding leadership posture",
     },
     {
+      id: "caucasian_male_innovator",
+      labelPt: "Gestor Comercial / Inovador Masculino (34-40 anos, perfil ágil, camisa clara e colete moderno)",
+      genderPt: "Masculino",
+      ageBracketPt: "34-40 anos",
+      directiveEn: "Dynamic Caucasian male commercial manager in his mid-to-late 30s with short sandy or light brown hair, clean shaven, confident warm smile, wearing a modern light button-up shirt with sleeves rolled up, radiating approachable problem-solving drive",
+    },
+    {
+      id: "latina_female_creative_lead",
+      labelPt: "Líder Criativa e Estrategista Feminina (30-36 anos, óculos marcantes, camisa social de linho)",
+      genderPt: "Feminino",
+      ageBracketPt: "30-36 anos",
+      directiveEn: "Smart, charismatic Latina strategic lead in her early 30s with stylish modern tortoiseshell eyeglasses, sleek straight dark hair, wearing an earthy olive or terracotta linen shirt, radiating sharp insight and authentic warmth",
+    },
+    {
+      id: "afro_descendant_male_consultant",
+      labelPt: "Consultor Técnico e Financeiro Afrodescendente (29-35 anos, corte raspado, postura focada e acolhedora)",
+      genderPt: "Masculino",
+      ageBracketPt: "29-35 anos",
+      directiveEn: "Sharp Black male business consultant in his early 30s with clean close-shaved buzzcut, warm engaging brown eyes, dressed in a tailored navy knit polo or fine cardigan, projecting meticulous analytical competence and trustworthy advice",
+    },
+    {
+      id: "senior_female_executive",
+      labelPt: "Sócia-Diretora Executiva Sênior (50-58 anos, cabelos prateados sofisticados, autoridade nobre)",
+      genderPt: "Feminino",
+      ageBracketPt: "50-58 anos",
+      directiveEn: "Prestigious, accomplished senior female partner/executive in her mid-50s with stylishly cut silver-grey hair, subtle refined pearl earrings, elegant tailored beige or cream jacket, commanding deep respect, warmth and supreme financial/corporate authority",
+    },
+    {
+      id: "young_adult_tech_specialist",
+      labelPt: "Especialista Jovem em Soluções Digitais (26-31 anos, visual limpo e contemporâneo)",
+      genderPt: "Masculino",
+      ageBracketPt: "26-31 anos",
+      directiveEn: "Forward-thinking young professional in his late 20s with neat textured modern hairstyle, genuine smile, wearing a high-end minimalist crewneck and smart trousers, representing next-generation efficiency and digital simplicity",
+    },
+    {
       id: "collaborative_diverse_duo",
       labelPt: "Dupla Profissional Colaborativa Diversa (parceria consultiva e dinâmica de trabalho em equipe)",
       genderPt: "Dupla Mista",
@@ -485,12 +525,30 @@ REGRAS DE CONFORMIDADE:
 
   private static personaDiversityCursor = 0;
 
-  public static selectDynamicPersonaProfile(input?: Gpt5PlannerInput): DynamicPersonaDiversityProfile {
-    // Se o BrandKit do cliente tiver personas cadastradas com gênero/faixa etária, prioriza harmonizar
-    const brandPersonas = input?.brandKit?.personas;
+  public static getNextPersonaProfile(lastPersonaId?: string): (typeof Gpt5PromptPlanner.DYNAMIC_PERSONA_PROFILES)[number] {
     const profiles = this.DYNAMIC_PERSONA_PROFILES;
+    if (!lastPersonaId) return profiles[0];
+    const currentIdx = profiles.findIndex((p) => p.id === lastPersonaId);
+    const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % profiles.length : 0;
+    return profiles[nextIdx];
+  }
+
+  public static selectDynamicPersonaProfile(input?: Gpt5PlannerInput): DynamicPersonaDiversityProfile {
+    const profiles = this.DYNAMIC_PERSONA_PROFILES;
+    if (input?.personaId) {
+      const found = profiles.find((p) => p.id === input.personaId);
+      if (found) return found;
+    }
+    // Memória Persistente do Usuário: se houver última persona registrada no Firestore, calcula a próxima da sequência
+    if (input?.lastPersonaId) {
+      const nextFromHistory = this.getNextPersonaProfile(input.lastPersonaId);
+      input.personaId = nextFromHistory.id;
+      return nextFromHistory;
+    }
     const idx = (this.personaDiversityCursor++) % profiles.length;
-    return profiles[idx];
+    const selected = profiles[idx];
+    if (input) input.personaId = selected.id;
+    return selected;
   }
 
   public static buildPersonaDiversityMandate(
@@ -600,9 +658,9 @@ REGRAS DE CONFORMIDADE:
     flyer: {
       labelPt: "Panfleto Digital / Flyer (Alta Densidade Informativa & Vendas Diretas)",
       directivePt:
-        "Layout completo de panfleto publicitário de alta conversão: título de autoridade no topo, coluna lateral estruturada com 3 a 5 benefícios acompanhados de ícones temáticos circulares, mockup de tela de aplicativo ou produto na mão do protagonista, e rodapé com selo de localização e botão de CTA destacado nas cores oficiais do BrandKit. Para este objetivo, a trava anti-lista e anti-botão é expressamente destravada, mantendo submissão estrita à tipografia e paleta do BrandKit.",
+        "Layout completo de panfleto publicitário de alta conversão: título de autoridade no topo, coluna lateral estruturada com 3 a 5 benefícios acompanhados de ícones temáticos circulares, mockup de tela de aplicativo ou produto em primeiro plano ou apresentado pelo protagonista sorteado na rotação de personas, e rodapé com selo de localização e botão de CTA destacado nas cores oficiais do BrandKit. Para este objetivo, a trava anti-lista e anti-botão é expressamente destravada, mantendo submissão estrita à tipografia e paleta do BrandKit.",
       mandateEn:
-        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — DIGITAL FLYER / HIGH-DENSITY COMMERCIAL POSTER): Engineer a high-density, complete commercial flyer poster layout in Portuguese (pt-BR): (1) Prominent authority headline and subtitle in the upper area strictly adhering to the BrandKit typeface family and colors; (2) Dedicated side column featuring 3 to 5 clear benefit callouts with stylized circular icons in Brand colors (#0083C7 / #FA6305); (3) Charismatic protagonist holding a smartphone facing the camera with a rich, detailed app interface mockup or showcasing the core deliverable; (4) Structured footer banner with location badge and a prominent solid brand-colored CTA pill/button; (5) ANTICLICHE EXCEPTION: For this flyer objective, benefit lists with circular icons and footer CTA pills are explicitly AUTHORIZED and ENCOURAGED, provided they strictly follow the BrandKit font system (/fontlock) and maintain 20% safe margins.]",
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — DIGITAL FLYER / HIGH-DENSITY COMMERCIAL POSTER): Engineer a high-density, complete commercial flyer poster layout in Portuguese (pt-BR): (1) Prominent authority headline and subtitle in the upper area strictly adhering to the BrandKit typeface family and colors; (2) Dedicated side column featuring 3 to 5 clear benefit callouts with stylized circular icons in Brand colors (#0083C7 / #FA6305); (3) Dynamic hero deliverable showcase (such as a smartphone interface mockup or the rotated persona archetype holding/presenting the solution, without fixing gender or race to any single template); (4) Structured footer banner with location badge and a prominent solid brand-colored CTA pill/button; (5) ANTICLICHE EXCEPTION: For this flyer objective, benefit lists with circular icons and footer CTA pills are explicitly AUTHORIZED and ENCOURAGED, provided they strictly follow the BrandKit font system (/fontlock), integrate the rotated human persona, and maintain 20% safe margins.]",
     },
   };
 
@@ -730,7 +788,7 @@ REGRAS DE CONFORMIDADE:
       const fontLock = brandFonts && (brandFonts.primaryFont || brandFonts.secondaryFont)
         ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Render all titles, list items and footer labels strictly adhering to "${brandFonts.primaryFont || 'Geometric Sans-Serif Bold'}" and "${brandFonts.secondaryFont || 'Geometric Sans-Serif Regular'}" with zero font deviations.`
         : "";
-      return `[AWARD-WINNING CREATIVE ART DIRECTION & HIGH-DENSITY FLYER ARCHITECTURE (/anticliche — FLYER EXCEPTION): For this Panfleto Digital / Flyer objective, the anti-list and anti-CTA button restrictions are UNLOCKED. Render a rich, full-fledged commercial flyer layout in Portuguese (pt-BR): (1) Authority headline at the top; (2) Side column with 3 to 5 structured benefit items with stylized circular icons in brand accent colors (#FA6305 / #0083C7); (3) Dynamic hero subject presenting a high-res app UI mockup on a smartphone or hero product; (4) Structured footer banner with location badge and a prominent brand-colored CTA button/pill; (5)${fontLock} Ban flat sterile beige walls; ground the flyer in a real, atmospheric environment with 20% safe margins.]`;
+      return `[AWARD-WINNING CREATIVE ART DIRECTION & HIGH-DENSITY FLYER ARCHITECTURE (/anticliche — FLYER EXCEPTION): For this Panfleto Digital / Flyer objective, the anti-list and anti-CTA button restrictions are UNLOCKED. Render a rich, full-fledged commercial flyer layout in Portuguese (pt-BR): (1) Authority headline at the top; (2) Side column with 3 to 5 structured benefit items with stylized circular icons in brand accent colors (#FA6305 / #0083C7); (3) Dynamic hero subject presenting a high-res app UI mockup on a smartphone or hero deliverable, strictly adhering to the dynamic rotated persona archetype (/personadiversity); (4) Structured footer banner with location badge and a prominent brand-colored CTA button/pill; (5)${fontLock} Ban flat sterile beige walls; ground the flyer in a real, atmospheric environment with 20% safe margins.]`;
     }
 
     const conceptClause = artConcept
@@ -1131,6 +1189,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         useColors: Boolean(brand?.enabled),
         useLogo: hasLogo,
         logoPosition: raw.visualPlan?.brandApplication?.logoPosition || selectedPlacement.id,
+        personaId: input.personaId,
         brandElementsToPreserve: hasLogo
           ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais da marca"]
           : ["Cores oficiais e espaço reservado para logo manual"],
@@ -1277,6 +1336,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         useColors: Boolean(brand?.enabled),
         useLogo: hasLogo,
         logoPosition: selectedPlacement.id,
+        personaId: input.personaId,
         brandElementsToPreserve: hasLogo
           ? ["Logomarca oficial da empresa integrada à arte", "Cores oficiais"]
           : ["Cores oficiais", "Elemento/Logo enviado na Etapa 5"],

@@ -34,6 +34,7 @@ export class BrandContextBuilder {
           ...(profileDoc.exists ? profileDoc.data() : {}),
           ...(onboardingDoc.exists ? onboardingDoc.data() : {}),
           lastLogoPosition: userDoc.exists ? userDoc.data()?.lastLogoPosition : undefined,
+          lastPersonaId: userDoc.exists ? userDoc.data()?.lastPersonaId : undefined,
         };
         const bk = data?.brandKit || {};
         snapshot = {
@@ -87,6 +88,7 @@ export class BrandContextBuilder {
       logoUrl: snapshot?.logoUrl || undefined,
       hasLocalOfficialLogo,
       lastLogoPosition: snapshot?.lastLogoPosition || undefined,
+      lastPersonaId: snapshot?.lastPersonaId || undefined,
       personas: snapshot?.personas || [],
     };
   }

@@ -47,6 +47,8 @@ export interface OrchestratorRunParams {
   referenceMode?: "style_only" | "campaign_identity";
   logoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
   lastLogoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
+  personaId?: string;
+  lastPersonaId?: string;
 }
 
 export interface OrchestratorRunResult {
@@ -115,6 +117,8 @@ export class ImageGenerationOrchestrator {
       brandKit: brandContext,
       logoPosition: params.logoPosition,
       lastLogoPosition: params.lastLogoPosition || brandContext.lastLogoPosition,
+      personaId: params.personaId,
+      lastPersonaId: params.lastPersonaId || brandContext.lastPersonaId,
       referenceImages: references,
       textOverlayMode: normalized.requestedTextOverlayMode,
       productHeadline: normalized.explicitHeadline,
@@ -163,6 +167,23 @@ export class ImageGenerationOrchestrator {
         } catch (savePosErr) {
           console.warn("[ImageGenerationOrchestrator] Aviso ao persistir lastLogoPosition:", savePosErr);
         }
+      }
+    }
+
+    // Persistência da Memória de Persona no Firestore do Usuário
+    const appliedPersonaId = (planResult.visualPlan as any)?.personaId;
+    if (appliedPersonaId && params.userId) {
+      try {
+        const { adminDb } = await import("@/lib/firebase-admin");
+        await adminDb.doc(`users/${params.userId}`).set(
+          {
+            lastPersonaId: appliedPersonaId,
+            lastPersonaAppliedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (savePersonaErr) {
+        console.warn("[ImageGenerationOrchestrator] Aviso ao persistir lastPersonaId:", savePersonaErr);
       }
     }
 
