@@ -28,6 +28,23 @@ export interface DynamicHeadlineTreatment {
   treatmentDirectiveEn: string;
 }
 
+export type DynamicPersonaDiversityId =
+  | "latina_executive_mid30s"
+  | "afro_descendant_male_leader"
+  | "caucasian_female_specialist"
+  | "asian_male_consultant"
+  | "afro_descendant_female_entrepreneur"
+  | "latino_male_director_mature"
+  | "collaborative_diverse_duo";
+
+export interface DynamicPersonaDiversityProfile {
+  id: DynamicPersonaDiversityId;
+  labelPt: string;
+  genderPt: string;
+  ageBracketPt: string;
+  directiveEn: string;
+}
+
 export class Gpt5PromptPlanner {
   private static readonly SYSTEM_PROMPT = `
 Você é o Diretor Criativo e Especialista Sênior em Planejamento Visual da NumVapt.
@@ -39,8 +56,13 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
 1. O prompt gerado para o gpt-image-2 deve ser rico, minucioso e estruturado em 10 blocos:
    [1. INTENDED GOAL]: Objetivo comercial/editorial claro e personalidade de direção de arte conforme a Etapa 3 (Vender Produto, Post para Redes, Anúncio/Oferta, Empresa & Serviços, Conceito Criativo ou Thumb de Alta Performance). REGRA ANTI-VIÉS CONSERVADOR: Mesmo quando o objetivo for "commercial" (Vender Produto), "presentation" (Empresa & Serviços) ou "ad" (Anúncio/Oferta), é TERMINANTEMENTE PROIBIDO adotar um layout engessado, careta ou com título sempre reto e centralizado no topo! Todos os objetivos devem exibir direção de arte ousada de agência internacional e liberdade espacial de títulos (/typolayout), priorizando 100% as fontes do BrandKit (/fontlock).
    [2. SCENE & CONTEXT]: Descrição do ambiente publicitário, iluminação e atmosfera.
-   [3. HERO SUBJECT]: Detalhes fiéis do sujeito, produto ou logomarca principal. Se o usuário enviou imagem na Etapa 5, examine a imagem anexada com atenção extrema:
-   - Se for PESSOA: descreva com precisão as características físicas (idade, gênero, etnia, cabelo, traços, roupas).
+   [3. HERO SUBJECT]: Detalhes fiéis do sujeito, produto ou logomarca principal.
+   - DIVERSIDADE HUMANA E ALTERNÂNCIA DINÂMICA DE PERSONAGENS (/personadiversity): Sempre que a cena retratar pessoas/profissionais (a menos que uma foto de pessoa real tenha sido enviada na Etapa 5 ou especificada no briefing):
+     * É TERMINANTEMENTE PROIBIDO gerar sempre a mesma mulher de blazer escuro e traços latinos repetidamente!
+     * Alterne e especifique detalhadamente no prompt para a IA de difusão características humanas ricas e variadas entre as gerações: gênero (homens carismáticos, mulheres executivas, duplas profissionais colaborativas), etnias autênticas (afrodescendentes, pardos/latinos, asiáticos, caucasianos), faixas etárias reais (profissionais jovens e dinâmicos de 28-35 anos, executivos sêniores de 45-55 anos com cabelos grisalhos e autoridade madura), estilos de vestuário e penteados variados.
+     * Se houver fotos ou personas cadastradas no BrandKit, integre a diversidade dessas personas de forma rotativa e autêntica.
+   - Se o usuário enviou imagem na Etapa 5, examine a imagem anexada com atenção extrema:
+   - Se for PESSOA: descreva com precisão as características físicas (idade, gênero, etnia, cabelo, traços, roupas) preservando a fisionomia da foto enviada.
    - Se for PRODUTO FÍSICO, EQUIPAMENTO, MÁQUINA, APARELHO, CAIXA DE SOM, VEÍCULO, PRATO OU EMBALAGEM COMERCIAL: ATIVE IMEDIATAMENTE A TRAVA ESTRUTURAL E GEOMÉTRICA DE PRODUTO (/productlock)!
      a) PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (PRODUCT GEOMETRY & COMPONENT LOCK): Inspecione minuciosamente cada sub-componente do produto na foto enviada (ex: em caixas de som ou equipamentos, observe se há cornetas aparentes prateadas/pretas, tweeters expostos, grades com barras horizontais vs. telas perfuradas, cores exatas das laterais do gabinete como branco ou madeira, cabos, suportes, racks e proporções). Descreva cada detalhe físico exatamente como é na foto original! É TERMINANTEMENTE PROIBIDO "modernizar", redesenhar, substituir peças expostas por telas fechadas genéricas de catálogo, mudar a cor do gabinete do produto ou alterar o formato de partes superiores/inferiores do equipamento!
      b) PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS para os textos/títulos da arte. NUNCA redesenhe o produto físico para parecer um modelo comercial padrão da marca citada (ex: NUNCA pinte laterais brancas de preto, NUNCA cubra cornetas aparentes com tela perfurada e NUNCA invente/cole o logotipo "JBL" ou qualquer outra marca na frente do equipamento se esse logotipo não existir fisicamente na foto original enviada pelo usuário)!
@@ -407,6 +429,94 @@ REGRAS DE CONFORMIDADE:
       ? input.brandKit.primaryColors.join(", ")
       : "#0083C7 / #FA6305";
     return `[DYNAMIC HEADLINE CHROMATIC & STRIPE TREATMENT (/headlinetreatment — ${selected.id}): Selected Treatment: ${selected.labelPt}. Directive: ${selected.treatmentDirectiveEn} Brand Color Reference: ${brandColors}. Ensure 100% legibility and adherence to the BrandKit typeface anatomy without generic repeating formulas.]`;
+  }
+
+  public static readonly DYNAMIC_PERSONA_PROFILES: DynamicPersonaDiversityProfile[] = [
+    {
+      id: "latina_executive_mid30s",
+      labelPt: "Executiva Latina Carismática (32-38 anos, cabelos ondulados castanhos, alfaiataria elegante)",
+      genderPt: "Feminino",
+      ageBracketPt: "32-38 anos",
+      directiveEn: "Authentic, charismatic Latina businesswoman in her mid-30s with natural wavy dark hair, warm approachable confident smile, professional smart-casual tailored blazer, real human skin texture with microscopic pores",
+    },
+    {
+      id: "afro_descendant_male_leader",
+      labelPt: "Líder Masculino Afrodescendente (35-42 anos, corte degradê impecável, presença imponente)",
+      genderPt: "Masculino",
+      ageBracketPt: "35-42 anos",
+      directiveEn: "Distinguished, charismatic Black male entrepreneur/executive in his late 30s with sharp tailored fade haircut, trimmed neat beard, inspiring vision, wearing a modern structured tailored jacket over a crisp shirt, commanding modern authority",
+    },
+    {
+      id: "caucasian_female_specialist",
+      labelPt: "Especialista Feminina Contemporânea (28-34 anos, visual dinâmico e inovador)",
+      genderPt: "Feminino",
+      ageBracketPt: "28-34 anos",
+      directiveEn: "Energetic, modern female specialist in her early 30s with natural chestnut or auburn hair tied in a chic professional ponytail, engaging warm gaze, wearing a minimalist modern blouse and tailored vest, radiating fresh agile expertise",
+    },
+    {
+      id: "asian_male_consultant",
+      labelPt: "Consultor Estratégico Masculino Asiático (30-36 anos, óculos de design sutil, postura analítica)",
+      genderPt: "Masculino",
+      ageBracketPt: "30-36 anos",
+      directiveEn: "Charismatic East-Asian male strategist/consultant in his early 30s with refined minimalist designer eyeglasses, clean modern haircut, poised thoughtful expression, wearing a sleek structured dark blazer over a crewneck sweater, embodying sharp analytical confidence",
+    },
+    {
+      id: "afro_descendant_female_entrepreneur",
+      labelPt: "Empreendedora Afrodescendente Inspiradora (34-40 anos, penteado trançado ou crespo volumoso sofisticado)",
+      genderPt: "Feminino",
+      ageBracketPt: "34-40 anos",
+      directiveEn: "Inspiring, confident Black businesswoman in her mid-to-late 30s with elegant sculpted box braids or radiant natural coily afro, expressive warm eyes, vibrant professional tailored attire in rich harmonious tones, radiating genuine warmth and executive credibility",
+    },
+    {
+      id: "latino_male_director_mature",
+      labelPt: "Diretor Executivo Maduro (48-56 anos, cabelos grisalhos distintos, máxima autoridade e solidez)",
+      genderPt: "Masculino",
+      ageBracketPt: "48-56 anos",
+      directiveEn: "Experienced, distinguished senior male director in his early 50s with dignified salt-and-pepper hair, subtle laughter lines conveying deep market wisdom, sharp bespoke Italian blazer, relaxed yet commanding leadership posture",
+    },
+    {
+      id: "collaborative_diverse_duo",
+      labelPt: "Dupla Profissional Colaborativa Diversa (parceria consultiva e dinâmica de trabalho em equipe)",
+      genderPt: "Dupla Mista",
+      ageBracketPt: "30-45 anos",
+      directiveEn: "Dynamic, collaborative professional duo — one female and one male specialist from diverse ethnic backgrounds reviewing deliverable strategies together with authentic synergy, engaged body language, and shared satisfaction in a high-end textured environment",
+    },
+  ];
+
+  private static personaDiversityCursor = 0;
+
+  public static selectDynamicPersonaProfile(input?: Gpt5PlannerInput): DynamicPersonaDiversityProfile {
+    // Se o BrandKit do cliente tiver personas cadastradas com gênero/faixa etária, prioriza harmonizar
+    const brandPersonas = input?.brandKit?.personas;
+    const profiles = this.DYNAMIC_PERSONA_PROFILES;
+    const idx = (this.personaDiversityCursor++) % profiles.length;
+    return profiles[idx];
+  }
+
+  public static buildPersonaDiversityMandate(
+    input: Gpt5PlannerInput,
+    profile?: DynamicPersonaDiversityProfile
+  ): string {
+    const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
+    const isStep5Logo = this.isStep5LogoUpload(input);
+
+    // Se o usuário enviou uma foto real de PESSOA na Etapa 5 (não sendo produto nem logo), preserva a pessoa enviada
+    if (subjectRef && !isStep5Logo) {
+      return "[HERO SUBJECT INTEGRATION: User provided reference photo in Step 5 — preserve facial identity, ethnicity, and gender from the uploaded reference.]";
+    }
+
+    const selected = profile || this.selectDynamicPersonaProfile(input);
+    const brandPersonas = input.brandKit?.personas;
+    let personaHint = "";
+    if (brandPersonas && Array.isArray(brandPersonas) && brandPersonas.length > 0) {
+      const pIdx = (this.personaDiversityCursor) % brandPersonas.length;
+      const bp = brandPersonas[pIdx];
+      if (bp?.name || bp?.profile) {
+        personaHint = ` Target Buyer Persona Alignment: Connect authentically with brand persona "${bp.name || 'Cliente'}" (${bp.profile || ''}).`;
+      }
+    }
+
+    return `[DYNAMIC PERSONA DIVERSITY & HUMAN ROTATION (/personadiversity — ${selected.id}): CRITICAL ANTI-MONOTONY RULE: Avoid generating the exact same brunette woman in a dark blazer on every single image! Rotated Protagonist Archetype (${selected.labelPt}): ${selected.directiveEn}.${personaHint} Ensure authentic natural human skin texture, natural expressions, 5 distinct fingers, and zero generic stock-photo clone repetition across campaign posts.]`;
   }
 
   public static buildAgencyQualityAndAnatomyMandate(input?: Gpt5PlannerInput): string {
@@ -923,6 +1033,7 @@ DIRETRIZ CRIATIVA E TIPOGRÁFICA DO OBJETIVO SELECIONADO NA ETAPA 3 (/objectivel
     const dynamicTreatment = input.textOverlayMode && input.textOverlayMode !== "NONE"
       ? this.selectDynamicHeadlineTreatment(input)
       : null;
+    const dynamicPersona = this.selectDynamicPersonaProfile(input);
     const typographySection = dynamicTypo
       ? `
 DIREÇÃO DE ARTE TIPOGRÁFICA SELECIONADA (/typolayout):
@@ -937,6 +1048,12 @@ DIREÇÃO DE ARTE TIPOGRÁFICA SELECIONADA (/typolayout):
   * Diretriz em Inglês: "${dynamicTreatment?.treatmentDirectiveEn || ""}"
 - INSTRUÇÃO DE LIBERDADE CRIATIVA: Atue como Diretor de Arte Sênior! Crie uma composição tipográfica surpreendente, autoral e personalizada para este nicho, variando alinhamentos, contrastes de escala display, palavras destacadas em faixas/tarjas sólidas da marca e esquemas de cores no imagePrompt. NUNCA gere sempre a mesma fórmula repetitiva!`
       : "";
+
+    const personaSection = `
+DIRETRIZ DE DIVERSIDADE HUMANA E ALTERNÂNCIA DE PERSONAGENS (/personadiversity):
+- Perfil e Arquétipo Sorteado: ${dynamicPersona.labelPt} (Gênero: ${dynamicPersona.genderPt}, Faixa Etária: ${dynamicPersona.ageBracketPt})
+- Diretriz em Inglês para o Bloco [3. HERO SUBJECT]: "${dynamicPersona.directiveEn}"
+- REGRA ANTI-MONOTONIA: Se a cena incluir pessoas/profissionais, aplique o arquétipo sorteado acima (ou integre de forma rotativa as personas do BrandKit). É TERMINANTEMENTE PROIBIDO gerar sempre a mesma mulher de blazer escuro em todas as artes! Varie gênero, idade, etnia, roupas e corte de cabelo.`;
 
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
@@ -954,6 +1071,7 @@ ${brandSection}
 ${referencesSection}
 ${objectiveCreativeSection}
 ${creativeDirectionSection}
+${personaSection}
 ${typographySection}
 DIRETRIZES DE AGÊNCIA DE ELITE & ANATOMIA DE MÃOS (/handlock & /agencystudio):
 - Garanta anatomia humana perfeita: exatamente 5 dedos por mão (1 polegar e 4 dedos), articulações naturais, unhas proporcionais e pegada ergonômica verossímil.
@@ -1069,6 +1187,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         const antiClicheMandate = this.buildAntiClicheCreativeMandate(input);
         if (antiClicheMandate && !prompt.includes("/anticliche")) {
           prompt += ` ${antiClicheMandate}`;
+        }
+        const personaDiversityMandate = this.buildPersonaDiversityMandate(input);
+        if (personaDiversityMandate && !prompt.includes("/personadiversity")) {
+          prompt += ` ${personaDiversityMandate}`;
         }
         const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
         if (agencyMandate && !prompt.includes("/handlock")) {
@@ -1293,6 +1415,10 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
       if (antiCliche && !p.includes("/anticliche")) {
         p += ` ${antiCliche}`;
       }
+      const personaDiversityMandate = this.buildPersonaDiversityMandate(input);
+      if (personaDiversityMandate && !p.includes("/personadiversity")) {
+        p += ` ${personaDiversityMandate}`;
+      }
       const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
       if (agencyMandate && !p.includes("/handlock")) {
         p += ` ${agencyMandate}`;
@@ -1312,7 +1438,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
 
     const agencyMandate = this.buildAgencyQualityAndAnatomyMandate(input);
     const headlineTreatmentMandate = this.buildDynamicHeadlineTreatmentMandate(input);
-    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${this.buildObjectiveCreativeMandate(input)} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${headlineTreatmentMandate} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
+    const personaDiversityMandate = this.buildPersonaDiversityMandate(input);
+    return `${creativeSceneLead} ${brandInstruction} ${thumbMandate} ${this.buildObjectiveCreativeMandate(input)} ${subjectMandate} ${textInstruction} ${this.buildBrandTypographyMandate(input)} ${this.buildDynamicTypographyMandate(input, typoStyle)} ${headlineTreatmentMandate} ${personaDiversityMandate} ${antiCliche} ${agencyMandate} ${logoMandate} [SAFE MARGINS MANDATE: Maintain 15% to 20% safe margin clearance around all borders. Absolutely no text or focal subjects touching the edges.]`;
   }
 
   public static generateFallbackSocialCaption(input: Gpt5PlannerInput) {

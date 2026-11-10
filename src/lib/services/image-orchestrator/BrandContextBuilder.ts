@@ -87,6 +87,7 @@ export class BrandContextBuilder {
       logoUrl: snapshot?.logoUrl || undefined,
       hasLocalOfficialLogo,
       lastLogoPosition: snapshot?.lastLogoPosition || undefined,
+      personas: snapshot?.personas || [],
     };
   }
 }

@@ -616,6 +616,43 @@ describe("Image Orchestrator Suite", () => {
       expect(mandate).toContain("#FA6305, #0083C7");
     });
 
+    it("alterna dinamicamente perfis de diversidade humana e personagens (/personadiversity)", () => {
+      const profiles = Gpt5PromptPlanner.DYNAMIC_PERSONA_PROFILES;
+      expect(profiles.length).toBe(7);
+      expect(profiles.some((p) => p.id === "latina_executive_mid30s")).toBe(true);
+      expect(profiles.some((p) => p.id === "afro_descendant_male_leader")).toBe(true);
+      expect(profiles.some((p) => p.id === "caucasian_female_specialist")).toBe(true);
+      expect(profiles.some((p) => p.id === "asian_male_consultant")).toBe(true);
+      expect(profiles.some((p) => p.id === "afro_descendant_female_entrepreneur")).toBe(true);
+      expect(profiles.some((p) => p.id === "latino_male_director_mature")).toBe(true);
+      expect(profiles.some((p) => p.id === "collaborative_diverse_duo")).toBe(true);
+
+      const p1 = Gpt5PromptPlanner.selectDynamicPersonaProfile();
+      const p2 = Gpt5PromptPlanner.selectDynamicPersonaProfile();
+      expect(p1.id).toBeDefined();
+      expect(p2.id).toBeDefined();
+      expect(p1.id).not.toBe(p2.id);
+
+      const mandate = Gpt5PromptPlanner.buildPersonaDiversityMandate({
+        userBrief: "Consultoria tributária para empresas",
+        objective: "commercial" as const,
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic",
+        useBrandKit: true,
+        brandKit: {
+          enabled: true,
+          personas: [{ name: "Dr. Carlos", profile: "Empresário 40 anos" }],
+        } as any,
+      } as any);
+
+      expect(mandate).toContain("/personadiversity");
+      expect(mandate).toContain("CRITICAL ANTI-MONOTONY RULE");
+      expect(mandate).toContain("Dr. Carlos");
+    });
+
     it("destrava a regra do anticlichê e aplica o arquétipo de alta densidade quando objective for flyer", async () => {
       const mandate = Gpt5PromptPlanner.buildAntiClicheCreativeMandate({
         objective: "flyer" as any,

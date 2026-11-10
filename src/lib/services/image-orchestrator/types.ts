@@ -47,6 +47,7 @@ export interface BrandContext {
   logoUrl?: string;
   hasLocalOfficialLogo: boolean;
   lastLogoPosition?: BrandLogoPlacement;
+  personas?: any[];
 }
 
 export interface Gpt5PlannerInput {
