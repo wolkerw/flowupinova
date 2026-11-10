@@ -110,6 +110,11 @@ export function BrandBookGeneratorTab({
   const [isApplying, setIsApplying] = useState(false);
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
   const [identifiedCompetitors, setIdentifiedCompetitors] = useState<string[]>([]);
+  // Rastreador local de aplicação ao Cérebro do Negócio
+  const [hasAppliedLocal, setHasAppliedLocal] = useState(false);
+
+  // Considera aplicado se vier persistido no meta ou se o usuário acabou de aplicar nesta sessão
+  const isAppliedToBrain = Boolean(brandBook?.meta?.appliedToBrain || hasAppliedLocal);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -183,6 +188,7 @@ export function BrandBookGeneratorTab({
       }
 
       setBrandBook(data.brandBook);
+      setHasAppliedLocal(false); // Novo BrandBook gerado: destrava novamente o botão de aplicação
       if (Array.isArray(data.socialIntelligence?.competitors)) {
         setIdentifiedCompetitors(data.socialIntelligence.competitors);
       }
@@ -227,6 +233,15 @@ export function BrandBookGeneratorTab({
         .map((d) => d.diferencial)
         .filter(Boolean);
 
+      const updatedBrandBook: BrandBookData = {
+        ...brandBook,
+        meta: {
+          ...brandBook.meta,
+          appliedToBrain: true,
+          appliedAt: new Date().toISOString(),
+        },
+      };
+
       await onApplyToBrain({
         primaryColor: primary,
         secondaryColor: secondary,
@@ -243,8 +258,11 @@ export function BrandBookGeneratorTab({
         visualGuidelines: `${brandBook.direcaoDeArteEFotografia.direcaoFotografia}\n\nDiretrizes IA: ${brandBook.direcaoDeArteEFotografia.diretrizesParaImagensIA}`,
         personas: mappedPersonas,
         description: brandBook.posicionamento.propostaDeValor || brandBook.fundamentos.missao,
-        brandBook: brandBook,
+        brandBook: updatedBrandBook,
       });
+
+      setBrandBook(updatedBrandBook);
+      setHasAppliedLocal(true);
 
       toast({
         title: "Cérebro do Negócio Atualizado!",
@@ -690,13 +708,22 @@ export function BrandBookGeneratorTab({
                 type="button"
                 size="sm"
                 onClick={handleApply}
-                disabled={isApplying}
-                className="gap-1.5 bg-primary text-white hover:bg-primary/90 text-xs font-semibold shadow-sm"
+                disabled={isApplying || isAppliedToBrain}
+                className={`gap-1.5 text-xs font-semibold shadow-sm transition-all ${
+                  isAppliedToBrain
+                    ? "bg-emerald-600 hover:bg-emerald-600 text-white cursor-default opacity-95"
+                    : "bg-primary text-white hover:bg-primary/90"
+                }`}
               >
                 {isApplying ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Aplicando...
+                  </>
+                ) : isAppliedToBrain ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Já Aplicado ao Cérebro do Negócio
                   </>
                 ) : (
                   <>
@@ -1365,13 +1392,22 @@ export function BrandBookGeneratorTab({
             <Button
               type="button"
               onClick={handleApply}
-              disabled={isApplying}
-              className="bg-primary text-white hover:bg-primary/90 h-11 px-6 font-semibold shadow-md shrink-0 w-full sm:w-auto"
+              disabled={isApplying || isAppliedToBrain}
+              className={`h-11 px-6 font-semibold shadow-md shrink-0 w-full sm:w-auto transition-all ${
+                isAppliedToBrain
+                  ? "bg-emerald-600 hover:bg-emerald-600 text-white cursor-default opacity-95"
+                  : "bg-primary text-white hover:bg-primary/90"
+              }`}
             >
               {isApplying ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Aplicando Diretrizes...
+                </>
+              ) : isAppliedToBrain ? (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Diretrizes Já Aplicadas ao Cérebro do Negócio
                 </>
               ) : (
                 <>

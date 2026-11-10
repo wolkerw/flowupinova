@@ -332,10 +332,101 @@ describe("BrandBookGeneratorTab Component", () => {
           secondaryFont: "Inter",
           slogan: "Seu marketing num vapt",
           brandBook: expect.objectContaining({
-            meta: expect.objectContaining({ brandName: "NumVapt Inova" }),
+            meta: expect.objectContaining({
+              brandName: "NumVapt Inova",
+              appliedToBrain: true,
+            }),
           }),
         })
       );
     });
+
+    // Após aplicar, o botão passa a ser exibido como 'Já Aplicado ao Cérebro do Negócio' e fica desabilitado
+    expect(screen.getByRole("button", { name: /Já Aplicado ao Cérebro do Negócio/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Diretrizes Já Aplicadas ao Cérebro do Negócio/i })).toBeDisabled();
+  });
+
+  it("renderiza o botão já desabilitado se o brandBook inicial já possuir appliedToBrain=true", () => {
+    const mockApply = vi.fn();
+    const sampleAppliedBrandBook = {
+      meta: {
+        brandName: "Wanna Contabilidade",
+        segment: "Contabilidade",
+        generatedAt: "Novembro de 2026",
+        version: "1.0 Estratégica",
+        appliedToBrain: true,
+      },
+      fundamentos: {
+        proposito: "Facilitar finanças",
+        missao: "Contabilidade ágil",
+        visao: "Ser referência",
+        valores: [],
+        personalidadeCincoPalavras: ["Segurança"],
+        promessaDaMarca: "Sem burocracia",
+        razoesParaAcreditar: [],
+      },
+      posicionamento: {
+        declaracaoPosicionamento: "Líder contábil",
+        categoriaMentalDesejada: "Contabilidade Premium",
+        propostaDeValor: "Gestão completa",
+        diferenciais: [],
+        posicionamentosAEvitar: [],
+        taglineRecomendada: "Simples assim",
+        alternativasCampanhas: [],
+      },
+      publicosEPersonas: { segmentos: [], personas: [], comoUsarPersonas: [] },
+      arquetiposEPersonalidade: {
+        arquetipoPrincipal: { nome: "Governante", descricao: "" },
+        arquetipoSecundario: { nome: "Sábio", descricao: "" },
+        tracoRelacionalDeApoio: { nome: "Prestativo", descricao: "" },
+        equilibrioPersonalidade: [],
+      },
+      tomDeVoz: {
+        principioVerbal: "Formal e claro",
+        dimensoes: [],
+        vocabularioPreferencial: [],
+        usarComCautela: [],
+        regrasEditoriais: [],
+      },
+      mensagensChave: {
+        mensagemCentral: "Foco no seu crescimento",
+        pilaresDeMensagem: [],
+        elevatorPitch15s: "",
+        apresentacao45s: "",
+        chamadasParaAcao: [],
+        exemplosPorContexto: [],
+      },
+      identidadeVisual: {
+        ideiaVisual: "Verde e confiança",
+        paletaCromatica: [],
+        proporcaoRecomendada: "60-30-10",
+        tipografia: { fonteTitulos: "Poppins", fonteTextos: "Inter", estiloGeral: "Moderno", hierarquia: [] },
+        regrasDeUsoLogo: [],
+      },
+      direcaoDeArteEFotografia: { direcaoFotografia: "", principiosVisuais: [], elementosGraficos: "", diretrizesParaImagensIA: "" },
+      estrategiaConteudoECanais: { pilaresEditoriais: [], funcaoCanais: [], ritmoInicial: "", estruturaSugeridaCase: "" },
+      campanhasESlogans: {
+        campanhaInstitucional: { titulo: "", ideia: "", conceito: "", cta: "" },
+        campanhasSegmentadas: [],
+        exemploLegendaSocial: "",
+        exemploBioInstagram: "",
+        headlineSite: "",
+        subheadlineSite: "",
+      },
+      metricasEGovernanca: { kpis: [], planoImplantacao90Dias: [] },
+    };
+
+    render(
+      <BrandBookGeneratorTab
+        onApplyToBrain={mockApply}
+        currentBrandName="Wanna Contabilidade"
+        currentSegment="Contabilidade"
+        initialBrandBook={sampleAppliedBrandBook as any}
+      />
+    );
+
+    const appliedBtn = screen.getByRole("button", { name: /Já Aplicado ao Cérebro do Negócio/i });
+    expect(appliedBtn).toBeInTheDocument();
+    expect(appliedBtn).toBeDisabled();
   });
 });

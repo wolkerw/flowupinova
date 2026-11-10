@@ -4,6 +4,8 @@ export interface BrandBookData {
     segment: string;
     generatedAt: string;
     version: string;
+    appliedToBrain?: boolean;
+    appliedAt?: string;
   };
   fundamentos: {
     proposito: string;
