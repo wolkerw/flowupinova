@@ -32,7 +32,7 @@ export type DynamicPersonaDiversityId =
   | "latina_executive_mid30s"
   | "afro_descendant_male_leader"
   | "caucasian_female_specialist"
-  | "asian_male_consultant"
+  | "latino_male_entrepreneur_mid30s"
   | "afro_descendant_female_entrepreneur"
   | "latino_male_director_mature"
   | "collaborative_diverse_duo";
@@ -454,11 +454,11 @@ REGRAS DE CONFORMIDADE:
       directiveEn: "Energetic, modern female specialist in her early 30s with natural chestnut or auburn hair tied in a chic professional ponytail, engaging warm gaze, wearing a minimalist modern blouse and tailored vest, radiating fresh agile expertise",
     },
     {
-      id: "asian_male_consultant",
-      labelPt: "Consultor Estratégico Masculino Asiático (30-36 anos, óculos de design sutil, postura analítica)",
+      id: "latino_male_entrepreneur_mid30s",
+      labelPt: "Empreendedor Latino / Brasileiro Dinâmico (32-38 anos, estilo moderno e acessível, camisa social ou polo fina)",
       genderPt: "Masculino",
-      ageBracketPt: "30-36 anos",
-      directiveEn: "Charismatic East-Asian male strategist/consultant in his early 30s with refined minimalist designer eyeglasses, clean modern haircut, poised thoughtful expression, wearing a sleek structured dark blazer over a crewneck sweater, embodying sharp analytical confidence",
+      ageBracketPt: "32-38 anos",
+      directiveEn: "Dynamic, charismatic Brazilian/Latino male entrepreneur in his mid-30s with natural short dark hair, well-groomed beard, approachable confident demeanor, wearing a modern fitted button-up shirt or fine smart-casual blazer, exuding practical business competence and warmth",
     },
     {
       id: "afro_descendant_female_entrepreneur",

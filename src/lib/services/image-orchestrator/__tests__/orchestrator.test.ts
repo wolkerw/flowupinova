@@ -622,7 +622,7 @@ describe("Image Orchestrator Suite", () => {
       expect(profiles.some((p) => p.id === "latina_executive_mid30s")).toBe(true);
       expect(profiles.some((p) => p.id === "afro_descendant_male_leader")).toBe(true);
       expect(profiles.some((p) => p.id === "caucasian_female_specialist")).toBe(true);
-      expect(profiles.some((p) => p.id === "asian_male_consultant")).toBe(true);
+      expect(profiles.some((p) => p.id === "latino_male_entrepreneur_mid30s")).toBe(true);
       expect(profiles.some((p) => p.id === "afro_descendant_female_entrepreneur")).toBe(true);
       expect(profiles.some((p) => p.id === "latino_male_director_mature")).toBe(true);
       expect(profiles.some((p) => p.id === "collaborative_diverse_duo")).toBe(true);
