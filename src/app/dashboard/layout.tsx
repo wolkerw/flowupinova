@@ -575,7 +575,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       variant="ghost"
                       className="flex h-auto items-center gap-2 rounded-full p-1"
                     >
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-8 w-8 border border-slate-200/80 bg-slate-100 shadow-sm transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900">
                         <AvatarImage
                           src={
                             businessProfile?.logos?.avatar?.url ||
@@ -584,8 +584,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             undefined
                           }
                           alt={businessProfile?.name || user?.displayName || ""}
+                          className="object-contain p-0.5"
                         />
-                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                        <AvatarFallback className="bg-slate-100 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                          {getAvatarFallback()}
+                        </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
