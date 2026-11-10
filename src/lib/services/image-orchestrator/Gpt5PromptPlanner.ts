@@ -174,25 +174,25 @@ REGRAS DE CONFORMIDADE:
     {
       id: "top-left" as const,
       labelPt: "Canto Superior Esquerdo (editorial clássico de cabeçalho)",
-      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 22% height x left 32% width) 100% blank, empty and clean for logo overlay.",
-      textPlacementPrompt: "Place headline starting below Y=22% or center/right.",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-left quadrant (top 24% height x left 38% width) 100% blank, empty and clean for the prominent official BrandKit logo overlay.",
+      textPlacementPrompt: "Place headline starting below Y=24% or center/right.",
     },
     {
       id: "top-right" as const,
       labelPt: "Canto Superior Direito (editorial moderno com leitura balanceada)",
-      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-right quadrant (top 22% height x right 32% width) 100% blank, empty and clean for logo overlay.",
-      textPlacementPrompt: "Place headline starting on the left (below Y=22%) or center, leaving top-right clean for the brand logo.",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-right quadrant (top 24% height x right 38% width) 100% blank, empty and clean for the prominent official BrandKit logo overlay.",
+      textPlacementPrompt: "Place headline starting on the left (below Y=24%) or center, leaving top-right clean for the brand logo.",
     },
     {
       id: "top-center" as const,
       labelPt: "Topo Centralizado (estilo capa de revista de luxo / pôster icônico)",
-      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-center area (top 18% height x center 50% width) 100% blank, empty and clean for logo overlay.",
-      textPlacementPrompt: "Place headline starting below Y=20% or in the midground, letting the centered top logo breathe.",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep top-center area (top 20% height x center 56% width) 100% blank, empty and clean for the prominent official BrandKit logo overlay.",
+      textPlacementPrompt: "Place headline starting below Y=22% or in the midground, letting the centered top logo breathe.",
     },
     {
       id: "bottom-right" as const,
       labelPt: "Rodapé Direito (assinatura corporativa discreta e sofisticada)",
-      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep bottom-right quadrant (bottom 16% height x right 32% width) 100% blank, empty and clean for logo overlay.",
+      clearanceZonePrompt: "ZERO-TEXT LOGO CLEARANCE ZONE: Keep bottom-right quadrant (bottom 18% height x right 38% width) 100% blank, empty and clean for the prominent official BrandKit logo overlay.",
       textPlacementPrompt: "Keep bottom-right corner completely free of text or buttons for the official brand sign-off.",
     },
   ];

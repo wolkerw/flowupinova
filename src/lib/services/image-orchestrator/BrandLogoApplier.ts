@@ -1,6 +1,6 @@
 export interface ApplyLogoOptions {
   position?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left" | "auto";
-  maxScale?: number; // Padrão: 0.18 (18% da largura da imagem)
+  maxScale?: number; // Padrão dinâmico: 0.22 a 0.28 para logos horizontais/textuais, 0.18 a 0.20 para logos quadradas/verticais
   marginRatio?: number; // Padrão: 0.04 (4% de margem segura)
   avoidCollisions?: boolean; // Padrão: true (detecta texto/gráficos e busca a melhor posição limpa)
 }
@@ -107,14 +107,20 @@ export class BrandLogoApplier {
         return imageBuffer;
       }
 
-      // Escala: aproximadamente 18% da largura da imagem (elegante e seguro)
-      const scale = options.maxScale ?? 0.18;
-      let targetLogoW = Math.round(mainW * scale);
+      // Proporção do arquivo de logo (aspect ratio)
       const aspect = logoImage.height / logoImage.width;
+      const isHorizontalWide = aspect <= 0.45; // Ex: Wanna Contabilidade, logos de formato retangular esticado
+
+      // Escala dinâmica calibrada:
+      // - Logos horizontais/largas recebem de 24% a 28% da largura da arte para garantir legibilidade de slogans/subtítulos
+      // - Logos verticais ou quadradas usam 18% a 20%
+      const defaultScale = isHorizontalWide ? 0.26 : 0.20;
+      const scale = options.maxScale ?? defaultScale;
+      let targetLogoW = Math.round(mainW * scale);
       let targetLogoH = Math.round(targetLogoW * aspect);
 
-      // Limitar altura a no máximo 11% da altura da arte para logotipos verticais
-      const maxH = Math.round(mainH * 0.11);
+      // Limitar altura a no máximo 13% da altura da arte (antes 11%) para permitir melhor presença visual
+      const maxH = Math.round(mainH * (isHorizontalWide ? 0.10 : 0.13));
       if (targetLogoH > maxH) {
         targetLogoH = maxH;
         targetLogoW = Math.round(targetLogoH / aspect);
