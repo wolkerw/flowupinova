@@ -46,15 +46,9 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     uid = decoded.uid || "";
     name = decoded.name || email;
   } catch (err) {
-    console.warn("[ADMIN_AUTH] verifyIdToken falhou, tentando fallback JWT parse:", err);
-    const parsed = parseJwtPayload(token);
-    if (parsed && parsed.email && parsed.uid) {
-      email = parsed.email;
-      uid = parsed.uid;
-      name = parsed.name || email;
-    } else {
-      redirect("/acesso/login");
-    }
+    // SEGURANÇA: nunca confiar no payload de um JWT cuja assinatura não foi verificada.
+    console.warn("[ADMIN_AUTH] verifyIdToken falhou:", err);
+    redirect("/acesso/login");
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -70,25 +64,6 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     email,
     name,
   };
-}
-
-/**
- * Função utilitária para extrair payload do JWT caso verifyIdToken falhe localmente sem credenciais GCP.
- */
-function parseJwtPayload(token: string): { uid?: string; email?: string; name?: string } | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
-    if (!payload || typeof payload !== "object") return null;
-    return {
-      uid: payload.user_id || payload.uid || payload.sub,
-      email: payload.email,
-      name: payload.name || payload.email,
-    };
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -108,14 +83,8 @@ export async function validateAdminToken(token: string | null): Promise<AdminUse
     uid = decoded.uid || "";
     name = decoded.name || email;
   } catch {
-    const parsed = parseJwtPayload(token);
-    if (parsed && parsed.email && parsed.uid) {
-      email = parsed.email;
-      uid = parsed.uid;
-      name = parsed.name || email;
-    } else {
-      return null;
-    }
+    // SEGURANÇA: token com assinatura inválida/expirada nunca concede acesso admin.
+    return null;
   }
 
   const normalizedEmail = email.trim().toLowerCase();

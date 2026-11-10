@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { publishToInstagram } from "@/lib/services/publisher-service";
 
@@ -18,6 +19,9 @@ interface PublishRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { postData }: PublishRequestBody = await request.json();
 

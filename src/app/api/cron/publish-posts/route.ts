@@ -6,6 +6,9 @@ export const dynamic = "force-dynamic";
 function validateCronAuthorization(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
+    // TODO(segurança): definir CRON_SECRET no App Hosting e no Cloud Scheduler.
+    // Mantido aberto apenas para não interromper os agendamentos atuais.
+    console.error("[CRON_AUTH] CRON_SECRET não configurado: endpoint de cron está PÚBLICO.");
     return true;
   }
 

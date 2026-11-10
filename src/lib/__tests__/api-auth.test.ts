@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getAuthenticatedUser, validateUserOwnership } from "../api-auth";
+import { getAuthenticatedUser, validateUserOwnership, requireOwner, requireUser } from "../api-auth";
 
 const mockVerifyIdToken = vi.fn();
 vi.mock("../firebase-admin", () => ({
@@ -76,5 +76,25 @@ describe("api-auth", () => {
     const validation = await validateUserOwnership(req, "victim-123");
     expect(validation.authorized).toBe(false);
     expect(validation.reason).toContain("Operação não autorizada");
+  });
+it("nega ownership quando não há usuário autenticado", async () => {
+    const req = new Request("http://localhost/api/test");
+    const validation = await validateUserOwnership(req, "victim-123");
+    expect(validation.authorized).toBe(false);
+  });
+
+  it("requireOwner retorna 403 quando o usuário age em nome de outro", async () => {
+    mockVerifyIdToken.mockResolvedValue({ uid: "attacker-456", email: "attacker@example.com" });
+    const req = new Request("http://localhost/api/test", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const result = await requireOwner(req, "victim-123");
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(403);
+  });
+
+  it("requireUser retorna 401 sem token", async () => {
+    const result = await requireUser(new Request("http://localhost/api/test"));
+    expect((result as Response).status).toBe(401);
   });
 });

@@ -1,7 +1,11 @@
+import { requireAdminUser } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(request: NextRequest) {
+  const authUser = await requireAdminUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get("taskId");

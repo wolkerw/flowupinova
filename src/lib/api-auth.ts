@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyIdToken } from "./firebase-admin";
 import { ADMIN_EMAILS } from "./admin-auth";
@@ -70,8 +71,8 @@ export async function validateUserOwnership(
 
   const authUser = await getAuthenticatedUser(request);
   if (!authUser) {
-    // Modo resiliente para dev/callbacks se auth cookie não puder ser passado
-    return { authorized: true, user: { uid: targetUserId } };
+    // SEGURANÇA: sem autenticação válida nunca há autorização.
+    return { authorized: false, reason: "Autenticação obrigatória." };
   }
 
   if (authUser.uid !== targetUserId && !authUser.isAdmin) {
@@ -82,4 +83,53 @@ export async function validateUserOwnership(
   }
 
   return { authorized: true, user: authUser };
+}
+
+/**
+ * Exige um usuário autenticado (token Firebase verificado) na API Route.
+ * Uso:
+ *   const auth = await requireUser(request);
+ *   if (auth instanceof NextResponse) return auth;
+ *   // auth.uid é confiável
+ */
+export async function requireUser(request?: Request): Promise<AuthenticatedUser | NextResponse> {
+  const user = await getAuthenticatedUser(request);
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: "Autenticação obrigatória." },
+      { status: 401 }
+    );
+  }
+  return user;
+}
+
+/**
+ * Exige usuário autenticado que seja o dono de targetUserId (ou admin).
+ * Se targetUserId vier vazio, assume o próprio usuário autenticado.
+ */
+export async function requireOwner(
+  request: Request | undefined,
+  targetUserId: string | null | undefined
+): Promise<AuthenticatedUser | NextResponse> {
+  const user = await requireUser(request);
+  if (user instanceof NextResponse) return user;
+  if (targetUserId && targetUserId !== user.uid && !user.isAdmin) {
+    return NextResponse.json(
+      { success: false, error: "Operação não autorizada para este usuário." },
+      { status: 403 }
+    );
+  }
+  return user;
+}
+
+/**
+ * Exige usuário admin (e-mail na lista ADMIN_EMAILS ou claim isAdmin).
+ */
+export async function requireAdminUser(request?: Request): Promise<AuthenticatedUser | NextResponse> {
+  const user = await requireUser(request);
+  if (user instanceof NextResponse) return user;
+  if (!user.isAdmin) {
+    return NextResponse.json({ success: false, error: "Acesso restrito." }, { status: 403 });
+  }
+  return user;
 }

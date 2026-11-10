@@ -1,9 +1,13 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { createGoogleAdsCampaign } from "@/lib/services/google-ads-service-admin";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body = await request.json();
     const {
@@ -25,6 +29,12 @@ export async function POST(request: NextRequest) {
       durationDays,
       finalUrl,
     } = body;
+    if (userId && userId !== authUser.uid && !authUser.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Operação não autorizada para este usuário." },
+        { status: 403 }
+      );
+    }
 
     if (!userId || !customerId || !name || !dailyBudget) {
       return NextResponse.json(

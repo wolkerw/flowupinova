@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     const body: PublishRequestBody = await request.json();
     const { postData } = body;
 
-    const targetUid = uid || postData?.userId;
+    // SEGURANÇA: publicação só em nome do usuário autenticado (o cron publica direto via publisher-service).
+    const targetUid = uid;
 
     if (!targetUid) {
       return NextResponse.json(

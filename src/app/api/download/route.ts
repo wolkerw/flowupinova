@@ -1,8 +1,13 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeFetch } from "@/lib/safe-url";
 
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { searchParams } = new URL(request.url);
     const url = searchParams.get("url");
@@ -14,7 +19,15 @@ export async function GET(request: NextRequest) {
     console.log(`[DOWNLOAD_PROXY] Iniciando download de: ${url}`);
 
     // Buscar a imagem na CDN/Firebase Storage pelo servidor
-    const response = await fetch(url);
+    let response: Response;
+    try {
+      response = await safeFetch(url, { signal: AbortSignal.timeout(30000) });
+    } catch (e: any) {
+      if (e?.message === "URL_NAO_PERMITIDA") {
+        return new Response("URL não permitida", { status: 400 });
+      }
+      throw e;
+    }
     if (!response.ok) {
       return new Response("Falha ao obter imagem da fonte", { status: response.status });
     }
@@ -28,7 +41,6 @@ export async function GET(request: NextRequest) {
     headers.set("Content-Type", contentType);
     headers.set("Content-Disposition", `attachment; filename="numvapt-media-${Date.now()}.jpg"`);
     // Permitir CORS de mesma origem
-    headers.set("Access-Control-Allow-Origin", "*");
 
     return new Response(buffer, {
       status: 200,

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifySharedSecret } from "@/lib/webhook-auth";
 import { generateWhatsAppAIResponse } from "@/lib/services/whatsapp-ai-service";
 import type { WhatsAppMessage } from "@/lib/types/whatsapp";
 
@@ -25,6 +26,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!verifySharedSecret(request, "WHATSAPP_WEBHOOK_SECRET")) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
   try {
     const body = await request.json();
 

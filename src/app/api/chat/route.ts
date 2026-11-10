@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
@@ -12,6 +13,9 @@ const chatSchema = z.object({
   history: z.array(z.any()).optional().default([]),
 });
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const ip = getIpFromRequest(request);
     const { success, limit, reset, remaining } = await aiRateLimit.limit(ip);
@@ -40,6 +44,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { message, history, userId } = parsed.data;
+    if (userId && userId !== authUser.uid && !authUser.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Operação não autorizada para este usuário." },
+        { status: 403 }
+      );
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {

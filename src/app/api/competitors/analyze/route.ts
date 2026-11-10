@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 import { JSDOM } from "jsdom";
 
@@ -17,6 +18,9 @@ interface AnalyzeCompetitorRequestBody {
 }
 
 export async function POST(request: Request) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body: AnalyzeCompetitorRequestBody = await request.json();
     const { competitorName, type = "direct_competitor", website, socialMedia, userBusinessContext } = body;

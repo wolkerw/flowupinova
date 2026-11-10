@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const { mockRequireUser } = vi.hoisted(() => ({
+  mockRequireUser: vi.fn(async () => ({ uid: "test-user-uid", email: "test@example.com" })),
+}));
+vi.mock("@/lib/api-auth", () => ({ requireUser: mockRequireUser }));
 import { POST } from "../analyze/route";
 
 describe("POST /api/competitors/analyze", () => {

@@ -140,6 +140,15 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "X-Server-Timeout": serverTimeout,
+        // Repassa a autenticação do usuário para rotas internas protegidas (ex: gerar-referencia)
+        ...(webhookUrl.includes("/api/conteudo/gerar-referencia")
+          ? {
+              ...(request.headers.get("authorization")
+                ? { Authorization: request.headers.get("authorization") as string }
+                : {}),
+              ...(request.headers.get("cookie") ? { Cookie: request.headers.get("cookie") as string } : {}),
+            }
+          : {}),
       },
       body: webhookFormData,
       signal: AbortSignal.timeout(300000),

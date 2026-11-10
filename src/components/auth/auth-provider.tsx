@@ -69,7 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             fetch("/api/email/welcome", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${await user.getIdToken()}`,
+              },
               body: JSON.stringify({ name: user.displayName, email: user.email }),
             }).catch(() => {});
           }
@@ -224,7 +227,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Send welcome email via our API route (fire-and-forget)
       fetch("/api/email/welcome", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await user.getIdToken()}`,
+        },
         body: JSON.stringify({ name: name, email: email }),
       }).catch((error) => {
         // Log error but don't show a toast or block user flow
@@ -309,7 +315,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         fetch("/api/email/welcome", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await user.getIdToken()}`,
+          },
           body: JSON.stringify({ name: user.displayName, email: user.email }),
         }).catch(() => {});
       }

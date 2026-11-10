@@ -2,8 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import type { InstagramMessage, InstagramChatSession } from "@/lib/types/instagram";
 import { generateInstagramAIResponse } from "@/lib/services/instagram-ai-service";
+import { verifyMetaSignature } from "@/lib/webhook-auth";
 
-const INSTAGRAM_VERIFY_TOKEN = process.env.INSTAGRAM_VERIFY_TOKEN || "numvapt_instagram_verify_token";
+// SEGURANÇA: sem valor padrão no código; defina INSTAGRAM_VERIFY_TOKEN no ambiente.
+const INSTAGRAM_VERIFY_TOKEN = process.env.INSTAGRAM_VERIFY_TOKEN || "";
 const INSTAGRAM_PAGE_ACCESS_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN || "";
 
 /**
@@ -100,7 +102,7 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  if (mode === "subscribe" && token === INSTAGRAM_VERIFY_TOKEN) {
+  if (mode === "subscribe" && INSTAGRAM_VERIFY_TOKEN && token === INSTAGRAM_VERIFY_TOKEN) {
     console.log("[INSTAGRAM_WEBHOOK_VERIFIED] Webhook validado com sucesso pela Meta.");
     return new Response(challenge, {
       status: 200,
@@ -116,7 +118,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    if (!verifyMetaSignature(rawBody, request.headers.get("x-hub-signature-256"))) {
+      console.warn("[INSTAGRAM_WEBHOOK] Assinatura inválida: evento rejeitado.");
+      return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
+    }
+    const body = JSON.parse(rawBody);
 
     // Valida se o evento é do tipo Instagram
     if (body.object !== "instagram" && body.object !== "page") {

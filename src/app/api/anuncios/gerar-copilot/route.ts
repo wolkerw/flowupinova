@@ -1,9 +1,13 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     let dynamicPrompts: any = {};
     try {

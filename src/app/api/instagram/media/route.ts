@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,9 @@ async function getPostInsights(postId: string, accessToken: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body: MediaRequestBody = await request.json();
     const { accessToken, after } = body;

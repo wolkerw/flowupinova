@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { publishToFacebook } from "@/lib/services/publisher-service";
 
@@ -15,6 +16,9 @@ interface PublishRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body: PublishRequestBody = await request.json();
     const { postData } = body;

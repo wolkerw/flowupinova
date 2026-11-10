@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { config } from "@/lib/config";
 
@@ -5,11 +6,17 @@ import { config } from "@/lib/config";
 const WEBHOOK_URL = "https://webhook.flowupinova.com.br/webhook/send-email";
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   if (process.env.NODE_ENV === "development") {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   }
   try {
-    const { name, email } = await request.json();
+    const { name } = await request.json();
+    // SEGURANÇA: o e-mail de boas-vindas só vai para o próprio usuário autenticado
+    // (impede uso da rota como relay de spam para endereços arbitrários).
+    const email = authUser.email;
 
     if (!name || !email) {
       return NextResponse.json(

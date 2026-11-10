@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ interface PagePostsRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body: PagePostsRequestBody = await request.json();
     const { accessToken, pageId, after, since } = body;

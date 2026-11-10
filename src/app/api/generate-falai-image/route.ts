@@ -1,9 +1,13 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   const settings = await getGlobalSettings();
   const webhookUrl = settings.generateImagesFalaiWebhook;
 

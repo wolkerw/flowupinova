@@ -1,14 +1,24 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 import { JSDOM } from "jsdom";
 
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const formData = await request.formData();
     const website = formData.get("website") as string;
     const instagram = formData.get("instagram") as string;
     const userId = formData.get("userId") as string;
+    if (userId && userId !== authUser.uid && !authUser.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Operação não autorizada para este usuário." },
+        { status: 403 }
+      );
+    }
 
     if (!website && !instagram) {
       return NextResponse.json(

@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { safeParseJSON } from "@/lib/utils";
@@ -15,6 +16,9 @@ function safeJsonParse(rawText: any, fallback = null) {
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {

@@ -1,6 +1,10 @@
+import { requireAdminUser } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireAdminUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body = await request.json();
     const { model, temperature, systemPrompt, userPrompt, image1, image2, layoutStyle } = body;

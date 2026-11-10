@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// O token de verificação não tem mais valor padrão no código: definido via ambiente.
+vi.hoisted(() => {
+  process.env.INSTAGRAM_VERIFY_TOKEN = "numvapt_instagram_verify_token";
+});
 import { GET, POST } from "../route";
 import { NextRequest } from "next/server";
 

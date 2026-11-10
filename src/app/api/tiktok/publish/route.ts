@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
@@ -8,9 +9,18 @@ export const dynamic = "force-dynamic";
  * Endpoint TikTok: POST https://open.tiktokapis.com/v2/post/publish/video/init/
  */
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body = await request.json();
     const { userId, title, videoUrl, privacyLevel } = body;
+    if (userId && userId !== authUser.uid && !authUser.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Operação não autorizada para este usuário." },
+        { status: 403 }
+      );
+    }
 
     if (!userId) {
       return NextResponse.json(

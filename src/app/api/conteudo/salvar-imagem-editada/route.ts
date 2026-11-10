@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 import { admin } from "@/lib/firebase-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
@@ -6,8 +7,17 @@ import crypto from "crypto";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { imageBase64, userId, postId, fileName } = await request.json();
+    if (userId && userId !== authUser.uid && !authUser.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Operação não autorizada para este usuário." },
+        { status: 403 }
+      );
+    }
 
     if (!imageBase64 || !userId || !postId || !fileName) {
       return NextResponse.json(

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifySharedSecret } from "@/lib/webhook-auth";
 
 export async function POST(request: NextRequest) {
+  if (!verifySharedSecret(request, "MANUS_WEBHOOK_SECRET")) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
   try {
     const body = await request.json();
     
@@ -13,8 +17,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    // SEGURANÇA: só aceita resultado para tarefa existente e ainda pendente (criada por um admin).
+    const taskRef = adminDb.collection("manus_tasks").doc(String(taskId));
+    const taskSnap = await taskRef.get();
+    if (!taskSnap.exists || taskSnap.data()?.status === "completed") {
+      return NextResponse.json({ received: true });
+    }
+
     // Salva o resultado no banco para a tela ler via polling
-    await adminDb.collection("manus_tasks").doc(taskId).update({
+    await taskRef.update({
       status: "completed",
       result: body,
       completedAt: new Date().toISOString()

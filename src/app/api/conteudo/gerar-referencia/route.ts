@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
@@ -7,6 +8,7 @@ import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
 import { safeParseJSON } from "@/lib/utils";
+import { safeFetch } from "@/lib/safe-url";
 
 export const maxDuration = 300;
 
@@ -105,6 +107,9 @@ async function removeBackgroundWithCache(
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
     const apiKey = process.env.GEMINI_API_KEY;
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest) {
       const inspirationFile = formData.get("inspiration_file") as File;
       const description = (formData.get("description") as string) || "";
       const businessProfileJson = formData.get("business_profile_json") as string;
-      const userId = formData.get("userId") as string;
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
 
       if (userId) {
         const userDoc = await adminDb.collection("users").doc(userId).get();
@@ -1205,7 +1210,7 @@ ${yamlAnalysis}`;
       const file = formData.get("file") as File;
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
-      const userId = (formData.get("userId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
 
       if (!file || !prompt) {
         return NextResponse.json({ error: "Campos 'file' ou 'prompt' ausentes." }, { status: 400 });
@@ -1324,7 +1329,7 @@ ${yamlAnalysis}`;
       const formData = await request.formData();
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
-      const userId = (formData.get("userId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
       const userStoragePath = await getUserStoragePathAdmin(userId);
       const caption = (formData.get("caption") as string) || null;
 
@@ -1540,7 +1545,7 @@ ${yamlAnalysis}`;
       const secondaryFile = formData.get("secondaryFile") as File | null;
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
-      const userId = (formData.get("userId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
       const userStoragePath = await getUserStoragePathAdmin(userId);
       const caption = (formData.get("caption") as string) || null;
       const layoutStyle = (formData.get("layoutStyle") as string) || "";
@@ -2470,7 +2475,7 @@ Cenário desejado e estilo: ${prompt}`;
       const formData = await request.formData();
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
-      const userId = (formData.get("userId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
       const userStoragePath = await getUserStoragePathAdmin(userId);
 
       if (!prompt) {
@@ -2814,6 +2819,9 @@ Cenário desejado e estilo: ${prompt}`;
 }
 
 export async function GET(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
@@ -2825,7 +2833,15 @@ export async function GET(request: NextRequest) {
       }
 
       console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
-      const imgRes = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      let imgRes: Response;
+      try {
+        imgRes = await safeFetch(url, { signal: AbortSignal.timeout(15000) });
+      } catch (e: any) {
+        if (e?.message === "URL_NAO_PERMITIDA") {
+          return NextResponse.json({ error: "URL não permitida." }, { status: 400 });
+        }
+        throw e;
+      }
       if (!imgRes.ok) {
         return NextResponse.json(
           { error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` },
@@ -2836,7 +2852,6 @@ export async function GET(request: NextRequest) {
       const blob = await imgRes.blob();
       const headers = new Headers();
       headers.set("Content-Type", imgRes.headers.get("Content-Type") || "image/jpeg");
-      headers.set("Access-Control-Allow-Origin", "*");
 
       return new NextResponse(blob, {
         status: 200,

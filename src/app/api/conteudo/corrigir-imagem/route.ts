@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 import { admin } from "@/lib/firebase-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
@@ -8,9 +9,18 @@ import { fal } from "@fal-ai/client";
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { imageUrl, maskBase64, prompt, newText, userId, postId, fileName } =
       await request.json();
+      if (userId && userId !== authUser.uid && !authUser.isAdmin) {
+        return NextResponse.json(
+          { success: false, error: "Operação não autorizada para este usuário." },
+          { status: 403 }
+        );
+      }
 
     if (!imageUrl || !maskBase64 || !newText || !userId || !postId || !fileName) {
       return NextResponse.json(

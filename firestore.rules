@@ -11,9 +11,19 @@ service cloud.firestore {
     // Permite que o próprio usuário leia seu perfil principal
     match /users/{userId} {
       allow read: if isSignedIn() && (isOwner(userId) || isLinkedApprover(userId));
-      // Impede que o cliente sobrescreva atributos protegidos de plano ou role
-      allow create, update: if isSignedIn() && isOwner(userId)
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdmin', 'isSuperAdmin', 'tier', 'plan', 'status']));
+      // Criação do perfil pelo próprio usuário: só com plano inicial (free/trial)
+      // e sem nenhum atributo de privilégio, vínculo de workspace ou papel.
+      allow create: if isSignedIn() && isOwner(userId)
+        && !request.resource.data.keys().hasAny(privilegedKeys())
+        && (!('plan' in request.resource.data) || request.resource.data.plan in ['free', 'trial'])
+        && (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus in ['inactive', 'active'])
+        && (!('subscriptionStatus' in request.resource.data) || request.resource.data.subscriptionStatus == 'pending_verification');
+      // Atualização: o cliente nunca altera plano, pagamento, papel ou vínculo de workspace
+      // (linkedWorkspaceId é gravado apenas pelo servidor via Admin SDK).
+      allow update: if isSignedIn() && isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(privilegedKeys().concat(['plan', 'paymentStatus']))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscriptionStatus'])
+            || request.resource.data.subscriptionStatus == 'pending_verification');
       allow delete: if false;
     }
 
@@ -48,6 +58,10 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.linkedWorkspaceId == userId;
     }
     
+    function privilegedKeys() {
+      return ['role', 'isAdmin', 'isSuperAdmin', 'tier', 'status', 'linkedWorkspaceId', 'conciergeRole'];
+    }
+
     function isAllowedCollection(collection) {
       return collection in ['posts', 'connections', 'business', 'appData', 'contacts', 'mediaGallery', 'history', 'campaigns'];
     }

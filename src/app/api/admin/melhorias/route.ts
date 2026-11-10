@@ -1,7 +1,11 @@
+import { requireAdminUser } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authUser = await requireAdminUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const snapshot = await adminDb
       .collection("admin_improvements")
@@ -25,6 +29,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authUser = await requireAdminUser(req);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body = await req.json();
     const { title, description, proposedBy } = body;
@@ -49,6 +56,9 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const authUser = await requireAdminUser(req);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const body = await req.json();
     const { id, title, description, status, executedBy, executedAt } = body;
@@ -74,6 +84,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const authUser = await requireAdminUser(req);
+  if (authUser instanceof NextResponse) return authUser;
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
