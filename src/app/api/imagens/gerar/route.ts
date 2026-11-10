@@ -257,6 +257,8 @@ export async function POST(request: NextRequest) {
       if (brandSnapshot.name && brandSnapshot.name !== "Empresa") {
         if (isCreativeLogoExceptionMode) {
           brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". MODO EXCEÇÃO CRIATIVA DA ETAPA 5 ATIVO: Se o arquivo enviado na Etapa 5 for uma logomarca/logotipo, DEVE-SE PASSAR POR CIMA das travas restritivas e integrar essa logomarca enviada de forma CRIATIVA, CENOGRÁFICA e DIFERENTE do carimbo fixo do BrandKit (ex: bordada no peito da camisa do protagonista, exibida na tela do smartphone/notebook, aplicada em letreiro 3D iluminado no cenário, em sacola/caneca ou elemento de destaque orgânico na cena), mantendo o canto superior esquerdo limpo.`);
+        } else if (hasUploadedSourceAsset) {
+          brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". AVISO MANDATÓRIO DE SEPARAÇÃO (FUNDO vs RÓTULO DO PRODUTO): NUNCA desenhar logotipos soltos em paredes, balcões ou cabeçalho do pôster; PORÉM, nos produtos físicos e embalagens enviados na Etapa 5 (/labellock), a logomarca original "${brandSnapshot.name}" e todo o rótulo impresso na embalagem DEVEM ser preservados com 100% de fidelidade fotográfica 1:1 (sem colocar elipses/ovais verdes ao redor da logo do rótulo e sem alterar cores das faixas, selos ou fotos impressas no pacote).`);
         } else {
           brandDirectives.push(`Identidade Cromática da Marca: Cores inspiradas em "${brandSnapshot.name}". AVISO MANDATÓRIO: NUNCA desenhar, pintar, estampar ou renderizar o nome "${brandSnapshot.name}" como logotipo na imagem, nem no cabeçalho nem no rodapé nem em gadgets. O canto superior deve permanecer 100% limpo.`);
         }
@@ -283,7 +285,7 @@ export async function POST(request: NextRequest) {
           brandSnapshot.fonts.style ? `Estilo Tipográfico Geral: "${brandSnapshot.fonts.style}"` : "",
         ].filter(Boolean).join(" | ");
         brandDirectives.push(
-          `TIPOGRAFIA OFICIAL DO BRANDKIT (OBRIGATÓRIA EM QUALQUER TEXTO DA ARTE): ${fontParts}. Mantenha 100% de consistência anatômica na mesma família tipográfica (se o estilo for sans-serif limpo, é TERMINANTEMENTE PROIBIDO usar fontes serifadas, semi-serifadas, caligráficas ou misturar famílias diferentes na mesma frase; diferencie o texto normal do destaque apenas pelo peso/espessura Normal vs Bold da mesma família sans-serif).`
+          `TIPOGRAFIA OFICIAL DO BRANDKIT (/fontlock — OBRIGATÓRIA EM QUALQUER TEXTO DA ARTE): ${fontParts}. Respeite 100% a anatomia, curvatura e estilo exatos das fontes cadastradas no BrandKit (jamais invente fontes diferentes do BrandKit). CONTRASTE ADAPTATIVO LIMPO: Em fundos claros, renderize o título diretamente na Cor Primária/Escura do BrandKit de forma limpa e nítida (é TERMINANTEMENTE PROIBIDO pintar manchas/sombras pretas esfumaçadas atrás de letras brancas em paredes claras ou criar caixas escuras improvisadas).`
         );
       }
       if (brandSnapshot.targetAudience) {
@@ -337,7 +339,7 @@ export async function POST(request: NextRequest) {
           );
         } else {
           brandDirectives.push(
-            `SUJEITO REAL DA ETAPA 5 — PRODUTO FÍSICO OU PESSOA (TRAVA ESTRUTURAL /productlock & PROIBIÇÃO ABSOLUTA DE LOGOS NA CENA): A imagem enviada na Etapa 5 é um PRODUTO FÍSICO ou PESSOA (NÃO é uma logomarca). A IA DEVE: (1) Aplicar a trava /productlock preservando 100% do formato geométrico original do produto, partes superiores e inferiores, peças aparentes (cornetas, tweeters, grades em barras, botões, cabos), cores exatas de cada lateral do gabinete e rótulo original impresso na embalagem; (2) É TERMINANTEMENTE PROIBIDO desenhar, inventar ou renderizar qualquer logomarca da empresa ("${brandSnapshot.name || 'Empresa'}"), placa de acrílico em balcão, totem na mesa, letreiro na parede ou emblema solto dentro da cena! A logomarca do negócio será aplicada exclusivamente via software no canto superior esquerdo.`
+            `SUJEITO REAL DA ETAPA 5 — PRODUTO FÍSICO, EMBALAGEM OU PESSOA (TRAVA ESTRUTURAL /productlock & /labellock): A imagem enviada na Etapa 5 é um PRODUTO FÍSICO, EMBALAGEM ou PESSOA. A IA DEVE: (1) Aplicar as travas /productlock e /labellock preservando 100% do formato geométrico original do produto/pote/pacote e 100% do rótulo original impresso na embalagem em clonagem 1:1 (logotipo original do rótulo sem adicionar ovais/elipses verdes ao redor, cores exatas das faixas roxas/douradas do rótulo, fonte do selo e foto impressa na embalagem); (2) É proibido desenhar logomarcas soltas em paredes, balcões ou totens fora da embalagem do produto.`
           );
         }
       }

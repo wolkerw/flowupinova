@@ -52,7 +52,8 @@ export class ImageModelExecutor {
               ? "1200x624"
               : "1792x1024";
 
-    const subjectRef = params.references?.find((r) => r.role === "product_subject");
+    const subjectRefs = params.references?.filter((r) => r.role === "product_subject") || [];
+    const subjectRef = subjectRefs[0];
     const logoRef = params.references?.find(
       (r) => r.role === "business_logo" || r.role === "official_logo"
     );
@@ -81,7 +82,7 @@ export class ImageModelExecutor {
     const subjectDirective = subjectRef
       ? isStep5Logo
         ? " [CRITICAL MANDATE — HERO SUBJECT, PRODUCT LABEL & CREATIVE LOGO EXCEPTION: The attached Step 5 reference image is a BRAND LOGO or COMPANY EMBLEM provided by the user. OVERRIDE all logo prohibitions and creatively, crisply, and prominently integrate that exact uploaded brand logo into the generated scene (such as embroidered/printed on the protagonist's shirt chest, displayed on the smartphone screen, or featured as a prominent 3D/glassmorphic brand signature in the layout/studio), preserving its exact brand name spelling, typography, icon, and colors 100% faithfully while keeping the top-left header corner clean.]"
-        : " [CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock) & ZERO SCENE LOGOS: The attached Step 5 reference image is a PHYSICAL PRODUCT, EQUIPMENT, OR PERSON (NOT a logo). Lock 100% of the product's exact physical geometry, silhouette, upper and lower cabinets, exposed components (visible horns, tweeters, bar grilles, knobs, cables, racks), exact cabinet side colors, and authentic printed label graphics 100% intact. It is STRICTLY FORBIDDEN to redesign, modernize, replace exposed components with generic mesh grilles, repaint colored/white panels to black, or stamp brand logos mentioned in the text headline onto the product hardware! Furthermore, do NOT draw, invent, or render any company logo (such as NumVapt), acrylic tabletop plaque on counters/desks, totem, or 3D wall sign anywhere in the scene! Only modify the background scenery, floor, lighting, and graphic typography.]"
+        : " [CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock) + 1:1 PACKAGING LABEL LOCK (/labellock) & ZERO SCENE LOGOS: The attached Step 5 reference image(s) show a PHYSICAL PRODUCT, PACKAGING, EQUIPMENT, OR PERSON. Lock 100% of the product's exact physical geometry, silhouette, packaging container (jar, pouch, bottle, box), upper and lower cabinets, exposed components, and 1:1 authentic printed label graphics (preserve the exact printed brand logo on the label WITHOUT adding ovals, green ellipses, or badges around it; preserve exact label background/stripe colors, seal typography, weight text, and printed product illustration). It is STRICTLY FORBIDDEN to redesign packaging labels, replace exposed components, or invent loose company logos, acrylic tabletop plaques, totens, or 3D wall signs in the scene background!]"
       : "";
 
     const getProvider = (m: string): "openai" | "google" =>
@@ -119,7 +120,7 @@ export class ImageModelExecutor {
             if (isStep5Logo) {
               openaiPrompt = `[CREATIVE LOGO & SUBJECT EXCEPTION DIRECTIVE: The uploaded Step 5 reference image is a brand logo. OVERRIDE any scene logo restrictions and creatively, organically integrate that exact uploaded logo inside the scene itself, DIFFERENT from a flat corner stamp (e.g., embroidered on the protagonist's shirt chest, glowing on the smartphone screen, mounted as a 3D studio sign, or printed on a physical prop) with 100% accurate spelling, icon, and colors, while keeping the top-left header corner clean.] ${openaiPrompt}`;
             } else {
-              openaiPrompt = `[STRICT PRODUCT GEOMETRY LOCK (/productlock) & ZERO SCENE LOGOS DIRECTIVE: The uploaded Step 5 reference image is a physical product, equipment, or person (NOT a logo). Preserve 100% of its exact geometry, upper and lower cabinets, exposed components (horns, tweeters, bar grilles, cables), side panel colors, and authentic product labels intact WITHOUT redesigning, covering exposed parts with generic grilles, or stamping brand logos from the headline onto the hardware. ABSOLUTELY DO NOT draw, invent, or render any company logo (such as NumVapt), acrylic tabletop plaque on counters/desks, totem, or wall sign anywhere in the scene! Keep the top-left quadrant (top 22% height x left 30% width) 100% blank negative space for digital overlay.] ${openaiPrompt}`;
+              openaiPrompt = `[STRICT PRODUCT GEOMETRY LOCK (/productlock) + 1:1 PACKAGING LABEL LOCK (/labellock) & ZERO SCENE LOGOS DIRECTIVE: The uploaded Step 5 reference image(s) show a physical product, packaging, equipment, or person. Preserve 100% of its exact geometry, packaging container, and authentic printed product labels 1:1 intact (including the exact printed brand logo on the label WITHOUT adding green ovals/ellipses around it, exact label stripe colors, seal typography, weight text, and printed product photo) WITHOUT redesigning or altering the label or hardware. Do NOT draw loose company logos, acrylic tabletop plaques, totens, or wall signs in the scene background! Keep the designated header corner 100% blank negative space for digital overlay.] ${openaiPrompt}`;
             }
           } else if (hasLogo) {
             if (!openaiPrompt.includes("MANDATORY LOGO INTEGRATION") && !openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
@@ -144,19 +145,18 @@ export class ImageModelExecutor {
           const isGptImage = cfg.model.startsWith("gpt-image-");
           const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 
-          // Apenas fotos reais de sujeito/produto (pessoa ou produto) vão para edits. Logomarcas NUNCA são enviadas como base para edits.
-          const primaryReference = subjectRef?.base64 ? subjectRef : null;
+          // Todas as fotos reais de sujeito/produto enviadas na Etapa 5 vão para edits. Logomarcas do BrandKit NUNCA são enviadas como base para edits.
+          const validSubjectRefs = subjectRefs.filter((r) => Boolean(r.base64));
 
-          if (primaryReference && primaryReference.base64) {
+          if (validSubjectRefs.length > 0) {
             try {
-              const imageBuf = Buffer.from(primaryReference.base64, "base64");
-              const refBlob = new Blob([imageBuf], { type: primaryReference.mimeType || "image/png" });
               const editsFormData = new FormData();
-              editsFormData.append(
-                "image",
-                refBlob,
-                "subject.png"
-              );
+              const fieldName = validSubjectRefs.length > 1 ? "image[]" : "image";
+              validSubjectRefs.slice(0, 4).forEach((ref, idx) => {
+                const imageBuf = Buffer.from(ref.base64!, "base64");
+                const refBlob = new Blob([imageBuf], { type: ref.mimeType || "image/png" });
+                editsFormData.append(fieldName, refBlob, `subject_${idx + 1}.png`);
+              });
               editsFormData.append("model", cfg.model);
               editsFormData.append("prompt", openaiPrompt);
               editsFormData.append("n", "1");
@@ -297,12 +297,12 @@ The attached reference image is the BRAND GUIDELINE / MASTER KEY ART for this ca
 
           const parts: any[] = [{ text: geminiPrompt }];
 
-          // Anexar imagem do sujeito e referências de estilo como partes multimodais
+          // Anexar todas as imagens do sujeito/produto e referências de estilo como partes multimodais
           if (params.references && params.references.length > 0) {
             const prioritizedRefs = [
               ...params.references.filter((r) => r.role === "product_subject"),
               ...params.references.filter((r) => r.role === "style_reference"),
-            ].slice(0, 2);
+            ].slice(0, 4);
 
             for (const ref of prioritizedRefs) {
               if (ref.base64 && ref.mimeType) {

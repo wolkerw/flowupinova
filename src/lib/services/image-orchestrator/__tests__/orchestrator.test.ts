@@ -973,5 +973,56 @@ describe("Image Orchestrator Suite", () => {
       expect(res.plannerModelUsed).toBe("gpt-5");
       expect(res.imageModelUsed).toBe("gpt-image-2.6-sunburst");
     });
+
+    it("garante contraste adaptativo limpo nas cores do BrandKit sem injetar fontes alheias e trava rótulos 1:1 (/labellock) para múltiplas embalagens", async () => {
+      const planResult = await Gpt5PromptPlanner.plan({
+        userBrief: "Quando você escolhe o melhor, a receita já começa diferente.",
+        objective: "commercial",
+        format: "portrait",
+        width: 1080,
+        height: 1350,
+        quantity: 1,
+        stylePreference: "photographic",
+        textOverlayMode: "TITLE_ONLY",
+        productHeadline: "Quando você escolhe o melhor, a receita já começa diferente.",
+        useBrandKit: true,
+        brandKit: {
+          enabled: true,
+          businessName: "Agrosserra",
+          primaryColors: ["#4B006E"],
+          secondaryColors: ["#D4AF37"],
+          accentColors: [],
+          hasLocalOfficialLogo: true,
+          fonts: {
+            primaryFont: "Nunito Rounded Bold",
+            secondaryFont: "Nunito Regular",
+            style: "Arredondado amigável e moderno",
+          },
+        },
+        referenceImages: [
+          {
+            role: "product_subject",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/alho-frito-90g.png",
+            description: "Pote de alho frito 90g Agrosserra",
+          },
+          {
+            role: "product_subject",
+            base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==",
+            mimeType: "image/png",
+            url: "https://example.com/alho-descascado-500g.png",
+            description: "Pacote de alho descascado 500g Agrosserra",
+          },
+        ],
+      });
+
+      expect(planResult.compiledImagePrompt).toContain("Nunito Rounded Bold");
+      expect(planResult.compiledImagePrompt).toContain("Nunito Regular");
+      expect(planResult.compiledImagePrompt).not.toContain("Montserrat / Inter");
+      expect(planResult.compiledImagePrompt).toContain("CLEAN ADAPTIVE BRAND COLOR CONTRAST");
+      expect(planResult.compiledImagePrompt).toContain("/labellock");
+      expect(planResult.compiledImagePrompt).toContain("without adding green ovals/ellipses");
+    });
   });
 });

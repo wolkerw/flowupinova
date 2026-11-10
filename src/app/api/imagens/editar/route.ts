@@ -144,6 +144,33 @@ export async function POST(request: NextRequest) {
       areaDirective = `[TARGET REGION: ${selectedArea.description || `bounding area approx. (${Math.round(selectedArea.x)}%, ${Math.round(selectedArea.y)}%) to (${Math.round(selectedArea.x + selectedArea.width)}%, ${Math.round(selectedArea.y + selectedArea.height)}%)`}] [DIRECTIVE: ${actionText}]`;
     }
 
+    // 3.1. Carregar BrandKit do usuário (fontes e cores oficiais) para travar a tipografia durante a edição
+    let brandTypographyEditDirective =
+      "- TYPOGRAPHY & CONTRAST INTEGRITY (/fontlock): Preserve 100% of the exact typeface family anatomy, letter curvature, and original color of any existing headline or text in the baseline image. On light/bright walls or backgrounds, keep headlines in their clean dark/primary brand color — NEVER change dark/colored text on a light wall into white text with a dark smoky shadow patch behind it!";
+    try {
+      const [onboardingSnap, profileSnap] = await Promise.all([
+        adminDb.doc(`users/${userId}/business/onboarding`).get(),
+        adminDb.doc(`users/${userId}/business/profile`).get(),
+      ]);
+      const onboardingData = onboardingSnap.exists ? onboardingSnap.data() : null;
+      const profileData = profileSnap.exists ? profileSnap.data() : null;
+      const bk = onboardingData?.brandKit || profileData?.brandKit || userData?.brandKit;
+      const primaryColor = bk?.primaryColor || onboardingData?.primaryColor || profileData?.primaryColor;
+      const secondaryColor = bk?.secondaryColor || onboardingData?.secondaryColor || profileData?.secondaryColor;
+      const fonts = bk?.fonts;
+      if (fonts && (fonts.primaryFont || fonts.secondaryFont || fonts.style)) {
+        const fontSpec = [
+          fonts.primaryFont ? `Primary/Title Font: "${fonts.primaryFont}"` : "",
+          fonts.secondaryFont ? `Secondary/Body Font: "${fonts.secondaryFont}"` : "",
+          fonts.style ? `Typography Style: "${fonts.style}"` : "",
+        ].filter(Boolean).join(" | ");
+        const colorSpec = [primaryColor, secondaryColor].filter(Boolean).join(", ");
+        brandTypographyEditDirective = `- STRICT BRANDKIT TYPOGRAPHY & ADAPTIVE CONTRAST LOCK (/fontlock): Any edited or newly rendered text MUST strictly follow the user's official BrandKit typography (${fontSpec})${colorSpec ? ` and official brand colors (${colorSpec})` : ""}, preserving 100% of the exact letter anatomy, weight, and terminals of the baseline image's BrandKit font. On light backgrounds, render headlines cleanly in the BrandKit Primary Color (${primaryColor || "dark brand color"}) with ZERO smoky black shadow patches or dark boxes behind white text!`;
+      }
+    } catch {
+      // Continua com a diretiva padrão de preservação tipográfica
+    }
+
     const refinedPrompt = [
       "The uploaded image is the baseline master design.",
       areaDirective,
@@ -151,8 +178,9 @@ export async function POST(request: NextRequest) {
       "STRICT DIRECTIVES:",
       "- Seamlessly apply the requested edits (such as erasing elements, changing titles, infographic copy, metrics, or specific visual accents).",
       "- Faithfully maintain the overall artistic aesthetic, color palette, lighting, branding, background elements, and layout harmony.",
+      brandTypographyEditDirective,
       "- All modified typography or numbers must be razor-sharp, cleanly rendered with correct Brazilian Portuguese grammar/spelling, perfectly legible, and properly aligned.",
-      "- Do not change other unrelated components, faces, or product logos.",
+      "- STRICT PACKAGING & LABEL LOCK (/labellock): Do NOT alter, redraw, or hallucinate changes to any physical product packaging, jars, pouches, printed labels, label logos, or faces unless explicitly targeted by the user instruction.",
     ].filter(Boolean).join(" ");
 
     // 4. Modelos a tentar em ordem de preferência

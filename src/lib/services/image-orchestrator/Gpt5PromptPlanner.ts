@@ -68,10 +68,15 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
      * Se houver fotos ou personas cadastradas no BrandKit, integre a diversidade dessas personas de forma rotativa e autêntica.
    - Se o usuário enviou imagem na Etapa 5, examine a imagem anexada com atenção extrema:
    - Se for PESSOA: descreva com precisão as características físicas (idade, gênero, etnia, cabelo, traços, roupas) preservando a fisionomia da foto enviada.
-   - Se for PRODUTO FÍSICO, EQUIPAMENTO, MÁQUINA, APARELHO, CAIXA DE SOM, VEÍCULO, PRATO OU EMBALAGEM COMERCIAL: ATIVE IMEDIATAMENTE A TRAVA ESTRUTURAL E GEOMÉTRICA DE PRODUTO (/productlock)!
-     a) PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (PRODUCT GEOMETRY & COMPONENT LOCK): Inspecione minuciosamente cada sub-componente do produto na foto enviada (ex: em caixas de som ou equipamentos, observe se há cornetas aparentes prateadas/pretas, tweeters expostos, grades com barras horizontais vs. telas perfuradas, cores exatas das laterais do gabinete como branco ou madeira, cabos, suportes, racks e proporções). Descreva cada detalhe físico exatamente como é na foto original! É TERMINANTEMENTE PROIBIDO "modernizar", redesenhar, substituir peças expostas por telas fechadas genéricas de catálogo, mudar a cor do gabinete do produto ou alterar o formato de partes superiores/inferiores do equipamento!
-     b) PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais (ex: "Sistema Compact Black: 100% JBL"), use isso APENAS para os textos/títulos da arte. NUNCA redesenhe o produto físico para parecer um modelo comercial padrão da marca citada (ex: NUNCA pinte laterais brancas de preto, NUNCA cubra cornetas aparentes com tela perfurada e NUNCA invente/cole o logotipo "JBL" ou qualquer outra marca na frente do equipamento se esse logotipo não existir fisicamente na foto original enviada pelo usuário)!
-     c) PRESERVAÇÃO DE RÓTULOS E EMBALAGENS ORIGINAIS: O rótulo original, o nome da marca impresso na embalagem real, a tipografia do rótulo, os pesos, selos de qualidade e ilustrações da embalagem DEVEM SER RIGOROSAMENTE PRESERVADOS E DESCRITOS com máxima fidelidade. É TERMINANTEMENTE PROIBIDO higienizar, censurar, apagar os nomes originais ou transformar o rótulo em blocos de cores lisos!
+   - Se for PRODUTO FÍSICO, EQUIPAMENTO, MÁQUINA, APARELHO, CAIXA DE SOM, VEÍCULO, PRATO, POTE, PACOTE OU EMBALAGEM COMERCIAL: ATIVE IMEDIATAMENTE A TRAVA ESTRUTURAL E DE CLONAGEM 1:1 DE EMBALAGEM E RÓTULO (/productlock & /labellock)!
+     a) PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (PRODUCT GEOMETRY & COMPONENT LOCK): Inspecione minuciosamente cada sub-componente do produto na foto enviada (formato do pote/pacote/frasco, tampa, transparência, textura interna do produto, ou em equipamentos: cornetas aparentes, tweeters, grades, cores exatas das laterais e proporções). Descreva cada detalhe físico exatamente como é na foto original! É TERMINANTEMENTE PROIBIDO "modernizar", redesenhar ou alterar o formato físico do produto ou da embalagem!
+     b) PROIBIÇÃO DE ALTERAR O PRODUTO POR CAUSA DO TEXTO DO BRIEFING: Se o briefing mencionar marcas de componentes internos ou adjetivos comerciais, use isso APENAS para os textos/títulos da arte. NUNCA redesenhe o produto físico para parecer um modelo genérico de catálogo!
+     c) CLONAGEM FOTOGRÁFICA 1:1 DE RÓTULOS E EMBALAGENS ORIGINAIS (/labellock — REGRA INVIOLÁVEL): Quando a foto enviada pelo usuário mostrar uma embalagem, pote, pacote, garrafa ou saco plástico com rótulo impresso:
+        - O rótulo original, a logomarca impressa dentro do rótulo, a tipografia do produto, as cores de cada faixa/borda do rótulo, os pesos (ex: 1kg, 500g, 90g), os selos de qualidade e as fotos/ilustrações impressas na embalagem DEVEM SER CLONADOS E PRESERVADOS COM 100% DE FIDELIDADE FOTOGRÁFICA!
+        - PROIBIÇÃO DE REDESENHAR A LOGO DO RÓTULO: Se o logotipo no rótulo original for composto por um ícone limpo (ex: folhinha/gota solta) + texto direto sem moldura, é TERMINANTEMENTE PROIBIDO inventar uma elipse/oval verde, escudo, faixa ou brasão de supermercado ao redor do nome da marca no rótulo!
+        - PROIBIÇÃO DE ALTERAR CORES E FAIXAS DO RÓTULO: Se o rótulo original possui laterais brancas com marca d'água e faixa central vertical roxa com base roxa, mantenha exatamente essa arquitetura cromática (JAMAIS pinte a base ou as laterais de dourado e JAMAIS altere o design do selo "qualidade PREMIUM sabor" para letra cursiva preta ou diferente da foto!).
+        - PROIBIÇÃO DE ALTERAR FOTOS IMPRESSAS NO RÓTULO: Mantenha exatamente a mesma ilustração/foto impressa no rótulo original (ex: duas cabeças de alho inteiras fechadas, sem inventar dentes soltos ou mudar o desenho original da embalagem).
+        - IMPORTANTE: A regra que proíbe desenhar logotipos soltos no fundo do post NUNCA se aplica ao rótulo físico da embalagem enviada na Etapa 5! A marca impressa na embalagem do produto é SAGRADA e deve permanecer 100% idêntica à foto de referência!
    - CRÍTICO — SE FOR UMA LOGOMARCA / LOGOTIPO ENVIADA PELO USUÁRIO NA ETAPA 5 (INSERÇÃO CRIATIVA CENOGRÁFICA SEMPRE ATIVA): Sempre que a imagem enviada na Etapa 5 for uma logomarca, logotipo ou símbolo de marca (independentemente de a logo fixa do BrandKit estar ativa ou não), você DEVE PASSAR POR CIMA (OVERRIDE) das travas anti-logo para a cena! Inspecione e descreva minuciosamente a logomarca enviada na Etapa 5 (grafia exata do nome, tipografia, ícone/símbolo e cores exatas) e integre-a de forma CRIATIVA, CENOGRÁFICA, ORGÂNICA e DIFERENTE da simples colagem de canto do BrandKit (por exemplo: bordada/estampada com perfeição no peito da camisa polo/uniforme do protagonista, exibida na tela do smartphone/notebook segurado pelo personagem, aplicada em um letreiro/fachada 3D iluminada no cenário, estampada em uma caneca/sacola/embalagem ou integrada tridimensionalmente à composição). JAMAIS escreva "no logos", "absolutely no logos" ou proíba a logo na cena quando uma logomarca for enviada na Etapa 5!
    [4. COMPOSITION & PLACEMENT]: Distribuição visual e pontos focais equilibrados. Se houver logomarca do BrandKit habilitada, respeitar estritamente a ZONA DE LIMPEZA DE LOGO dinâmica selecionada (top-left, top-right, top-center ou bottom-right, mantendo a área correspondente 100% livre de textos ou elementos conflitantes).
    [5. FRAMING & PERSPECTIVE]: Ângulo de câmera, lente (ex: 50mm, 85mm f/1.8), proporção.
@@ -122,28 +127,33 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
        b) Profundidade 3D Estilo Capa de Revista (Magazine Depth Layering): Headline monumental posicionada na camada de plano médio, passando sutilmente por trás do topo dos ombros/cabeça do protagonista ou produto em primeiro plano (efeito Time / GQ / Vogue), mantendo 100% de leitura das palavras;
        c) Terço Inferior Cinematográfico (Cinematic Lower-Third Hero): Topo e centro livres para a fotografia respirar, ancorando o título de forma imponente no terço inferior da composição com barra de acento e subtítulo alinhado;
        d) Diagramação em "L" / Âncora em Cantos Opostos (Asymmetric Corner Anchor): Frase de preparação ancorada na zona superior livre e palavra de impacto gigante ou fechamento ancorado na base ou lateral oposta, abraçando a cena fotográfica;
-       e) Capa Editorial de Luxo: Caixa alta com tracking espaçado (letter-spacing refinado), filete hairline de 1px e sobriedade monocromática (Branco Puro #FFFFFF ou Pérola);
-       f) Tarja / Pill Geométrico Sólido Invertido: Palavra-chave de impacto dentro de uma tarja sólida ou levemente inclinada na cor da marca (Laranja #FA6305 ou Ciano #0083C7) com letras em negativo (branco vazado);
-       g) Card Glassmorphic & Badges Flutuantes: Cartão translúcido de vidro fosco (25% opacidade, borda fina neon 1px) contendo tópicos com ícones circulares e badges em cápsula;
-       h) Tipografia Espacial Integrada: Letras interagindo volumetricamente com a perspectiva, luz de recorte e profundidade do ambiente;
-       i) Diagramação Split em Duas Colunas: Palavra-líder gigante à esquerda separada por divisor vertical neon de 2px de um bloco compacto de subtítulo à direita;
-       j) Assinatura Lateral Vertical + Headline de Impacto (Vertical Sidebar Editorial): Rótulo editorial rotacionado a 90° acompanhando a margem lateral combinado com a headline principal horizontal de alto impacto;
-        k) Entrelaçamento Espacial 3D em Profundidade (Spatial Depth Interlocking): Título interagindo volumetricamente entre planos, passando sutilmente por trás de ombros ou produtos com sombras de contato realistas;
-        l) Grid Contemporâneo Suíço (Swiss Editorial / Neue Grafik): Grid arquitetônico assimétrico minimalista, contraste colossal de escala e generoso respiro de espaço negativo.
-  2. LIBERDADE CROMÁTICA E TRATAMENTO DINÂMICO DOS TÍTULOS PRINCIPAIS (/headlinetreatment):
-     - Para máxima riqueza visual e variedade entre gerações, NUNCA gere sempre a mesma cor mecânica em todas as artes!
+       e) Capa Editorial de Luxo: Composição editorial refinada respeitando a caixa (sentence case ou uppercase conforme o título) e as cores oficiais do BrandKit;
+       f) Tarja / Pill Geométrico Sólido Invertido: Palavra-chave de impacto dentro de uma tarja sólida nas cores oficiais do BrandKit com letras em alto contraste;
+       g) Micro-Callouts Limpos & Badges de Marca: Pílulas limpas de 2 a 4 palavras conectadas ao produto/sujeito real, mantendo o título principal 100% livre de caixas escuras;
+       h) Tipografia Espacial Integrada: Letras interagindo harmonicamente com a perspectiva e profundidade do ambiente;
+       i) Diagramação Split em Duas Colunas: Palavra-líder gigante à esquerda separada por divisor vertical na cor do BrandKit de um bloco compacto à direita;
+       j) Assinatura Lateral Vertical + Headline de Impacto (Vertical Sidebar Editorial): Rótulo editorial lateral combinado com a headline principal horizontal nas fontes do BrandKit;
+       k) Entrelaçamento Espacial 3D em Profundidade (Spatial Depth Interlocking): Título interagindo entre planos sem perder legibilidade;
+       l) Grid Contemporâneo Suíço (Swiss Editorial / Neue Grafik): Grid arquitetônico assimétrico minimalista com generoso respiro de espaço negativo.
+  2. LIBERDADE CROMÁTICA, CONTRASTE ADAPTATIVO E TRATAMENTO DINÂMICO DOS TÍTULOS PRINCIPAIS (/headlinetreatment):
+     - REGRA INVIOLÁVEL DE CONTRASTE ADAPTATIVO LIMPO (ZERO MANCHA PRETA / ZERO CAIXA ESCURA IMPROVISADA):
+       * Se a região do cenário onde o título ficará posicionado for CLARA / ILUMINADA (ex: parede clara de escritório, cozinha iluminada, bancada clara, céu claro): você DEVE OBRIGATORIAMENTE renderizar o título na COR PRIMÁRIA/ESCURA OFICIAL DO BRANDKIT (ex: roxo, azul escuro, verde escuro ou cor principal da marca) diretamente sobre o fundo claro! É TERMINANTEMENTE PROIBIDO pintar o título de branco sobre fundo claro e jogar uma mancha/borrão/fumaça preta esfumaçada atrás das letras (NO dark smoke smudge, NO heavy black drop-shadow blur) e PROIBIDO prender o título principal dentro de retângulos ou caixas pretas/escuras na bancada!
+       * Se o fundo for ESCURO / NOTURNO / PROFUNDO: utilize Branco Puro (#FFFFFF) combinado com as cores vibrantes do BrandKit.
      - Alterne dinamicamente o tratamento cromático e estrutural do título principal entre os seguintes modos sorteados:
-       * 1) Contraste Clássico em Branco Puro (Classic Pure White): Título principal 100% em Branco Puro (#FFFFFF) com leve sombra de contato para contraste cinematográfico sobre o ambiente.
-       * 2) Título em Duas Cores (Brand Duotone Split): Título dividido em duas cores usando a paleta do BrandKit — por exemplo, a frase/palavra de abertura em Branco Puro (#FFFFFF) e a palavra de maior impacto ou punchline na Cor Primária oficial do BrandKit (ex: Laranja #FA6305 ou Ciano/Azul #0083C7), criando um contraste editorial moderno.
-       * 3) Título em Duas Cores com Faixa/Tarja em uma das palavras (Brand Duotone with Stripe/Highlight): Uma parte do título em Branco Puro (#FFFFFF) e a palavra de ação/destaque encasulada sobre uma faixa/tarja retangular sólida ou marcador estético na Cor Primária do BrandKit com o texto contrastando por cima.
-       * 4) Título Monocromático com Faixa/Tarja atrás de uma das palavras (Single Brand Color with Stripe): Título estilizado em uma cor principal acompanhado por uma faixa/tarja sólida ou retângulo geométrico atrás de uma das palavras-chave para criar ancoragem visual imediata em 1 segundo.
-       * 5) Tarja / Pill Sólido Invertido (Brand Pill Badge Invert): Frase de entrada limpa e palavra principal totalmente invertida dentro de uma cápsula/tag na cor da marca.
-     - É expressamente PERMITIDO e INCENTIVADO variar os esquemas de cores dos títulos respeitando essas diretrizes cromáticas do BrandKit!
+       * 1) Contraste Puro Adaptativo da Marca (Clean Adaptive Brand Contrast): Em fundo claro, título 100% na Cor Primária/Forte do BrandKit limpa e sem sombra borrada; em fundo escuro, título em Branco Puro (#FFFFFF) nítido.
+       * 2) Título em Duas Cores do BrandKit (Brand Duotone Split): Título dividido em duas cores oficiais da marca (Cor Primária + Cor Secundária em fundo claro, ou Branco Puro + Cor Primária em fundo escuro).
+       * 3) Título em Duas Cores com Faixa/Tarja Sólida em uma das palavras (Brand Duotone with Stripe/Highlight): Uma parte do título limpa (na cor de contraste da marca) e a palavra de ação/destaque encasulada sobre uma faixa/tarja retangular sólida na Cor Primária/Secundária do BrandKit.
+       * 4) Título Monocromático com Faixa/Tarja atrás de uma das palavras (Single Brand Color with Stripe): Título estilizado acompanhado por uma faixa/tarja sólida atrás de uma das palavras-chave.
+       * 5) Tarja / Pill Sólido Invertido (Brand Pill Badge Invert): Frase de entrada limpa e palavra principal totalmente invertida dentro de uma cápsula/tag sólida na cor da marca.
   3. HIERARQUIA E PROPORÇÃO:
-     - Crie contraste dramático de escala (palavras principais maiores e de impacto display; frases de apoio mais compactas e elegantes).
+     - Crie contraste dramático de escala (palavras principais maiores e de impacto; frases de apoio mais compactas e elegantes).
      - No modo INFOGRAPHIC ou BOTH, a fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte.
-     - JAMAIS crie caixas brancas empilhadas estilo PowerPoint e JAMAIS adicione botões falsos de CTA sem pedido explícito!
-- REGRA CRÍTICA DE FIDELIDADE TIPOGRÁFICA DO BRANDKIT (/fontlock): Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE especificar essa tipografia em inglês no "imagePrompt" traduzindo sua anatomia visual exata! Como geradores de imagem não possuem arquivos .ttf de fontes comerciais específicas (como "Branding SF"), descreva explicitamente a anatomia da fonte (ex: se for "Branding SF" ou "sans-serif limpo, corporativo", exija "uniform modern geometric corporate sans-serif typeface across ALL lines of text, clean monolinear stroke terminals, ZERO serifs, ZERO semi-serifed or calligraphic flares"). Quando uma frase tiver parte em peso normal e parte em destaque/negrito, EXIJA que ambas pertençam EXATAMENTE À MESMA FAMÍLIA SANS-SERIF, mudando apenas o peso (Regular/Normal weight para o texto secundário e Bold/ExtraBold weight para o destaque principal), proibindo terminantemente misturar famílias tipográficas diferentes na mesma peça!
+     - JAMAIS crie caixas brancas empilhadas estilo PowerPoint, JAMAIS crie caixas escuras com borda dourada/neon ao redor do título principal sem pedido explícito e JAMAIS adicione botões falsos de CTA!
+- REGRA CRÍTICA DE FIDELIDADE ABSOLUTA ÀS FONTES DO BRANDKIT (/fontlock — ZERO FONTES INVENTADAS):
+  1. Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE exigir no "imagePrompt" EXATAMENTE as fontes cadastradas pelo usuário no BrandKit!
+  2. É TERMINANTEMENTE PROIBIDO inventar ou injetar no prompt nomes de fontes que NÃO estejam no BrandKit do usuário!
+  3. Preserve 100% da anatomia real da fonte do usuário (se a fonte do BrandKit tiver curvas arredondadas/orgânicas, mantenha-a arredondada; se for geométrica, mantenha geométrica; se tiver serifa, mantenha a serifa). NUNCA force "straight terminals" ou "ALL-CAPS" se isso descaracterizar a fonte do cliente!
+  4. Se o BrandKit definir primaryFont e secondaryFont, utilize fielmente a primaryFont para o título/palavras em destaque (Bold/ExtraBold) e a secondaryFont para o texto de apoio/subtítulo (Regular/Medium), sem misturar fontes aleatórias fora do BrandKit!
 
 DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
 No campo "socialCaption", crie um copywriting persuasivo e engajador em português (pt-BR) pronto para publicação comercial nas redes sociais (Instagram, Facebook, LinkedIn):
@@ -271,97 +281,97 @@ REGRAS DE CONFORMIDADE:
       id: "display_monumental_poster",
       labelPt: "Pôster Monumental Big-Type (Escala Display Imponente com Letras Gigantes & Contraste Dramático)",
       weightHierarchyEn: "Dramatic scale & display dominance using the BrandKit typeface family: Monumental headline with massive display scale anchoring the visual space, bold power words in ExtraBold/Black weight (900), accompanied by a razor-sharp compact subtitle in Regular weight (400)",
-      colorHarmonyEn: "Sophisticated monochrome high-contrast: Crisp Pure White (#FFFFFF) display typography over atmospheric depth with soft volumetric contact shadows, treating the typography as a majestic graphic centerpiece",
-      containerAndFrameEn: "Framing & space: Frameless, monumental typography floating with generous breathing room and geometric precision, commanding immediate visual authority like an international design festival poster",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Monumental Big-Type Poster): Using the BrandKit font family, render a striking, monumental display headline with dramatic scale dominance that anchors the scene like a high-end campaign poster, with soft volumetric contact shadows for 100% legibility.",
+      colorHarmonyEn: "Clean adaptive brand contrast: On light/bright walls or backgrounds, render typography directly in the BrandKit Primary Color with zero dark smoke/smudge shadows; on dark backgrounds, use crisp Pure White (#FFFFFF) display typography",
+      containerAndFrameEn: "Framing & space: Frameless, monumental typography floating cleanly without dark boxes or blurry black shadows, with generous breathing room and geometric precision",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Monumental Big-Type Poster): Using the exact BrandKit font family, render a striking, monumental display headline with dramatic scale dominance and clean adaptive brand contrast (BrandKit Primary Color on light backgrounds, Pure White on dark backgrounds, with zero murky black drop-shadow smudges).",
     },
     {
       id: "magazine_depth_layering",
       labelPt: "Camada de Profundidade 3D Estilo Capa de Revista (Título Monumental no Plano Médio Integrado Atrás dos Ombros do Sujeito)",
       weightHierarchyEn: "Magazine-cover depth hierarchy: Colossal ExtraBold (900 weight) display headline in the midground plane paired with a crisp foreground supporting subline in Medium weight (500), strictly adhering to the BrandKit typeface anatomy",
-      colorHarmonyEn: "High-contrast editorial white (#FFFFFF) or brand-tinted luminous display letters with subtle ambient occlusion where the foreground subject slightly overlaps the bottom 10-15% of the giant letters without ever obscuring word legibility",
+      colorHarmonyEn: "High-contrast editorial BrandKit Primary Color (on light scenes) or Pure White (#FFFFFF, on dark scenes) display letters where the foreground subject slightly overlaps the bottom 10-15% of the giant letters without ever obscuring word legibility",
       containerAndFrameEn: "Framing & 3D depth: Iconic Time/GQ/Vogue magazine cover layering where the monumental title sits between the background environment and the hero subject's shoulders, creating authentic 3D spatial depth",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (3D Magazine Cover Depth Layering): Render a monumental BrandKit headline in the midground plane right behind the top of the hero subject's shoulders (Time/GQ cover depth effect), keeping 100% of every letter and word unmistakably legible while creating breathtaking 3D spatial layering.",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (3D Magazine Cover Depth Layering): Render a monumental BrandKit headline in the midground plane right behind the top of the hero subject's shoulders (Time/GQ cover depth effect), keeping 100% of every letter and word unmistakably legible.",
     },
     {
       id: "cinematic_lower_third_hero",
       labelPt: "Terço Inferior Cinematográfico de Campanha (Topo Livre para Fotografia & Título Imponente na Base)",
       weightHierarchyEn: "Cinematic movie-poster hierarchy: Leave the upper and central canvas open to showcase the photography, anchoring a powerful ExtraBold (800-900 weight) headline in the lower-third zone accompanied by an aligned Regular (400 weight) subtitle",
-      colorHarmonyEn: "Cinematic contrast: Crisp Pure White (#FFFFFF) primary headline paired with a warm Brand Orange (#FA6305) or Cyan (#0083C7) vertical accent bar over a subtle dark atmospheric vignette at the bottom",
-      containerAndFrameEn: "Framing & space: Lower-third architectural composition (Y=68% to Y=84%) structured by a 3px vertical brand-colored accent bar on the left margin, leaving the top 65% of the artwork pure and uncluttered",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Cinematic Lower-Third Campaign Layout): Keep the upper canvas open for the hero photography and anchor the BrandKit headline boldly in the lower-third zone, structured by a sleek vertical brand-colored accent bar and a subtle bottom vignette for razor-sharp contrast.",
+      colorHarmonyEn: "Clean lower-third contrast: Crisp Pure White (#FFFFFF) or BrandKit Primary Color headline paired with a warm Brand Accent vertical bar, without enclosing the headline inside a dark box",
+      containerAndFrameEn: "Framing & space: Frameless lower-third architectural composition (Y=68% to Y=84%) structured by a 3px vertical brand-colored accent bar on the left margin, leaving the top 65% of the artwork pure and uncluttered",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Cinematic Lower-Third Campaign Layout): Keep the upper canvas open for the hero photography and anchor the BrandKit headline cleanly in the lower-third zone, structured by a sleek vertical brand-colored accent bar without dark container boxes.",
     },
     {
       id: "asymmetric_corner_anchor",
       labelPt: "Diagramação em 'L' / Âncora Assimétrica em Cantos Opostos (Abertura no Topo & Fechamento de Impacto na Base)",
       weightHierarchyEn: "Dynamic split-zone hierarchy: Setup phrase in clean Medium/Semi-Bold (600 weight) anchored in the upper editorial zone, counterbalanced by the core punchline in massive ExtraBold (900 weight) anchored in the opposite lower zone",
-      colorHarmonyEn: "Balanced editorial contrast: Crisp White (#FFFFFF) upper setup text and high-impact White + Brand Accent (#FA6305 or #0083C7) lower punchline framing the central hero subject",
+      colorHarmonyEn: "Balanced editorial contrast: Adaptive BrandKit Primary Color (on light walls) or Crisp White (#FFFFFF, on dark scenes) paired with Brand Accent highlights framing the central hero subject",
       containerAndFrameEn: "Framing & space: Architectural L-shaped / diagonal-corner editorial balance that frames the central action from two opposing zones without crowding the middle of the scene",
       fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Dual-Zone Corner Anchor): Break away from a single static text block by splitting the BrandKit headline into an editorial L-frame: place the setup phrase cleanly in the upper zone and anchor the monumental punchline in the lower/opposite zone, framing the hero subject dynamically.",
     },
     {
       id: "editorial_luxury_magazine",
-      labelPt: "Capa Editorial de Luxo & All-Caps Expandido (Elegância Minimalista com Tracking Largo)",
-      weightHierarchyEn: "Refined editorial hierarchy: High-contrast all-caps BrandKit lettering in Bold (700 weight) with generous letter-spacing (wide tracking), paired with an understated, ultra-clean Regular/Medium subline",
-      colorHarmonyEn: "Noble warm pearl & platinum: Pristine warm pearl white (#FFFDF8) and soft silver-grey (#E2E8F0) typography for pure high-end luxury sophistication",
-      containerAndFrameEn: "Framing & space: Pure architectural negative space, generous margins (22%), delicate 1px hairline rule accent, and impeccable editorial magazine masthead balance",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Luxury Magazine Masthead & All-Caps): Render an ultra-refined luxury editorial title using the BrandKit typeface with widely-tracked all-caps lettering in noble pearl white (#FFFDF8) and a delicate 1px hairline divider.",
+      labelPt: "Capa Editorial de Luxo & Elegância Minimalista",
+      weightHierarchyEn: "Refined editorial hierarchy: High-contrast BrandKit lettering in Bold (700 weight) preserving its natural case and proportions, paired with an understated, ultra-clean Regular/Medium subline",
+      colorHarmonyEn: "Noble adaptive palette: BrandKit Primary Color on light backgrounds or pristine Pure White (#FFFFFF) on dark backgrounds for pure high-end sophistication with zero dark smoke smudges",
+      containerAndFrameEn: "Framing & space: Pure architectural negative space, generous margins (22%), delicate 1px hairline rule accent, and impeccable editorial magazine balance",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Luxury Magazine Editorial): Render an ultra-refined editorial title strictly using the BrandKit typeface and natural letter proportions with clean adaptive contrast and a delicate 1px hairline divider.",
     },
     {
       id: "solid_badge_highlight_invert",
-      labelPt: "Tarja / Pill Geométrico Sólido Invertido (Palavra-Chave em Bloco Sólido ou Levemente Inclinado na Cor da Marca)",
+      labelPt: "Tarja / Pill Geométrico Sólido Invertido (Palavra-Chave em Bloco Sólido na Cor da Marca)",
       weightHierarchyEn: "Punchy block contrast: Setup phrase in clean Bold (700 weight), while the core punchline keyword is encased in a solid geometric tag/pill with ExtraBold negative cutout lettering",
-      colorHarmonyEn: "High-impact brand block: Setup words in Pure White (#FFFFFF), and the central keyword enclosed in a vibrant solid block in Brand Accent (#FA6305 Orange or #0083C7 Blue) with crisp white text inside",
-      containerAndFrameEn: "Framing & space: Modern solid geometric rectangular or slightly angled (-2 deg) sticker/pill tag creating a magnetic focal point cleanly separated from secondary text",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Solid Inverted Brand Highlight Tag): Render the BrandKit headline with a modern inverted block accent: house the core keyword inside a vibrant solid brand-colored tag/pill (#FA6305 or #0083C7) with crisp negative white text, while setup text floats cleanly beside or above it.",
+      colorHarmonyEn: "High-impact brand block: Setup words in clean high-contrast BrandKit color or Pure White (#FFFFFF), and the central keyword enclosed in a vibrant solid block in Brand Accent with crisp white text inside",
+      containerAndFrameEn: "Framing & space: Modern solid geometric rectangular pill tag on the single highlighted keyword only, keeping the rest of the headline frameless and clean",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Solid Inverted Brand Highlight Tag): Render the BrandKit headline with a modern inverted block accent: house the core keyword inside a vibrant solid brand-colored tag/pill with crisp negative white text, while setup text floats cleanly beside or above it.",
     },
     {
       id: "glassmorphic_duotone_glow",
-      labelPt: "Card Glassmorphic Translúcido com Brilho Neon & Título Dual-Tone",
+      labelPt: "Título Dual-Tone Clean & Destaque Cromático da Marca",
       weightHierarchyEn: "Dynamic weight hierarchy: Headline setup phrase in Bold/Semi-Bold (700 weight), core punchline keyword in Heavy/Black (900 weight) for maximum visual punch, and supporting subtitle in clean Regular (400 weight)",
-      colorHarmonyEn: "Dual-tone color contrast: Setup words in crisp Pure White (#FFFFFF), highlighted action keyword in vibrant Electric Brand Orange (#FA6305) with subtle luminous glow, and subtitle in clean neutral light (#E2E8F0)",
-      containerAndFrameEn: "Framing & containers: Sleek dark translucent frosted glassmorphic card (25% opacity, backdrop blur, subtle 1px glowing cyan/orange neon border, rounded corners 16px) housing concise editorial callouts",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Glassmorphic Card & Dual-Tone Headline): Render the BrandKit headline with dynamic weight alternation (Bold setup words in crisp White #FFFFFF, core punchline in Heavy/Black 900 weight in Brand Orange #FA6305) paired with an elegant dark frosted glassmorphic card.",
+      colorHarmonyEn: "Dual-tone color contrast: Setup words in BrandKit Primary Color (on light backgrounds) or Pure White (#FFFFFF, on dark backgrounds), and highlighted action keyword in vibrant Brand Secondary/Accent Color",
+      containerAndFrameEn: "Framing & space: Frameless, clean floating headline directly integrated over the natural scene without enclosing the main title inside dark boxes or gold-bordered rectangles",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Clean Dual-Tone Brand Headline): Render a frameless BrandKit headline with dynamic weight and dual-tone color alternation (setup words in BrandKit Primary Color on light backgrounds or White on dark backgrounds, and core punchline in Heavy/Black 900 weight in Brand Secondary Color) with zero dark boxes around the title.",
     },
     {
       id: "spatial_architectural_light",
-      labelPt: "Tipografia Espacial Integrada à Perspectiva e Iluminação Cenográfica Volumétrica",
+      labelPt: "Tipografia Espacial Integrada à Perspectiva e Profundidade",
       weightHierarchyEn: "Three-dimensional weight integration: Bold architectural BrandKit letterforms with physical presence, seamlessly harmonized with the environment's perspective and depth",
-      colorHarmonyEn: "Volumetric light interaction: Clean white letterfaces illuminated by the studio's directional key light and colored rim lights, casting realistic ambient drop shadows",
+      colorHarmonyEn: "Clean adaptive contrast: Crisp BrandKit Primary Color on bright backgrounds or Pure White (#FFFFFF) on dark scenes, without artificial dark smudge backdrops",
       containerAndFrameEn: "Framing & space: Frameless spatial placement interacting naturally with the scene's depth of field, background bokeh, and architectural lines",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Environmental Typography): Render high-impact BrandKit letterforms organically embedded in the 3D space, interacting with the scene's volumetric lighting, subtle rim glows, and ambient contact shadows.",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Environmental Typography): Render high-impact BrandKit letterforms organically embedded in the 3D space, interacting cleanly with the scene's depth and lighting.",
     },
     {
       id: "split_column_editorial",
-      labelPt: "Diagramação Editorial em Duas Colunas Assimétricas com Barra Vertical Neon",
+      labelPt: "Diagramação Editorial em Duas Colunas Assimétricas com Barra Vertical da Marca",
       weightHierarchyEn: "Asymmetric editorial contrast: Large display lead word on the left in ExtraBold (900 weight), paired with a compact, ultra-sharp two-line sub-phrase in Regular/Medium weight aligned along a vertical divider",
-      colorHarmonyEn: "High-contrast dynamic balance: Pure White (#FFFFFF) text anchored by an electric cyan (#00D2FF) or brand orange (#FA6305) vertical rule",
-      containerAndFrameEn: "Framing & space: Delicate 2px vertical neon hairline rule structuring a two-column editorial layout with architectural precision and generous breathing space",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Two-Column Split Editorial): Render an asymmetrical two-column BrandKit headline structured by a vertical brand-colored hairline rule, pairing a giant lead word on the left with a sharp multi-line continuation on the right.",
+      colorHarmonyEn: "High-contrast dynamic balance: BrandKit Primary Color (on light scenes) or Pure White (#FFFFFF, on dark scenes) text anchored by a Brand Accent vertical rule",
+      containerAndFrameEn: "Framing & space: Delicate 2px vertical brand-colored rule structuring a frameless two-column editorial layout with architectural precision and generous breathing space",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Asymmetric Two-Column Split Editorial): Render an asymmetrical two-column BrandKit headline structured by a vertical brand-colored rule, pairing a giant lead word on the left with a sharp multi-line continuation on the right.",
     },
     {
       id: "vertical_sidebar_editorial",
-      labelPt: "Eixo Lateral Vertical a 90° + Headline Principal de Impacto (Editorial Sidebar Architecture)",
-      weightHierarchyEn: "Editorial sidebar contrast: A sleek vertical 90-degree rotated category/eyebrow accent along the side margin in Medium tracked all-caps, paired with a bold horizontal ExtraBold main headline",
-      colorHarmonyEn: "Refined agency palette: Vertical sidebar tag in Brand Accent (#FA6305 or #0083C7) or soft silver, paired with Pure White (#FFFFFF) main display typography",
-      containerAndFrameEn: "Framing & space: Contemporary design-magazine grid combining a vertical margin axis line with an asymmetric horizontal display block",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Vertical Sidebar Axis & Display Headline): Create a contemporary agency grid using the BrandKit typeface: pair a sleek 90-degree rotated vertical editorial eyebrow/tag along the safe side margin with a bold, high-contrast horizontal main headline.",
+      labelPt: "Eixo Lateral Vertical + Headline Principal de Impacto (Editorial Sidebar Architecture)",
+      weightHierarchyEn: "Editorial sidebar contrast: A sleek vertical category/eyebrow accent along the side margin in Medium weight, paired with a bold horizontal ExtraBold main headline",
+      colorHarmonyEn: "Refined agency palette: Vertical sidebar tag in Brand Accent paired with BrandKit Primary Color (on light scenes) or Pure White (#FFFFFF, on dark scenes) main display typography",
+      containerAndFrameEn: "Framing & space: Contemporary design-magazine grid combining a vertical margin axis line with an asymmetric frameless horizontal display block",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Vertical Sidebar Axis & Display Headline): Create a contemporary agency grid using the exact BrandKit typeface: pair a sleek vertical editorial eyebrow/tag along the safe side margin with a bold, high-contrast horizontal main headline.",
     },
     {
       id: "floating_depth_interlocking",
       labelPt: "Entrelaçamento Espacial 3D em Profundidade (Palavras Interagindo em Camadas com o Sujeito e Elementos de Cena)",
-      weightHierarchyEn: "Multi-depth typographic weaving: Headline split into dynamic spatial tiers using the BrandKit typeface family, where key punchline words weave between the hero subject, rim lights, and atmospheric particles without sacrificing legibility",
-      colorHarmonyEn: "Atmospheric depth lighting: Crisp Pure White (#FFFFFF) letterforms catching directional studio lighting and colored rim glows with authentic contact drop shadows",
+      weightHierarchyEn: "Multi-depth typographic weaving: Headline split into dynamic spatial tiers using the BrandKit typeface family, where key punchline words weave between the hero subject and midground planes without sacrificing legibility",
+      colorHarmonyEn: "Clean adaptive contrast: BrandKit Primary Color on bright backgrounds or Crisp Pure White (#FFFFFF) on dark scenes, with zero murky black drop shadows",
       containerAndFrameEn: "Framing & space: Organic 3D depth integration weaving seamlessly around the hero subject while preserving a generous 20% safe margin from all outer borders",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Interlocking & Depth Weaving): Create an award-winning editorial poster where the BrandKit headline weaves organically through the scene's spatial planes (Time/GQ cover depth and physical scene interaction), interacting naturally with depth of field and ambient lighting with 100% legibility.",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Spatial Interlocking & Depth Weaving): Create an award-winning editorial poster where the BrandKit headline weaves organically through the scene's spatial planes with 100% legibility.",
     },
     {
       id: "swiss_minimalist_grid",
       labelPt: "Grid Contemporâneo Suíço & Diagramação Assimétrica (Swiss Editorial Design / Neue Grafik)",
-      weightHierarchyEn: "Pure Swiss editorial hierarchy: High-contrast geometric BrandKit typography structured on a clean asymmetric grid, pairing a monumental bold title block with generous negative space and micro-tracked metadata",
-      colorHarmonyEn: "Noble minimalist palette: Pure White (#FFFFFF) or Deep Charcoal typography paired with a single Brand Accent element (#FA6305 or #0083C7) and subtle 1px architectural hairline dividers",
-      containerAndFrameEn: "Framing & space: Strict architectural alignment, generous asymmetrical negative space (at least 25% open breathing room), and impeccable 20% safe margins",
-      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Contemporary Swiss Grid / Neue Grafik): Render a sophisticated, design-magazine worthy title layout using the BrandKit typeface, leveraging bold scale contrast, clean asymmetric alignment, and luxurious negative space for ultimate editorial elegance.",
+      weightHierarchyEn: "Pure Swiss editorial hierarchy: High-contrast BrandKit typography structured on a clean asymmetric grid, pairing a monumental bold title block with generous negative space",
+      colorHarmonyEn: "Noble minimalist palette: BrandKit Primary Color (on light walls/scenes) or Pure White (#FFFFFF, on dark scenes) paired with a single Brand Accent element and subtle 1px architectural hairline dividers",
+      containerAndFrameEn: "Framing & space: Strict architectural alignment, frameless negative space (at least 25% open breathing room), and impeccable 20% safe margins",
+      fullDirectiveEn: "PREMIUM TYPOGRAPHY ARCHETYPE (Contemporary Swiss Grid / Neue Grafik): Render a sophisticated, design-magazine worthy title layout strictly using the BrandKit typeface, leveraging bold scale contrast, clean asymmetric alignment, and luxurious negative space.",
     },
   ];
 
@@ -376,43 +386,43 @@ REGRAS DE CONFORMIDADE:
   public static readonly DYNAMIC_HEADLINE_TREATMENTS: DynamicHeadlineTreatment[] = [
     {
       id: "classic_contrast_pure_white",
-      labelPt: "Contraste Clássico em Branco Puro (Pure White Contrast)",
+      labelPt: "Contraste Puro Adaptativo da Marca (Clean Brand / White Adaptive Contrast)",
       directivePt:
-        "Título principal renderizado 100% em Branco Puro (#FFFFFF) com leve sombra de contato para contraste cinematográfico e máxima legibilidade móvel.",
+        "Em fundos claros/iluminados (paredes claras, cozinhas, escritórios claros), renderize o título 100% na Cor Primária/Escura oficial do BrandKit de forma limpa e sem sombra preta borrada; em fundos escuros, renderize em Branco Puro (#FFFFFF).",
       treatmentDirectiveEn:
-        "Classic High-Contrast Pure White: Render the entire primary headline in crisp, luminous Pure White (#FFFFFF) with subtle contact drop shadows, ensuring flawless readability against the rich textured background.",
+        "Clean Adaptive Brand Contrast: If the background behind the title is light or bright (such as a light wall, bright office, or sunlit kitchen), render the entire primary headline cleanly in the client's official BrandKit Primary/Dark color with ZERO black smudge or smoke shadows behind the text! If the background is dark, render the headline in crisp Pure White (#FFFFFF).",
     },
     {
       id: "brand_duotone_split",
       labelPt: "Título em Duas Cores (Brand Duotone Split)",
       directivePt:
-        "Título dividido harmonicamente em duas cores: frase de abertura/contexto em Branco Puro (#FFFFFF) e palavra-chave de impacto na Cor Primária do BrandKit.",
+        "Título dividido harmonicamente em duas cores da paleta do BrandKit (Cor Primária + Cor Secundária em fundos claros, ou Branco Puro + Cor Primária em fundos escuros), sem manchas pretas.",
       treatmentDirectiveEn:
-        "Dynamic Brand Duotone Split: Render the headline dynamically in two harmonized colors — the setup words in crisp Pure White (#FFFFFF) and the core punchline/power word rendered in the client's official BrandKit primary accent color, creating sophisticated editorial contrast.",
+        "Dynamic Brand Duotone Split: Render the headline dynamically in two harmonized brand colors — on light backgrounds use the BrandKit Primary Color + BrandKit Secondary Accent Color (or Pure White #FFFFFF + BrandKit Primary Color on dark backgrounds), with zero dark smudge shadows or boxes.",
     },
     {
       id: "brand_duotone_with_solid_stripe",
       labelPt: "Título em Duas Cores com Faixa/Tarja em uma das Palavras (Brand Duotone with Stripe)",
       directivePt:
-        "Título em duas cores, onde uma parte está em Branco Puro (#FFFFFF) e a palavra de maior impacto é destacada sobre uma faixa/tarja retangular sólida ou marcador estético na Cor Primária do BrandKit.",
+        "Título em duas cores respeitando o contraste do fundo, onde a palavra de maior impacto é destacada sobre uma faixa/tarja retangular sólida na Cor do BrandKit.",
       treatmentDirectiveEn:
-        "Brand Duotone with Solid Highlight Stripe: Split the headline dynamically with the setup words in crisp Pure White (#FFFFFF), and encase the primary action/impact keyword inside or over a bold, solid rectangular highlight stripe/brush band filled with the client's BrandKit primary accent color, with high-contrast text inside.",
+        "Brand Duotone with Solid Highlight Stripe: Render the setup words cleanly (in BrandKit Primary Color on light backgrounds or Pure White #FFFFFF on dark backgrounds), and encase ONLY the single primary impact keyword inside a solid rectangular highlight stripe filled with the BrandKit accent color.",
     },
     {
       id: "single_brand_color_with_stripe",
       labelPt: "Título com Uma Cor e Faixa/Tarja atrás de uma das Palavras (Single Brand Color with Stripe)",
       directivePt:
-        "Título estruturado em uma cor dominante com uma faixa/tarja sólida ou bloco geométrico atrás de uma das palavras-chave para criar ancoragem visual imediata.",
+        "Título estruturado em uma cor dominante do BrandKit (ou branco em fundo escuro) com uma faixa/tarja sólida atrás de uma das palavras-chave.",
       treatmentDirectiveEn:
-        "Single Dominant Color with Solid Backdrop Stripe: Render the headline text in a unified high-contrast color, placing a vibrant solid geometric highlight band/stripe (filled with the BrandKit accent color) directly behind one decisive power word, anchoring the eye instantly.",
+        "Single Dominant Color with Solid Backdrop Stripe: Render the headline text in a unified high-contrast BrandKit color (or Pure White on dark scenes), placing a vibrant solid geometric highlight band/stripe (filled with the BrandKit accent color) directly behind one decisive power word.",
     },
     {
       id: "brand_pill_badge_invert",
       labelPt: "Palavra-Chave em Tarja/Pill Sólido Invertido (Brand Inverted Pill Badge)",
       directivePt:
-        "Palavra principal invertida dentro de uma cápsula/tag sólida nas cores oficiais da marca com texto vazado e setup em branco.",
+        "Palavra principal invertida dentro de uma cápsula/tag sólida nas cores oficiais da marca com texto vazado e frase de preparação limpa.",
       treatmentDirectiveEn:
-        "Modern Brand Inverted Pill Tag: Setup words float in crisp White (#FFFFFF), while the core power keyword is encased inside a modern solid brand-colored rectangular pill/tag with crisp cutout letters, creating an unmistakable advertising hook.",
+        "Modern Brand Inverted Pill Tag: Setup words float cleanly (in BrandKit Primary Color on light backgrounds or crisp White #FFFFFF on dark backgrounds), while the single core power keyword is encased inside a modern solid brand-colored rectangular pill/tag with crisp cutout letters.",
     },
   ];
 
@@ -433,7 +443,10 @@ REGRAS DE CONFORMIDADE:
     const brandColors = input.brandKit?.primaryColors?.length
       ? input.brandKit.primaryColors.join(", ")
       : "#0083C7 / #FA6305";
-    return `[DYNAMIC HEADLINE CHROMATIC & STRIPE TREATMENT (/headlinetreatment — ${selected.id}): Selected Treatment: ${selected.labelPt}. Directive: ${selected.treatmentDirectiveEn} Brand Color Reference: ${brandColors}. Ensure 100% legibility and adherence to the BrandKit typeface anatomy without generic repeating formulas.]`;
+    const secondaryColors = input.brandKit?.secondaryColors?.length
+      ? `, Secondary: ${input.brandKit.secondaryColors.join(", ")}`
+      : "";
+    return `[DYNAMIC HEADLINE CHROMATIC & STRIPE TREATMENT (/headlinetreatment — ${selected.id}): Selected Treatment: ${selected.labelPt}. Directive: ${selected.treatmentDirectiveEn} Brand Color Reference: Primary ${brandColors}${secondaryColors}. CRITICAL CONTRAST RULE: Never place white text with a dirty black/grey smoke smudge over a light wall, and never trap the main headline inside an unrequested dark/gold-bordered box on a table/counter! On light backgrounds, always render the headline directly in the BrandKit Primary Color cleanly.]`;
   }
 
   public static readonly DYNAMIC_PERSONA_PROFILES: DynamicPersonaDiversityProfile[] = [
@@ -590,9 +603,9 @@ REGRAS DE CONFORMIDADE:
     const brandFonts = input.brandKit?.fonts;
     const fontLockDirective =
       brandFonts && (brandFonts.primaryFont || brandFonts.secondaryFont || brandFonts.style)
-        ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Adhere 100% to the official BrandKit typeface anatomy (Primary Title Font: "${brandFonts.primaryFont || 'Clean Geometric Sans-Serif Bold'}", Secondary Body: "${brandFonts.secondaryFont || 'Clean Geometric Sans-Serif Regular'}", Style: "${brandFonts.style || 'Clean corporate sans-serif'}") — zero serifs, zero font mixing across the same headline; establish hierarchy exclusively through weight (Normal vs ExtraBold/Black) and scale.`
+        ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Adhere 100% to the official BrandKit typeface system (Primary Title Font: "${brandFonts.primaryFont || brandFonts.secondaryFont || 'Brand Primary Font'}", Secondary Body Font: "${brandFonts.secondaryFont || brandFonts.primaryFont || 'Brand Secondary Font'}", Style: "${brandFonts.style || 'Brand official typography'}") — preserve the exact letterform anatomy, curvature, and weight hierarchy without inventing unrequested font families.`
         : "";
-    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}.${fontLockDirective} MANDATE — MAXIMUM TITLE LAYOUT DESIGN FREEDOM: Avoid repetitive generic formulas; liberate the title layout from monotonous top-centered banners! Freely innovate with lower-third hero anchoring, 3D magazine depth layering behind shoulders, asymmetric L-frames, split columns, or solid brand-colored pills, while maintaining 100% legibility and 20% safe margins.]`;
+    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}.${fontLockDirective} MANDATE — MAXIMUM TITLE LAYOUT DESIGN FREEDOM & CLEAN CONTRAST: Avoid repetitive generic formulas; liberate the title layout from monotonous top-centered banners! On light backgrounds, render the headline cleanly in the BrandKit Primary Color with ZERO black smudge/smoke shadows and ZERO dark boxes around the title; on dark backgrounds, use crisp Pure White (#FFFFFF) and BrandKit colors, maintaining 100% legibility and 20% safe margins.]`;
   }
 
   public static readonly OBJECTIVE_CREATIVE_PROFILES: Record<
@@ -830,19 +843,24 @@ REGRAS DE CONFORMIDADE:
     const fonts = input.brandKit?.enabled ? input.brandKit?.fonts : undefined;
     if (!fonts || (!fonts.primaryFont && !fonts.secondaryFont && !fonts.style)) return "";
 
-    const primary = fonts.primaryFont?.trim() || "Modern Geometric Sans-Serif Bold";
-    const secondary = fonts.secondaryFont?.trim() || "Modern Geometric Sans-Serif Regular";
-    const style = fonts.style?.trim() || "Clean modern corporate sans-serif, highly legible";
+    const primary = fonts.primaryFont?.trim() || fonts.secondaryFont?.trim() || "Brand Primary Font";
+    const secondary = fonts.secondaryFont?.trim() || fonts.primaryFont?.trim() || "Brand Secondary Font";
+    const style = fonts.style?.trim() || "Clean, highly legible brand typography";
+    const normPrimary = primary.toLowerCase().replace(/\s*[-–—]?\s*(bold|normal|regular|medium|light|extrabold|black|semibold)\b/gi, "").trim();
+    const normSecondary = secondary.toLowerCase().replace(/\s*[-–—]?\s*(bold|normal|regular|medium|light|extrabold|black|semibold)\b/gi, "").trim();
+    const isSameFamily = normPrimary === normSecondary;
     const isSansSerif =
       /sans-serif|sans serif|branding sf|montserrat|inter|poppins|roboto|helvetica|arial|futura|gotham|gilroy|myriad|eras|corporativo|moderno|limpo/i.test(
         `${primary} ${secondary} ${style}`
       ) && !/\b(serifa|serifada|classic serif|times|garamond|playfair|bodoni)\b/i.test(`${primary} ${secondary} ${style}`);
 
+    const brandPrimaryColor = input.brandKit?.primaryColors?.[0] || "#0083C7";
+
     return `[CRITICAL MANDATE — BRAND KIT TYPOGRAPHY LOCK & PRIORITY (/fontlock): PRIORITIZE THE BRANDKIT FONTS ABOVE ALL ELSE! All rendered text MUST strictly follow the brand's official typography system — Primary Font (Titles / Bold Highlights): "${primary}"; Secondary Font (Body / Setup Text): "${secondary}"; General Typographic Style: "${style}". ${
-      isSansSerif
-        ? "ANATOMICAL FONT ENFORCEMENT: Render ALL text lines using a SINGLE unified, clean, modern corporate geometric sans-serif typeface family (matching Branding SF / Montserrat / Inter aesthetics) with crisp straight terminals and uniform stroke geometry. Differentiate setup lines vs. bold emphasis lines STRICTLY by font weight (Normal/Regular weight vs. Bold/ExtraBold weight of the EXACT SAME sans-serif family). It is STRICTLY FORBIDDEN to use serifs, semi-serifed flared terminals, humanist calligraphic strokes, slab serifs, or mix two different font families in the same text block!"
-        : "ANATOMICAL FONT ENFORCEMENT: Maintain 100% typographic family consistency across all text lines, differentiating hierarchy strictly by weight (Normal vs. Bold) within the exact specified brand typeface family."
-    } CREATIVE LAYOUT FREEDOM WITHIN BRAND FONTS: While keeping 100% fidelity to the BrandKit typeface anatomy above, exercise maximum creative freedom in the spatial layout, geometric positioning (lower-third, magazine depth behind subject, L-frame, split-column, vertical sidebar, or monumental header), scale contrast, and framing of the title!]`;
+      isSameFamily && isSansSerif
+        ? `ANATOMICAL FONT ENFORCEMENT: Render ALL text lines using a SINGLE unified, clean, modern corporate geometric sans-serif typeface family strictly matching "${primary}" / "${secondary}" (preserving its exact letterform roundness, x-height, stroke proportions, and terminal anatomy without inventing unrequested font families). Differentiate setup lines vs. bold emphasis lines STRICTLY by font weight (Normal/Regular weight vs. Bold/ExtraBold weight of the EXACT SAME typeface family).`
+        : `ANATOMICAL FONT ENFORCEMENT: Strictly apply "${primary}" for primary headlines/highlights and "${secondary}" for secondary/body copy, preserving 100% of their authentic letterform anatomy, curvature, and proportions. NEVER substitute or invent unrequested generic fonts!`
+    } CLEAN ADAPTIVE BRAND COLOR CONTRAST: When the background behind the text is light or bright, render the headline cleanly in the BrandKit Primary Color (${brandPrimaryColor}) with ZERO dirty black smoke/smudge drop-shadows and ZERO unrequested dark/gold boxes! CREATIVE LAYOUT FREEDOM WITHIN BRAND FONTS: While keeping 100% fidelity to the BrandKit typeface anatomy above, exercise creative freedom in the spatial layout and scale contrast of the title!]`;
   }
 
 
@@ -859,14 +877,14 @@ REGRAS DE CONFORMIDADE:
           : baseModels;
 
         const userPrompt = this.buildUserPrompt(input);
-        // Montar mensagem multimodal para que o GPT-6.1-sol / GPT-5 veja as fotos de sujeito, estilo/campanha e logo
+        // Montar mensagem multimodal para que o GPT-6.1-sol / GPT-5 veja TODAS as fotos de sujeito/embalagem e estilo/campanha
         const contentParts: any[] = [{ type: "text", text: userPrompt }];
-        const subjectImage = input.referenceImages?.find((r) => r.role === "product_subject");
-        if (subjectImage && subjectImage.base64) {
+        const subjectImages = input.referenceImages?.filter((r) => r.role === "product_subject" && r.base64) || [];
+        for (const subjectImg of subjectImages) {
           contentParts.push({
             type: "image_url",
             image_url: {
-              url: `data:${subjectImage.mimeType};base64,${subjectImage.base64}`,
+              url: `data:${subjectImg.mimeType};base64,${subjectImg.base64}`,
               detail: "high",
             },
           });
@@ -989,11 +1007,11 @@ BRANDKIT DO CLIENTE:
     let referencesSection = "";
     if (subjectImage && styleImage) {
       referencesSection = `
-DUAS FOTOS ANEXADAS NA ETAPA 5 (IMAGEM 1: SUJEITO/PRODUTO/LOGOMARCA + IMAGEM 2: REFERÊNCIA DE ESTILO/CAMPANHA):
-1. IMAGEM 1 DA ETAPA 5 (SUJEITO, PRODUTO OU LOGOMARCA ENVIADA PELO USUÁRIO):
+DUAS FOTOS ANEXADAS NA ETAPA 5 (IMAGEM 1: SUJEITO/PRODUTO/EMBALAGEM/LOGOMARCA + IMAGEM 2: REFERÊNCIA DE ESTILO/CAMPANHA):
+1. IMAGEM 1 DA ETAPA 5 (SUJEITO, PRODUTO, EMBALAGEM OU LOGOMARCA ENVIADA PELO USUÁRIO):
    - Se for PESSOA: preserve a fisionomia, idade aproximada, etnia, cabelo e estilo.
-   - Se for PRODUTO FÍSICO, EQUIPAMENTO, CAIXA DE SOM, APARELHO OU EMBALAGEM COMERCIAL (TRAVA /productlock ATIVA): preserve integralmente 100% da geometria, formato superior e inferior, peças aparentes (cornetas, tweeters, alto-falantes, grades em barras, botões, cabos), cores exatas de cada lateral/gabinete, frasco/pote e O RÓTULO ORIGINAL COMPLETO. É TERMINANTEMENTE PROIBIDO remodelar partes do equipamento (como trocar cornetas expostas por telas metálicas fechadas), mudar a cor do gabinete ou estampar logotipos de marcas citadas no texto (ex: "JBL") sobre o produto se não existirem na foto real enviada! Altere apenas o cenário ao fundo, o piso e a iluminação.
-   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA: ATIVE IMEDIATAMENTE O MODO EXCEÇÃO CRIATIVA COM ALTERNÂNCIA DINÂMICA! Passe por cima de qualquer proibição de logomarcas e INTEGRE ESSA LOGOMARCA ENVIADA DE FORMA CRIATIVA, NÍTIDA E EM DESTAQUE na nova imagem!
+   - Se for PRODUTO FÍSICO, POTE, PACOTE, FRASCO, EQUIPAMENTO OU EMBALAGEM COMERCIAL (TRAVA /productlock & /labellock ATIVA): preserve integralmente 100% da geometria, formato do recipiente/pote/pacote, textura interna do produto E REALIZE CLONAGEM FOTOGRÁFICA 1:1 DO RÓTULO ORIGINAL COMPLETO! É TERMINANTEMENTE PROIBIDO redesenhar ou alterar o logotipo impresso dentro do rótulo (ex: NUNCA adicione uma elipse/oval verde ou escudo ao redor da marca no rótulo se a foto original mostrar ícone de folha + texto limpo sem moldura), PROIBIDO alterar as cores das faixas laterais/centrais/inferiores do rótulo, PROIBIDO mudar a fonte ou cor do selo "Premium" e PROIBIDO mudar a foto impressa no rótulo! Altere apenas o cenário ao fundo, a bancada/piso e a iluminação.
+   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA ISOLADO: ATIVE IMEDIATAMENTE O MODO EXCEÇÃO CRIATIVA COM ALTERNÂNCIA DINÂMICA! Passe por cima de qualquer proibição de logomarcas e INTEGRE ESSA LOGOMARCA ENVIADA DE FORMA CRIATIVA, NÍTIDA E EM DESTAQUE na nova imagem!
      * ARQUÉTIPO CRIATIVO SORTEADO PARA ESTA GERAÇÃO (PRIORIDADE): ${selectedArchetypes?.primary.labelPt} (${selectedArchetypes?.primary.promptEn})
      * OPÇÃO CRIATIVA ALTERNATIVA (CASO SE ADAPTE MELHOR AO NICHO): ${selectedArchetypes?.secondary.labelPt} (${selectedArchetypes?.secondary.promptEn})
      * (Se o usuário pediu explicitamente no briefing um local específico para a logo, siga o pedido do usuário; caso contrário, aplique o Arquétipo Criativo Sorteado acima para garantir variedade máxima entre gerações, reproduzindo 100% fielmente o nome, tipografia, símbolo e cores da logomarca enviada!)
@@ -1005,17 +1023,17 @@ DUAS FOTOS ANEXADAS NA ETAPA 5 (IMAGEM 1: SUJEITO/PRODUTO/LOGOMARCA + IMAGEM 2: 
 `;
     } else if (subjectImage) {
       referencesSection = `
-FOTO DA ETAPA 5 ANEXADA (SUJEITO, PRODUTO OU LOGOMARCA ENVIADA PELO USUÁRIO):
+FOTO DA ETAPA 5 ANEXADA (SUJEITO, PRODUTO, EMBALAGEM OU LOGOMARCA ENVIADA PELO USUÁRIO):
 Existe uma imagem anexada enviada pelo usuário na Etapa 5.
 INSTRUÇÃO OBRIGATÓRIA:
 1. Examine a imagem anexada detalhadamente:
    - Se for uma PESSOA: preserve a fisionomia, idade aproximada, etnia, cabelo e estilo.
-   - Se for um PRODUTO FÍSICO, EQUIPAMENTO, CAIXA DE SOM, APARELHO OU EMBALAGEM COMERCIAL (TRAVA /productlock ATIVA): preserve com 100% de fidelidade a estrutura mecânica e geométrica real (incluindo partes superiores e inferiores, cornetas aparentes, tweeters, grades em barras, cabos, botões e cores exatas das laterais do gabinete), a embalagem real E O RÓTULO ORIGINAL COMPLETO. É TERMINANTEMENTE PROIBIDO remodelar ou "modernizar" partes do produto, cobrir componentes expostos com telas genéricas ou estampar no equipamento logotipos de marcas citadas apenas no título/briefing (ex: "JBL") se não estiverem fisicamente na foto original! Mude apenas o cenário ao fundo, o piso e a iluminação.
-   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA: ATIVE O MODO EXCEÇÃO CRIATIVA COM ALTERNÂNCIA DINÂMICA! Passe por cima de todas as regras de proibição de logos e integre essa logomarca enviada de forma CRIATIVA, ORGÂNICA, NÍTIDA e EM DESTAQUE na nova imagem:
+   - Se for um PRODUTO FÍSICO, POTE, PACOTE, FRASCO, EQUIPAMENTO OU EMBALAGEM COMERCIAL (TRAVA /productlock & /labellock ATIVA): preserve com 100% de fidelidade a estrutura física, o recipiente/pote/pacote real E REALIZE CLONAGEM FOTOGRÁFICA 1:1 DO RÓTULO ORIGINAL COMPLETO! É TERMINANTEMENTE PROIBIDO redesenhar ou adulterar o logotipo impresso dentro do rótulo (ex: NUNCA coloque elipse/oval verde ou escudo em volta do nome da marca no rótulo se não existir na foto original), PROIBIDO alterar as cores das faixas laterais brancas, faixa central ou base do rótulo, PROIBIDO mudar o selo de qualidade ou trocar as fotos/ilustrações impressas no rótulo! Mude apenas o cenário ao fundo, a bancada/piso e a iluminação.
+   - Se for UMA LOGOMARCA / LOGOTIPO / SÍMBOLO DE MARCA ISOLADO: ATIVE O MODO EXCEÇÃO CRIATIVA COM ALTERNÂNCIA DINÂMICA! Passe por cima de todas as regras de proibição de logos e integre essa logomarca enviada de forma CRIATIVA, ORGÂNICA, NÍTIDA e EM DESTAQUE na nova imagem:
      * ARQUÉTIPO CRIATIVO SORTEADO PARA ESTA GERAÇÃO (PRIORIDADE): ${selectedArchetypes?.primary.labelPt} (${selectedArchetypes?.primary.promptEn})
      * OPÇÃO CRIATIVA ALTERNATIVA (CASO SE ADAPTE MELHOR AO NICHO): ${selectedArchetypes?.secondary.labelPt} (${selectedArchetypes?.secondary.promptEn})
      * (Se o usuário pediu explicitamente no briefing um local específico para a logo, siga o pedido do usuário; caso contrário, aplique o Arquétipo Criativo Sorteado acima, preservando fielmente a grafia exata do nome da marca, o ícone e as cores!)
-2. Descreva esse elemento com detalhes no bloco [3. HERO SUBJECT] e [9. LOGO DIRECTIVE].
+2. Descreva esse elemento com detalhes minuciosos no bloco [3. HERO SUBJECT] e [9. LOGO DIRECTIVE].
 `;
     } else if (styleImage) {
       referencesSection =
@@ -1043,16 +1061,16 @@ Sua missão NÚMERO 1 é garantir que a nova arte seja imediatamente reconhecida
 
     const isStep5Logo = this.isStep5LogoUpload(input);
     const logoDirectiveText = subjectImage
-      ? `REGRA CONDICIONAL ESTRITA PARA A IMAGEM ENVIADA NA ETAPA 5 (PRODUTO FÍSICO vs. LOGOMARCA):
-Inspecione visualmente a imagem enviada na Etapa 5 (product_subject) e retorne no JSON o campo "detectedStep5AssetType" como "product_or_person" (se for produto físico, equipamento, caixa de som, objeto, alimento ou pessoa) OU "brand_logo" (somente se a imagem enviada na Etapa 5 for o design gráfico isolado de uma logomarca/logotipo).
-- CASO A — SE A IMAGEM DA ETAPA 5 FOR UM PRODUTO FÍSICO, EQUIPAMENTO, CAIXA DE SOM OU PESSOA ("product_or_person"):
-  1. NÃO APLIQUE NENHUM ARQUÉTIPO DE LOGOMARCA! IGNORE completamente placas de acrílico, totens de bancada ou letreiros 3D!
-  2. PROIBIÇÃO ABSOLUTA DE DESENHAR LOGOMARCAS NA CENA: É TERMINANTEMENTE PROIBIDO desenhar, inventar, renderizar ou estampar qualquer logomarca da empresa (como "${brand?.businessName || 'NumVapt'}") em placas de acrílico na mesa/balcão, totens, paredes ou equipamentos! ${
+      ? `REGRA CONDICIONAL ESTRITA PARA A IMAGEM ENVIADA NA ETAPA 5 (PRODUTO FÍSICO/EMBALAGEM vs. LOGOMARCA ISOLADA):
+Inspecione visualmente a imagem enviada na Etapa 5 (product_subject) e retorne no JSON o campo "detectedStep5AssetType" como "product_or_person" (se for produto físico, embalagem, pote, pacote, equipamento, caixa de som, objeto, alimento ou pessoa) OU "brand_logo" (somente se a imagem enviada na Etapa 5 for o design gráfico isolado de uma logomarca/logotipo).
+- CASO A — SE A IMAGEM DA ETAPA 5 FOR UM PRODUTO FÍSICO, EMBALAGEM, POTE, PACOTE, EQUIPAMENTO OU PESSOA ("product_or_person"):
+  1. NÃO APLIQUE NENHUM ARQUÉTIPO DE LOGOMARCA CENOGRÁFICA! IGNORE completamente placas de acrílico, totens de bancada ou letreiros 3D na parede!
+  2. PROIBIÇÃO DE LOGOS SOLTAS NO CENÁRIO vs. PRESERVAÇÃO SAGRADA DO RÓTULO DO PRODUTO: É proibido desenhar logomarcas avulsas flutuando na parede ou em totens de mesa, PORÉM A LOGOMARCA ORIGINAL IMPRESSA NO RÓTULO DA EMBALAGEM DO PRODUTO ENVIADO DEVE SER PRESERVADA COM 100% DE FIDELIDADE FOTOGRÁFICA IDÊNTICA À FOTO ENVIADA! ${
     hasLogo
-      ? `A logomarca do BrandKit será aplicada via software na posição (${selectedPlacement.id}): mantenha a zona designada 100% LIMPA e VAZIA (${selectedPlacement.clearanceZonePrompt}).`
-      : "Mantenha o canto superior limpo e NÃO desenhe nenhuma logomarca na cena."
+      ? `A logomarca de assinatura do post será aplicada via software na posição (${selectedPlacement.id}): mantenha a zona designada 100% LIMPA e VAZIA (${selectedPlacement.clearanceZonePrompt}).`
+      : "Mantenha o canto superior limpo para assinatura."
   }
-  3. TRAVA /productlock: Preserve 100% da geometria, partes superiores e inferiores, peças aparentes e cores reais do produto enviado.
+  3. TRAVA /productlock & /labellock: Preserve 100% da geometria da embalagem, transparência do pote/pacote, cores exatas de cada faixa do rótulo, design exato da logo no rótulo (sem inventar ovais/escudos verdes ao redor do nome), selos e fotos impressas no rótulo!
 - CASO B — SOMENTE SE A IMAGEM ENVIADA NA ETAPA 5 FOR UMA LOGOMARCA / LOGOTIPO ISOLADO ("brand_logo" — isStep5Logo=${isStep5Logo}):
   1. MODO EXCEÇÃO CRIATIVA COM ROTAÇÃO DINÂMICA (${selectedArchetypes?.primary.id}): Aí sim, mantenha o sorteio de arquétipos e integre essa logomarca enviada na Etapa 5 de forma criativa na cena aplicando preferencialmente: "${selectedArchetypes?.primary.promptEn}" (ou "${selectedArchetypes?.secondary.promptEn}"), reproduzindo fielmente o nome, símbolo e cores da logomarca enviada!`
       : hasLogo
@@ -1224,7 +1242,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
             .replace(/Do NOT place any brand logo text within the layout\.?/gi, "")
             .replace(/with zero digital logos or floating brand marks\.?/gi, "while creatively integrating any uploaded Step 5 reference logo into the scene.");
           if (!prompt.includes("STRICT PRODUCT GEOMETRY") && !prompt.includes("/productlock")) {
-            prompt += " [STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock): For any physical product or equipment in the reference photo, preserve 100% of its exact geometry, upper and lower structures, exposed components (horns, tweeters, bar grilles, knobs, cables), and exact cabinet side colors. Do NOT redesign parts into generic mesh grilles or stamp brand names mentioned in the headline onto the hardware if not present on the original photo.]";
+            prompt += " [STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock & /labellock): For any physical product, jar, bag, bottle, or equipment in the reference photo(s), preserve 100% of its exact geometry, upper and lower structures, exposed components (horns, tweeters, bar grilles, knobs, cables), exact cabinet side colors, packaging container, and authentic printed label graphics 1:1 (including exact printed brand logo on the label without adding green ovals/ellipses around it, exact label stripe colors, seal typography, and product illustration). Do NOT redesign packaging labels or stamp brand names onto hardware if not present on the original photo.]";
           }
         }
         const fontMandate = this.buildBrandTypographyMandate(input);
@@ -1280,8 +1298,8 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
             : `logo, brand logo, company logo, emblem, corporate symbol, fake logo, invented logo, watermark, signature, mascot, cartoon rocket, rocket icon, cartoon character, invented branding, badge, shield, crest, monogram, seal, stylized company name, circle with letters, brand mark, brand symbol, arbitrary logo, made-up logo, placeholder logo, distorted text logo, cropped headline, cut off borders, low quality, artifacts${anatomicalNegatives}`;
       })(),
       preserve: hasLogo
-        ? ["Logomarca oficial do negócio", "Foto/Logomarca criativa da Etapa 5", "Margens seguras"]
-        : ["Foto/Logomarca da Etapa 5", "Integração criativa na cena", "Margens seguras"],
+        ? ["Logomarca oficial do negócio", "Foto/Embalagem/Rótulo 1:1 da Etapa 5", "Margens seguras"]
+        : ["Foto/Embalagem/Rótulo 1:1 da Etapa 5", "Integração criativa na cena", "Margens seguras"],
       generationParameters: {
         model: "gpt-image-2.6-sunburst",
         quality: "high",
@@ -1428,7 +1446,7 @@ Gere o JSON completo e estruturado conforme o schema com o prompt em inglês per
         : "[CRITICAL MANDATE — ZERO LOGOS IN POST LAYOUT & EMPTY HEADER SPACE: NO floating logo, company header emblem, acrylic tabletop plaque, counter totem, wall sign, layout badge, watermark, mascot, or artificial trademark graphics in the poster background or corners. The top corner MUST remain completely empty and clean for manual logo insertion.]";
 
     const subjectMandate = subjectRef
-      ? "[CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock) + HERO SUBJECT PRESERVATION & UPLOADED LOGO INTEGRATION: Faithfully preserve 100% of the exact physical geometry, silhouette, upper and lower structures, exposed components (such as visible horns, tweeters, bar grilles, knobs, cables), exact cabinet side-panel colors, packaging, authentic printed label details, or uploaded brand logo graphics (brand name spelling, typography, colors, icon) from the user's reference image and integrate them prominently into the scene. Do NOT redesign, modernize, cover exposed parts with generic mesh grilles, change cabinet colors, or stamp brand logos mentioned in the text headline onto the product hardware if they are not physically present on the original photo.]"
+      ? "[CRITICAL MANDATE — STRICT PRODUCT GEOMETRY & COMPONENT LOCK (/productlock) + 1:1 PACKAGING LABEL LOCK (/labellock) + HERO SUBJECT PRESERVATION & UPLOADED LOGO INTEGRATION: Faithfully preserve 100% of the exact physical geometry, silhouette, upper and lower structures, exposed components (such as visible horns, tweeters, bar grilles, knobs, cables), exact cabinet side-panel colors, packaging container (jar, pouch, bottle, box), authentic printed label details 1:1 (exact brand logo printed on the label without adding green ovals/ellipses or badges around it, exact label background/stripe colors, seal typography, weight text, and printed product illustration), or uploaded brand logo graphics (brand name spelling, typography, colors, icon) from all user reference images and integrate them prominently into the scene. Do NOT redesign, redraw, modernize, cover exposed parts with generic mesh grilles, change cabinet colors, or alter the packaging label.]"
       : "";
 
     if (input.compiledPrompt) {
