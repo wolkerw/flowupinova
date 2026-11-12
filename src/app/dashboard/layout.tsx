@@ -29,6 +29,7 @@ import {
   User,
   Crown,
   CheckSquare,
+  TrendingUp,
 } from "lucide-react";
 import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
 import type { SubscriptionPlanModalidade } from "@/lib/types/contract";
@@ -88,6 +89,11 @@ const allNavigationItems: {
     title: "Posts",
     url: "/dashboard/posts",
     icon: FileText,
+  },
+  {
+    title: "Tendências",
+    url: "/dashboard/tendencias",
+    icon: TrendingUp,
   },
   {
     title: "Social Media",

@@ -197,9 +197,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const { checkSubscriptionOrPrompt } = useSubscriptionGate();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
+  const initialTopic = searchParams.get("topic") || "";
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
   const [step, setStep] = useState(1);
-  const [postSummary, setPostSummary] = useState("");
+  const [postSummary, setPostSummary] = useState(initialTopic);
   const [isLoading, setIsLoading] = useState(false);
   const [generateTextSuggestions, setGenerateTextSuggestions] = useState<boolean>(true);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);

@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
     }
 
     const googleApiUrl = `https://mybusiness.googleapis.com/v4/${parent}/media`;
+    const isVideo =
+      file.type?.startsWith("video/") ||
+      /\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(file.name || publicUrl);
 
     const apiResponse = await fetch(googleApiUrl, {
       method: "POST",
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        mediaFormat: "PHOTO",
+        mediaFormat: isVideo ? "VIDEO" : "PHOTO",
         locationAssociation: {
           category: "ADDITIONAL",
         },
@@ -102,8 +105,9 @@ export async function POST(request: NextRequest) {
           errorMessage = specificViolation;
         } else if (generalMessage) {
           if (generalMessage.toLowerCase().includes("invalid argument")) {
-            errorMessage =
-              "Não foi possível enviar a foto. Verifique se o arquivo atende aos requisitos: formato JPG ou PNG e dimensões mínimas de 250x250 pixels.";
+            errorMessage = isVideo
+              ? "Não foi possível enviar o vídeo. Verifique se o arquivo atende aos requisitos do Google: até 30 segundos, máximo 75 MB e resolução mínima de 720p."
+              : "Não foi possível enviar a foto. Verifique se o arquivo atende aos requisitos: formato JPG ou PNG e dimensões mínimas de 250x250 pixels.";
           } else {
             errorMessage = generalMessage;
           }

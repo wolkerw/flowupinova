@@ -72,13 +72,29 @@ export async function POST(request: NextRequest) {
       profilePhoto: profile
         ? { url: profile.googleUrl, thumbnailUrl: profile.thumbnailUrl, name: profile.name }
         : null,
-      gallery: gallery.map((m: any) => ({
-        url: m.googleUrl,
-        thumbnailUrl: m.thumbnailUrl,
-        name: m.name,
-        category: m.locationAssociation?.category,
-        mediaFormat: m.mediaFormat,
-      })),
+      gallery: gallery.map((m: any) => {
+        const isVideo = m.mediaFormat === "VIDEO";
+        let videoUrl: string | undefined;
+
+        if (isVideo) {
+          if (m.sourceUrl) {
+            videoUrl = m.sourceUrl;
+          } else if (m.googleUrl) {
+            const baseGoogleUrl = m.googleUrl.split("=")[0];
+            videoUrl = `${baseGoogleUrl}=dv`;
+          }
+        }
+
+        return {
+          url: m.googleUrl,
+          thumbnailUrl: m.thumbnailUrl || m.googleUrl,
+          videoUrl,
+          sourceUrl: m.sourceUrl,
+          name: m.name,
+          category: m.locationAssociation?.category,
+          mediaFormat: m.mediaFormat,
+        };
+      }),
     };
 
     return NextResponse.json({ success: true, media: formattedMedia });

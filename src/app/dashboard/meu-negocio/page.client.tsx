@@ -96,6 +96,8 @@ interface MeuNegocioClientProps {
 interface GalleryItem {
   url: string;
   thumbnailUrl: string;
+  videoUrl?: string;
+  sourceUrl?: string;
   mediaFormat: "PHOTO" | "VIDEO";
   name: string;
 }
@@ -442,9 +444,20 @@ const Lightbox = ({
   mediaItem: GalleryItem | null;
   onClose: () => void;
 }) => {
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  useEffect(() => {
+    setVideoFailed(false);
+  }, [mediaItem]);
+
   if (!mediaItem) return null;
 
   const isVideo = mediaItem.mediaFormat === "VIDEO";
+  const resolvedVideoSrc =
+    mediaItem.videoUrl ||
+    mediaItem.sourceUrl ||
+    (mediaItem.url ? `${mediaItem.url.split("=")[0]}=dv` : "");
+  const posterImage = mediaItem.thumbnailUrl || mediaItem.url;
 
   return (
     <motion.div
@@ -461,15 +474,17 @@ const Lightbox = ({
         onClick={(e) => e.stopPropagation()}
         className="relative max-h-[90vh] max-w-4xl"
       >
-        {isVideo ? (
+        {isVideo && !videoFailed && resolvedVideoSrc ? (
           <video
-            src={mediaItem.url}
+            key={resolvedVideoSrc}
+            src={resolvedVideoSrc}
+            poster={posterImage}
             controls
             autoPlay
             loop
-            muted
             playsInline
-            className="rounded-lg"
+            onError={() => setVideoFailed(true)}
+            className="rounded-lg bg-black"
             style={{
               objectFit: "contain",
               width: "auto",
@@ -479,20 +494,27 @@ const Lightbox = ({
             }}
           />
         ) : (
-          <Image
-            src={mediaItem.url}
-            alt="Visualização ampliada"
-            width={1920}
-            height={1080}
-            style={{
-              objectFit: "contain",
-              width: "auto",
-              height: "auto",
-              maxHeight: "90vh",
-              maxWidth: "90vw",
-            }}
-            className="rounded-lg"
-          />
+          <div className="relative">
+            <Image
+              src={posterImage}
+              alt="Visualização ampliada"
+              width={1920}
+              height={1080}
+              style={{
+                objectFit: "contain",
+                width: "auto",
+                height: "auto",
+                maxHeight: "90vh",
+                maxWidth: "90vw",
+              }}
+              className="rounded-lg"
+            />
+            {isVideo && videoFailed && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/75 px-4 py-2 text-center text-xs font-medium text-white shadow-md">
+                Este vídeo foi processado pelo Google apenas como prévia visual na API.
+              </div>
+            )}
+          </div>
         )}
         <Button
           variant="ghost"
