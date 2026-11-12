@@ -494,6 +494,63 @@ export function PromptsViewer() {
             </div>
           </AccordionContent>
         </AccordionItem>
+
+        {/* Agente Carrossel com IA (5 ou 7 slides) - Custo Mínimo & Regra de Ouro */}
+        <AccordionItem
+          value="carousel_storyboard_agent"
+          className="overflow-hidden rounded-lg border border-sky-800/40 bg-sky-950/20 px-4"
+        >
+          <AccordionTrigger className="text-sky-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <Workflow className="h-4 w-4 text-sky-400" />
+              Agente: Carrossel com IA (5 ou 7 Slides) — Roteiro Unificado, Capa Sunburst & Design Tokens
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-300">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-sky-400">
+                <p>
+                  Roteiro completo em 1 chamada (<code>gemini-2.5-flash</code> + Zod), geração exclusiva da Capa no Slide 1 (<code>gpt-image-2.6-sunburst</code> em 1080×1350) e renderização dos Slides 2..N via templates Fabric.js com Design Tokens extraídos da capa.
+                </p>
+                <span className="rounded bg-sky-900/60 px-2 py-0.5 text-[10px] font-semibold text-sky-200 border border-sky-700/50">
+                  1 Imagem IA (Capa) + Slides 2..N Fabric.js (0 Custo)
+                </span>
+              </div>
+              <Textarea
+                className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[200px]"
+                value={
+                  prompts.carousel_storyboard_prompt ||
+                  `DIRETRIZES DO AGENTE DE CARROSSEL COM IA (5 OU 7 SLIDES — CUSTO MÍNIMO):
+1. REGRA DE OURO INVIOLÁVEL (GUARD EXPLÍCITO): Somente o Slide 1 (Capa) aciona o modelo de imagem IA (gpt-image-2.6-sunburst em 1080x1350, proporção 4:5). Os Slides 2 a N NUNCA chamam modelo de imagem; são renderizados por template Fabric.js com custo zero de imagem.
+2. ROTEIRO COMPLETO EM 1 ÚNICA CHAMADA DE TEXTO (gemini-2.5-flash + validação Zod):
+   - Define primeiro a "chamadaCapa" (headline gancho de até 65 caracteres) e o "promptImagemCapa" (área limpa de luminosidade 100% uniforme atrás do texto, sem vinhetas escuras/degradês invadindo as letras, trava de alto contraste texto branco em fundo escuro ou texto escuro em fundo claro).
+   - Em seguida escreve os slides internos desenvolvendo e cumprindo EXATAMENTE a promessa da chamadaCapa:
+     * 5 slides: 1 capa -> 2 contexto -> 3 ponto_principal -> 4 complemento -> 5 cta.
+     * 7 slides: 1 capa -> 2 contexto -> 3, 4 e 5 desenvolvimento -> 6 prova_resumo -> 7 cta.
+   - Limites rigorosos: título <= 45 caracteres, texto <= 160 caracteres, português do Brasil revisado e CTA no último slide com o canal real do negócio (WhatsApp, link da bio, etc.).
+3. EXTRAÇÃO DE DESIGN TOKENS DA CAPA (JIMP + VISÃO):
+   - Paleta dominante extraída por quantização com Jimp (custo zero) + análise de estilo via gemini-2.5-flash (cor de fundo, destaque, texto, alinhamento, peso tipográfico, motivo gráfico e cantos).
+   - Regra de precedência: os tokens da capa prevalecem nas CORES; o BrandKit do usuário prevalece em LOGO e TIPOGRAFIA (fontes).`
+                }
+                onChange={(e) => handleChange("carousel_storyboard_prompt", e.target.value)}
+              />
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-slate-400">
+                  Sincronizado com /api/carousel/storyboard, /api/carousel/generate-cover e fabric-slide-renderer.ts.
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => handleSave("carousel_storyboard_prompt")}
+                  disabled={saving}
+                  className="bg-sky-600 hover:bg-sky-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
     </div>
   );

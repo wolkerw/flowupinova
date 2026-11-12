@@ -2,6 +2,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import {
+  CarouselPreviewDots,
+  CarouselPreviewOverlay,
+} from "./_components/CarouselPreviewControls";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -873,11 +877,16 @@ const InstagramPreview = ({
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
-    setCurrentSlide(0);
-  }, [mediaItems]);
+    setCurrentSlide((prev) => {
+      if (mediaItems.length === 0) return 0;
+      return prev >= mediaItems.length ? mediaItems.length - 1 : prev;
+    });
+  }, [mediaItems.length]);
 
   const isCarousel = mediaItems.length > 1;
-  const currentMedia = mediaItems[currentSlide];
+  const safeSlideIndex =
+    mediaItems.length > 0 ? Math.min(currentSlide, mediaItems.length - 1) : 0;
+  const currentMedia = mediaItems[safeSlideIndex];
 
   const getAvatarFallback = () => {
     if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
@@ -1130,31 +1139,13 @@ const InstagramPreview = ({
             opacity={logoOpacity}
           />
         )}
-                {isCarousel && (
-          <>
-            <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-              <Copy className="h-3 w-3" />
-              <span>
-                {currentSlide + 1}/{mediaItems.length}
-              </span>
-            </div>
-            {currentSlide > 0 && (
-              <button
-                onClick={prevSlide}
-                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1 text-white transition-colors hover:bg-black/70"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            )}
-            {currentSlide < mediaItems.length - 1 && (
-              <button
-                onClick={nextSlide}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1 text-white transition-colors hover:bg-black/70"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            )}
-          </>
+        {isCarousel && (
+          <CarouselPreviewOverlay
+            currentSlide={safeSlideIndex}
+            totalSlides={mediaItems.length}
+            onPrev={prevSlide}
+            onNext={nextSlide}
+          />
         )}
       </div>
 
@@ -1166,6 +1157,13 @@ const InstagramPreview = ({
           <Repeat className="h-6 w-6 cursor-pointer text-gray-800" />
           <Send className="-ml-1 h-6 w-6 cursor-pointer text-gray-800" />
         </div>
+        {isCarousel && (
+          <CarouselPreviewDots
+            totalSlides={mediaItems.length}
+            currentSlide={safeSlideIndex}
+            onSelectSlide={setCurrentSlide}
+          />
+        )}
         <Bookmark className="h-6 w-6 cursor-pointer text-gray-800" />
       </div>
 

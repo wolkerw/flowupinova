@@ -462,6 +462,22 @@ export function ModelsViewer() {
               </p>
             </div>
           </div>
+
+          {/* Carrossel com IA (5 ou 7 slides) - Regra de Ouro de Custo Mínimo */}
+          <div className="flex flex-col rounded-xl border border-sky-800/40 bg-sky-950/10 p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between border-b border-sky-800/30 pb-3">
+              <div className="flex items-center gap-2 text-white">
+                <Layers className="h-5 w-5 text-sky-400" />
+                <h3 className="font-semibold">Carrossel com IA (5 ou 7 Slides)</h3>
+              </div>
+              <span className="rounded bg-sky-900/60 px-2 py-0.5 text-[11px] font-semibold text-sky-200 border border-sky-700/50">
+                1 Imagem IA + Fabric.js
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-slate-400">
+              Gera o roteiro completo em 1 chamada textual (<code className="text-sky-300">gemini-2.5-flash</code>), renderiza exclusivamente o Slide 1 (Capa 1080×1350) no modelo <code className="text-sky-300">gpt-image-2.6-sunburst</code> e constrói os Slides 2 a N por template Fabric.js com Design Tokens extraídos da capa (custo zero de imagem nos slides internos).
+            </p>
+          </div>
         </div>
       </div>
     </div>

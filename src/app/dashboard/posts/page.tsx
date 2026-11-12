@@ -75,6 +75,7 @@ import {
   MousePointer2,
   Image as ImageIcon,
   Store,
+  Layers,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -1802,17 +1803,17 @@ export default function Conteudo() {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* Card Destaque - Geral (Fluxo Geral) */}
+                <div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* Botão 1 - Geral (Fluxo Geral) */}
                   <button
                     onClick={() => {
                       if (!checkSubscriptionOrPrompt("criar novas imagens com IA")) return;
                       router.push("/dashboard/imagens/gerar?mode=general");
                     }}
-                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-600 via-purple-600 to-[#FA6305] p-6 text-left text-white shadow-xl shadow-purple-200 transition-all hover:scale-[1.01] active:scale-[0.99] md:col-span-2"
+                    className="group relative flex h-full flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-blue-600 via-purple-600 to-[#FA6305] p-6 text-left text-white shadow-xl shadow-purple-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-15 transition-transform duration-500 group-hover:scale-110">
-                      <Sparkles size={140} />
+                      <Sparkles size={120} />
                     </div>
                     <div className="mb-3 flex items-center gap-3">
                       <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
@@ -1820,18 +1821,18 @@ export default function Conteudo() {
                       </div>
                       <h3 className="text-xl font-black leading-tight">Geral</h3>
                     </div>
-                    <p className="text-sm font-medium leading-relaxed text-white/90 max-w-2xl">
-                      Crie qualquer imagem a partir de uma ideia, referência ou foto. Gere variações visuais de alta qualidade, personalize com sua marca e salve na Galeria.
+                    <p className="text-sm font-medium leading-relaxed text-white/90">
+                      Crie imagens a partir de uma ideia, referência ou foto e personalize com sua marca.
                     </p>
                   </button>
 
-                  {/* Botão 1 - Conceito com IA */}
+                  {/* Botão 2 - Conceito com IA */}
                   <button
                     onClick={() => {
                       if (!checkSubscriptionOrPrompt("criar posts conceituais com IA")) return;
                       router.push("/dashboard/posts/gerar?mode=concept");
                     }}
-                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-left text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="group relative flex h-full flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-left text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                       <Lightbulb size={120} />
@@ -1843,18 +1844,17 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Conceito</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do
-                      post.
+                      Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do post.
                     </p>
                   </button>
 
-                  {/* Botão 2 - Referência Foto com IA */}
+                  {/* Botão 3 - Referência Foto com IA */}
                   <button
                     onClick={() => {
                       if (!checkSubscriptionOrPrompt("criar posts de produtos com IA")) return;
                       router.push("/dashboard/posts/gerar?mode=reference-photo");
                     }}
-                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-left text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="group relative flex h-full flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-left text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                       <Camera size={120} />
@@ -1866,18 +1866,17 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Produto</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Mande uma foto do seu produto e a IA gera imagem e texto profissionais para
-                      você usar.
+                      Mande uma foto do seu produto e a IA gera imagem e texto profissionais para você usar.
                     </p>
                   </button>
 
-                  {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
+                  {/* Botão 4 - Gerar Híbrido (Pessoa + Produto) */}
                   <button
                     onClick={() => {
                       if (!checkSubscriptionOrPrompt("criar posts híbridos com IA")) return;
                       router.push("/dashboard/posts/gerar?mode=reference-hybrid");
                     }}
-                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="group relative flex h-full flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                       <RefreshCw size={120} />
@@ -1895,10 +1894,10 @@ export default function Conteudo() {
                     </p>
                   </button>
 
-                  {/* Botão 4 - Conteúdo Manual */}
+                  {/* Botão 5 - Conteúdo Manual */}
                   <button
                     onClick={() => router.push("/dashboard/posts/criar")}
-                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-left text-white shadow-xl shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="group relative flex h-full flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-left text-white shadow-xl shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                       <UploadCloud size={120} />
@@ -1910,8 +1909,30 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Manual</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Envie sua própria imagem a ser postada, escreva sua legenda livremente e
-                      agende para as redes sociais.
+                      Envie sua própria imagem a ser postada, escreva sua legenda livremente e agende para as redes sociais.
+                    </p>
+                  </button>
+
+                  {/* Botão 6 - Carrossel com IA (5 ou 7 slides) */}
+                  <button
+                    data-testid="posts-flow-carousel-btn"
+                    onClick={() => {
+                      if (!checkSubscriptionOrPrompt("criar carrosséis com IA")) return;
+                      router.push("/dashboard/posts/gerar?mode=carousel");
+                    }}
+                    className="group relative flex h-full flex-col items-start overflow-hidden rounded-[24px] bg-[#0083C7] p-6 text-left text-white shadow-xl shadow-sky-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
+                      <Layers size={120} />
+                    </div>
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                        <Layers className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-black leading-tight">Carrossel com IA</h3>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-white/90">
+                      Crie carrosséis de 5 ou 7 slides com roteiro unificado, capa por IA e slides na mesma família visual.
                     </p>
                   </button>
                 </div>

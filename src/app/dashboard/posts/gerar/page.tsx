@@ -3,6 +3,8 @@
 import React, { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { WizardProvider, useWizard } from "./context/WizardContext";
+import { CarouselProvider } from "./context/CarouselContext";
+import { CarouselWizardContent } from "./_components/carousel/CarouselWizardContent";
 import { Step1Idea } from "./_components/Step1Idea";
 import { Step2TextSelection } from "./_components/Step2TextSelection";
 import { Step3ImageSelection } from "./_components/Step3ImageSelection";
@@ -32,6 +34,14 @@ function WizardContent() {
       router.replace("/dashboard/imagens/gerar?mode=general");
     }
   }, [mode, router]);
+
+  if (mode === "carousel") {
+    return (
+      <CarouselProvider>
+        <CarouselWizardContent />
+      </CarouselProvider>
+    );
+  }
 
   const isReferenceMode =
     mode === "reference-photo" ||

@@ -41,6 +41,10 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
      - **Botão "Conceito"**: Criação de ideias e artes com IA relevantes ao nicho do negócio.
      - **Botão "Produto"**: Envio de foto do produto para a IA criar artes e textos comerciais profissionais.
      - **Botão "Pessoa + Cenário"**: IA combina pessoas da equipe com cenários personalizados.
+     - **Botão "Carrossel com IA"** -> [Carrossel com IA](/dashboard/posts/gerar?mode=carousel): Criação inteligente de posts carrossel de **5 ou 7 slides** em proporção 4:5 (1080×1350) com custo mínimo de imagem.
+       * **Roteiro unificado em 1 chamada de LLM de texto (\`gemini-2.5-flash\`)**: Define primeiro a \`chamadaCapa\` (headline gancho) e em seguida desenvolve os slides internos cumprindo exatamente a promessa da capa, com títulos de até 45 caracteres, textos de até 160 caracteres e CTA no último slide usando o canal real do negócio (WhatsApp, link da bio, etc.).
+       * **Regra de Ouro de Economia**: Somente o **Slide 1 (Capa)** chama modelo de imagem IA (\`GPT-image-2.6 Sunburst\`). Os **Slides 2 a N** nunca chamam modelo de imagem: eles extraem automaticamente os Design Tokens da capa (paleta dominante via quantização \`jimp\` + análise visual de estilo combinada com logo e fontes do BrandKit) e são renderizados via templates **Fabric.js** com ajuste automático de fonte e 3 variações de fundo (\`solid_from_cover\`, \`cover_stripe_geometry\`, \`blurred_cover_crop\`) a custo zero de imagem.
+       * **Opção de Segurança na Capa**: Permite regenerar apenas a capa (1 crédito) sem refazer o roteiro ou aplicar a chamada por sobreposição via Fabric.js sobre a arte sem gastar novo crédito.
    - **Gestão, Calendário e Redes**:
      - Visualização de todas as publicações (agendadas, publicadas e rascunhos).
      - Calendário editorial mensal para planejar cronogramas.
@@ -215,6 +219,10 @@ Na tela de **[Posts](/dashboard/posts)**, na seção **"Criar novo post"**, exis
 
 5. **Fluxo Geral** (Geração Livre e Séries de Campanha):
    - **Quando usar**: Criações abertas a partir de ideias, prompts customizados e séries com **Identidade de Campanha** (onde a IA herda o design system e a diagramação de uma arte mestre da série).
+
+6. **Fluxo Carrossel com IA (5 ou 7 Slides com Custo Mínimo)** -> [Carrossel com IA](/dashboard/posts/gerar?mode=carousel):
+   - **Quando usar**: Conteúdos educativos, listas passo a passo, comparativos e narrativas de alta retenção em 5 ou 7 lâminas (1080×1350).
+   - **Como fazer**: Escolher 5 ou 7 slides e informar o tema -> Revisar o roteiro gerado em 1 única chamada de texto -> Gerar a Capa (Slide 1) com \`GPT-image-2.6 Sunburst\` -> Personalizar os slides internos (2 a N) renderizados automaticamente via Fabric.js com a paleta extraída da capa + fontes e logo do BrandKit -> Publicar ou agendar como carrossel no Instagram.
 
 ---
 
