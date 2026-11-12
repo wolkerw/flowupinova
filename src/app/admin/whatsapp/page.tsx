@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WhatsAppMessage, WhatsAppChatSession } from "@/lib/types/whatsapp";
-import type { WhatsAppKnowledgeTopic } from "@/lib/types/whatsapp-knowledge";
+import KnowledgeCenterPanel from "@/components/admin/KnowledgeCenterPanel";
 
 export default function AdminWhatsAppPage() {
   const [activeTab, setActiveTab] = useState<"conversas" | "conhecimento">("conversas");
@@ -42,19 +42,7 @@ export default function AdminWhatsAppPage() {
   const [updatingAiToggle, setUpdatingAiToggle] = useState(false);
   const [filter, setFilter] = useState<"all" | "ai" | "human">("all");
   const [search, setSearch] = useState("");
-
-  // Estado da Central de Conhecimento
-  const [topics, setTopics] = useState<WhatsAppKnowledgeTopic[]>([]);
-  const [loadingTopics, setLoadingTopics] = useState(false);
-  const [editingTopic, setEditingTopic] = useState<WhatsAppKnowledgeTopic | null>(null);
-  const [isCreatingTopic, setIsCreatingTopic] = useState(false);
-  const [savingTopic, setSavingTopic] = useState(false);
-  const [topicForm, setTopicForm] = useState({
-    title: "",
-    category: "planos" as WhatsAppKnowledgeTopic["category"],
-    content: "",
-    isActive: true,
-  });
+  const [knowledgeReloadKey, setKnowledgeReloadKey] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -77,21 +65,6 @@ export default function AdminWhatsAppPage() {
     }
   }, []);
 
-  const fetchKnowledge = useCallback(async () => {
-    setLoadingTopics(true);
-    try {
-      const res = await fetch("/api/admin/whatsapp/knowledge");
-      if (res.ok) {
-        const data = await res.json();
-        setTopics(data.topics || []);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar central de conhecimento:", err);
-    } finally {
-      setLoadingTopics(false);
-    }
-  }, []);
-
   const loadMessages = useCallback(async (chat: WhatsAppChatSession) => {
     setSelectedChat(chat);
     setLoadingMessages(true);
@@ -111,12 +84,6 @@ export default function AdminWhatsAppPage() {
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
-
-  useEffect(() => {
-    if (activeTab === "conhecimento") {
-      fetchKnowledge();
-    }
-  }, [activeTab, fetchKnowledge]);
 
   useEffect(() => {
     if (typeof messagesEndRef.current?.scrollIntoView === "function") {
@@ -199,68 +166,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  const handleSaveTopic = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!topicForm.title.trim() || !topicForm.content.trim() || savingTopic) return;
-
-    setSavingTopic(true);
-    try {
-      const payload = {
-        id: editingTopic?.id,
-        category: topicForm.category,
-        title: topicForm.title.trim(),
-        content: topicForm.content.trim(),
-        isActive: topicForm.isActive,
-      };
-
-      const res = await fetch("/api/admin/whatsapp/knowledge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setIsCreatingTopic(false);
-        setEditingTopic(null);
-        setTopicForm({ title: "", category: "planos", content: "", isActive: true });
-        fetchKnowledge();
-      }
-    } catch (err) {
-      console.error("Erro ao salvar tópico:", err);
-    } finally {
-      setSavingTopic(false);
-    }
-  };
-
-  const handleDeleteTopic = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta informação da base de conhecimento da Maia?")) return;
-
-    try {
-      const res = await fetch(`/api/admin/whatsapp/knowledge?id=${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setTopics((prev) => prev.filter((t) => t.id !== id));
-      }
-    } catch (err) {
-      console.error("Erro ao excluir tópico:", err);
-    }
-  };
-
-  const handleToggleTopicStatus = async (topic: WhatsAppKnowledgeTopic) => {
-    try {
-      const updated = !topic.isActive;
-      setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, isActive: updated } : t)));
-
-      await fetch("/api/admin/whatsapp/knowledge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...topic, isActive: updated }),
-      });
-    } catch (err) {
-      console.error("Erro ao alternar status do tópico:", err);
-      fetchKnowledge();
-    }
-  };
-
   const filteredChats = chats.filter((c) => {
     const displayName = c.senderName || (c as any).contactName || "";
     const matchesSearch =
@@ -273,23 +178,6 @@ export default function AdminWhatsAppPage() {
     if (filter === "human") return c.aiEnabled === false;
     return true;
   });
-
-  const getCategoryBadge = (cat: string) => {
-    switch (cat) {
-      case "planos":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-      case "contrato":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-      case "promocoes":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-      case "empresa":
-        return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-      case "duvidas":
-        return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
-      default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20";
-    }
-  };
 
   return (
     <div className="space-y-5">
@@ -338,10 +226,10 @@ export default function AdminWhatsAppPage() {
           </div>
 
           <button
-            onClick={() => (activeTab === "conversas" ? fetchChats() : fetchKnowledge())}
+            onClick={() => (activeTab === "conversas" ? fetchChats() : setKnowledgeReloadKey((k) => k + 1))}
             className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
           >
-            <RefreshCw className={cn("h-4 w-4", (loadingChats || loadingTopics) && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", loadingChats && "animate-spin")} />
             Atualizar
           </button>
         </div>
@@ -613,208 +501,7 @@ export default function AdminWhatsAppPage() {
       )}
 
       {/* CONTEÚDO DA ABA: CENTRAL DE INFORMAÇÕES DA MAIA */}
-      {activeTab === "conhecimento" && (
-        <div className="space-y-6">
-          {/* Card Explicativo e Botão de Novo Tópico */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl border border-slate-700/60 bg-slate-900/80">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-violet-400" />
-                Base de Conhecimento Dinâmica da Maia
-              </h2>
-              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-                Alimente aqui todas as informações, tabelas de preços, regras de contrato e promoções vigentes. A IA Maia consulta esta central em tempo real para responder aos clientes no WhatsApp.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setEditingTopic(null);
-                setTopicForm({ title: "", category: "planos", content: "", isActive: true });
-                setIsCreatingTopic(true);
-              }}
-              className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-violet-700 transition-colors shadow-sm shrink-0"
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar Novo Tópico
-            </button>
-          </div>
-
-          {/* Modal / Formulário de Criação ou Edição */}
-          {isCreatingTopic && (
-            <div className="p-5 rounded-2xl border border-violet-500/40 bg-slate-900/95 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Edit2 className="h-4 w-4 text-violet-400" />
-                  {editingTopic ? "Editar Tópico de Conhecimento" : "Novo Tópico de Informação"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setIsCreatingTopic(false);
-                    setEditingTopic(null);
-                  }}
-                  className="text-slate-400 hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveTopic} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Título do Tópico</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Tabela de Preços, Regra de Parcelamento, etc."
-                      value={topicForm.title}
-                      onChange={(e) => setTopicForm({ ...topicForm, title: e.target.value })}
-                      required
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Categoria</label>
-                    <select
-                      value={topicForm.category}
-                      onChange={(e) => setTopicForm({ ...topicForm, category: e.target.value as any })}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none"
-                    >
-                      <option value="planos">Planos & Preços</option>
-                      <option value="contrato">Contrato & Garantia</option>
-                      <option value="promocoes">Promoções Atuais</option>
-                      <option value="empresa">Sobre a Empresa</option>
-                      <option value="duvidas">Dúvidas Frequentes</option>
-                      <option value="outros">Outros</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Conteúdo e Instruções para a IA</label>
-                  <textarea
-                    rows={4}
-                    placeholder="Descreva detalhadamente os dados que a Maia deve utilizar ao falar sobre este assunto..."
-                    value={topicForm.content}
-                    onChange={(e) => setTopicForm({ ...topicForm, content: e.target.value })}
-                    required
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-xs text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={topicForm.isActive}
-                      onChange={(e) => setTopicForm({ ...topicForm, isActive: e.target.checked })}
-                      className="rounded border-slate-700 text-violet-600 focus:ring-violet-500"
-                    />
-                    Tópico Ativo (a Maia pode usar imediatamente nas respostas)
-                  </label>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCreatingTopic(false);
-                        setEditingTopic(null);
-                      }}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-slate-700"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingTopic}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50"
-                    >
-                      {savingTopic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      Salvar Informação
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Grid de Tópicos Cadastrados */}
-          {loadingTopics ? (
-            <div className="flex flex-col items-center justify-center h-48 text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin mb-2" />
-              <span className="text-xs">Carregando base de informações da Maia...</span>
-            </div>
-          ) : topics.length === 0 ? (
-            <div className="p-8 rounded-2xl border border-slate-700/60 bg-slate-900/60 text-center text-slate-400 text-xs">
-              Nenhum tópico cadastrado ainda. Clique no botão acima para adicionar a primeira informação!
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {topics.map((topic) => (
-                <div
-                  key={topic.id}
-                  className={cn(
-                    "p-4 rounded-2xl border transition-all flex flex-col justify-between bg-slate-900/80 shadow-md",
-                    topic.isActive ? "border-slate-700/80" : "border-slate-800 opacity-60"
-                  )}
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider", getCategoryBadge(topic.category))}>
-                        {topic.category}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleToggleTopicStatus(topic)}
-                          title={topic.isActive ? "Desativar tópico" : "Ativar tópico"}
-                          className={cn(
-                            "px-2 py-0.5 text-[10px] font-semibold rounded-full border transition-all",
-                            topic.isActive
-                              ? "bg-green-500/10 text-green-400 border-green-500/20"
-                              : "bg-slate-700 text-slate-400 border-slate-600"
-                          )}
-                        >
-                          {topic.isActive ? "Ativo" : "Inativo"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <h4 className="text-sm font-bold text-white mb-2">{topic.title}</h4>
-                    <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-950/40 p-3 rounded-xl border border-slate-800">
-                      {topic.content}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 mt-3 border-t border-slate-800 text-[10px] text-slate-500">
-                    <span>Atualizado em: {new Date(topic.updatedAt).toLocaleDateString("pt-BR")}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingTopic(topic);
-                          setTopicForm({
-                            title: topic.title,
-                            category: topic.category,
-                            content: topic.content,
-                            isActive: topic.isActive,
-                          });
-                          setIsCreatingTopic(true);
-                        }}
-                        className="text-slate-400 hover:text-white flex items-center gap-1"
-                      >
-                        <Edit2 className="h-3 w-3" /> Editar
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTopic(topic.id)}
-                        className="text-red-400 hover:text-red-300 flex items-center gap-1"
-                      >
-                        <Trash2 className="h-3 w-3" /> Excluir
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {activeTab === "conhecimento" && <KnowledgeCenterPanel key={knowledgeReloadKey} variant="dark" />}
     </div>
   );
 }

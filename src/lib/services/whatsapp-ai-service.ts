@@ -1,7 +1,5 @@
-import { getPlatformKnowledgeForChannel } from "@/lib/constants/platform-knowledge";
 import type { WhatsAppMessage, WhatsAppAIResponse } from "@/lib/types/whatsapp";
-import { adminDb } from "@/lib/firebase-admin";
-import { DEFAULT_KNOWLEDGE_TOPICS } from "@/app/api/admin/whatsapp/knowledge/route";
+import { buildChannelKnowledge, CENTRAL_KNOWLEDGE_HEADER } from "@/lib/services/knowledge-base-service";
 
 interface GenerateWhatsAppAIOptions {
   incomingMessage: string;
@@ -146,43 +144,11 @@ export async function generateWhatsAppAIResponse(
     parts: currentParts,
   });
 
-  // Busca dinamicamente a Central de Conhecimento configurada no Firestore
-  // Usamos get() simples sem where/orderBy compostos para NUNCA falhar por falta de índice no Firebase!
-  let dynamicKnowledge = "";
-  try {
-    const snap = await adminDb.collection("whatsapp_knowledge_base").get();
-
-    if (!snap.empty) {
-      const activeTopics = snap.docs
-        .map((d) => ({ id: d.id, ...(d.data() as any) }))
-        .filter((t) => t.isActive !== false)
-        .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-      if (activeTopics.length > 0) {
-        dynamicKnowledge = activeTopics
-          .map((t) => `### ${t.title?.toUpperCase()}\n${t.content}`)
-          .join("\n\n");
-      }
-    }
-  } catch (kbErr) {
-    console.warn("[WHATSAPP_AI] Falha ao carregar conhecimento do Firestore, usando fallback padrão:", kbErr);
-  }
-
-  // Se o Firestore não tiver tópicos ou estiver vazio, usa os tópicos oficiais padrão
-  if (!dynamicKnowledge) {
-    dynamicKnowledge = DEFAULT_KNOWLEDGE_TOPICS
-      .filter((t) => t.isActive)
-      .map((t) => `### ${t.title?.toUpperCase()}\n${t.content}`)
-      .join("\n\n");
-  }
-
-  const platformKnowledge = getPlatformKnowledgeForChannel("whatsapp");
+  // Central de Informações (filtrada por canal e validade) + conhecimento da plataforma sem detalhes internos
+  const { platformKnowledge, centralKnowledge } = await buildChannelKnowledge("whatsapp");
   let dynamicInstruction = WHATSAPP_SYSTEM_INSTRUCTION + "\n\n" + platformKnowledge;
-  if (dynamicKnowledge) {
-    dynamicInstruction +=
-      "\n\n# CENTRAL DE CONHECIMENTO OFICIAL (FONTE DA VERDADE SUPREMA E ATUALIZADA - PRIORIDADE MÁXIMA):\n" +
-      "ATENÇÃO: As informações desta seção foram cadastradas no painel do administrador e têm PREVALÊNCIA TOTAL E SOBERANA sobre qualquer valor padrão pré-definido:\n\n" +
-      dynamicKnowledge;
+  if (centralKnowledge) {
+    dynamicInstruction += CENTRAL_KNOWLEDGE_HEADER + centralKnowledge;
   }
 
   const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
