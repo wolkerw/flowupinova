@@ -43,6 +43,66 @@ function extractShortCategoryLabel(rawCategory?: string): string {
   return firstSegment || rawCategory.trim();
 }
 
+/**
+ * Construtor direto de Direção de Arte (Opção 1):
+ * - Gancho e Título: Manchetando o tema em alta conectado ao seu nicho.
+ * - Cenário e Composição Visual: Estilo fotográfico editorial, iluminação suave/estúdio, composição limpa e moderna.
+ * - Diagramação de Texto: Headline curta e marcante para o texto em camadas da arte.
+ * - Proibição estrita de menção a 8K, 4K ou 0,5K no texto do briefing.
+ */
+export function buildTrendArtDirectionBriefing(params: {
+  trendTitle: string;
+  newsTitle?: string;
+  newsSnippet?: string;
+  source?: string;
+  companyNiche?: string;
+  companyName?: string;
+}) {
+  const { trendTitle, newsTitle, newsSnippet, companyNiche, companyName } = params;
+  const nicheLabel = companyNiche || "negócios";
+  const cleanedTitle = (trendTitle || "").replace(/["“”]/g, "").trim();
+
+  // 1. Gancho e Título: O tópico obrigatoriamente na Head com sentido completo e relevância prática (sem truncar e SEM ponto final)
+  let headline = "";
+  const topicLower = cleanedTitle.toLowerCase();
+  if (topicLower.includes("outlook") || topicLower.includes("microsoft") || topicLower.includes("teams")) {
+    headline = `Falhas em sistemas da Microsoft, como ${cleanedTitle}, mostram a importância de canais alternativos no setor de ${nicheLabel}`;
+  } else if (newsTitle) {
+    const cleanNews = newsTitle.replace(/\s*[-–|].*$/, "").trim();
+    headline = `${cleanNews} sobre ${cleanedTitle}: o que muda para o seu negócio em ${nicheLabel}`;
+  } else {
+    headline = `Acontecimentos recentes sobre ${cleanedTitle} mostram a importância de estratégias sólidas em ${nicheLabel}`;
+  }
+  headline = headline.replace(/[\.\s]+$/, "");
+
+  // 2. Fato da Notícia com alto teor informativo
+  const newsSummary = newsSnippet
+    ? newsSnippet.slice(0, 240)
+    : newsTitle
+    ? `Notícia em destaque: "${newsTitle}" trazendo desdobramentos operacionais importantes sobre ${cleanedTitle}.`
+    : `Apurações jornalísticas recentes sobre "${cleanedTitle}" ganham forte repercussão no mercado brasileiro, mobilizando discussões técnicas e decisões estratégicas de negócios.`;
+
+  // 3. Cenário e Composição Visual: Matriz equilibrada de layouts (Smartphone, Desktop, Conceitual e Executivo)
+  const SCENARIOS = [
+    `Fotografia editorial cinematográfica e profissional de alto padrão no segmento de ${nicheLabel}. Protagonista em postura confiante e moderna apresentando a solução em um smartphone elegante com tela nítida voltada para o leitor, iluminação de estúdio suave e difusa, composição limpa e equilibrada em ângulo aberto a médio, profundidade de campo sutil e espaço negativo reservado para diagramação de texto e identidade visual.`,
+    `Fotografia editorial cinematográfica e profissional de alto padrão no segmento de ${nicheLabel}. Ambiente corporativo contemporâneo, profissionais analisando dados e relatórios estratégicos em monitores de mesa com iluminação de estúdio suave e difusa, composição limpa e equilibrada, profundidade de campo sutil, detalhes nítidos e naturais e espaço negativo premium.`,
+    `Composição fotográfica conceitual e sofisticada no segmento de ${nicheLabel}. Linhas arquitetônicas modernas, iluminação volumétrica suave de estúdio e enquadramento equilibrado com amplo espaço negativo reservado para diagramação de texto e identidade visual, transmitindo segurança e inovação com estética editorial minimalista.`,
+    `Fotografia executiva autêntica e acolhedora no habitat de ${nicheLabel}. Protagonista em postura confiante e natural em mesa de reunião elegante com laptop e caderno executivo, luz natural difusa, composição equilibrada e profundidade de campo suave.`
+  ];
+  const titleHash = Math.abs(cleanedTitle.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0));
+  const visualScene = SCENARIOS[titleHash % SCENARIOS.length];
+  const overlay = (titleHash % 2 === 0 ? "TITLE_ONLY" : "INFOGRAPHIC") as "TITLE_ONLY" | "INFOGRAPHIC";
+
+  // 4. Briefing completo unificado (sem créditos de imprensa e sem menção a 8k ou 0,5k no texto)
+  const fullBrief = `[Cena Visual]: ${visualScene} [Head Relevante da Arte]: "${headline}" [Contexto Resumido e Boas Práticas]: ${newsSummary} [Ação Estratégica do Negócio]: Conecte esse acontecimento a soluções de alto valor e orientações práticas para o público de ${nicheLabel}${companyName ? ` na ${companyName}` : ""}.`;
+
+  return {
+    headline,
+    brief: fullBrief,
+    overlay,
+  };
+}
+
 export default function TendenciasPageClient() {
   const router = useRouter();
   const { user } = useAuth();
@@ -51,6 +111,7 @@ export default function TendenciasPageClient() {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [structuringId, setStructuringId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [submittedQuery, setSubmittedQuery] = useState<string>("");
@@ -158,20 +219,109 @@ export default function TendenciasPageClient() {
     );
   }, [trends, searchQuery, period]);
 
-  const handleCreatePostFromTrend = (trend: GoogleTrendItem) => {
-    const mainHeadline = trend.newsArticles[0]?.title
-      ? ` (Fonte: ${trend.newsArticles[0].source})`
-      : "";
-    const promptTopic =
-      period === "niche"
-        ? `Notícia em alta no nosso setor (${companyNiche || "nosso mercado"}): "${trend.title}"${mainHeadline}. Crie um post estratégico e educativo comentando essa novidade para atrair clientes para o meu negócio.`
-        : `Assunto em alta no Google (${trend.approxTraffic} buscas): ${trend.title}${mainHeadline}. Crie um post engajador conectando este tema em alta ao meu negócio.`;
-    router.push(`/dashboard/posts/gerar?mode=text&topic=${encodeURIComponent(promptTopic)}`);
+  /**
+   * Ao clicar no botão, a IA resume a notícia do tópico e gera um briefing estruturado
+   * de alto padrão conectando o fato ocorrido diretamente ao nicho da empresa.
+   * Não menciona 8k, 4k ou 0,5k no prompt, e envia quality=low para geração econômica.
+   */
+  const handleCreatePostFromTrend = async (trend: GoogleTrendItem) => {
+    if (structuringId) return;
+    setStructuringId(trend.id);
+
+    const primaryArticle = trend.newsArticles[0];
+
+    try {
+      const res = await fetch("/api/trends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trendTitle: trend.title,
+          newsTitle: primaryArticle?.title,
+          source: primaryArticle?.source,
+          newsUrl: primaryArticle?.url,
+          companyNiche: companyNiche || undefined,
+          companyName: companyName || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.fullBrief) {
+        router.push(
+          `/dashboard/imagens/gerar?mode=general&topic=${encodeURIComponent(
+            data.fullBrief
+          )}&headline=${encodeURIComponent(data.headline || "")}&overlay=${
+            data.suggestedOverlay || "INFOGRAPHIC"
+          }&quality=low`
+        );
+        return;
+      }
+    } catch (err) {
+      console.warn("[TREND_STRUCT_FETCH_WARN] Falha ao estruturar com IA, usando fallback:", err);
+    }
+
+    // Fallback determinístico caso haja falha ou timeout na API
+    const fallback = buildTrendArtDirectionBriefing({
+      trendTitle: trend.title,
+      newsTitle: primaryArticle?.title,
+      source: primaryArticle?.source,
+      companyNiche: companyNiche || undefined,
+      companyName: companyName || undefined,
+    });
+
+    router.push(
+      `/dashboard/imagens/gerar?mode=general&topic=${encodeURIComponent(
+        fallback.brief
+      )}&headline=${encodeURIComponent(fallback.headline)}&overlay=${
+        fallback.overlay
+      }&quality=low`
+    );
+    setStructuringId(null);
   };
 
-  const handleCreatePostFromKeyword = (keyword: string) => {
-    const promptTopic = `Busca muito procurada no Google: "${keyword}". Crie um post estratégico e informativo respondendo a esse tema para atrair clientes para o meu negócio.`;
-    router.push(`/dashboard/posts/gerar?mode=text&topic=${encodeURIComponent(promptTopic)}`);
+  const handleCreatePostFromKeyword = async (keyword: string) => {
+    if (structuringId) return;
+    setStructuringId(keyword);
+
+    try {
+      const res = await fetch("/api/trends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trendTitle: keyword,
+          companyNiche: companyNiche || undefined,
+          companyName: companyName || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.fullBrief) {
+        router.push(
+          `/dashboard/imagens/gerar?mode=general&topic=${encodeURIComponent(
+            data.fullBrief
+          )}&headline=${encodeURIComponent(data.headline || "")}&overlay=${
+            data.suggestedOverlay || "INFOGRAPHIC"
+          }&quality=low`
+        );
+        return;
+      }
+    } catch (err) {
+      console.warn("[KEYWORD_STRUCT_FETCH_WARN] Usando fallback para palavra-chave:", err);
+    }
+
+    const fallback = buildTrendArtDirectionBriefing({
+      trendTitle: keyword,
+      companyNiche: companyNiche || undefined,
+      companyName: companyName || undefined,
+    });
+
+    router.push(
+      `/dashboard/imagens/gerar?mode=general&topic=${encodeURIComponent(
+        fallback.brief
+      )}&headline=${encodeURIComponent(fallback.headline)}&overlay=${
+        fallback.overlay
+      }&quality=low`
+    );
+    setStructuringId(null);
   };
 
   const activeNicheLabel = submittedQuery || companyNiche || "Seu Ramo de Negócio";
@@ -354,11 +504,16 @@ export default function TendenciasPageClient() {
                     <span>{suggestion}</span>
                     <button
                       type="button"
+                      disabled={Boolean(structuringId)}
                       onClick={() => handleCreatePostFromKeyword(suggestion)}
-                      className="inline-flex items-center gap-1 rounded bg-[#FA6305] px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-[#e05600]"
+                      className="inline-flex items-center gap-1 rounded bg-[#FA6305] px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-[#e05600] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <Sparkles className="h-3 w-3" />
-                      Criar Post
+                      {structuringId === suggestion ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      <span>{structuringId === suggestion ? "Resumindo..." : "Criar Post"}</span>
                     </button>
                   </div>
                 ))}
@@ -501,11 +656,21 @@ export default function TendenciasPageClient() {
               <CardFooter className="border-t border-slate-100 p-4 pt-3">
                 <Button
                   type="button"
+                  disabled={Boolean(structuringId)}
                   onClick={() => handleCreatePostFromTrend(trend)}
-                  className="w-full rounded-lg bg-[#0083C7] font-poppins text-xs font-semibold text-white hover:bg-[#006da6]"
+                  className="w-full rounded-lg bg-[#0083C7] font-poppins text-xs font-semibold text-white hover:bg-[#006da6] disabled:cursor-not-allowed disabled:opacity-75"
                 >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Criar Post sobre esse Assunto
+                  {structuringId === trend.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Resumindo notícia com IA...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Criar Post sobre esse Assunto
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>

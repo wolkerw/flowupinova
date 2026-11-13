@@ -49,6 +49,13 @@ export interface BrandContext {
   lastLogoPosition?: BrandLogoPlacement;
   lastPersonaId?: string;
   personas?: any[];
+  /** Campos do motor de prompt v2 (opcionais; o v1 ignora) */
+  hasCustomColors?: boolean;
+  rawSegment?: string;
+  businessDescription?: string;
+  mainBenefits?: string[];
+  slogan?: string;
+  lastArtDirectionIds?: string[];
 }
 
 export interface Gpt5PlannerInput {

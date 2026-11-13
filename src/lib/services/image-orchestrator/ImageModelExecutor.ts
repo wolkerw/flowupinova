@@ -31,6 +31,8 @@ export class ImageModelExecutor {
     fallbackModel?: string;
     quality?: string;
     referenceMode?: "style_only" | "campaign_identity";
+    /** "v2": o prompt já vem completo do PromptPlannerV2 e não recebe as diretivas extras do v1. */
+    promptEngine?: "v1" | "v2";
   }): Promise<{
     imageBuffer: Buffer;
     modelUsed: string;
@@ -113,7 +115,10 @@ export class ImageModelExecutor {
       try {
         if (cfg.provider === "openai" && openaiKey) {
           let openaiPrompt = params.prompt;
-          if (subjectRef) {
+          const injectV1Directives = params.promptEngine !== "v2";
+          if (!injectV1Directives) {
+            // motor v2: prompt usado como veio do planejador
+          } else if (subjectRef) {
             if (!openaiPrompt.includes("CREATIVE LOGO EXCEPTION") && !openaiPrompt.includes("HERO SUBJECT") && !openaiPrompt.includes("STRICT PRODUCT GEOMETRY")) {
               openaiPrompt += subjectDirective;
             }
@@ -137,7 +142,7 @@ export class ImageModelExecutor {
             openaiPrompt = `[MANDATORY POST BRANDING DIRECTIVE: Top corners must be completely clean, unbranded negative space for digital post overlay. Do NOT generate floating logos or artificial brand marks in the scene background.] ${openaiPrompt} [STRICT PROHIBITION: Do NOT draw artificial header logos.]`;
           }
 
-          if (!openaiPrompt.includes("/handlock")) {
+          if (injectV1Directives && !openaiPrompt.includes("/handlock")) {
             openaiPrompt += handAnatomyAndStudioDirective;
           }
 
@@ -255,7 +260,10 @@ export class ImageModelExecutor {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${geminiKey}`;
           
           let geminiPrompt = params.prompt;
-          if (subjectRef) {
+          const injectV1GeminiDirectives = params.promptEngine !== "v2";
+          if (!injectV1GeminiDirectives) {
+            // motor v2: prompt usado como veio do planejador
+          } else if (subjectRef) {
             // Sempre que houver imagem/logomarca enviada na Etapa 5: ativa Inserção Criativa Cenográfica
             if (!geminiPrompt.includes("CREATIVE LOGO EXCEPTION") && !geminiPrompt.includes("HERO SUBJECT")) {
               geminiPrompt = `${subjectDirective}\n\n${geminiPrompt}`;
@@ -271,12 +279,13 @@ export class ImageModelExecutor {
             }
           }
 
-          if (!geminiPrompt.includes("/handlock")) {
+          if (injectV1GeminiDirectives && !geminiPrompt.includes("/handlock")) {
             geminiPrompt = `${geminiPrompt}\n\n${handAnatomyAndStudioDirective}`;
           }
 
           const styleRef = params.references?.find((r) => r.role === "style_reference");
           if (
+            injectV1GeminiDirectives &&
             styleRef &&
             params.referenceMode === "campaign_identity" &&
             !geminiPrompt.includes("CAMPAIGN LAYOUT ARCHITECTURE")

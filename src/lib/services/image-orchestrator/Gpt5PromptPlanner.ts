@@ -123,6 +123,7 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
   Você NÃO deve aplicar uma fórmula mecânica e previsível a todos os títulos! Atue como um Diretor de Arte Tipográfico Sênior e surpreenda com composições visuais variadas, autorais e ricas:
   1. DIVERSIDADE DE ARQUITETURAS E LAYOUTS ESPACIAIS DE TÍTULOS (12 ARQUÉTIPOS COM PRIORIDADE TOTAL ÀS FONTES DO BRANDKIT):
      - Priorize rigorosamente a família tipográfica oficial do BrandKit (/fontlock), mas exercite LIBERDADE TOTAL na geometria, posicionamento e arquitetura espacial do layout do título para nunca gerar artes monótonas ou sempre no mesmo bloco horizontal:
+     - EXCEÇÃO TEMÁTICA NA HEADLINE (/thematictypo): Se o objetivo for "thematic" ou o briefing pedir um tema estilístico/cultural (anos 80, anos 2000, Senhor dos Anéis, fantasia, medieval, gibi, cyberpunk, etc.), libere a tipografia da headline para adotar o estilo artístico do tema com texturas e efeitos 3D, preservando o BrandKit em todas as demais informações da arte.
        a) Pôster Monumental Big-Type: Headline de grande escala display ocupando a área superior ou lateral com presença imponente, contraste extremo entre palavra-chave colossal e linha de apoio compacta;
        b) Profundidade 3D Estilo Capa de Revista (Magazine Depth Layering): Headline monumental posicionada na camada de plano médio, passando sutilmente por trás do topo dos ombros/cabeça do protagonista ou produto em primeiro plano (efeito Time / GQ / Vogue), mantendo 100% de leitura das palavras;
        c) Terço Inferior Cinematográfico (Cinematic Lower-Third Hero): Topo e centro livres para a fotografia respirar, ancorando o título de forma imponente no terço inferior da composição com barra de acento e subtítulo alinhado;
@@ -149,11 +150,15 @@ DIRETRIZES DE ENGENHARIA TIPOGRÁFICA PREMIUM & LIBERDADE DE DIREÇÃO DE ARTE D
      - Crie contraste dramático de escala (palavras principais maiores e de impacto; frases de apoio mais compactas e elegantes).
      - No modo INFOGRAPHIC ou BOTH, a fotografia/cena conceitual DEVE dominar pelo menos 70% a 75% da arte.
      - JAMAIS crie caixas brancas empilhadas estilo PowerPoint, JAMAIS crie caixas escuras com borda dourada/neon ao redor do título principal sem pedido explícito e JAMAIS adicione botões falsos de CTA!
-- REGRA CRÍTICA DE FIDELIDADE ABSOLUTA ÀS FONTES DO BRANDKIT (/fontlock — ZERO FONTES INVENTADAS):
-  1. Sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir Fonte Primária (primaryFont), Fonte Secundária (secondaryFont) ou Estilo Tipográfico Geral (style), você DEVE OBRIGATORIAMENTE exigir no "imagePrompt" EXATAMENTE as fontes cadastradas pelo usuário no BrandKit!
-  2. É TERMINANTEMENTE PROIBIDO inventar ou injetar no prompt nomes de fontes que NÃO estejam no BrandKit do usuário!
-  3. Preserve 100% da anatomia real da fonte do usuário (se a fonte do BrandKit tiver curvas arredondadas/orgânicas, mantenha-a arredondada; se for geométrica, mantenha geométrica; se tiver serifa, mantenha a serifa). NUNCA force "straight terminals" ou "ALL-CAPS" se isso descaracterizar a fonte do cliente!
-  4. Se o BrandKit definir primaryFont e secondaryFont, utilize fielmente a primaryFont para o título/palavras em destaque (Bold/ExtraBold) e a secondaryFont para o texto de apoio/subtítulo (Regular/Medium), sem misturar fontes aleatórias fora do BrandKit!
+- REGRA DE FIDELIDADE ÀS FONTES DO BRANDKIT (/fontlock) COM EXCEÇÃO TEMÁTICA NA HEADLINE (/thematictypo):
+  1. Para peças corporativas normais, sempre que houver texto na arte (TITLE_ONLY, INFOGRAPHIC ou BOTH) e o BrandKit definir fontes oficiais, exija no "imagePrompt" EXATAMENTE as fontes cadastradas pelo usuário.
+  2. EXCEÇÃO CIRÚRGICA DE ALTA CRIATIVIDADE NO TÍTULO HEAD (/thematictypo): Quando o objetivo for "thematic" ou o briefing solicitar estilos artísticos, épocas ou cultura pop (ex: anos 80, anos 2000, Senhor dos Anéis, cinema, fantasia, cyberpunk, gibi, datas sazonais), a HEADLINE PRINCIPAL fica liberada da trava de fonte simples! O título principal deve ser desenhado sob medida com a tipografia, extrusão 3D, neon cromado, ouro élfico ou estilo do tema solicitado.
+  3. TODAS AS DEMAIS INFORMAÇÕES (cards, subtítulos, tópicos de benefícios, rodapés e badges de contato) DEVEM permanecer rigorosamente fiéis às fontes limpas do BrandKit e a zona de respiro da logo oficial deve permanecer 100% limpa.
+  4. Preserve a legibilidade e contraste adaptativo limpo da arte.
+- REGRA DE OURO TIPOGRÁFICA — PROIBIÇÃO DE PONTO FINAL EM HEADLINES (/noendingperiod):
+  1. Títulos principais, mastheads, slogans e headlines publicitárias JAMAIS devem terminar com ponto final (".")!
+  2. É TERMINANTEMENTE PROIBIDO desenhar ponto final após a última palavra da headline (exemplo: desenhe "NOVOS TEMPOS", e NUNCA "NOVOS TEMPOS.").
+  3. Headlines são chamadas de impacto abertas e dinâmicas, não frases de texto corrido. Remova qualquer ponto final do final do título principal.
 
 DIRETRIZES DE LEGENDA PARA REDES SOCIAIS (COPYWRITING DE POST):
 No campo "socialCaption", crie um copywriting persuasivo e engajador em português (pt-BR) pronto para publicação comercial nas redes sociais (Instagram, Facebook, LinkedIn):
@@ -253,7 +258,10 @@ REGRAS DE CONFORMIDADE:
   private static logoPlacementCursor = 0;
 
   public static getNextLogoPlacement(lastPos?: BrandLogoPlacement): (typeof Gpt5PromptPlanner.BRAND_LOGO_PLACEMENTS)[number] {
-    if (!lastPos) return this.BRAND_LOGO_PLACEMENTS[0];
+    if (!lastPos) {
+      const randomIdx = Math.floor(Math.random() * this.BRAND_LOGO_PLACEMENTS.length);
+      return this.BRAND_LOGO_PLACEMENTS[randomIdx];
+    }
     const currentIdx = this.BRAND_LOGO_PLACEMENTS.findIndex((p) => p.id === lastPos);
     const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % this.BRAND_LOGO_PLACEMENTS.length : 0;
     return this.BRAND_LOGO_PLACEMENTS[nextIdx];
@@ -540,7 +548,10 @@ REGRAS DE CONFORMIDADE:
 
   public static getNextPersonaProfile(lastPersonaId?: string): (typeof Gpt5PromptPlanner.DYNAMIC_PERSONA_PROFILES)[number] {
     const profiles = this.DYNAMIC_PERSONA_PROFILES;
-    if (!lastPersonaId) return profiles[0];
+    if (!lastPersonaId) {
+      const randomIdx = Math.floor(Math.random() * profiles.length);
+      return profiles[randomIdx];
+    }
     const currentIdx = profiles.findIndex((p) => p.id === lastPersonaId);
     const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % profiles.length : 0;
     return profiles[nextIdx];
@@ -558,8 +569,8 @@ REGRAS DE CONFORMIDADE:
       input.personaId = nextFromHistory.id;
       return nextFromHistory;
     }
-    const idx = (this.personaDiversityCursor++) % profiles.length;
-    const selected = profiles[idx];
+    const randomIdx = Math.floor(Math.random() * profiles.length);
+    const selected = profiles[randomIdx];
     if (input) input.personaId = selected.id;
     return selected;
   }
@@ -605,7 +616,7 @@ REGRAS DE CONFORMIDADE:
       brandFonts && (brandFonts.primaryFont || brandFonts.secondaryFont || brandFonts.style)
         ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Adhere 100% to the official BrandKit typeface system (Primary Title Font: "${brandFonts.primaryFont || brandFonts.secondaryFont || 'Brand Primary Font'}", Secondary Body Font: "${brandFonts.secondaryFont || brandFonts.primaryFont || 'Brand Secondary Font'}", Style: "${brandFonts.style || 'Brand official typography'}") — preserve the exact letterform anatomy, curvature, and weight hierarchy without inventing unrequested font families.`
         : "";
-    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}.${fontLockDirective} MANDATE — MAXIMUM TITLE LAYOUT DESIGN FREEDOM & CLEAN CONTRAST: Avoid repetitive generic formulas; liberate the title layout from monotonous top-centered banners! On light backgrounds, render the headline cleanly in the BrandKit Primary Color with ZERO black smudge/smoke shadows and ZERO dark boxes around the title; on dark backgrounds, use crisp Pure White (#FFFFFF) and BrandKit colors, maintaining 100% legibility and 20% safe margins.]`;
+    return `[DYNAMIC TYPOGRAPHIC & LAYOUT FREEDOM (/typolayout): Act as an award-winning typographic art director with creative visual diversity! Typographic Concept (${selectedStyle.id}): ${selectedStyle.fullDirectiveEn}. Scale & hierarchy: ${selectedStyle.weightHierarchyEn}. Chromatic harmony: ${selectedStyle.colorHarmonyEn}. Containers & framing: ${selectedStyle.containerAndFrameEn}.${fontLockDirective} MANDATE — MAXIMUM TITLE LAYOUT DESIGN FREEDOM, CLEAN CONTRAST & ZERO ENDING PERIOD (/noendingperiod): Avoid repetitive generic formulas; liberate the title layout from monotonous top-centered banners! PROHIBITION OF ENDING PERIOD ON HEADLINES: Main headlines and title mastheads must NEVER end with a period or full-stop dot (e.g. render "NOVOS TEMPOS" and NEVER "NOVOS TEMPOS."). On light backgrounds, render the headline cleanly in the BrandKit Primary Color with ZERO black smudge/smoke shadows and ZERO dark boxes around the title; on dark backgrounds, use crisp Pure White (#FFFFFF) and BrandKit colors, maintaining 100% legibility and 20% safe margins.]`;
   }
 
   public static readonly OBJECTIVE_CREATIVE_PROFILES: Record<
@@ -675,6 +686,13 @@ REGRAS DE CONFORMIDADE:
       mandateEn:
         "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — DIGITAL FLYER / HIGH-DENSITY COMMERCIAL POSTER): Engineer a high-density, complete commercial flyer poster layout in Portuguese (pt-BR): (1) Prominent authority headline and subtitle in the upper area strictly adhering to the BrandKit typeface family and colors; (2) Dedicated side column featuring 3 to 5 clear benefit callouts with stylized circular icons in Brand colors (#0083C7 / #FA6305); (3) Dynamic hero deliverable showcase (such as a smartphone interface mockup or the rotated persona archetype holding/presenting the solution, without fixing gender or race to any single template); (4) Structured footer banner with location badge and a prominent solid brand-colored CTA pill/button; (5) ANTICLICHE EXCEPTION: For this flyer objective, benefit lists with circular icons and footer CTA pills are explicitly AUTHORIZED and ENCOURAGED, provided they strictly follow the BrandKit font system (/fontlock), integrate the rotated human persona, and maintain 20% safe margins.]",
     },
+    thematic: {
+      labelPt: "Post Temático / Campanha Criativa (Alta Criatividade / Datas Sazonais / Cinema / Retrô)",
+      directivePt:
+        "Direção de arte cinematográfica com liberdade estética máxima inspirada no tema solicitado (retrô anos 80/2000, cinema/fantasia, sazonal ou cultural). EXCEÇÃO CIRÚRGICA DE TIPOGRAFIA NO TÍTULO HEAD (/thematictypo): A headline principal ganha tipografia temática autoral (ouro épico, neon cromado, tipo gibi, 3D ou rústico conforme o tema), enquanto todos os demais textos de apoio, ícones e rodapé permanecem submissos à legibilidade limpa do BrandKit com logotipo oficial preservado.",
+      mandateEn:
+        "[OBJECTIVE-DRIVEN SCENE & TITLE DYNAMICS (/objectivelayout — THEMATIC & CREATIVE CAMPAIGN ARCHITECTURE /thematictypo): Unleash full thematic and cinematic art direction inspired directly by the user's creative prompt (80s/2000s retro, cinematic fantasy, comic book, seasonal/cultural holiday). THEMATIC HEADLINE EXCEPTION: (1) Render the primary headline/title with authentic, bespoke thematic typography tailored to the theme (e.g., golden fantasy serif, neon-chrome tubular 80s lettering, 3D bubbly Y2K retro, or rustic carved medieval letters) with artistic 3D depth and textures; (2) PRESERVE BRANDKIT FIDELITY FOR ALL SUPPORTING DATA: All supporting details, list cards, icons and footers must strictly adhere to the clean, legible BrandKit corporate typography and colors, with the designated logo quadrant remaining pristine.]",
+    },
   };
 
   public static buildObjectiveCreativeMandate(input: Gpt5PlannerInput): string {
@@ -740,6 +758,12 @@ REGRAS DE CONFORMIDADE:
   public static isExplicitCtaButtonRequested(userBrief = ""): boolean {
     return /\b(botão|botao|cta clicável|coloque um botão|adicione um botão|button)\b/i.test(
       userBrief
+    );
+  }
+
+  public static isThematicStyleRequested(text = ""): boolean {
+    return /\b(anos 80|anos 90|anos 2000|anos 70|anos 60|anos 50|80s|90s|2000s|70s|retr[oô]|vintage|disco|synthwave|vaporwave|y2k|cyberpunk|steampunk|art d[eé]co|pop art|senhor dos an[eé]is|lord of the rings|star wars|harry potter|matrix|marvel|dc|cinema|filme|hollywood|halloween|festa junina|s[aã]o jo[aã]o|carnaval|natal|p[aá]scoa|oktoberfest|medieval|faroeste|western|g[oó]tico|viking|mitolog|fantasia|r[uú]stico|estilo gibi|estilo hq|quadrinhos|cartoon)\b/i.test(
+      text
     );
   }
 
@@ -856,6 +880,16 @@ REGRAS DE CONFORMIDADE:
 
     const brandPrimaryColor = input.brandKit?.primaryColors?.[0] || "#0083C7";
 
+    const isThematic =
+      input.objective === "thematic" ||
+      this.isThematicStyleRequested(
+        `${input.userBrief || ""} ${input.compiledPrompt || ""} ${input.productHeadline || ""}`
+      );
+
+    if (isThematic) {
+      return `[HYBRID BRANDKIT & THEMATIC HEADLINE MANDATE (/thematictypo & /fontlock): (1) HEADLINE ONLY — BESPOKE THEMATIC ART DIRECTION: The brief calls for a specific creative/thematic aesthetic (e.g. vintage, 80s/2000s retro, Lord of the Rings/epic fantasy, rustic medieval, comic/gibi, seasonal). You are authorized and instructed to render the PRIMARY HEADLINE in an authentic, high-impact thematic display typography fully embodying this theme (such as golden fantasy serif, metallic neon-chrome tubular 80s lettering, 3D bubbly Y2K retro, or rustic carved medieval letters) with artistic 3D depth, material textures and lighting! (2) MANDATORY BRANDKIT FIDELITY FOR ALL OTHER TEXT: All supporting copy (subtitles, benefit bullet points, callouts, footer text) MUST strictly follow the clean corporate BrandKit typography ("${secondary}") with high legibility. Keep the official brand logo quadrant 100% clean and respected.]`;
+    }
+
     return `[CRITICAL MANDATE — BRAND KIT TYPOGRAPHY LOCK & PRIORITY (/fontlock): PRIORITIZE THE BRANDKIT FONTS ABOVE ALL ELSE! All rendered text MUST strictly follow the brand's official typography system — Primary Font (Titles / Bold Highlights): "${primary}"; Secondary Font (Body / Setup Text): "${secondary}"; General Typographic Style: "${style}". ${
       isSameFamily && isSansSerif
         ? `ANATOMICAL FONT ENFORCEMENT: Render ALL text lines using a SINGLE unified, clean, modern corporate geometric sans-serif typeface family strictly matching "${primary}" / "${secondary}" (preserving its exact letterform roundness, x-height, stroke proportions, and terminal anatomy without inventing unrequested font families). Differentiate setup lines vs. bold emphasis lines STRICTLY by font weight (Normal/Regular weight vs. Bold/ExtraBold weight of the EXACT SAME typeface family).`
@@ -866,6 +900,9 @@ REGRAS DE CONFORMIDADE:
 
   public static async plan(input: Gpt5PlannerInput): Promise<OrchestratorPlanResult> {
     const startTime = Date.now();
+    if (input.productHeadline) {
+      input.productHeadline = input.productHeadline.trim().replace(/[\.\s]+$/, "");
+    }
     const openaiKey = process.env.OPENAI_API_KEY;
 
     // Tentar planejamento com GPT-5 (ou gpt-4o como fallback) com suporte multimodal se houver foto

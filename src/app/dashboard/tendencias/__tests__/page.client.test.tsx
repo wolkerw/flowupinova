@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import TendenciasPageClient from "../page.client";
+import TendenciasPageClient, { buildTrendArtDirectionBriefing } from "../page.client";
 import { parseGoogleTrendsHtmlDs0, parseGoogleNewsNicheRss } from "@/app/api/trends/route";
 
 const mockPush = vi.fn();
@@ -64,10 +64,24 @@ const mockTrendsResponse = {
 describe("TendenciasPageClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockTrendsResponse,
-    } as any);
+    global.fetch = vi.fn().mockImplementation((url: string, opts?: any) => {
+      if (opts?.method === "POST") {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            headline: "Paty em Chaves: O que ela nos ensina",
+            visualPrompt: "Fotografia editorial profissional...",
+            fullBrief: "Fotografia editorial profissional com Paty em Chaves...",
+            suggestedOverlay: "INFOGRAPHIC",
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => mockTrendsResponse,
+      } as any);
+    });
   });
 
   it("renders simplified Google Trends items, automatic niche tab, and news sources", async () => {
@@ -125,7 +139,7 @@ describe("TendenciasPageClient", () => {
     });
   });
 
-  it("navigates to post generator with pre-filled topic when clicking Create Post", async () => {
+  it("navigates to general image flow with pre-filled topic when clicking Create Post (Opção 1)", async () => {
     render(<TendenciasPageClient />);
 
     await waitFor(() => {
@@ -137,8 +151,39 @@ describe("TendenciasPageClient", () => {
     });
     fireEvent.click(createBtn);
 
-    expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush.mock.calls[0][0]).toContain("/dashboard/posts/gerar?mode=text&topic=");
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledTimes(1);
+    });
+    const pushedUrl = decodeURIComponent(mockPush.mock.calls[0][0]);
+    expect(pushedUrl).toContain("/dashboard/imagens/gerar?mode=general&topic=");
+    expect(pushedUrl).toContain("&headline=");
+    expect(pushedUrl).toContain("&overlay=INFOGRAPHIC");
+    expect(pushedUrl).toContain("&quality=low");
+    expect(pushedUrl).not.toContain("8k");
+    expect(pushedUrl).not.toContain("0,5k");
+    expect(pushedUrl).not.toContain("0.5k");
+  });
+
+  it("buildTrendArtDirectionBriefing monta a fórmula profissional de direção de arte sem termos de resolução", () => {
+    const res = buildTrendArtDirectionBriefing({
+      trendTitle: "Mercado Digital com Inteligência Artificial",
+      newsTitle: "Uso de IA dobra entre lojistas brasileiros",
+      source: "Valor Econômico",
+      companyNiche: "Marketing Digital",
+      companyName: "NumVapt",
+    });
+
+    expect(res.headline).toContain("Uso de IA dobra");
+    expect(res.headline).toContain("Mercado Digital com Inteligência Artificial");
+    expect(res.brief.length).toBeGreaterThan(100);
+    expect(res.brief).toContain("Marketing Digital");
+    expect(res.brief).toContain("NumVapt");
+    expect(res.brief).not.toContain("Fonte:");
+    expect(res.brief).not.toContain("8k");
+    expect(res.brief).not.toContain("0,5k");
+    expect(res.brief).not.toContain("0.5k");
+    expect(res.brief).not.toContain("4k");
+    expect(["INFOGRAPHIC", "TITLE_ONLY"]).toContain(res.overlay);
   });
 
   it("parses AF_initDataCallback ds:0 HTML payload and Google News Niche RSS", () => {

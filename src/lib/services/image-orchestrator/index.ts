@@ -7,11 +7,14 @@ export * from "./ImageModelExecutor";
 export * from "./ImageResultValidator";
 export * from "./BrandLogoApplier";
 export * from "./GenerationTelemetry";
+export * from "./v2/PromptPlannerV2";
+export * from "./v2/art-direction-library";
 
 import { BriefNormalizer } from "./BriefNormalizer";
 import { BrandContextBuilder } from "./BrandContextBuilder";
 import { ReferenceContextBuilder } from "./ReferenceContextBuilder";
 import { Gpt5PromptPlanner } from "./Gpt5PromptPlanner";
+import { PromptPlannerV2 } from "./v2/PromptPlannerV2";
 import { ImageModelExecutor } from "./ImageModelExecutor";
 import { ImageResultValidator } from "./ImageResultValidator";
 import { BrandLogoApplier } from "./BrandLogoApplier";
@@ -49,6 +52,9 @@ export interface OrchestratorRunParams {
   lastLogoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
   personaId?: string;
   lastPersonaId?: string;
+  quality?: string;
+  /** Força o motor de prompt (testes A/B). Sem valor, usa settings/aiModels.promptEngineVersion (padrão v1). */
+  promptEngine?: "v1" | "v2";
 }
 
 export interface OrchestratorRunResult {
@@ -104,7 +110,9 @@ export class ImageGenerationOrchestrator {
     const aiConfig = await getAIModelsConfig();
 
     // 5. Etapa Intermediária: Planejamento Visual com GPT-5 (ou modelo configurado)
-    const planResult = await Gpt5PromptPlanner.plan({
+    const promptEngine: "v1" | "v2" = params.promptEngine || aiConfig.promptEngineVersion || "v1";
+    const planner = promptEngine === "v2" ? PromptPlannerV2 : Gpt5PromptPlanner;
+    const planResult = await planner.plan({
       userBrief: normalized.cleanedBrief,
       compiledPrompt: params.compiledPrompt,
       objective: normalized.detectedObjective,
@@ -127,6 +135,18 @@ export class ImageGenerationOrchestrator {
       referenceMode: params.referenceMode,
     });
 
+    // Memória de direção de arte do cliente (motor v2): evita repetir as últimas direções
+    const artDirectionId = (planResult as any).artDirectionId as string | undefined;
+    if (promptEngine === "v2" && artDirectionId && params.userId) {
+      try {
+        const { adminDb } = await import("@/lib/firebase-admin");
+        const recent = [artDirectionId, ...(brandContext.lastArtDirectionIds || []).filter((id) => id !== artDirectionId)].slice(0, 5);
+        await adminDb.doc(`users/${params.userId}`).set({ lastArtDirectionIds: recent }, { merge: true });
+      } catch (err) {
+        console.warn("[ImageGenerationOrchestrator] Aviso ao persistir lastArtDirectionIds:", err);
+      }
+    }
+
     // 6. Etapa de Renderização: Geração de Imagem com GPT Image 2 (ou modelo configurado)
     const execution = await ImageModelExecutor.execute({
       prompt: planResult.compiledImagePrompt,
@@ -134,8 +154,9 @@ export class ImageGenerationOrchestrator {
       references,
       preferredModel: aiConfig.generalImageModel,
       fallbackModel: aiConfig.generalFallbackImageModel,
-      quality: aiConfig.imageQuality,
+      quality: params.quality || aiConfig.imageQuality,
       referenceMode: params.referenceMode,
+      promptEngine,
     });
 
     // 6. Validação e Padronização de Dimensões (sem cortes destrutivos)

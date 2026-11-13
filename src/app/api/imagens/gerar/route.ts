@@ -78,11 +78,13 @@ export async function POST(request: NextRequest) {
       sourceAssetUrls = [],
       retryAssetId = null,
       existingGenerationId = null,
+      quality,
     } = body as AIImageGenerationRequest & {
       logoUrl?: string;
       includeLogo?: boolean;
       retryAssetId?: string | null;
       existingGenerationId?: string | null;
+      quality?: string;
     };
 
     if (!brief && !retryAssetId) {
@@ -117,6 +119,13 @@ export async function POST(request: NextRequest) {
       }
       if (!lastSavedPersonaId && profileDoc.exists) {
         lastSavedPersonaId = profileDoc.data()?.lastPersonaId;
+      }
+
+      // Sorteia um dos 12 perfis dinâmicos de persona se não houver histórico, garantindo diversidade imediata
+      if (!lastSavedPersonaId) {
+        const profiles = Gpt5PromptPlanner.DYNAMIC_PERSONA_PROFILES;
+        const randIdx = Math.floor(Math.random() * profiles.length);
+        lastSavedPersonaId = profiles[randIdx].id;
       }
 
       if (useBrandKit) {
@@ -183,7 +192,8 @@ export async function POST(request: NextRequest) {
       };
       if (effectiveLogoUrl) initialGenData.logoUrl = effectiveLogoUrl;
       if (visualDirection) initialGenData.visualDirection = visualDirection;
-      if (productHeadline) initialGenData.productHeadline = productHeadline;
+      const cleanHeadline = (productHeadline || "").trim().replace(/[\.\s]+$/, "");
+      if (cleanHeadline) initialGenData.productHeadline = cleanHeadline;
       if (brandSnapshot) initialGenData.brandSnapshot = brandSnapshot;
 
       await genDocRef.set(initialGenData);
@@ -242,6 +252,7 @@ export async function POST(request: NextRequest) {
       creative: " [OBJETIVO VISUAL: DIREÇÃO DE ARTE CONCEITUAL PREMIADA CANNES LIONS (Conceito Criativo) — Liberdade artística e poética máxima, metáfora visual surpreendente e iluminação dramática dual-tone com título integrado espacialmente usando as fontes do BrandKit.]",
       thumbnail: " [OBJETIVO VISUAL: THUMB DE ALTA PERFORMANCE — Capa de vídeo extremamente chamativa, magnética e de alto CTR para YouTube, Reels e TikTok. Ponto focal marcante, expressões fortes, contraste vibrante, título colossal de leitura instantânea (com tarja sólida ou profundidade 3D) nas fontes do BrandKit e composição irresistível para atrair cliques imediatos.]",
       flyer: " [OBJETIVO VISUAL: PANFLETO DIGITAL / FLYER COMERCIAL DE ALTA DENSIDADE (Alta Conversão & Vendas Diretas) — Layout rico e completo de panfleto publicitário com alta densidade de informações em Português (pt-BR): (1) Título e subtítulo imponentes no topo ou terço superior com as cores oficiais do BrandKit; (2) Coluna lateral organizada com 3 a 5 tópicos/benefícios acompanhados de ícones temáticos circulares estilizados nas cores da marca (#0083C7 / #FA6305); (3) Protagonista carismático ou ambiente comercial em primeiro plano com produto ou smartphone voltado para a câmera exibindo tela rica com mockup da solução; (4) Rodapé comercial estruturado com selo de localização/garantia e botão elegante de Chamada para Ação (CTA) em tarja sólida da marca; (5) EXCEÇÃO ANTICLICHÊ: Para este objetivo, é PERMITIDO e ESTIMULADO desenhar a lista de benefícios com ícones circulares e o botão de CTA de rodapé, desde que respeite 100% as fontes do BrandKit (/fontlock) e as margens de respiro.]",
+      thematic: " [OBJETIVO VISUAL: POST TEMÁTICO & CAMPANHA CRIATIVA (Alta Criatividade / Datas Sazonais / Cinema / Retrô) — Direção de arte cinematográfica com liberdade estética máxima inspirada no tema solicitado (retrô anos 80/2000, cinema/fantasia, sazonal ou cultural). EXCEÇÃO CIRÚRGICA DE TIPOGRAFIA NO TÍTULO HEAD (/thematictypo): A headline principal ganha tipografia temática autoral (ouro épico, neon cromado, tipo gibi, 3D ou rústico conforme o tema), enquanto todos os demais textos de apoio, ícones e rodapé permanecem submissos à legibilidade limpa do BrandKit com logotipo oficial preservado.]",
     };
     if (objective && objectiveCreativeMap[objective]) {
       compiledPrompt += objectiveCreativeMap[objective];
@@ -278,15 +289,27 @@ export async function POST(request: NextRequest) {
       if (brandSnapshot.visualGuidelines) {
         brandDirectives.push(`Diretrizes Visuais da Marca: ${brandSnapshot.visualGuidelines}`);
       }
+      const isThematicPrompt =
+        objective === "thematic" ||
+        /\b(anos 80|anos 90|anos 2000|anos 70|anos 60|anos 50|80s|90s|2000s|70s|retr[oô]|vintage|disco|synthwave|vaporwave|y2k|cyberpunk|steampunk|art d[eé]co|pop art|senhor dos an[eé]is|lord of the rings|star wars|harry potter|matrix|marvel|dc|cinema|filme|hollywood|halloween|festa junina|s[aã]o jo[aã]o|carnaval|natal|p[aá]scoa|oktoberfest|medieval|faroeste|western|g[oó]tico|viking|mitolog|fantasia|r[uú]stico|estilo gibi|estilo hq|quadrinhos|cartoon)\b/i.test(
+          `${brief || ""} ${productHeadline || ""}`
+        );
+
       if (brandSnapshot.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style)) {
         const fontParts = [
           brandSnapshot.fonts.primaryFont ? `Fonte Primária (Títulos/Destaques): "${brandSnapshot.fonts.primaryFont}"` : "",
           brandSnapshot.fonts.secondaryFont ? `Fonte Secundária (Textos/Subtítulos): "${brandSnapshot.fonts.secondaryFont}"` : "",
           brandSnapshot.fonts.style ? `Estilo Tipográfico Geral: "${brandSnapshot.fonts.style}"` : "",
         ].filter(Boolean).join(" | ");
-        brandDirectives.push(
-          `TIPOGRAFIA OFICIAL DO BRANDKIT (/fontlock — OBRIGATÓRIA EM QUALQUER TEXTO DA ARTE): ${fontParts}. Respeite 100% a anatomia, curvatura e estilo exatos das fontes cadastradas no BrandKit (jamais invente fontes diferentes do BrandKit). CONTRASTE ADAPTATIVO LIMPO: Em fundos claros, renderize o título diretamente na Cor Primária/Escura do BrandKit de forma limpa e nítida (é TERMINANTEMENTE PROIBIDO pintar manchas/sombras pretas esfumaçadas atrás de letras brancas em paredes claras ou criar caixas escuras improvisadas).`
-        );
+        if (isThematicPrompt) {
+          brandDirectives.push(
+            `TIPOGRAFIA HÍBRIDA BRANDKIT & EXCEÇÃO TEMÁTICA NA HEAD (/thematictypo): O briefing solicita um estilo criativo/temático específico. A HEADLINE PRINCIPAL fica expressamente liberada da trava de fonte simples para adotar a tipografia, extrusão 3D, neon cromado, ouro élfico ou texturas do tema. TODAS AS DEMAIS INFORMAÇÕES (cards, subtítulos, benefícios, rodapés e badges) DEVEM obedecer rigorosamente às fontes do BrandKit (${fontParts}) com máxima legibilidade e logotipo oficial preservado no seu canto limpo.`
+          );
+        } else {
+          brandDirectives.push(
+            `TIPOGRAFIA OFICIAL DO BRANDKIT (/fontlock — OBRIGATÓRIA EM QUALQUER TEXTO DA ARTE): ${fontParts}. Respeite 100% a anatomia, curvatura e estilo exatos das fontes cadastradas no BrandKit (jamais invente fontes diferentes do BrandKit). CONTRASTE ADAPTATIVO LIMPO: Em fundos claros, renderize o título diretamente na Cor Primária/Escura do BrandKit de forma limpa e nítida (é TERMINANTEMENTE PROIBIDO pintar manchas/sombras pretas esfumaçadas atrás de letras brancas em paredes claras ou criar caixas escuras improvisadas).`
+          );
+        }
       }
       if (brandSnapshot.targetAudience) {
         brandDirectives.push(`Público-Alvo: ${brandSnapshot.targetAudience}`);
@@ -363,21 +386,41 @@ export async function POST(request: NextRequest) {
         ? " [CRITICAL MANDATE — PURE PHOTOGRAPHY WITH OFFICIAL LOGO: Pristine photography without secondary typography overlays. Keep the top corner clean and open for the official brand overlay, do not invent random brand marks in the background. Real product packaging labels remain fully intact.]"
         : " [CRITICAL MANDATE — PURE PHOTOGRAPHY & EMPTY HEADER: Pristine photography only. Top corner must remain completely empty and clean for manual logo. Physical product packaging and labels must retain authentic printed text and branding.]";
     } else if (effectiveOverlayMode === "TITLE_ONLY") {
-      const headlineDirective = productHeadline?.trim()
-        ? `with the exact headline: "${productHeadline.trim()}"`
-        : "with an impactful commercial headline in Portuguese (pt-BR)";
+      const cleanHeadline = (productHeadline || "").trim().replace(/[\.\s]+$/, "");
+      const headlineDirective = cleanHeadline
+        ? `with the exact headline: "${cleanHeadline}" (CRITICAL RULE — ZERO ENDING PERIOD: The headline MUST NEVER end with a period/full-stop mark; render cleanly without trailing dots)`
+        : "with an impactful commercial headline in Portuguese (pt-BR) strictly without an ending period";
+      const isThematicTitleBrief =
+        objective === "thematic" ||
+        /\b(anos 80|anos 90|anos 2000|anos 70|anos 60|anos 50|80s|90s|2000s|70s|retr[oô]|vintage|disco|synthwave|vaporwave|y2k|cyberpunk|steampunk|art d[eé]co|pop art|senhor dos an[eé]is|lord of the rings|star wars|harry potter|matrix|marvel|dc|cinema|filme|hollywood|halloween|festa junina|s[aã]o jo[aã]o|carnaval|natal|p[aá]scoa|oktoberfest|medieval|faroeste|western|g[oó]tico|viking|mitolog|fantasia|r[uú]stico|estilo gibi|estilo hq|quadrinhos|cartoon)\b/i.test(
+          `${brief || ""} ${cleanHeadline || ""}`
+        );
+      const typoStyleDirective = isThematicTitleBrief
+        ? "with bespoke thematic typography art direction (/thematictypo — render the headline in authentic thematic display typography, 3D chrome/neon/fantasy styling tailored directly to the theme, strictly without a final period)"
+        : (brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style)
+          ? `strictly prioritizing the BrandKit typography system (Primary/Bold Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Geometric Sans-Serif Bold'}", Secondary/Normal Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Geometric Sans-Serif Regular'}", General Style: "${brandSnapshot.fonts.style || 'Clean modern corporate sans-serif'}" — preserve 100% of the BrandKit typeface family anatomy across all lines while exploring bold scale contrast, weight hierarchy Normal vs ExtraBold, tracking, and dynamic spatial layouts)`
+          : "with bespoke agency-grade typographic art direction");
+
       compiledPrompt +=
-        ` [COMMERCIAL HEADLINE POSTER DIRECTIVE (/typolayout): Render a bespoke, high-impact editorial title layout in Portuguese (pt-BR) ${headlineDirective}${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly prioritizing the BrandKit typography system (Primary/Bold Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Geometric Sans-Serif Bold'}", Secondary/Normal Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Geometric Sans-Serif Regular'}", General Style: "${brandSnapshot.fonts.style || 'Clean modern corporate sans-serif'}" — preserve 100% of the BrandKit typeface family anatomy across all lines while exploring bold scale contrast, weight hierarchy Normal vs ExtraBold, tracking, and dynamic spatial layouts)` : " with bespoke agency-grade typographic art direction"} and safe margins. CREATIVE TITLE LAYOUT FREEDOM & BRANDKIT HARMONY: You have complete creative freedom to innovate the spatial geometry, depth, scale contrast, and position of the title layout across every generated poster. Do NOT default to a generic horizontal banner at the top. Dynamically choose among 12 spatial architectures (monumental display poster, magazine-cover depth layering partially behind subject/product shoulders, cinematic lower-third hero title, asymmetric L-shaped corner framing, luxury all-caps masthead, solid inverted brand-colored highlight pills, translucent glassmorphic cards, spatial 3D environmental typography, asymmetric two-column split, 90-degree rotated vertical sidebar, depth interlocking weaving around scene elements, or contemporary Swiss architectural grid), while preserving 100% of the BrandKit typeface family anatomy and colors with 20% safe margins. ${effectiveLogoUrl ? "ZERO-TEXT LOGO CLEARANCE ZONE: Keep the designated brand logo quadrant 100% blank and clean for logo overlay, diagramming the title creatively in the remaining space." : ""}]`;
-    } else if (effectiveOverlayMode === "INFOGRAPHIC" || effectiveOverlayMode === "BOTH" || objective === "flyer") {
-      const headlineDirective = productHeadline?.trim()
-        ? `with the main headline: "${productHeadline.trim()}"`
-        : "with an impactful context-tailored commercial headline in Portuguese (pt-BR)";
-      if (objective === "flyer") {
+        ` [COMMERCIAL HEADLINE POSTER DIRECTIVE (/typolayout): Render a bespoke, high-impact editorial title layout in Portuguese (pt-BR) ${headlineDirective} ${typoStyleDirective} and safe margins. NO ENDING PERIOD: The main headline must NEVER have a full stop dot at the end. CREATIVE TITLE LAYOUT FREEDOM & BRANDKIT HARMONY: You have complete creative freedom to innovate the spatial geometry, depth, scale contrast, and position of the title layout across every generated poster. Do NOT default to a generic horizontal banner at the top. Dynamically choose among 12 spatial architectures (monumental display poster, magazine-cover depth layering partially behind subject/product shoulders, cinematic lower-third hero title, asymmetric L-shaped corner framing, luxury all-caps masthead, solid inverted brand-colored highlight pills, translucent glassmorphic cards, spatial 3D environmental typography, asymmetric two-column split, 90-degree rotated vertical sidebar, depth interlocking weaving around scene elements, or contemporary Swiss architectural grid), while preserving 100% of the BrandKit typeface family anatomy and colors with 20% safe margins. ${effectiveLogoUrl ? "ZERO-TEXT LOGO CLEARANCE ZONE: Keep the designated brand logo quadrant 100% blank and clean for logo overlay, diagramming the title creatively in the remaining space." : ""}]`;
+    } else if (effectiveOverlayMode === "INFOGRAPHIC" || effectiveOverlayMode === "BOTH" || objective === "flyer" || objective === "thematic") {
+      const cleanHeadline = (productHeadline || "").trim().replace(/[\.\s]+$/, "");
+      const headlineDirective = cleanHeadline
+        ? `with the main headline: "${cleanHeadline}" (CRITICAL RULE — ZERO ENDING PERIOD: Headline MUST NOT contain a trailing period)`
+        : "with an impactful context-tailored commercial headline in Portuguese (pt-BR) strictly without an ending period";
+      if (objective === "thematic") {
         compiledPrompt +=
-          ` [HIGH-DENSITY COMMERCIAL FLYER & PANFLETO DIGITAL DIRECTIVE (/anticliche — FLYER EXCEPTION): Render a complete, high-density commercial sales flyer in Portuguese (pt-BR): (1) Authority headline ${headlineDirective} in bold high-contrast BrandKit typography; (2) Dedicated side column with 3 to 5 clear, structured benefit callouts, each with a stylized circular icon in Brand colors (#0083C7 / #FA6305); (3) Dynamic hero subject presenting a high-res smartphone mockup with an app interface or hero deliverable; (4) Structured footer banner with location badge and an elegant solid brand-colored CTA button/pill; (5) STRICT BRANDKIT COMPLIANCE (/fontlock): Strictly enforce the official BrandKit typeface system${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont) ? ` (Primary Font: "${brandSnapshot.fonts.primaryFont}", Secondary Font: "${brandSnapshot.fonts.secondaryFont}")` : ""} across all text elements with 20% safe margins. ZERO artificial logos overlapping the designated brand area.]`;
+          ` [THEMATIC & CREATIVE CAMPAIGN DIRECTIVE (/thematictypo): Render a bespoke, highly creative poster or infographic in Portuguese (pt-BR): (1) HEADLINE ONLY: Authority headline ${headlineDirective} rendered with authentic, bespoke thematic typography tailored directly to the requested theme (e.g., golden fantasy serif, neon-chrome tubular 80s lettering, 3D bubbly Y2K retro, or rustic carved medieval letters) with artistic 3D depth, material textures and lighting, strictly with ZERO trailing period; (2) SUPPORTING DATA: Supporting callouts, feature highlights, and footer information strictly adhere to the clean BrandKit typography${brandSnapshot?.fonts?.secondaryFont ? ` ("${brandSnapshot.fonts.secondaryFont}")` : ""} with high contrast and legibility; (3) The designated brand logo quadrant remains 100% clean and pristine.]`;
+      } else if (objective === "flyer") {
+        compiledPrompt +=
+          ` [HIGH-DENSITY COMMERCIAL FLYER & PANFLETO DIGITAL DIRECTIVE (/anticliche — FLYER EXCEPTION): Render a complete, high-density commercial sales flyer in Portuguese (pt-BR): (1) Authority headline ${headlineDirective} in bold high-contrast BrandKit typography without ending period; (2) Dedicated side column with 3 to 5 clear, structured benefit callouts, each with a stylized circular icon in Brand colors (#0083C7 / #FA6305); (3) Dynamic hero subject presenting a high-res smartphone mockup with an app interface or hero deliverable; (4) Structured footer banner with location badge and an elegant solid brand-colored CTA button/pill; (5) STRICT BRANDKIT COMPLIANCE (/fontlock): Strictly enforce the official BrandKit typeface system${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont) ? ` (Primary Font: "${brandSnapshot.fonts.primaryFont}", Secondary Font: "${brandSnapshot.fonts.secondaryFont}")` : ""} across all text elements with 20% safe margins. ZERO artificial logos overlapping the designated brand area.]`;
       } else {
+        const isThematicInfoBrief =
+          /\b(anos 80|anos 90|anos 2000|anos 70|anos 60|anos 50|80s|90s|2000s|70s|retr[oô]|vintage|disco|synthwave|vaporwave|y2k|cyberpunk|steampunk|art d[eé]co|pop art|senhor dos an[eé]is|lord of the rings|star wars|harry potter|matrix|marvel|dc|cinema|filme|hollywood|halloween|festa junina|s[aã]o jo[aã]o|carnaval|natal|p[aá]scoa|oktoberfest|medieval|faroeste|western|g[oó]tico|viking|mitolog|fantasia|r[uú]stico|estilo gibi|estilo hq|quadrinhos|cartoon)\b/i.test(
+            `${brief || ""} ${productHeadline || ""}`
+          );
         compiledPrompt +=
-          ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC & AGENCY ART DIRECTION DIRECTIVE (/anticliche): Elevate the composition to Cannes Lions agency-grade visual storytelling in Portuguese (pt-BR) where the visual scene and physical/3D hero elements dominate at least 70-75% of the canvas. SHOW, DON'T LIST: When the briefing mentions multiple deliverables, services, or features, materialize them as tangible, ultra-crafted 3D objects in the scene rather than listing them inside stacked opaque white rectangular bullet-point boxes! Adapt the editorial layout organically using subtle glassmorphic micro-callouts (at most 2-3 ultra-concise tags of 2-4 words each), fine pointer lines to real scene objects, or clean editorial typography harmonized naturally with spatial depth. Include: ${headlineDirective} in bold high-contrast Portuguese typography${brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly adhering to the BrandKit typography system (Primary Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Sans-Serif Bold'}", Secondary Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Sans-Serif Regular'}", Style: "${brandSnapshot.fonts.style || 'Clean corporate sans-serif'}" — use a single unified sans-serif typeface family across all text lines, differentiating hierarchy strictly by Normal vs Bold weight with ZERO serifs)` : ""}, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. ANTI-CLICHÉ RULES: Unless explicitly requested by the user, NEVER render generic stock-photo clichés (such as a disembodied hand holding a smartphone over a beige desk next to a coffee mug and potted plant), NEVER stack 3-4 opaque white PowerPoint cards on the side, and NEVER draw fake clickable website CTA buttons/pills at the bottom (such as "Saiba mais >" or "Conheça todas as possibilidades >"). MANDATÓRIO: Respeitar a zona de respiro da logomarca (deixando o quadrante designado 100% livre, limpo e com ZERO TEXTO para a inserção da marca, diagramando títulos e textos fora da zona reservada). JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
+          ` [DYNAMIC & CONTEXTUAL INFOGRAPHIC & AGENCY ART DIRECTION DIRECTIVE (/anticliche): Elevate the composition to Cannes Lions agency-grade visual storytelling in Portuguese (pt-BR) where the visual scene and physical/3D hero elements dominate at least 70-75% of the canvas. SHOW, DON'T LIST: When the briefing mentions multiple deliverables, services, or features, materialize them as tangible, ultra-crafted 3D objects in the scene rather than listing them inside stacked opaque white rectangular bullet-point boxes! Adapt the editorial layout organically using subtle glassmorphic micro-callouts (at most 2-3 ultra-concise tags of 2-4 words each), fine pointer lines to real scene objects, or clean editorial typography harmonized naturally with spatial depth. Include: ${headlineDirective} in bold high-contrast Portuguese typography${isThematicInfoBrief ? " (/thematictypo: main headline rendered with thematic display styling matching the theme, supporting text strictly following BrandKit)" : (brandSnapshot?.fonts && (brandSnapshot.fonts.primaryFont || brandSnapshot.fonts.secondaryFont || brandSnapshot.fonts.style) ? ` strictly adhering to the BrandKit typography system (Primary Title Font: "${brandSnapshot.fonts.primaryFont || 'Modern Sans-Serif Bold'}", Secondary Body Font: "${brandSnapshot.fonts.secondaryFont || 'Modern Sans-Serif Regular'}", Style: "${brandSnapshot.fonts.style || 'Clean corporate sans-serif'}" — use a single unified sans-serif typeface family across all text lines, differentiating hierarchy strictly by Normal vs Bold weight with ZERO serifs)` : "")}, well-balanced breathing room, clear visual hierarchy, and 20% safe margins from all outer borders. ANTI-CLICHÉ RULES: Unless explicitly requested by the user, NEVER render generic stock-photo clichés (such as a disembodied hand holding a smartphone over a beige desk next to a coffee mug and potted plant), NEVER stack 3-4 opaque white PowerPoint cards on the side, and NEVER draw fake clickable website CTA buttons/pills at the bottom (such as "Saiba mais >" or "Conheça todas as possibilidades >"). MANDATÓRIO: Respeitar a zona de respiro da logomarca (deixando o quadrante designado 100% livre, limpo e com ZERO TEXTO para a inserção da marca, diagramando títulos e textos fora da zona reservada). JAMAIS desenhar logotipos fictícios ou carimbar nomes de marcas em rodapés.]`;
       }
     }
 
@@ -573,6 +616,7 @@ export async function POST(request: NextRequest) {
           sourceAssetUrls,
           referenceAssetUrls,
           referenceMode,
+          quality,
         });
 
         imageBuffer = orchResult.imageBuffer;
@@ -764,6 +808,20 @@ export async function POST(request: NextRequest) {
       ...(primaryVisualPlan ? { visualPlan: primaryVisualPlan } : {}),
       updatedAt: new Date().toISOString(),
     });
+
+    // Persiste a alternância contínua de persona e posição de logo no perfil do usuário
+    try {
+      await adminDb.doc(`users/${userId}`).set(
+        {
+          lastPersonaId: runningLastPersonaId,
+          lastLogoPosition: runningLastLogoPos,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (persistErr) {
+      console.warn("[IMAGENS_GERAR] Aviso ao persistir lastPersonaId/lastLogoPosition:", persistErr);
+    }
 
     return NextResponse.json({
       success: true,

@@ -9,6 +9,8 @@ export interface AIModelsConfig {
   imageQuality?: OpenAIImageQuality;
   chatModel: string;
   promptsIdeaModel: string;
+  /** Motor de prompt de imagem: "v1" (original) ou "v2" (direção de arte por conceito). Padrão: v1. */
+  promptEngineVersion?: "v1" | "v2";
   updatedAt?: string;
   updatedBy?: string;
 }

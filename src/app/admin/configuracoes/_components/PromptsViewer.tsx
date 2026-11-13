@@ -7,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Bot, Image as ImageIcon, Workflow, Sparkles, MessageSquare, Save, Loader2, Megaphone, PenTool } from "lucide-react";
+import { Bot, Image as ImageIcon, Workflow, Sparkles, MessageSquare, Save, Loader2, Megaphone, PenTool, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -465,15 +465,16 @@ export function PromptsViewer() {
                   `DIRETRIZES NATIVAS DO AGENTE DE FLUXO GERAL (/handlock + /agencystudio + /anticliche + /typolayout + /productlock):
 1. DIREÇÃO DE ARTE PUBLICITÁRIA PREMIADA & POV COM FITA 3D DE NEON (/anticliche): Injeta arquétipos cinematográficos de alto impacto (Transformação em Primeira Pessoa POV com fita 3D luminosa de neon azul e laranja conectando a foto crua do celular ao especialista no ambiente real, Autoridade no Habitat Autêntico ricamente texturizado, Capa Editorial Dual-Tone com chiaroscuro refinado, e Explosão Cenográfica 3D em Gravidade Zero).
 2. PROIBIÇÃO TOTAL DE FUNDOS LISOS / VAZIOS BEGE DE ESTÚDIO: É terminantemente proibido renderizar paredes lisas monocromáticas ou vazios beges/cinzas sem graça. A cena deve sempre ser ambientada em um espaço real autêntico e pulsante (pizzaria com forno a lenha aceso e brasas, escritório nobre de advocacia com estantes de mogno e luz de janela, clínica moderna, etc.).
-3. MOTOR TIPOGRÁFICO DINÂMICO, PERFIS CRIATIVOS POR OBJETIVO DA ETAPA 3 & PRIORIDADE DO BRANDKIT (/typolayout + /objectivelayout + /fontlock): Elimina o viés conservador nos objetivos comerciais/corporativos (Vender Produto, Post para Redes, Anúncio/Oferta, Empresa & Serviços, Conceito Criativo, Thumb de Alta Performance e Panfleto Digital / Flyer) e prioriza 100% as fontes do BrandKit enquanto destrava 12 arquiteturas espaciais de layout de títulos com máxima liberdade de design e respeito estrito ao BrandKit:
+3. MOTOR TIPOGRÁFICO DINÂMICO, PERFIS CRIATIVOS POR OBJETIVO DA ETAPA 3 & PRIORIDADE DO BRANDKIT (/typolayout + /objectivelayout + /fontlock): Elimina o viés conservador nos objetivos comerciais/corporativos (Vender Produto, Post para Redes, Anúncio/Oferta, Empresa & Serviços, Conceito Criativo, Thumb de Alta Performance, Panfleto Digital / Flyer e Post Temático / Campanha Criativa) e prioriza 100% as fontes do BrandKit enquanto destrava 12 arquiteturas espaciais de layout de títulos com máxima liberdade de design e respeito estrito ao BrandKit:
    - 12 Arquétipos Espaciais de Títulos: Pôster Monumental Big-Type, Camada de Profundidade 3D Estilo Capa de Revista (título passando sutilmente atrás dos ombros do sujeito), Terço Inferior Cinematográfico (topo livre para a fotografia), Diagramação em 'L' / Âncora em Cantos Opostos, Capa Editorial de Luxo All-Caps, Tarja/Pill Sólida Invertida, Card Glassmorphic com brilho neon, Tipografia Espacial integrada à luz, Diagramação Split em Duas Colunas com barra vertical, Eixo Lateral Vertical a 90°, Entrelaçamento Espacial 3D em Profundidade e Grid Contemporâneo Suíço (Swiss Neue Grafik);
    - Liberdade Cromática: Alternância entre headlines monocromáticas nobres de alto contraste (100% Branco Puro ou Preto Grafite), palavras em destaque pontual de cor, tarjas sólidas invertidas e iluminação cenográfica sutil;
    - Escala e Contraste Display: Variação dramática de escala entre palavras principais de impacto e subtítulos elegantes, mantendo 70-75% da arte dominada pela fotografia conceitual.
-4. REGRA "SHOW, DON'T LIST" & TRAVAS DE CLICHÊ (COM EXCEÇÃO PARA PANFLETO DIGITAL): Proíbe fotos clichês de banco de imagens (mão avulsa sobre mesa bege com café e vasinho), proíbe caixas brancas empilhadas de PowerPoint e proíbe botões falsos de CTA nos objetivos normais. EXCEÇÃO DO PANFLETO DIGITAL: No objetivo "flyer", as travas anti-lista e anti-botão são destravadas para renderizar 3 a 5 benefícios com ícones circulares, mockup de app no smartphone e rodapé de CTA, sempre submisso às fontes e cores do BrandKit.
+4. REGRA "SHOW, DON'T LIST" & TRAVAS DE CLICHÊ (COM EXCEÇÃO PARA PANFLETO DIGITAL E POST TEMÁTICO): Proíbe fotos clichês de banco de imagens (mão avulsa sobre mesa bege com café e vasinho), proíbe caixas brancas empilhadas de PowerPoint e proíbe botões falsos de CTA nos objetivos normais. EXCEÇÃO DO PANFLETO DIGITAL: No objetivo "flyer", as travas anti-lista e anti-botão são destravadas para renderizar 3 a 5 benefícios com ícones circulares, mockup de app no smartphone e rodapé de CTA, sempre submisso às fontes e cores do BrandKit. EXCEÇÃO TEMÁTICA NA HEADLINE (/thematictypo): No objetivo "thematic" (Post Temático / Campanha) ou quando o briefing solicitar estilos artísticos e épocas (anos 80, anos 2000, Senhor dos Anéis, fantasia, cinema, gibi), a headline principal ganha liberdade tipográfica total para adotar fontes 3D, neon cromado, ouro élfico ou estilo do tema, enquanto todas as demais informações (cards, benefícios, subtítulos, rodapés e logotipo oficial) continuam rigorosamente submissas à tipografia limpa e cores do BrandKit.
 5. PRESERVAÇÃO GEOMÉTRICA E MECÂNICA 100% FIEL (/productlock): Preserva 100% dos sub-componentes, cornetas, grades, gabinetes e rótulos de produtos enviados na Etapa 5, sem redesenhar ou inventar logos sobre o hardware.
 6. DIFERENCIAÇÃO CONDICIONAL ETAPA 5 (LOGOMARCA VS PRODUTO): Integração criativa para logos da Etapa 5 (CREATIVE_LOGO_ARCHETYPES) e bloqueio total para produtos físicos.
 7. MEMÓRIA PERSISTENTE E ALTERNÂNCIA DINÂMICA DE LOGOMARCA DO BRANDKIT: Alternância contínua entre posições editoriais (Topo Esquerdo, Topo Direito, Topo Centralizado e Rodapé Direito) persistida no banco de dados do usuário (users/{userId}.lastLogoPosition).
-8. TRAVA ANATÔMICA DE MÃOS E ESTÚDIO DE AGÊNCIA DE ELITE (/handlock & /agencystudio): Mãos humanas perfeitas com rigorosamente 5 dedos distintos (um polegar e quatro dedos), juntas e unhas naturais, posturas ergonômicas apoiadas (segurando produtos/smartphone com firmeza, mãos nos bolsos ou descansando em superfícies) com sombras coerentes de contato. Proibição terminante de dedos extras, 6 dedos, dedos colados, atrofiados ou mãos flutuantes. Fotografia de estúdio publicitário com lente 85mm f/1.8 com profundidade de campo suave, luz de recorte sutil, luz difusa por softbox duplo e pele hiper-realista com microporos orgânicos (banindo aspecto plástico, cera ou boneco de porcelana).`
+8. TRAVA ANATÔMICA DE MÃOS E ESTÚDIO DE AGÊNCIA DE ELITE (/handlock & /agencystudio): Mãos humanas perfeitas com rigorosamente 5 dedos distintos (um polegar e quatro dedos), juntas e unhas naturais, posturas ergonômicas apoiadas (segurando produtos/smartphone com firmeza, mãos nos bolsos ou descansando em superfícies) com sombras coerentes de contato. Proibição terminante de dedos extras, 6 dedos, dedos colados, atrofiados ou mãos flutuantes. Fotografia de estúdio publicitário com lente 85mm f/1.8 com profundidade de campo suave, luz de recorte sutil, luz difusa por softbox duplo e pele hiper-realista com microporos orgânicos (banindo aspecto plástico, cera ou boneco de porcelana).
+9. PROIBIÇÃO DE PONTO FINAL EM HEADLINES (/noendingperiod): Títulos principais, mastheads e chamadas comerciais de topo JAMAIS recebem ponto final (.) desenhado na imagem (ex: desenhe "NOVOS TEMPOS", e NUNCA "NOVOS TEMPOS."). Headlines publicitárias são chamadas abertas de alto impacto visual, sendo terminantemente proibido pintar ponto final no encerramento da frase principal.`
                 }
                 onChange={(e) => handleChange("general_productlock_prompt", e.target.value)}
               />
@@ -543,6 +544,64 @@ export function PromptsViewer() {
                   onClick={() => handleSave("carousel_storyboard_prompt")}
                   disabled={saving}
                   className="bg-sky-600 hover:bg-sky-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Agente de Tendências & Notícias com IA (Micro-briefing Publicitário) */}
+        <AccordionItem
+          value="trends_structurer_prompt"
+          className="overflow-hidden rounded-lg border border-teal-800/40 bg-teal-950/20 px-4"
+        >
+          <AccordionTrigger className="text-teal-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-4 w-4 text-teal-400" />
+              Agente: Tendências do Google & Notícias com IA (Micro-briefing Publicitário para o Fluxo Geral)
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-300">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-teal-400">
+                <p>
+                  Refina notícias em alta em propostas publicitárias de alto padrão (<code>gemini-2.5-flash</code>) com gancho comercial e descrição visual cinematográfica direcionada ao Fluxo Geral.
+                </p>
+                <span className="rounded bg-teal-900/60 px-2 py-0.5 text-[10px] font-semibold text-teal-200 border border-teal-700/50">
+                  IA de Notícias para Imagens Profissionais
+                </span>
+              </div>
+              <Textarea
+                className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[180px]"
+                value={
+                  prompts.trends_structurer_prompt ||
+                  `DIRETRIZES DO ESTRUTURADOR DE NOTÍCIAS & TENDÊNCIAS COM IA (HEAD RELEVANTE COM O TÓPICO):
+1. HEADLINE RELEVANTE E ENTENDÍVEL (COM O TÓPICO OBRIGATÓRIO):
+   - O tópico em alta DEVE estar explicitamente presente na Head (ex: "sistemas da Microsoft, como Outlook e Hotmail").
+   - Conecta o fato a uma reflexão ou ação de valor (ex: "mostram a importância de canais alternativos de contato").
+   - Frase com sentido completo, sem cortes com reticências ("...") e entre 60 a 110 caracteres.
+   - PROIBIÇÃO TOTAL DE CRÉDITOS NA ARTE: Não incluir "Fonte: G1", "Segundo a Folha", etc.
+2. DIREÇÃO DE ARTE VISUAL E CONTEXTO RESUMIDO:
+   - "newsSummary": Resumo factual de 1 a 2 frases para contextualizar as boas práticas no negócio.
+   - "visualPrompt": Fotografia editorial cinematográfica e profissional representando a situação no nicho.
+   - "fullBrief": Conecta [Cena Visual] + [Head Relevante da Arte] + [Contexto e Boas Práticas] + [Ação Estratégica].
+3. FLUXO DIRETO ECONÔMICO (quality=low):
+   - Redireciona o usuário para o Fluxo Geral (/dashboard/imagens/gerar?mode=general), preenchendo automaticamente a descrição visual, headline e ativando a geração econômica (0,5k) sem exibir termos técnicos no prompt.`
+                }
+                onChange={(e) => handleChange("trends_structurer_prompt", e.target.value)}
+              />
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-slate-400">
+                  Sincronizado com /api/trends (POST), buildStructuredTrendAIPrompt e page.client.tsx de Tendências.
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => handleSave("trends_structurer_prompt")}
+                  disabled={saving}
+                  className="bg-teal-600 hover:bg-teal-500 text-white"
                 >
                   {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Salvar Prompt

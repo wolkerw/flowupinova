@@ -6,6 +6,7 @@ export type AIImageObjective =
   | "concept"
   | "thumbnail"
   | "flyer"
+  | "thematic"
   | "personal";
 
 export type AIImageFormat =
@@ -103,6 +104,11 @@ export interface BrandSnapshot {
   personas?: any[];
   lastLogoPosition?: "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
   lastPersonaId?: string;
+  /** Campos do motor de prompt v2 */
+  hasCustomColors?: boolean;
+  description?: string;
+  mainBenefits?: string[];
+  lastArtDirectionIds?: string[];
 }
 
 export interface AIImageGenerationDoc {

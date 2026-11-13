@@ -116,6 +116,13 @@ const OBJECTIVE_OPTIONS: {
     desc: "Flyer comercial completo: lista de benefícios com ícones, mockup e chamada para ação",
     badge: "Alta Conversão",
   },
+  {
+    id: "thematic",
+    label: "Post Temático / Campanha",
+    icon: "✨",
+    desc: "Anos 80/2000, cinema, épico e datas comemorativas: título temático artístico e dados no BrandKit",
+    badge: "Alta Criatividade",
+  },
 ];
 
 // Opções de Formato com representação visual de proporção de tela
@@ -257,6 +264,7 @@ export function ImageGenerationWizard() {
   const [textMode, setTextMode] = useState<"none" | "editable_layers" | "rasterized">("none");
   const [negativeInstructions, setNegativeInstructions] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  const [imageQuality, setImageQuality] = useState<string>("auto");
 
   // Arquivos anexos do Briefing
   const [referenceImages, setReferenceImages] = useState<{ file?: File; url: string }[]>([]);
@@ -449,6 +457,7 @@ export function ImageGenerationWizard() {
     setTextMode("none");
     setUseBrandKit(true);
     setShowAdvanced(false);
+    setImageQuality("auto");
     setCurrentStep(1);
     setCampaignDraft(null);
     if (typeof window !== "undefined") {
@@ -463,6 +472,39 @@ export function ImageGenerationWizard() {
   // Sempre que entrar no fluxo geral, resetar as informações da geração anterior
   useEffect(() => {
     handleResetForm();
+
+    const queryTopic =
+      searchParams?.get("topic") ||
+      searchParams?.get("brief") ||
+      searchParams?.get("prompt");
+
+    const rawOverlay = searchParams?.get("overlay");
+    const validOverlays: AIImageTextOverlayMode[] = ["INFOGRAPHIC", "TITLE_ONLY", "NONE", "BOTH"];
+    const queryOverlay = validOverlays.find((o) => o === rawOverlay);
+
+    // Evita falsos positivos em ambientes de teste onde o mock de searchParams retorna "general" para qualquer chave
+    if (queryTopic && queryTopic !== "general") {
+      setBrief(queryTopic.trim());
+      const queryHeadline = searchParams?.get("headline");
+      if (queryHeadline && queryHeadline !== "general") {
+        setProductHeadline(queryHeadline.trim());
+      }
+      if (queryOverlay) {
+        setTextOverlayMode(queryOverlay);
+      } else {
+        setTextOverlayMode("INFOGRAPHIC");
+      }
+      const queryQuality = searchParams?.get("quality");
+      if (queryQuality && queryQuality !== "general") {
+        setImageQuality(queryQuality);
+      }
+      toast({
+        title: "Assunto em alta estruturado! 🚀",
+        description: "A proposta visual e a chamada foram inseridas no Fluxo Geral para criar sua publicação profissional.",
+      });
+      return;
+    }
+
     if (typeof window !== "undefined" && searchParams?.get("fromCampaign") === "1") {
       try {
         const rawDraft = window.sessionStorage?.getItem("social_campaign_draft");
@@ -668,6 +710,7 @@ export function ImageGenerationWizard() {
           referenceAssetUrls: uploadedRefUrls,
           referenceMode,
           sourceAssetUrls: uploadedSourceUrl ? [uploadedSourceUrl] : [],
+          quality: imageQuality === "low" ? "low" : undefined,
         }),
       });
 
@@ -755,6 +798,7 @@ export function ImageGenerationWizard() {
           includeLogo: Boolean(includeLogo && logoImage?.url),
           retryAssetId: assetId,
           existingGenerationId: generationId,
+          quality: imageQuality === "low" ? "low" : undefined,
         }),
       });
 

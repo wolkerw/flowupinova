@@ -30,17 +30,23 @@ export class BrandContextBuilder {
           adminDb.doc(`users/${userId}/business/profile`).get(),
           adminDb.doc(`users/${userId}`).get(),
         ]);
-        const data = {
+        const data: any = {
           ...(profileDoc.exists ? profileDoc.data() : {}),
           ...(onboardingDoc.exists ? onboardingDoc.data() : {}),
           lastLogoPosition: userDoc.exists ? userDoc.data()?.lastLogoPosition : undefined,
           lastPersonaId: userDoc.exists ? userDoc.data()?.lastPersonaId : undefined,
+          lastArtDirectionIds: userDoc.exists ? userDoc.data()?.lastArtDirectionIds : undefined,
         };
         const bk = data?.brandKit || {};
+        const customPrimary = data?.primaryColor || bk?.primaryColor;
         snapshot = {
           name: data?.name || bk?.name || "Empresa",
           segment: data?.segment || data?.category || bk?.segment || "",
-          primaryColor: data?.primaryColor || bk?.primaryColor || "#0083C7",
+          hasCustomColors: Boolean(customPrimary),
+          description: data?.description || bk?.description || "",
+          mainBenefits: Array.isArray(data?.mainBenefits) ? data.mainBenefits : [],
+          lastArtDirectionIds: Array.isArray(data?.lastArtDirectionIds) ? data.lastArtDirectionIds : [],
+          primaryColor: customPrimary || "#0083C7",
           secondaryColor: data?.secondaryColor || bk?.secondaryColor || "#FA6305",
           visualGuidelines: bk?.visualGuidelines || data?.visualGuidelines || "",
           logoUrl: bk?.logoUrl || data?.logo?.url || (typeof data?.logo === "string" ? data.logo : ""),
@@ -90,6 +96,13 @@ export class BrandContextBuilder {
       lastLogoPosition: snapshot?.lastLogoPosition || undefined,
       lastPersonaId: snapshot?.lastPersonaId || undefined,
       personas: snapshot?.personas || [],
+      // Campos usados pelo motor de prompt v2 (o v1 ignora)
+      hasCustomColors: snapshot?.hasCustomColors ?? Boolean(cachedSnapshot?.primaryColor),
+      rawSegment: snapshot?.segment || "",
+      businessDescription: snapshot?.description || "",
+      mainBenefits: snapshot?.mainBenefits || [],
+      slogan: snapshot?.slogan || "",
+      lastArtDirectionIds: snapshot?.lastArtDirectionIds || [],
     };
   }
 }
