@@ -1,0 +1,2968 @@
+import { requireUser } from "@/lib/api-auth";
+import { NextResponse, type NextRequest } from "next/server";
+import { fal } from "@fal-ai/client";
+import { Jimp } from "jimp";
+import { admin, adminDb } from "@/lib/firebase-admin";
+import crypto from "crypto";
+import { logApiUsage } from "@/lib/services/api-usage-service-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
+import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
+import { safeParseJSON } from "@/lib/utils";
+import { safeFetch } from "@/lib/safe-url";
+
+export const maxDuration = 300;
+
+function safeJsonParse(rawText: any, fallback = null) {
+  if (!rawText || typeof rawText !== "string") return fallback;
+  try {
+    return safeParseJSON(rawText);
+  } catch (e) {
+    if (fallback !== null) return fallback;
+    throw e;
+  }
+}
+
+async function removeBackgroundWithCache(
+  imageBuffer: Buffer,
+  fallbackUrl: string,
+  rawFalKey: string,
+  userId: string
+): Promise<string> {
+  const hash = crypto.createHash("sha256").update(imageBuffer).digest("hex");
+  const cacheKey = `img_bria_hash_${hash}`;
+  const cachedUrl = await getSemanticCache(cacheKey);
+
+  if (cachedUrl) {
+    console.log(`[CACHE] Fundo removido recuperado do cache para a imagem (${hash}): ${cachedUrl}`);
+    return cachedUrl;
+  }
+
+  try {
+    console.log(`[BRIA] Removendo fundo da imagem via Bria API...`);
+    const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${rawFalKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image_url: fallbackUrl,
+      }),
+    });
+
+    if (briaResponse.ok) {
+      const briaData = await briaResponse.json();
+      const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
+      if (briaUrl) {
+        console.log(`[BRIA] Fundo removido com sucesso: ${briaUrl}`);
+        
+        logApiUsage({
+          userId,
+          type: "background_removal",
+          provider: "falai",
+          model: "bria",
+          costUsd: 0.006,
+        });
+
+        console.log(`[CACHE] Baixando imagem da Fal.ai e salvando permanentemente no Firebase Storage...`);
+        try {
+          const imgRes = await fetch(briaUrl);
+          if (!imgRes.ok) throw new Error("Falha ao baixar da Fal.ai");
+          const imgArrayBuffer = await imgRes.arrayBuffer();
+          const imgBuffer = Buffer.from(imgArrayBuffer);
+          
+          const bucket = admin.storage().bucket();
+          const firebasePath = `cache/bria/${hash}.png`;
+          const fileRef = bucket.file(firebasePath);
+          const downloadToken = crypto.randomUUID();
+          
+          await fileRef.save(imgBuffer, {
+            metadata: {
+              contentType: "image/png",
+              metadata: {
+                firebaseStorageDownloadTokens: downloadToken,
+              },
+            },
+          });
+
+          const permanentUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+          
+          await setSemanticCache(cacheKey, permanentUrl);
+          console.log(`[CACHE] Imagem recortada salva permanentemente: ${permanentUrl}`);
+          
+          return permanentUrl;
+        } catch (downloadErr) {
+          console.error("[CACHE] Falha ao salvar imagem no Firebase, usando URL da Fal.ai:", downloadErr);
+          return briaUrl;
+        }
+      }
+    } else {
+      console.warn("[BRIA] Falha na API do Bria, retornando URL original:", await briaResponse.text());
+    }
+  } catch (err) {
+    console.error("[BRIA] Erro ao remover fundo via Bria, usando original:", err);
+  }
+
+  return fallbackUrl;
+}
+
+export async function POST(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
+  try {
+    const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!falKey || !apiKey) {
+      return NextResponse.json(
+        { error: "Chaves de API ausentes no servidor (FAL_KEY ou GEMINI_API_KEY)." },
+        { status: 500 }
+      );
+    }
+
+    const rawFalKey = falKey.trim().startsWith("Key ")
+      ? falKey.trim().replace(/^Key\s+/i, "")
+      : falKey.trim();
+
+    fal.config({
+      credentials: rawFalKey,
+    });
+
+    let dynamicPrompts: any = {};
+    try {
+      const docSnap = await adminDb.collection("system_settings").doc("prompts").get();
+      if (docSnap.exists) {
+        dynamicPrompts = docSnap.data();
+      }
+    } catch (dbErr) {
+      console.error("[GERAR_REFERENCIA] Erro ao buscar prompts do DB:", dbErr);
+    }
+
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+
+    if (action === "generate-ideas") {
+      const formData = await request.formData();
+      const inspirationFile = formData.get("inspiration_file") as File;
+      const description = (formData.get("description") as string) || "";
+      const businessProfileJson = formData.get("business_profile_json") as string;
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
+
+      if (userId) {
+        const userDoc = await adminDb.collection("users").doc(userId).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const plan = userData?.plan || "trial";
+          if (plan === "trial" || plan === "free") {
+            const freePostsCount = userData?.freePostsCount || 0;
+            if (freePostsCount >= 1) {
+              return NextResponse.json(
+                { error: "Cota gratuita atingida. Faça o upgrade para o plano PRO para criar mais conteúdos." },
+                { status: 403 }
+              );
+            }
+          }
+        }
+      }
+      
+      let businessProfile = null;
+      if (businessProfileJson) {
+        try {
+          businessProfile = JSON.parse(businessProfileJson);
+        } catch (e) {
+          console.error("Erro ao parsear business_profile_json:", e);
+        }
+      }
+
+      // Contexto do Perfil de Negócio (se disponível)
+      let businessContext = "";
+      if (businessProfile) {
+        const parts = [];
+        if (businessProfile.name) parts.push(`- **Nome da Marca/Empresa**: ${businessProfile.name}`);
+        if (businessProfile.category)
+          parts.push(`- **Nicho/Categoria**: ${businessProfile.category}`);
+        if (businessProfile.description)
+          parts.push(`- **Descrição do Negócio**: ${businessProfile.description}`);
+        if (businessProfile.slogan) parts.push(`- **Slogan**: ${businessProfile.slogan}`);
+        if (businessProfile.targetAudience)
+          parts.push(`- **Público-Alvo**: ${businessProfile.targetAudience}`);
+        if (businessProfile.toneOfVoice)
+          parts.push(`- **Tom de Voz**: ${businessProfile.toneOfVoice}`);
+        if (businessProfile.mainBenefits && businessProfile.mainBenefits.length > 0) {
+          parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
+        }
+        if (businessProfile.brandPositioning) {
+          parts.push(
+            `- **Diferencial / Posicionamento (Memória)**: ${businessProfile.brandPositioning}`
+          );
+        }
+        if (businessProfile.keyProducts) {
+          parts.push(
+            `- **Produtos e Serviços de Destaque (Memória)**: ${businessProfile.keyProducts}`
+          );
+        }
+        if (businessProfile.clientProfile) {
+          parts.push(`- **Perfil do Cliente / Persona (Memória)**: ${businessProfile.clientProfile}`);
+        }
+        if (businessProfile.stylisticPreferences) {
+          parts.push(
+            `- **Preferências Estilísticas/Vibe (Memória)**: ${businessProfile.stylisticPreferences}`
+          );
+        }
+
+        // Adicionar novas informações do Brand Kit profissional (fontes, cores e personas)
+        const brandKit = businessProfile.brandKit;
+        if (brandKit) {
+          if (brandKit.fonts) {
+            const fontsInfo = [];
+            if (brandKit.fonts.primaryFont)
+              fontsInfo.push(`Principal/Títulos: ${brandKit.fonts.primaryFont}`);
+            if (brandKit.fonts.secondaryFont)
+              fontsInfo.push(`Secundária/Corpo: ${brandKit.fonts.secondaryFont}`);
+            if (brandKit.fonts.style) fontsInfo.push(`Estilo Geral: ${brandKit.fonts.style}`);
+            if (fontsInfo.length > 0) {
+              parts.push(`- **Tipografia da Marca**: ${fontsInfo.join(" | ")}`);
+            }
+          }
+
+          if (brandKit.extendedColors) {
+            const colorsInfo = [];
+            if (brandKit.extendedColors.complementary)
+              colorsInfo.push(`Complementar/Apoio: ${brandKit.extendedColors.complementary}`);
+            if (brandKit.extendedColors.background)
+              colorsInfo.push(`Cenário/Fundo: ${brandKit.extendedColors.background}`);
+            if (colorsInfo.length > 0) {
+              parts.push(`- **Paleta de Cores Estendida**: ${colorsInfo.join(" | ")}`);
+            }
+          }
+
+          const personaParam =
+            (formData.get("selected_persona") as string) ||
+            (formData.get("selectedPersona") as string);
+          let lockedPersona: any = null;
+          if (personaParam) {
+            try {
+              lockedPersona = JSON.parse(personaParam);
+            } catch {
+              lockedPersona = personaParam;
+            }
+          }
+
+          if (
+            (!lockedPersona || lockedPersona === "all") &&
+            brandKit?.selectedPersonaStrategy &&
+            brandKit.selectedPersonaStrategy !== "all"
+          ) {
+            lockedPersona =
+              brandKit.personas?.find(
+                (p: any) => p.name === brandKit.selectedPersonaStrategy
+              ) || null;
+          }
+
+          if (lockedPersona && typeof lockedPersona === "object") {
+            parts.push(`- **PERSONA COMPRADORA ALVO TRAVADA PARA ESTA GERAÇÃO (FOCO EXCLUSIVO)**:
+    * Nome da Persona: ${lockedPersona.name || "Persona Alvo"}
+    * Perfil/Segmento: ${lockedPersona.profile || "N/A"}
+    * Dores/Desafios deste Cliente: ${lockedPersona.painPoints || "N/A"}
+    * Motivação de Compra deste Cliente: ${lockedPersona.buyingMotivation || "N/A"}
+
+    REGRA DE FOCO VISUAL: A composição visual deve ser projetada para atrair a atenção e dialogar com o universo deste comprador alvo (${lockedPersona.name || "Cliente Alvo"}).`);
+          } else if (brandKit.personas && brandKit.personas.length > 0) {
+            const personasInfo = brandKit.personas
+              .map((p: any, idx: number) => {
+                return `Persona Alvo ${idx + 1} (${p.name || "Sem nome"}):
+      * Perfil/Nicho do Cliente Alvo: ${p.profile || "N/A"}
+      * Dores/Desafios deste Cliente: ${p.painPoints || "N/A"}
+      * Motivação de Compra deste Cliente: ${p.buyingMotivation || "N/A"}`;
+              })
+              .join("\n");
+            parts.push(`- **PERSONAS COMPRADORAS / PÚBLICO-ALVO QUE A MARCA QUER ATRAIR**:\n${personasInfo}`);
+          }
+        }
+
+        if (parts.length > 0) {
+          businessContext = `
+# CONTEXTO DE MARCA E IDENTIDADE DO NEGÓCIO DO USUÁRIO
+Você é o diretor criativo oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz e estilo corretos:
+${parts.join("\n")}
+
+DIRETRIZES CRÍTICAS DE MARCA E PERSONAS (INVIOLÁVEL):
+1. **IDENTIDADE DA MARCA (O EMISSOR)**: A arte visual e os textos devem promover SEMPRE o negócio do usuário ("${businessProfile.name}" - Nicho: "${businessProfile.category || "negócios"}").
+2. **PAPEL DAS PERSONAS (CLIENTES ALVO, NÃO A EMPRESA)**: As personas representam os **CLIENTES COMPRADORES / ALVOS DE BUSCA** que a empresa quer atrair. NUNCA crie artes como se a empresa do usuário fosse a persona!
+   - *Exemplo*: Se a empresa do usuário for de Contabilidade (ex: MT Gestão Contábil) e a persona for uma Médica/Dona de Clínica, a arte deve representar a CONTABILIDADE oferecendo soluções de gestão e inteligência financeira PARA clínicas médicas. NUNCA crie uma arte de consultas médicas ou procedimento cirúrgico como se a empresa fosse um hospital.
+3. **Tom de Voz e Vibe**: Escreva legendas e prompts visuais aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}).
+4. **Benefícios e Posicionamento**: Sempre destaque os diferenciais e benefícios das soluções da empresa do usuário ao dialogar com a persona.
+`;
+        }
+      } else {
+        // Fallback para os campos antigos caso a interface mande apenas nome, categoria e desc
+        const businessName = (formData.get("business_name") as string) || "";
+        const businessCategory = (formData.get("business_category") as string) || "";
+        const businessDescription = (formData.get("business_description") as string) || "";
+        
+        businessContext = `
+Informações Básicas do Negócio:
+- Nome da Empresa: ${businessName || "Não informado"}
+- Ramo de Atuação: ${businessCategory || "Não informado"}
+- Descrição do Negócio: ${businessDescription || "Não informado"}
+`;
+      }
+
+      if (!inspirationFile) {
+        return NextResponse.json({ error: "Imagem de inspiração não fornecida." }, { status: 400 });
+      }
+
+      // Converter imagem para base64
+      const arrayBuffer = await inspirationFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = inspirationFile.type || "image/jpeg";
+      const base64Image = buffer.toString("base64");
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.toLocaleString("pt-BR", { month: "long" });
+
+      const rawIdeiasPrompt = dynamicPrompts.ideias_post_prompt || `Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais.
+CONTEXTO TEMPORAL: Estamos no ano de [ANO], no mês de [MES]. Sempre utilize esse ano/contexto atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
+
+Análise detalhadamente a imagem de inspiração visual (print de post) fornecida e a descrição enviada pelo usuário: "[DESCRICAO]".
+Com base nessas informações e no perfil comercial do usuário informado abaixo, crie 3 propostas de publicações virais e estratégicas para o Instagram que herdem e adaptem o conceito visual, estilo estético, layout e tom de voz do print de referência para a realidade deste negócio.
+
+[CONTEXTO_DO_NEGOCIO]
+
+Instruções para cada uma das 3 propostas de posts:
+1. "titulo": Crie um título extremamente curto (máx 45 caracteres), instigante e magnético (gancho comercial forte).
+2. "subtitulo": Crie um parágrafo curto e dinâmico (1 a 2 frases) aprofundando a dica ou tema e fechando com uma chamada para ação (CTA) curta e atrativa.
+3. "hashtags": Uma lista contendo de 3 a 5 hashtags muito relevantes para o nicho comercial da publicação.
+
+Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, sem qualquer explicação, introdução, conclusão ou blocos de marcação de código adicionais. Responda APENAS o JSON bruto:
+{
+  "publicacoes": [
+    {
+      "titulo": "Título Magnético 1 🚀",
+      "subtitulo": "Parágrafo curto de valor detalhando o post com CTA no final. O que você acha disso?",
+      "hashtags": ["#Hashtag1", "#Hashtag2", "#Hashtag3"]
+    },
+    {
+      "titulo": "Título Magnético 2 ✨",
+      "subtitulo": "Conteúdo estratégico com dicas práticas e leitura dinâmica. Salve para ler depois!",
+      "hashtags": ["#Hashtag4", "#Hashtag5", "#Hashtag6"]
+    },
+    {
+      "titulo": "Título Magnético 3 💡",
+      "subtitulo": "Post focado em autoridade e dor do cliente mostrando a solução. Visite nosso perfil para saber mais!",
+      "hashtags": ["#Hashtag7", "#Hashtag8", "#Hashtag9"]
+    }
+  ]
+}`;
+
+      let geminiPrompt = rawIdeiasPrompt
+        .replace("[ANO]", currentYear.toString())
+        .replace("[MES]", currentMonth)
+        .replace("[DESCRICAO]", description)
+        .replace("[CONTEXTO_DO_NEGOCIO]", businessContext);
+
+      // Se o prompt master não tinha as tags originais (porque foi atualizado), garantimos que a IA receba o contexto e a descrição no final
+      if (!geminiPrompt.includes(description) && description) {
+        geminiPrompt += `\n\nDescrição/Tema fornecido pelo usuário: ${description}`;
+      }
+      if (!geminiPrompt.includes(businessContext) && businessContext) {
+        geminiPrompt += `\n\nContexto do Negócio:\n${businessContext}`;
+      }
+
+      // GARANTIA CRÍTICA DE FORMATO: Injeta as regras de JSON que podem estar faltando no prompt do admin
+      geminiPrompt += `\n\nINSTRUÇÕES DE FORMATO OBRIGATÓRIO (VOCÊ DEVE SEGUIR ESTA ESTRUTURA ESTRITAMENTE):
+Responda EXATAMENTE E APENAS com um objeto JSON válido, contendo uma propriedade "publicacoes" que é um array com as 3 ideias. Cada ideia deve ter as propriedades exatas: "titulo" (string), "subtitulo" (string) e "hashtags" (array de strings com a hashtag incluída, ex: ["#foo"]).
+Exemplo de formato:
+{
+  "publicacoes": [
+    { "titulo": "Seu título aqui", "subtitulo": "Seu subtítulo explicativo aqui", "hashtags": ["#marketing", "#sucesso"] }
+  ]
+}
+NÃO inclua crases, NENHUM bloco markdown \`\`\`json, nem qualquer texto antes ou depois do JSON. Devolva apenas o JSON puro.`;
+
+      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+      let parsed = null;
+
+      if (anthropicApiKey) {
+        try {
+          console.log(
+            "[GERAR_REFERENCIA] Usando Claude 3.5 Sonnet Vision (v2) para analisar inspiração..."
+          );
+          let response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "x-api-key": anthropicApiKey,
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "claude-3-5-sonnet-20241022",
+              max_tokens: 3000,
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "image",
+                      source: {
+                        type: "base64",
+                        media_type: mimeType,
+                        data: base64Image,
+                      },
+                    },
+                    {
+                      type: "text",
+                      text: geminiPrompt,
+                    },
+                  ],
+                },
+              ],
+            }),
+          });
+
+          // Se der erro de modelo não encontrado, tentar Sonnet v1 (20240620)
+          if (!response.ok) {
+            const errText = await response.text();
+            console.warn(
+              "[GERAR_REFERENCIA] Falha com Claude Sonnet v2 (Ideas), tentando v1:",
+              errText
+            );
+
+            response = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: {
+                "x-api-key": anthropicApiKey,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "claude-3-opus-20240229",
+                max_tokens: 3000,
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "image",
+                        source: {
+                          type: "base64",
+                          media_type: mimeType,
+                          data: base64Image,
+                        },
+                      },
+                      {
+                        type: "text",
+                        text: geminiPrompt,
+                      },
+                    ],
+                  },
+                ],
+              }),
+            });
+          }
+
+          if (!response.ok) {
+            const errText = await response.text();
+            console.error("[GERAR_REFERENCIA] Erro no Claude Vision v1/v2 (Ideas):", errText);
+            throw new Error(`Falha no Claude Vision ao gerar ideias: ${errText}`);
+          }
+
+          const resData = await response.json();
+          const rawText = resData.content?.[0]?.text;
+          parsed = safeJsonParse(rawText);
+        } catch (claudeError) {
+          console.error(
+            "[GERAR_REFERENCIA] Falha no Claude Vision (Ideas), acionando fallback para Gemini:",
+            claudeError
+          );
+        }
+      }
+
+      if (!parsed) {
+          let proErrMessage = "";
+          try {
+            console.log(
+              "[GERAR_REFERENCIA] Usando Gemini 1.5 Pro de fallback para gerar ideias textuais..."
+            );
+            const geminiProUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${apiKey}`;
+            const geminiResponse = await fetch(geminiProUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
+                      },
+                      { text: "Analise a imagem de acordo com as instruções do sistema." }
+                    ],
+                  },
+                ],
+                systemInstruction: {
+                  parts: [{ text: geminiPrompt }],
+                },
+                generationConfig: {
+                  temperature: 0.9,
+                  responseMimeType: "application/json",
+                },
+              }),
+            });
+
+            if (!geminiResponse.ok) {
+              throw new Error(await geminiResponse.text());
+            }
+
+            const resData = await geminiResponse.json();
+            const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+            parsed = safeJsonParse(rawJson);
+          } catch (proError: any) {
+            proErrMessage = proError.message || String(proError);
+            console.warn(
+              "[GERAR_REFERENCIA] Falha no Gemini 1.5 Pro (Ideas), tentando Gemini 1.5 Flash:",
+              proErrMessage
+            );
+
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+            const geminiResponseFlash = await fetch(geminiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
+                      },
+                      { text: "Analise a imagem de acordo com as instruções do sistema." }
+                    ],
+                  },
+                ],
+                systemInstruction: {
+                  parts: [{ text: geminiPrompt }],
+                },
+                generationConfig: {
+                  temperature: 0.9,
+                  responseMimeType: "application/json",
+                },
+              }),
+            });
+
+            if (!geminiResponseFlash.ok) {
+              const flashErrText = await geminiResponseFlash.text();
+              console.error("[MIGRATED_REF_IDEAS] Falha no Gemini Flash:", flashErrText);
+              throw new Error(`Falha ao gerar ideias no Gemini.\nErro no Pro: ${proErrMessage}\nErro no Flash: ${flashErrText}`);
+            }
+
+            const resData = await geminiResponseFlash.json();
+            const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+            parsed = safeJsonParse(rawJson);
+          }
+      }
+
+      if (parsed && userId) {
+        try {
+          const userDocRef = adminDb.collection("users").doc(userId);
+          const userDoc = await userDocRef.get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            const plan = userData?.plan || "trial";
+            if (plan === "trial" || plan === "free") {
+              await userDocRef.update({
+                freePostsCount: admin.firestore.FieldValue.increment(1)
+              });
+            }
+          }
+        } catch (incrementError) {
+          console.error("Erro ao incrementar freePostsCount:", incrementError);
+        }
+      }
+
+      return NextResponse.json(parsed);
+    }
+
+    if (action === "analyze") {
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
+      const secondaryFile = formData.get("secondaryFile") as File | null;
+
+      if (!file) {
+        return NextResponse.json({ error: "Arquivo de imagem não fornecido." }, { status: 400 });
+      }
+
+      // Função auxiliar para preparar buffer mantendo a proporção integral (sem crop destrutivo)
+      const processImage = async (imgFile: File) => {
+        const arrayBuffer = await imgFile.arrayBuffer();
+        let buffer = Buffer.from(arrayBuffer);
+        const mimeType = imgFile.type || "image/jpeg";
+
+        try {
+          const image = await Jimp.read(buffer);
+          const maxDim = 1024;
+          if (image.width > maxDim || image.height > maxDim) {
+            image.scaleToFit({ w: maxDim, h: maxDim });
+            buffer = await image.getBuffer("image/jpeg");
+          }
+        } catch (jimpError) {
+          console.warn("[GERAR_REFERENCIA] Falha ao redimensionar imagem, usando original:", jimpError);
+        }
+        return {
+          base64: buffer.toString("base64"),
+          mimeType,
+        };
+      };
+
+      const { base64: base64Image1, mimeType: mimeType1 } = await processImage(file);
+
+      let base64Image2 = "";
+      let mimeType2 = "";
+      if (secondaryFile) {
+        const processed = await processImage(secondaryFile);
+        base64Image2 = processed.base64;
+        mimeType2 = processed.mimeType;
+      }
+
+      const cacheKey = "analyze_" + base64Image1 + (base64Image2 ? "_" + base64Image2 : "");
+      const cachedData = await getSemanticCache(cacheKey);
+      if (cachedData) {
+        return NextResponse.json({ success: true, yamlAnalysis: cachedData });
+      }
+
+      // Call Gemini for physical description
+      const geminiAnalysisPrompt = `Analyze the given image with high precision to extract structural features for image conditioning. Determine if it depicts a product, a piece of clothing/apparel, a character, or a combination.
+
+Return the analysis strictly in YAML format with the following fields depending on the subject type (do not add conversational text or markdown code blocks, return ONLY raw YAML):
+
+If the image contains a PRODUCT or PACKAGING:
+  brand_name: (Name of the brand if visible or inferable)
+  color_scheme:
+    - hex: (Hex code of prominent color)
+      name: (Descriptive name of the color, e.g., matte olive green)
+  font_style: (Describe the typography: serif, sans-serif, bold, elegant script, etc.)
+  literal_texts_and_labels: (Transcribe every single word and phrase visible on the packaging exactly as written, inside double quotes)
+  material_texture: (Describe the packaging material: frosted glass, matte paper, glossy plastic, brushed metal, etc.)
+  visual_description: (A detailed sentence describing the object's shape, labeling design, and unique physical attributes)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)
+
+If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn by a human model):
+  item_type: (e.g., matching two-piece set, linen trousers, summer dress)
+  human_model_present: (true or false — is a live human model wearing the garment in the photo?)
+  required_shot_type: (MANDATORY FIELD — set to "full_body" if human_model_present is true, otherwise "product_shot")
+  color_scheme:
+    - hex: (Hex code of fabric color)
+      name: (Color name, e.g., pastel off-white, ocean blue)
+  fabric_texture: (Describe the material and weave: textured linen, soft ribbed cotton, silk satin, thick denim)
+  design_patterns: (Describe prints, patterns, stripes, buttons, stitching, or pocket details)
+  cut_and_fit: (Describe the fit: oversized, cropped, slim fit, high-waisted, flowy)
+  visual_description: (A detailed sentence summarizing the garment's appearance, shape, and physical design details)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)
+  full_body_composition_note: (MANDATORY if human_model_present is true — Write: "The human model wearing this garment MUST be shown in a FULL BODY shot from head to feet, with generous headroom above and the full outfit silhouette visible. Never crop the head or feet.")
+
+If the image depicts a CHARACTER:
+  character_name: (Name if known)
+  color_scheme:
+    - hex: (Hex code of prominent outfit/feature color)
+      name: (Color name)
+  outfit_style: (Detailed description of clothing style, accessories, or notable features)
+  visual_description: (A full sentence summarizing face, hair, expression, and overall styling)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)`;
+
+      const VISION_MODELS = [
+        "gemini-2.5-flash",
+        "gemini-3.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+      ];
+
+      const callGeminiVision = async (base64: string, mime: string, specificPrompt: string) => {
+        let lastErrorText = "";
+        for (const modelName of VISION_MODELS) {
+          try {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const response = await fetch(geminiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: specificPrompt },
+                      {
+                        inlineData: {
+                          mimeType: mime,
+                          data: base64,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              }),
+            });
+
+            if (response.ok) {
+              const resData = await response.json();
+              const resultText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (resultText) return resultText;
+            } else {
+              lastErrorText = await response.text();
+              console.warn(
+                `[GERAR_REFERENCIA] Modelo de visão ${modelName} falhou (${response.status}):`,
+                lastErrorText.substring(0, 150)
+              );
+            }
+          } catch (modelErr: any) {
+            lastErrorText = modelErr.message || String(modelErr);
+            console.warn(`[GERAR_REFERENCIA] Exceção no modelo ${modelName}:`, lastErrorText);
+          }
+        }
+        throw new Error(`Todos os modelos de visão falharam. Último erro: ${lastErrorText}`);
+      };
+
+      let yamlAnalysis = "";
+
+      if (secondaryFile) {
+        console.log(
+          "[GERAR_REFERENCIA] Modo híbrido detectado. Analisando as duas imagens de referência em paralelo..."
+        );
+        // secondary image already processed for cache key
+
+        const promptPerson = `${geminiAnalysisPrompt}\n\nCRITICAL: This is a CHARACTER reference (Foto 1). Focus strictly on character styling, facial details, hair, and overall fisionomy.`;
+        const promptProduct = `${geminiAnalysisPrompt}\n\nCRITICAL: This is a PRODUCT/PROJECT/SCENARIO reference (Foto 2). Focus strictly on its physical features, shapes, textures, materials, and colors.`;
+
+        const [analysis1, analysis2] = await Promise.all([
+          callGeminiVision(base64Image1, mimeType1, promptPerson),
+          callGeminiVision(base64Image2, mimeType2, promptProduct),
+        ]);
+
+        yamlAnalysis = `PRIMARY_PERSON_ANALYSIS:\n${analysis1}\n\nSECONDARY_PRODUCT_ANALYSIS:\n${analysis2}`;
+      } else {
+        yamlAnalysis = await callGeminiVision(base64Image1, mimeType1, geminiAnalysisPrompt);
+      }
+
+      await setSemanticCache(cacheKey, yamlAnalysis);
+
+      return NextResponse.json({ success: true, yamlAnalysis });
+    }
+
+    if (action === "generate-prompt") {
+      let yamlAnalysis = "";
+      let description = "";
+      let title = "";
+      let businessProfile: any = null;
+      let inspirationFile: File | null = null;
+      let isRetailStyle = false;
+      let hybridPriority = "balanced";
+      let textOverlayMode = "INFOGRAPHIC";
+      let textHeadline = "";
+
+      const contentType = request.headers.get("content-type") || "";
+      if (contentType.includes("multipart/form-data")) {
+        const formData = await request.formData();
+        yamlAnalysis = (formData.get("yamlAnalysis") as string) || "";
+        description = (formData.get("description") as string) || "";
+        title = (formData.get("title") as string) || "";
+        isRetailStyle = formData.get("isRetailStyle") === "true";
+        hybridPriority = (formData.get("hybridPriority") as string) || "balanced";
+        textOverlayMode =
+          (formData.get("textOverlayMode") as string) ||
+          (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
+        textHeadline = (formData.get("textHeadline") as string) || title || "";
+        const profileStr = formData.get("businessProfile") as string;
+        if (profileStr) {
+          try {
+            businessProfile = JSON.parse(profileStr);
+          } catch {}
+        }
+        inspirationFile = formData.get("inspiration_file") as File | null;
+      } else {
+        const body = await request.json();
+        yamlAnalysis = body.yamlAnalysis || "";
+        description = body.description || "";
+        title = body.title || "";
+        isRetailStyle = body.isRetailStyle === true || body.isRetailStyle === "true";
+        hybridPriority = body.hybridPriority || "balanced";
+        textOverlayMode =
+          body.textOverlayMode || (body.insertTextOnImage === false ? "NONE" : "INFOGRAPHIC");
+        textHeadline = body.textHeadline || body.title || title || "";
+        businessProfile = body.businessProfile || null;
+      }
+
+      if (!yamlAnalysis || !description) {
+        return NextResponse.json(
+          { error: "Campos 'yamlAnalysis' ou 'description' ausentes." },
+          { status: 400 }
+        );
+      }
+
+      let brandingInstruction = "";
+      if (businessProfile) {
+        const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+        const primaryHex = primaryColor || "#000000";
+        const secondaryHex = secondaryColor || "#FFFFFF";
+
+        let extendedColorsText = "";
+        if (brandKit?.extendedColors) {
+          if (brandKit.extendedColors.complementary) {
+            extendedColorsText += `- Complementary Color Hex: ${brandKit.extendedColors.complementary}\n`;
+          }
+          if (brandKit.extendedColors.background) {
+            extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
+          }
+        }
+
+        let fontsText = "";
+        if (brandKit?.fonts) {
+          if (brandKit.fonts.primaryFont) {
+            fontsText += `- Primary Font (Headers): "${brandKit.fonts.primaryFont}"\n`;
+          }
+          if (brandKit.fonts.secondaryFont) {
+            fontsText += `- Secondary Font (Body): "${brandKit.fonts.secondaryFont}"\n`;
+          }
+          if (brandKit.fonts.style) {
+            fontsText += `- General Typographic Style: ${brandKit.fonts.style}\n`;
+          }
+        }
+
+        brandingInstruction = `
+6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryHex} and Secondary: ${secondaryHex}).
+   ${extendedColorsText ? `Additional extended brand colors to integrate:\n${extendedColorsText}` : ""}
+   - Carefully blend these colors in the surrounding environment. For instance: add colored studio gel lighting highlights, gentle glowing neon tubes in the background, bokeh ambient colors, or aesthetic secondary props (a vase, furniture accent, background canvas texture, or studio accessories) reflecting this color palette.
+   - If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
+   - The main reference product/garment itself must remain physically unaffected, retaining its original colors as detailed in the reference YAML description. Only customize the surrounding visual elements of the photo.
+${
+  fontsText
+    ? `
+7. TYPOGRAPHY AND BRAND FONTS: If the layout requires text overlays, badges, or printed titles, they must follow the brand's typography system:
+   ${fontsText}
+   - Describe a clean typographic composition that strictly follows the brand's Primary Font (Bold weight for main headlines/emphasis), Secondary Font (Regular/Normal weight for setup/body text), and General Typographic Style. Translate custom font names (like "Branding SF") into explicit anatomical descriptors (e.g. "rendered in a single unified modern corporate geometric sans-serif typeface family across all lines, differentiating setup vs. emphasis strictly by Regular vs. Bold weight of the exact same sans-serif family, with crisp straight terminals and ZERO serifs or mismatched font families").
+`
+    : ""
+}
+`;
+      }
+
+      let inspirationInstruction = "";
+      let inlineDataPart: any = null;
+
+      let base64Image = "";
+      let mimeType = "";
+
+      if (inspirationFile) {
+        try {
+          const arrayBuffer = await inspirationFile.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          mimeType = inspirationFile.type || "image/jpeg";
+          base64Image = buffer.toString("base64");
+
+          inlineDataPart = {
+            inlineData: {
+              mimeType: mimeType,
+              data: base64Image,
+            },
+          };
+
+          inspirationInstruction = `
+7. LAYOUT & COMPOSITION & ESTHETIC REPLICA FROM INSPIRATION (MANDATORY DECONSTRUCTION):
+   You have been provided with an inspiration/reference image (the print of a post). You MUST analyze it with high-precision computer vision depth and aesthetic decoding:
+   - DECONSTRUCT MODEL POSE & BODY LANGUAGE: Look at the human model (if any) in the reference print. Describe their exact pose, body posture, arm placement, hands position, face lean, head tilt, and how they interact with the product. E.g., if a hand holds the product from below, say "...the model casually holding the product in their right palm, fingers gently wrapped around the bottom...". Imitate this exact posture and physical interaction.
+   - REPLICATE CAMERA ANGLE & FRAMING: Identify the camera focal lens style and framing (e.g., tight close-up, eye-level medium shot, low-angle flat-lay, high-angle portrait) and copy it exactly in your prompt.
+   - COPY LIGHTING & ATMOSPHERE: Analyze the light source direction, light quality (e.g., hard high-contrast sunlight, ultra-soft cinematic window glow, directional rim lighting, studio gel colors) and translate it precisely.
+   - DECONSTRUCT SCENARIO & PALETTE: Extract the precise colors of the environment (e.g., warm cream walls, sage green accessories, dark slate gray stone background), textures (wood grain, polished marble, concrete, linen folds), and copy them exactly to make the visual vibe indistinguishable from the reference post.
+   - DECONSTRUCT GRAPHIC LAYOUT & BADGES: Observe if the reference post features geometric colored overlays, floating product stands, colored banner stripes, or discount badges. Request a highly clean, professional equivalent visual composition (e.g., "...with a clean, minimalist circular overlay badge containing the bold modern text 'PROMO'...") matching the placement from the reference.
+   - ABSOLUTE TEXT ISOLATION RULE: Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. The ONLY text allowed on the generated image is the selected post title ("${title || ""}"), which must be printed exactly once. Copying text from the reference print is strictly prohibited.
+   - FORCE FIDELITY: Your output prompt must explicitly detail these visual features as the foundational pillars of the generation, ensuring the resulting image is an extremely accurate aesthetic and compositional sibling of the reference print.
+`;
+        } catch (e) {
+          console.warn(
+            "[GERAR_REFERENCIA] Falha ao processar arquivo de inspiração para prompt:",
+            e
+          );
+        }
+      }
+
+      const descLower = (description || "").toLowerCase();
+      const yamlLower = (yamlAnalysis || "").toLowerCase();
+      const isApparelOrFashion =
+        yamlLower.includes("clothing") ||
+        yamlLower.includes("apparel") ||
+        yamlLower.includes("dress") ||
+        yamlLower.includes("shirt") ||
+        yamlLower.includes("pants") ||
+        yamlLower.includes("suit") ||
+        yamlLower.includes("t-shirt") ||
+        yamlLower.includes("jacket") ||
+        yamlLower.includes("hoodie") ||
+        yamlLower.includes("garment") ||
+        yamlLower.includes("roupa") ||
+        yamlLower.includes("vestido") ||
+        yamlLower.includes("calça") ||
+        yamlLower.includes("camisa") ||
+        yamlLower.includes("conjunto") ||
+        descLower.includes("roupa") ||
+        descLower.includes("conjunto") ||
+        descLower.includes("vestido") ||
+        descLower.includes("camisa") ||
+        descLower.includes("look") ||
+        descLower.includes("moda") ||
+        descLower.includes("fashion");
+
+      const userWantsModel =
+        descLower.includes("modelo") ||
+        descLower.includes("model") ||
+        descLower.includes("vestir") ||
+        descLower.includes("vestida") ||
+        descLower.includes("vestido") ||
+        descLower.includes("no corpo") ||
+        descLower.includes("pessoa") ||
+        descLower.includes("mulher") ||
+        descLower.includes("homem");
+
+      let textRenderingInstruction = "";
+      const effectiveHeadline = textHeadline || title || "";
+
+      if (textOverlayMode === "NONE") {
+        textRenderingInstruction = `
+- FOTOGRAFIA PURA (ABSOLUTELY ZERO TEXT): The prompt MUST describe purely the physical photograph and scene without ANY written text, typography, letters, words, slogans, banners, badges, cards, or watermarks on the canvas. Under no circumstances should any typography, text, or character be printed on the generated image.
+`;
+      } else if (textOverlayMode === "TITLE_ONLY") {
+        textRenderingInstruction = `
+- COMMERCIAL ADVERTISING TYPOGRAPHY (MAIN HEADLINE ONLY — ZERO EDGE CROPPING):
+  - Prominently feature the main headline in Portuguese (pt-BR): "${effectiveHeadline || "O SEU PRODUTO EM DESTAQUE"}".
+  - [CRITICAL RULE — SAFE INNER MARGINS (15%-20% PADDING)]: Break the headline into 2 to 3 compact, centered lines occupying at most 70% of the canvas width. Leave at least 15% to 20% empty background margin on the left, right, and top borders so NO first or last letter is ever cut off or touching the edge of the frame.
+  - STRICTLY FORBIDDEN: DO NOT include complex feature cards, bullet icons, spec tables, or multiple footer text badges. Clean photography with an elegant primary headline.
+`;
+      } else {
+        // INFOGRAPHIC ou BOTH
+        textRenderingInstruction = `
+- COMPLETE COMMERCIAL ADVERTISING AGENCY POSTER & INFOGRAPHIC LAYOUT (ZERO EDGE CROPPING):
+  - HEADLINE: Render an impactful, bold commercial headline at the top in Portuguese (pt-BR): "${effectiveHeadline || "QUALIDADE & PERFORMANCE EM CADA DETALHE"}", broken into 2-3 compact centered lines occupying at most 70% of the canvas width.
+  - QUALITY/GUARANTEE SEAL: Include a sleek floating circular quality badge or guarantee seal (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL") placed well inside the safe zone.
+  - 3-4 BENEFIT CALLOUT CARDS (FLOATING INSET — NEVER FLUSH TO EDGES): Integrate an elegant stack or row of 3 to 4 compact floating feature cards with minimalist line icons and short descriptors in Portuguese (pt-BR) tailored to the product (e.g., "Tecido Respirável", "Toque Ultra Macio", "Alta Durabilidade"). Every card MUST have all 4 rounded corners 100% visible inside the frame with at least 15% breathing room between the card border and the canvas edge — NEVER attach or bleed cards onto the right or left border of the image.
+  - SLOGAN / CTA FOOTER: A subtle, refined slogan pill or call-to-action in Portuguese centered well above the bottom border.
+  - [CRITICAL SAFE ZONE MANDATE]: Maintain a strict 15% to 20% inner safe margin on ALL four sides (left, right, top, bottom). 100% of every letter, word, badge, and card container must be completely visible inside the frame with zero clipping.
+`;
+      }
+
+      let priorityInstruction = "";
+      if (hybridPriority === "scenario") {
+        priorityInstruction = `
+# STRICT SCENARIO FIDELITY & ASYMMETRIC FRAMING RULE (CRITICAL FOR IMMOVABLES / SCENARIOS):
+- The background, architecture, building, rooms, or garden from Photo 2 (described in SECONDARY_PRODUCT_ANALYSIS) are the absolute subject and setting of the scene.
+- You MUST describe this physical scenario with high fidelity (materials, layout, lights, doors, windows, textures). Do NOT replace the backdrop with a generic scene.
+- COMPOSITION & PLACEMENT: The person from Photo 1 must be placed off-center, positioned on the far-left or far-right of the frame (applying the photographic rule of thirds). The center of the image must remain completely open and unobstructed to beautifully display the main entrance, facade, or central architecture of the property in Photo 2.
+- INTEGRATION OF SUBJECT IN THE ARCHITECTURE: The person must not be a large close-up portrait. Instead, frame the scene in a wide-shot or medium-wide shot where the person is smaller in the frame and physically integrated into the building's architecture. Describe them in a natural pose: e.g., leaning casually against an external wall of the house, standing right next to the entrance doorway, walking through the entrance, or standing on the front porch. The person acts as a scale reference and natural character in the architectural scene, while the building remains the main hero of the photo.
+`;
+      } else if (hybridPriority === "packshot") {
+        priorityInstruction = `
+# STRICT PRODUCT SWAP & PACKSHOT COMPOSITION RULE (CRITICAL FOR PACKSHOTS):
+- The product from Photo 1 (described in PRIMARY_PERSON_ANALYSIS) is the main subject to be highlighted.
+- The environment, background, styling, decoration, and composition from Photo 2 (described in SECONDARY_PRODUCT_ANALYSIS) must be recreated with high fidelity as the backdrop.
+- PRODUCT SWAP & PLACEMENT: Identify the main product/object positioned in the foreground of Photo 2, and replace it entirely with the product from Photo 1. Place the product from Photo 1 in the exact same position, scale, and angle as the original product in Photo 2.
+- INTEGRATION: Keep the original surface (e.g. table, stone, shelf), shadows, reflections, and ambient lighting of Photo 2, ensuring the product from Photo 1 integrates naturally as if it was originally photographed there.
+`;
+      } else if (hybridPriority === "person") {
+        priorityInstruction = `
+# STRICT FOREGROUND PERSON FIDELITY RULE (CRITICAL FOR MODEL/RETRAIT FOCUS):
+- The person from Photo 1 (described in PRIMARY_PERSON_ANALYSIS) is the primary focal point of the portrait. Focus heavily on their face, posture, clothes, and skin textures.
+- The scenario from Photo 2 is used only as a loose visual reference or backdrop inspiration. You are allowed to simplify, crop, blur (using shallow depth of field / bokeh), or adjust the background layout of Photo 2 freely to make the person stand out as the hero of the image.
+`;
+      } else {
+        priorityInstruction = `
+# BALANCED FUSION RULE:
+- Balance the visual presence of both the person from Photo 1 and the product/project/scenario from Photo 2.
+- Describe a composition where the person is interacting naturally with the product/project, ensuring both elements are recognizable, in sharp focus, and lit under the same environment.
+`;
+      }
+
+      const geminiSystemInstruction = `# ROLE
+You are an elite Creative Art Director, Ad Designer, and Prompt Engineer specialized in User-Generated Content (UGC) advertising and premium photographic product placement for image generation models (specifically Flux Kontext).
+
+# GOAL
+Given a reference image description (extracted features in YAML), the user's creative advertising ideas, and optionally an inspiration image (the print), you MUST write a descriptive prompt in English for the "flux-pro/kontext" model.
+This prompt MUST describe a realistic photorealistic scene, detailing the product, ambient scenery, professional lighting, camera lens and realism textures.
+
+# CRITICAL RULES
+1. OUTPUT LANGUAGE: You must write the final image prompt completely IN ENGLISH. Generating prompts in English dramatically increases the quality, pose accuracy, and realism of the model.
+2. NO DUPLICATE PRODUCTS (ULTRA-CRITICAL): Since we are using "flux-pro/kontext" (an image conditioning model), you MUST refer to the user's product in the input image as "the product" or "the product in the input image" instead of describing a new, generic product from scratch. 
+   - Never write phrases that cause the generator to draw two separate products (e.g. "a model holding a laptop while another laptop is on the table"). 
+   - Always integrate "the product in the input image" seamlessly into the pose, scene, and hands of the model (if there is a model).
+3. PRODUCT PROTAGONIST & HUMAN FRAMING RULES (ULTRA-CRITICAL):
+${
+  isApparelOrFashion || userWantsModel
+    ? `   - **FASHION & APPAREL MODEL MANDATE**: The clothing/apparel item from the input image MUST be worn naturally by an attractive, professional fashion model. Frame the model in a stylish full-body or medium-shot editorial fashion photography pose that beautifully showcases the fabric, cut, fit, and style of the garment. The outfit is the hero of the image, sharply rendered with realistic fabric textures.`
+    : `   - **PRODUCT HERO MANDATE**: When the reference image is a physical product (supplements, cosmetics, bottles, jars, electronics, watches, food, beverages, jewelry, gadgets, accessories, etc.) OR when a product layout/preset is chosen, the PHYSICAL PRODUCT ITSELF MUST ALWAYS BE THE ABSOLUTE CENTRAL HERO (occupying 55% to 80% of the entire canvas in sharp macro or close-up commercial photography).
+   - **FORBIDDEN FOR HARDWARE/OBJECT PRODUCTS**: DO NOT describe full-body human figures, standing models, or wide room shots where the product appears small or secondary.
+   - **PRODUCT IN USE / LIFESTYLE**: If a human interaction is depicted, describe ONLY tight macro close-up hands interacting directly with the product (e.g., "tight macro close-up of a hand holding the bottle, with the background softly blurred in shallow depth of field").`
+}
+4. TEXT RENDERING CONTROL (CRITICAL):
+   ${textRenderingInstruction}
+5. FORMAT & SAFE MARGINS: Always end the prompt with the instruction: "framed vertically in 4:5 portrait format (1080x1350 pixels) with a mandatory 15-20% inner safe margin on all four sides (left, right, top, bottom) so that 100% of headlines, seals, and floating benefit cards are completely visible inside the frame and never cropped at the edges".
+${priorityInstruction}
+${brandingInstruction}
+${inspirationInstruction}
+${dynamicPrompts.ugc_prompt || `# UGC PHOTOGRAPHY & ESTHETIC COMMERCIAL STAGING
+- Describe a high-end commercial advertising photograph with the product as the hero.
+- Detail advanced lighting setups (e.g., "cinematic volumetric studio lighting", "dramatic rim lighting separating the hero product", "1/8000s high-speed frozen splashes or particles around the product").
+- Define professional camera specifications (e.g., "shot on 85mm or 100mm macro lens, pin-sharp focus on the product textures and labels, shallow depth of field, creamy background bokeh").
+- Emphasize natural tangible textures: "crisp product reflections, droplets, physical shadows, and pristine material details".`}
+
+# OUTPUT FORMAT (Strict JSON)
+You must return exclusively a valid JSON object with the following key. Do not include any explanations, introductory or concluding text:
+{
+  "imagePrompt": "The highly detailed descriptive prompt in English for the Flux Kontext model. It must be completely photographic, natural, and focus on the product and scene realism with absolutely no texts, logos, or overlay graphics except for the requested styled text title."
+}
+`;
+
+      const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.
+Certifique-se de que a imagem de referência do produto seja representada com a maior precisão possível nas imagens geradas, especialmente em relação a todos os textos e detalhes físicos.
+Além disso, se houver uma imagem de inspiração/print fornecida, garanta que a composição, pose do modelo, layout de enquadramento de câmera e estilo visual sejam fielmente imitados e replicados.
+
+Descrição desejada de cenário/modelo pelo usuário: "${description}"
+
+${title && title.trim() ? `Texto promocional / Título a ser renderizado na imagem: "${title}"` : ""}
+
+Descrição física da imagem de referência do produto (YAML):
+${yamlAnalysis}`;
+
+      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+      let parsedPrompt = null;
+
+      if (anthropicApiKey) {
+        try {
+          console.log(
+            "[GERAR_REFERENCIA] Usando Claude 3.5 Sonnet Vision (v2) para gerar o prompt de imagem..."
+          );
+
+          const claudeContent: any[] = [];
+          if (base64Image) {
+            claudeContent.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType,
+                data: base64Image,
+              },
+            });
+            claudeContent.push({
+              type: "text",
+              text: "Esta é a imagem de inspiração/print de layout a ser replicada.",
+            });
+          }
+
+          claudeContent.push({
+            type: "text",
+            text: geminiUserMessage,
+          });
+
+          let response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "x-api-key": anthropicApiKey,
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "claude-3-5-sonnet-20241022",
+              max_tokens: 2000,
+              system: geminiSystemInstruction,
+              messages: [
+                {
+                  role: "user",
+                  content: claudeContent,
+                },
+              ],
+            }),
+          });
+
+          // Se der erro de modelo não encontrado, tentar Haiku 3.5
+          if (!response.ok) {
+            const errText = await response.text();
+            console.warn(
+              "[GERAR_REFERENCIA] Falha com Claude Sonnet 3.5 (Prompt), tentando Haiku:",
+              errText
+            );
+
+            response = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: {
+                "x-api-key": anthropicApiKey,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "claude-3-5-haiku-20241022",
+                max_tokens: 2000,
+                system: geminiSystemInstruction,
+                messages: [
+                  {
+                    role: "user",
+                    content: claudeContent,
+                  },
+                ],
+              }),
+            });
+          }
+
+          if (!response.ok) {
+            const errText = await response.text();
+            console.error("[GERAR_REFERENCIA] Erro no Claude Vision v1/v2 (Prompt):", errText);
+            throw new Error(`Falha no Claude Vision ao gerar prompt: ${errText}`);
+          }
+
+          const resData = await response.json();
+          const rawText = resData.content?.[0]?.text;
+          parsedPrompt = safeJsonParse(rawText);
+        } catch (claudeError) {
+          console.error(
+            "[GERAR_REFERENCIA] Falha catastrófica no Claude Vision (Prompt), acionando fallback para Gemini:",
+            claudeError
+          );
+        }
+      }
+
+      if (!parsedPrompt) {
+        try {
+          console.log("[GERAR_REFERENCIA] Usando Gemini 2.5 Pro de fallback para gerar prompt...");
+          const geminiProUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+
+          const contentsParts: any[] = [];
+          if (inlineDataPart) {
+            contentsParts.push({
+              text: "Esta é a imagem de inspiração/print de layout a ser replicada:",
+            });
+            contentsParts.push(inlineDataPart);
+          }
+          contentsParts.push({ text: geminiUserMessage });
+
+          const response = await fetch(geminiProUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: geminiSystemInstruction }],
+              },
+              contents: [{ parts: contentsParts }],
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+
+          const resData = await response.json();
+          const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          parsedPrompt = safeJsonParse(rawJson);
+        } catch (proError) {
+          console.warn(
+            "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Prompt), tentando Gemini 2.5 Flash:",
+            proError
+          );
+
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+
+          const contentsParts: any[] = [];
+          if (inlineDataPart) {
+            contentsParts.push({
+              text: "Esta é a imagem de inspiração/print de layout a ser replicada:",
+            });
+            contentsParts.push(inlineDataPart);
+          }
+          contentsParts.push({ text: geminiUserMessage });
+
+          const response = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: geminiSystemInstruction }],
+              },
+              contents: [{ parts: contentsParts }],
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+
+          const resData = await response.json();
+          const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          parsedPrompt = safeJsonParse(rawJson);
+        }
+      }
+
+      return NextResponse.json({ success: true, imagePrompt: parsedPrompt.imagePrompt });
+    }
+
+    if (action === "submit-kontext") {
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
+      const prompt = formData.get("prompt") as string;
+      const postId = (formData.get("postId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
+
+      if (!file || !prompt) {
+        return NextResponse.json({ error: "Campos 'file' ou 'prompt' ausentes." }, { status: 400 });
+      }
+
+      // Convert to buffer & crop just in case
+      const arrayBuffer = await file.arrayBuffer();
+      let buffer = Buffer.from(arrayBuffer);
+      const mimeType = file.type || "image/jpeg";
+
+      try {
+        const image = await Jimp.read(buffer);
+        const width = image.width;
+        const height = image.height;
+        if (width !== height) {
+          const size = Math.min(width, height);
+          const x = Math.max(0, Math.floor((width - size) / 2));
+          const y = Math.max(0, Math.floor((height - size) / 2));
+          image.crop({ x, y, w: size, h: size });
+          buffer = await image.getBuffer("image/jpeg");
+        }
+      } catch (e) {
+        console.warn("[GERAR_REFERENCIA] Falha no crop:", e);
+      }
+
+      // Upload to Fal.ai CDN
+      const finalFile = new File([new Blob([buffer], { type: mimeType })], file.name, {
+        type: mimeType,
+      });
+      const garmentPublicUrl = await fal.storage.upload(finalFile);
+
+      // --- REMOÇÃO DE FUNDO AUTOMÁTICA VIA BRIA API ---
+      let transparentProductUrl = garmentPublicUrl;
+      try {
+        console.log(
+          `[GERAR_REFERENCIA] Removendo fundo do produto de forma síncrona via Bria API: ${garmentPublicUrl}`
+        );
+        const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
+          method: "POST",
+          headers: {
+            Authorization: `Key ${rawFalKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image_url: garmentPublicUrl,
+          }),
+        });
+
+        if (briaResponse.ok) {
+          const briaData = await briaResponse.json();
+          const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
+          if (briaUrl) {
+            transparentProductUrl = briaUrl;
+            console.log(
+              `[GERAR_REFERENCIA] Fundo do produto removido com sucesso: ${transparentProductUrl}`
+            );
+
+            // Registrar log de consumo do Bria no Firestore
+            logApiUsage({
+              userId,
+              type: "background_removal",
+              provider: "falai",
+              model: "bria",
+              costUsd: 0.006,
+            });
+          }
+        } else {
+          console.warn(
+            "[GERAR_REFERENCIA] Falha na API do Bria, prosseguindo com imagem original:",
+            await briaResponse.text()
+          );
+        }
+      } catch (briaError) {
+        console.error(
+          "[GERAR_REFERENCIA] Erro catastrófico ao remover fundo do produto (Bria), usando original:",
+          briaError
+        );
+      }
+
+      // Submit to queue
+      const queueResponse = await fetch("https://queue.fal.run/fal-ai/flux-pro/kontext", {
+        method: "POST",
+        headers: {
+          Authorization: `Key ${rawFalKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          image_url: transparentProductUrl,
+          aspect_ratio: "1:1",
+        }),
+      });
+
+      if (!queueResponse.ok) {
+        throw new Error(await queueResponse.text());
+      }
+
+      const queueData = await queueResponse.json();
+      return NextResponse.json({
+        success: true,
+        requestId: queueData.request_id,
+        statusUrl: queueData.status_url,
+        responseUrl: queueData.response_url,
+        garmentPublicUrl: garmentPublicUrl, // Retornando a URL da foto de referência original
+      });
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────────
+    // 🧪 TESTE PROVISÓRIO: submit-imagen4-ref
+    // Substitui o Flux Kontext pelo Google Imagen 4 para benchmarking de qualidade.
+    // Diferença crítica: Imagen 4 é TEXT-TO-IMAGE (não usa a foto do produto como
+    // input direto), mas usa o prompt otimizado gerado a partir da análise do produto.
+    // Fluxo: síncrono (sem fila/polling) → retorna imageUrl direto em COMPLETED.
+    // ──────────────────────────────────────────────────────────────────────────────
+    if (action === "submit-imagen4-ref") {
+      const formData = await request.formData();
+      const prompt = formData.get("prompt") as string;
+      const postId = (formData.get("postId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
+      const userStoragePath = await getUserStoragePathAdmin(userId);
+      const caption = (formData.get("caption") as string) || null;
+
+      if (!prompt || !postId || !userId) {
+        return NextResponse.json(
+          { error: "Campos obrigatórios ausentes: prompt, postId, userId." },
+          { status: 400 }
+        );
+      }
+
+      console.log(
+        `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
+      );
+
+      // Cadeia de modelos: gpt-image-2.5-sunburst primeiro como motor oficial
+      const MODELS_CHAIN = [
+        { provider: "openai", model: "gpt-image-2.6-sunburst" },
+        { provider: "openai", model: "gpt-image-2.6-flare" },
+        { provider: "openai", model: "gpt-image-2.5-sunburst" },
+        { provider: "openai", model: "gpt-image-2.5-flare" },
+        { provider: "openai", model: "gpt-image-2" },
+        { provider: "openai", model: "dall-e-3" },
+      ];
+
+      let imageBytes: string | null = null;
+      let modelUsed = "";
+      let lastError = "";
+      const openaiKey = process.env.OPENAI_API_KEY;
+
+      for (const config of MODELS_CHAIN) {
+        try {
+          console.log(`[IMAGE_REF] Tentando modelo ${config.model} (${config.provider})...`);
+          let bytes: string | null = null;
+
+          if (config.provider === "openai") {
+            if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
+            const nativeSize =
+              config.model.startsWith("gpt-image-")
+                ? "1024x1280"
+                : config.model === "dall-e-3"
+                  ? "1024x1792"
+                  : "1024x1024";
+            const payload: any = {
+              model: config.model,
+              prompt: prompt,
+              n: 1,
+              size: nativeSize,
+            };
+            if (config.model.includes("2.5") || config.model.startsWith("gpt-image-")) {
+              payload.quality = "auto";
+            }
+            if (config.model === "dall-e-3" || config.model === "dall-e-2") {
+              payload.response_format = "b64_json";
+            }
+
+            const response = await fetch("https://api.openai.com/v1/images/generations", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${openaiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              bytes = data?.data?.[0]?.b64_json;
+              if (!bytes && data?.data?.[0]?.url) {
+                console.log(`[IMAGE_REF] URL recebida da OpenAI (${config.model}), baixando imagem...`);
+                const imgRes = await fetch(data.data[0].url);
+                if (imgRes.ok) {
+                  const ab = await imgRes.arrayBuffer();
+                  bytes = Buffer.from(ab).toString("base64");
+                }
+              }
+            } else {
+              const errText = await response.text();
+              lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 250)}`;
+              console.error(`[IMAGE_REF] ${lastError}`);
+              throw new Error(lastError);
+            }
+          } else {
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:predict?key=${apiKey}`;
+            const imagenResponse = await fetch(imagenUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                instances: [{ prompt }],
+                parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "3:4" },
+              }),
+            });
+
+            if (imagenResponse.ok) {
+              const data = await imagenResponse.json();
+              bytes = data?.predictions?.[0]?.bytesBase64Encoded;
+            } else {
+              const errText = await imagenResponse.text();
+              lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 250)}`;
+              console.error(`[IMAGE_REF] ${lastError}`);
+              throw new Error(lastError);
+            }
+          }
+
+          if (bytes) {
+            imageBytes = bytes;
+            modelUsed = config.model;
+            console.log(`[IMAGE_REF] ✅ Sucesso com o modelo ${config.model}!`);
+            break;
+          }
+        } catch (modelErr: any) {
+          console.warn(`[IMAGE_REF] Exceção no modelo ${config.model}:`, modelErr.message);
+        }
+      }
+
+      if (!imageBytes) {
+        return NextResponse.json(
+          { error: `Falha na geração de imagem. ${lastError}` },
+          { status: 500 }
+        );
+      }
+
+      // Pós-processamento Jimp: Redimensionar para 1080 x 1350 (4:5 Vertical Feed) SEM CROP DESTRUTIVO
+      try {
+        const jimpImage = await Jimp.read(Buffer.from(imageBytes, "base64"));
+        jimpImage.resize({ w: 1080, h: 1350 });
+        const processedBuffer = await jimpImage.getBuffer("image/jpeg");
+        imageBytes = processedBuffer.toString("base64");
+      } catch (jimpErr) {
+        console.warn("[IMAGE_REF] Falha ao ajustar resolução 4:5 via Jimp:", jimpErr);
+      }
+
+      // Salvar no Firebase Storage
+      const bucket = admin
+        .storage()
+        .bucket(
+          `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
+        );
+      const buffer = Buffer.from(imageBytes, "base64");
+      const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/imagen4_ref_generated.jpg`);
+      const downloadToken = crypto.randomUUID();
+
+      await fileRef.save(buffer, {
+        metadata: {
+          contentType: "image/jpeg",
+          metadata: { firebaseStorageDownloadTokens: downloadToken },
+        },
+      });
+
+      const firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+      console.log(
+        `[IMAGEN4_REF] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`
+      );
+
+      // Atualizar post no Firestore
+      try {
+        await adminDb
+          .collection("users")
+          .doc(userId)
+          .collection("posts")
+          .doc(postId)
+          .set(
+            {
+              imageUrls: [firebaseDownloadUrl],
+              imagenModelUsed: modelUsed,
+              status: "completed",
+            },
+            { merge: true }
+          );
+      } catch (fsErr) {
+        console.error("[IMAGEN4_REF] Erro ao atualizar Firestore:", fsErr);
+      }
+
+      try {
+        const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
+        await galleryRef.doc(`${postId}_imagen4_ref`).set({
+          id: `${postId}_imagen4_ref`,
+          url: firebaseDownloadUrl,
+          storagePath: fileRef.name,
+          source: "imagen4_ref_benchmark",
+          prompt,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          usedInPostId: null,
+          fileName: "imagen4_ref_generated.jpg",
+          modelUsed,
+          caption,
+        });
+
+        // Registrar log de consumo
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: modelUsed.includes("gpt") ? "openai" : "google_vertex",
+          model: modelUsed || "gpt-image-2",
+          costUsd: 0.03,
+        });
+      } catch (galleryErr) {
+        console.error("[IMAGEN4_REF] Erro ao salvar na galeria:", galleryErr);
+      }
+
+      // Retorna no mesmo formato do check-status COMPLETED para o frontend não precisar de polling
+      return NextResponse.json({
+        success: true,
+        // Flags que o frontend usa para detectar "COMPLETED" sem polling
+        status: "COMPLETED",
+        imageUrl: firebaseDownloadUrl,
+        modelUsed,
+      });
+    }
+
+    if (action === "submit-nanobanana-ref") {
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
+      const secondaryFile = formData.get("secondaryFile") as File | null;
+      const prompt = formData.get("prompt") as string;
+      const postId = (formData.get("postId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
+      const userStoragePath = await getUserStoragePathAdmin(userId);
+      const caption = (formData.get("caption") as string) || null;
+      const layoutStyle = (formData.get("layoutStyle") as string) || "";
+      const hybridPriority = (formData.get("hybridPriority") as string) || "balanced";
+      const openaiKey = process.env.OPENAI_API_KEY;
+
+      if (!file || !prompt || !postId || !userId) {
+        return NextResponse.json(
+          { error: "Campos obrigatórios ausentes: file, prompt, postId, userId." },
+          { status: 400 }
+        );
+      }
+
+      console.log(
+        `[NANOBANANA_REF] Iniciando processamento para o post ${postId} (Preset: ${layoutStyle || "Padrão"})...`
+      );
+
+      // Função auxiliar para processar e redimensionar proporcionalmente sem cortar as bordas do produto
+      const processImageBuffer = async (imgFile: File) => {
+        const arrBuf = await imgFile.arrayBuffer();
+        let buf = Buffer.from(arrBuf);
+        try {
+          const image = await Jimp.read(buf);
+          const maxDim = 1024;
+          if (image.width > maxDim || image.height > maxDim) {
+            image.scaleToFit({ w: maxDim, h: maxDim });
+          }
+
+          buf = await image.getBuffer("image/png");
+        } catch (e) {
+          console.warn("[NANOBANANA_REF] Falha no resize:", e);
+        }
+        return { buffer: buf, mimeType: "image/png" };
+      };
+
+      // 1. Processar Foto 1 (Pessoa/Selfie/Produto)
+      const { buffer: buffer1, mimeType: mimeType1 } = await processImageBuffer(file);
+
+      // Preparar variáveis do subject 2 (Produto/Projeto)
+      let secondaryGarmentPublicUrl = "";
+      let transparentProductUrl = "";
+      let base64Image2 = "";
+      let mimeType2 = "";
+      let garmentPublicUrl = "";
+      let transparentGarmentUrl = "";
+      let displaySystemBlueprint = "";
+
+      const referenceReplicationMode =
+        (formData.get("referenceReplicationMode") as string) || "full";
+
+      if (secondaryFile) {
+        console.log(
+          `[NANOBANANA_REF] Processando Foto 2 (Referência) — Modo: ${referenceReplicationMode}...`
+        );
+        const { buffer: buffer2, mimeType: mimeType2Original } =
+          await processImageBuffer(secondaryFile);
+
+        base64Image2 = buffer2.toString("base64");
+        mimeType2 = mimeType2Original;
+
+        // Extração do Display System Blueprint da Foto de Referência via IA de Visão
+        if (apiKey || openaiKey) {
+          try {
+            console.log(
+              `[DISPLAY_SYSTEM] 🧠 Analisando Foto 2 com IA de Visão (Modo: ${referenceReplicationMode})...`
+            );
+
+            const visionPrompt =
+              referenceReplicationMode === "full"
+                ? `You are an elite Commercial Advertising Art Director & Design Engineer. Analyze this reference ad creative and extract its complete Display & Graphic Layout Blueprint:
+1. Graphic Layout & Architecture (badges, cards, discount containers, price pills, borders, overlay banners, CTA buttons).
+2. Typography & Text Placements (exact headline location, text hierarchy, typography font style, contrast colors, visual weight).
+3. Environment & Backdrop (surface materials, backdrop textures, lighting direction, rim lights, ambient atmosphere).
+4. Composition & Product Placement (where the hero product is anchored, negative space, surrounding splashes or particles).
+
+Respond with a precise 3-4 sentence instruction guiding how to replicate this exact complete advertising creative architecture around a new product.`
+                : `You are an elite Commercial Advertising Art Director & Architectural Photography Engineer. Analyze this reference image and extract its complete architectural and photographic environment setup (ignoring any graphic texts or logos):
+1. Architectural Structure & Scenery (exact building facade, porch, entrance, interior rooms, materials, stone textures, wood grain, tile patterns, flooring, landscaping).
+2. Lighting & Reflections (sunlight angle, time of day, warm/cool ambient temperature, directional shadows, depth of field).
+3. Composition & Placement Zone (identify the ideal placement area to integrate the person from Photo 1 naturally into the scene, leaning or standing harmoniously).
+
+Respond with a concise, rich 3-4 sentence photographic instruction to recreate this exact real-world physical environment and architecture with maximum fidelity.`;
+
+            // 1. Tentar primeiro com OpenAI (GPT-5 com fallback para gpt-4o)
+            if (openaiKey) {
+              const openAiVisionModels = ["gpt-5", "gpt-4o", "chatgpt-4o-latest"];
+              for (const vModel of openAiVisionModels) {
+                try {
+                  console.log(`[DISPLAY_SYSTEM] 🧠 Tentando analisar Foto 2 com OpenAI (${vModel})...`);
+                  const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${openaiKey}`,
+                    },
+                    body: JSON.stringify({
+                      model: vModel,
+                      messages: [
+                        {
+                          role: "user",
+                          content: [
+                            { type: "text", text: visionPrompt },
+                            {
+                              type: "image_url",
+                              image_url: {
+                                url: `data:${mimeType2Original || "image/jpeg"};base64,${buffer2.toString("base64")}`,
+                                detail: "high",
+                              },
+                            },
+                          ],
+                        },
+                      ],
+                    }),
+                  });
+
+                  if (openAiRes.ok) {
+                    const oData = await openAiRes.json();
+                    const oText = oData?.choices?.[0]?.message?.content;
+                    if (oText && oText.trim().length > 0) {
+                      displaySystemBlueprint = oText.trim();
+                      console.log(
+                        `[DISPLAY_SYSTEM] ✅ Blueprint de Foto 2 extraído com sucesso via OpenAI (${vModel}):`,
+                        displaySystemBlueprint.substring(0, 120)
+                      );
+                      break;
+                    }
+                  } else {
+                    const errTxt = await openAiRes.text().catch(() => "");
+                    console.warn(`[DISPLAY_SYSTEM] OpenAI (${vModel}) retornou ${openAiRes.status}: ${errTxt.slice(0, 150)}`);
+                  }
+                } catch (vErr: any) {
+                  console.warn(`[DISPLAY_SYSTEM] Falha no modelo de visão OpenAI (${vModel}):`, vErr?.message);
+                }
+              }
+            }
+
+            // 2. Fallback para Google Gemini 2.5 Flash caso OpenAI não tenha retornado blueprint
+            if (!displaySystemBlueprint && apiKey) {
+              console.log("[DISPLAY_SYSTEM] 🧠 Acionando fallback de análise da Foto 2 para Gemini 2.5 Flash...");
+              const visionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+              const visionRes = await fetch(visionUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        { text: visionPrompt },
+                        {
+                          inlineData: {
+                            mimeType: mimeType2Original || "image/jpeg",
+                            data: buffer2.toString("base64"),
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                }),
+              });
+
+              if (visionRes.ok) {
+                const vData = await visionRes.json();
+                const vText = vData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (vText) {
+                  displaySystemBlueprint = vText.trim();
+                  console.log(
+                    "[DISPLAY_SYSTEM] ✅ Blueprint extraído com sucesso via Gemini 2.5 Flash:",
+                    displaySystemBlueprint.substring(0, 120)
+                  );
+                }
+              }
+            }
+          } catch (visErr: any) {
+            console.warn(
+              "[DISPLAY_SYSTEM] Falha ao extrair Display System Blueprint:",
+              visErr?.message
+            );
+          }
+        }
+      }
+
+      // Se NÃO houver chave OpenAI (fallback para Gemini Nano Banana Pro puro), realiza processamento legado no Fal.ai/Bria
+      if (!openaiKey) {
+        try {
+          const finalFile1 = new File([new Blob([buffer1], { type: mimeType1 })], file.name, {
+            type: mimeType1,
+          });
+          garmentPublicUrl = await fal.storage.upload(finalFile1);
+          console.log(`[NANOBANANA_REF] Foto 1 enviada para CDN do Fal.ai: ${garmentPublicUrl}`);
+        } catch (uploadErr) {
+          console.error(
+            "[NANOBANANA_REF] Erro no upload da Foto 1 para o Fal.ai Storage:",
+            uploadErr
+          );
+        }
+
+        transparentGarmentUrl = garmentPublicUrl;
+        if (hybridPriority === "packshot" && garmentPublicUrl) {
+          try {
+            console.log(
+              `[NANOBANANA_REF] Removendo fundo da Foto 1 (Produto Amador) via Bria API (Packshot)...`
+            );
+            transparentGarmentUrl = await removeBackgroundWithCache(
+              buffer1,
+              garmentPublicUrl,
+              rawFalKey,
+              userId
+            );
+          } catch (briaError) {
+            console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
+          }
+        }
+      } else {
+        console.log(
+          "[NANOBANANA_REF] 🚀 gpt-image-2 ativo: pulando Fal.ai Bria (segmentação e ambientação nativas com custo R$ 0 de Fal.ai)."
+        );
+      }
+
+      // Preparar base64 da Foto 1
+      let finalBase64Image1 = buffer1.toString("base64");
+      let finalMimeType1 = mimeType1;
+
+      if (transparentGarmentUrl && transparentGarmentUrl !== garmentPublicUrl) {
+        try {
+          console.log(
+            `[NANOBANANA_REF] Baixando Foto 1 sem fundo de ${transparentGarmentUrl} para base64...`
+          );
+          const imgRes = await fetch(transparentGarmentUrl);
+          if (imgRes.ok) {
+            const imgArrayBuffer = await imgRes.arrayBuffer();
+            let imgBuffer = Buffer.from(imgArrayBuffer);
+            let mimeTypeDownloaded = imgRes.headers.get("content-type") || "image/png";
+
+            // Otimizar e redimensionar PNG com fundo transparente
+            try {
+              const jimpImg = await Jimp.read(imgBuffer);
+              if (jimpImg.width > 768 || jimpImg.height > 768) {
+                jimpImg.resize({ w: 768, h: 768 });
+              }
+              imgBuffer = await jimpImg.getBuffer("image/png");
+              mimeTypeDownloaded = "image/png";
+            } catch (jimpError) {
+              console.warn("[NANOBANANA_REF] Falha ao re-processar Foto 1 com Jimp:", jimpError);
+            }
+
+            finalBase64Image1 = imgBuffer.toString("base64");
+            finalMimeType1 = mimeTypeDownloaded;
+          }
+        } catch (fetchErr) {
+          console.error("[NANOBANANA_REF] Erro ao baixar Foto 1 sem fundo:", fetchErr);
+        }
+      }
+
+      // 5. Configurar o prompt e a chamada ao Gemini (Nano Banana)
+      const NANOBANANA_MODELS = [
+        "gemini-3-pro-image",
+        "gemini-3.1-flash-image",
+        "gemini-3.5-flash-image",
+      ];
+
+      let nanobananaPrompt = "";
+      let contentsParts: any[] = [];
+
+      const textOverlayMode =
+        (formData.get("textOverlayMode") as string) ||
+        (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
+      const insertTextOnImage =
+        textOverlayMode !== "NONE" && formData.get("insertTextOnImage") !== "false";
+      const textHeadline = (formData.get("textHeadline") as string) || "";
+      const businessProfileRaw = (formData.get("businessProfile") as string) || "";
+
+      const geminiTextRule = insertTextOnImage
+        ? `- REGRA CRÍTICA DE TEXTOS E MARGENS DE SEGURANÇA (ZERO CROPPING - 15% A 20% DE RESPIRO INTERNO): A imagem DEVE incluir a diagramação publicitária solicitada no prompt em Português (pt-BR), porém NENHUMA letra, título, selo ou card lateral pode encostar ou ser cortado pelas bordas da imagem. Mantenha 15% a 20% de margem livre em todos os 4 lados (esquerda, direita, topo e base). Títulos devem ser quebrados em 2 a 3 linhas curtas centralizadas (máximo 70% da largura) e cards de benefícios devem ser flutuantes com os 4 cantos arredondados 100% visíveis dentro do quadro.`
+        : `- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia.`;
+
+      if (secondaryFile) {
+        // Prompt Híbrido Avançado
+        let priorityRule = "";
+        if (hybridPriority === "scenario") {
+          priorityRule = `1. SUBJECT FIDELITY: Depict the person from Photo 1 clearly, but frame them in a wide-shot, full-body, or medium-wide shot (smaller in the frame) to give absolute prominence and priority to the architecture of the house.
+2. PHYSICAL INTEGRATION INTO THE ARCHITECTURE (CRITICAL): Position the person physically integrated with the house/building elements from Photo 2. They must be depicted leaning casually against an external wall, standing right next to the entrance doorway, climbing the porch steps, or entering the door. The person must serve as a scale reference and human context, NEVER as a large, central close-up portrait.
+3. RIGID SCENARIO PRESERVATION (CRITICAL): The scenario, house, interior, or architecture from Photo 2 is the main subject of the foreground and background. You must replicate this physical structure (facade, porch, doors, windows, stone/wood textures) with maximum fidelity.
+4. ASYMMETRIC LATERAL POSITIONING (RULE OF THIRDS): Position the person from Photo 1 off-center, shifted to the far-left or far-right of the image (never centered). The center of the frame must remain completely open and unobstructed to beautifully display the main entrance, door, and structural facade of the house in Photo 2.`;
+        } else if (hybridPriority === "packshot") {
+          priorityRule = `1. PRODUCT SWAP: Identify the main foreground product in Photo 2 and replace it entirely with the product from Photo 1. Place the product from Photo 1 in the exact same position, scale, and angle as the original.
+2. PRODUCT FIDELITY: Replicate the shape, colors, labels, logo, text, and brands of the product from Photo 1 with maximum precision. It must remain readable and identical to the reference.
+3. RIGID BACKDROP PRESERVATION: Recreate the background scenery, decorations, surfaces (table, shelf, ice, etc.) from Photo 2 with maximum fidelity. Do not replace it with a generic background.
+4. LIGHTING & SHADOW FUSION: The new product must realistically absorb the lighting (direction, color, brightness), surface reflections, and contact shadows of the original product from Photo 2.`;
+        } else if (hybridPriority === "person") {
+          priorityRule = `1. MAXIMUM PERSON FIDELITY (PRIMARY FOCUS): Depict the person from Photo 1 with extremely high fidelity of facial features, posture, expressions, and skin textures. They are the absolute hero of the shot.
+2. BODY & APPAREL RECREATION: Draw natural body poses and sophisticated clothing that match the person's physique and the overall theme.
+3. FLEXIBLE SCENARIO ADAPTATION: The product/scenery from Photo 2 serves only as loose background context. You have total creative freedom to simplify, crop, or blur (bokeh effect) the background of Photo 2 to emphasize the person.
+4. LIGHTING FUSION: Integrate the person and the background scene with professional, artistic lighting focused on the main subject.`;
+        } else {
+          priorityRule = `1. SUBJECT FIDELITY: Depict the person from Photo 1 with maximum physical fidelity (face, hair, eyes, skin). They must be clearly recognizable.
+2. BODY & APPAREL RECREATION: Draw natural body poses with refined, high-quality clothing that harmonizes with the scenario.
+3. PRODUCT/PROJECT INTEGRITY: Replicate the product or project from Photo 2, preserving its physical features, colors, and original proportions.
+4. THREE-DIMENSIONAL INTEGRATION: Position the product/project and the person in the scene integrated with realistic lighting, shadows, and reflections. The background must blend them naturally.`;
+        }
+
+        const rawHibridoPrompt = dynamicPrompts.hibrido_prompt || `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
+Com base nas duas imagens de referência fornecidas (Foto 1 e Foto 2), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
+
+DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC (SIGA ESTRITAMENTE):
+${geminiTextRule}
+- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento, deixando um espaço livre (headroom) na parte superior. Nunca corte o topo da cabeça ou cabelo do modelo.
+- Utilize iluminação profissional e natural para criar profundidade e separação tridimensional.
+- Replique o visual de uma câmera profissional de alto padrão (lente 50mm ou 85mm, foco nítido, desfoque suave de fundo).
+- Preserve texturas realistas e tangíveis (grão de filme, poros da pele, dobras de tecido). Evite aspecto de plástico artificial.`;
+
+        nanobananaPrompt = `${rawHibridoPrompt}
+
+REGRAS DE CRIAÇÃO HÍBRIDA PARA ESTA GERAÇÃO:
+${priorityRule}
+
+Cenário desejado e estilo: ${prompt}`;
+
+        contentsParts = [
+          { text: nanobananaPrompt },
+          {
+            inlineData: {
+              mimeType: finalMimeType1,
+              data: finalBase64Image1,
+            },
+          },
+          {
+            inlineData: {
+              mimeType: mimeType2,
+              data: base64Image2,
+            },
+          },
+        ];
+      } else {
+        // Prompt Tradicional (Pessoa Única ou Produto Único)
+        const rawProdutoPrompt = dynamicPrompts.produto_prompt || `Aqui está a foto de referência do produto.
+Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
+
+ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
+1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXATAMENTE como estão na foto de referência.
+2. Não altere, distorça ou modifique o produto. Ele deve parecer real, nítido e idêntico à referência.
+3. Posicione o produto de forma tridimensional e integrada com as sombras e reflexos adequados no cenário.
+4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
+
+DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
+${geminiTextRule}
+- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem.
+- Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave).
+- Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm.`;
+
+        nanobananaPrompt = `${rawProdutoPrompt}
+
+Cenário desejado e estilo: ${prompt}`;
+
+        contentsParts = [
+          { text: nanobananaPrompt },
+          {
+            inlineData: {
+              mimeType: finalMimeType1,
+              data: finalBase64Image1,
+            },
+          },
+        ];
+      }
+
+      let imageBytes: string | null = null;
+      let modelUsed = "";
+
+      // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2.5-sunburst (Image-to-Image) como motor primário!
+      let effectiveLayoutStyle = layoutStyle;
+      const promptLower = (prompt || "").toLowerCase();
+      if (!effectiveLayoutStyle || effectiveLayoutStyle === "AUTO") {
+        if (promptLower.includes("/techfuturistic") || promptLower.includes("/tech")) effectiveLayoutStyle = "PRODUCT_TECH";
+        else if (promptLower.includes("/metaad") || promptLower.includes("/ad")) effectiveLayoutStyle = "PRODUCT_METAAD";
+        else if (promptLower.includes("/premiumshowcase") || promptLower.includes("/showcase") || promptLower.includes("/luxo")) effectiveLayoutStyle = "PRODUCT_PREMIUM";
+        else if (promptLower.includes("/3dbillboard") || promptLower.includes("/billboard")) effectiveLayoutStyle = "PRODUCT_BILLBOARD";
+        else if (promptLower.includes("/lifestylecontext") || promptLower.includes("/lifestyle")) effectiveLayoutStyle = "PRODUCT_LIFESTYLE";
+        else if (promptLower.includes("/dynamicaction") || promptLower.includes("/dynamic") || promptLower.includes("/splash")) effectiveLayoutStyle = "PRODUCT_DYNAMIC";
+        else if (promptLower.includes("/minimalcatalog") || promptLower.includes("/catalog")) effectiveLayoutStyle = "PRODUCT_CATALOG";
+        else if (promptLower.includes("/luxurycosmetics") || promptLower.includes("/cosmetics")) effectiveLayoutStyle = "PRODUCT_COSMETICS";
+        else if (promptLower.includes("/flatlayknolling") || promptLower.includes("/flatlay")) effectiveLayoutStyle = "PRODUCT_FLATLAY";
+        else if (promptLower.includes("/gourmetculinary") || promptLower.includes("/gourmet")) effectiveLayoutStyle = "PRODUCT_GOURMET";
+        else if (promptLower.includes("/rusticorganic") || promptLower.includes("/rustic")) effectiveLayoutStyle = "PRODUCT_RUSTIC";
+        else if (promptLower.includes("/testimonialad") || promptLower.includes("/testimonial")) effectiveLayoutStyle = "PRODUCT_TESTIMONIAL";
+        else if (promptLower.includes("/ugcproductphoto") || promptLower.includes("/ugc")) effectiveLayoutStyle = "PRODUCT_UGC";
+        else if (promptLower.includes("/productpackaging") || promptLower.includes("/packaging")) effectiveLayoutStyle = "PRODUCT_PACKAGING";
+        else if (promptLower.includes("/costumerphoto+quote") || promptLower.includes("/customerphoto") || promptLower.includes("/quote")) effectiveLayoutStyle = "PRODUCT_CUSTOMER_QUOTE";
+        else if (promptLower.includes("/unboxingimagead") || promptLower.includes("/unboxing")) effectiveLayoutStyle = "PRODUCT_UNBOXING";
+        else if (promptLower.includes("/productmockup") || promptLower.includes("/mockup")) effectiveLayoutStyle = "PRODUCT_MOCKUP";
+      }
+
+      const isProductPreset = Boolean(effectiveLayoutStyle && effectiveLayoutStyle.startsWith("PRODUCT_"));
+
+      let brandTypographyDirective = "";
+      let brandIdentityDirective = "";
+      if (businessProfileRaw) {
+        try {
+          const bp = JSON.parse(businessProfileRaw);
+          if (bp.businessName) {
+            brandIdentityDirective = `Brand: ${bp.businessName}. `;
+          }
+          const primaryF = bp.brandKit?.fonts?.primaryFont || bp.visualIdentity?.typography?.primaryFont;
+          const secondaryF = bp.brandKit?.fonts?.secondaryFont || bp.visualIdentity?.typography?.secondaryFont;
+          const styleF = bp.brandKit?.fonts?.style || bp.visualIdentity?.typography?.style;
+          if (primaryF || secondaryF || styleF) {
+            brandTypographyDirective = `strictly following the BrandKit typography system (Primary Title/Bold Font: "${primaryF || 'Modern Geometric Sans-Serif Bold'}", Secondary Body/Normal Font: "${secondaryF || 'Modern Geometric Sans-Serif Regular'}", General Style: "${styleF || 'Clean modern corporate sans-serif'}" — render ALL text lines using a single unified modern geometric sans-serif family, differentiating setup vs. bold lines strictly by Regular vs. Bold weight of the exact same family, with ZERO serifs or mismatched fonts)`;
+          } else if (bp.visualIdentity?.typography?.primaryFont) {
+            brandTypographyDirective = `with ${bp.visualIdentity.typography.primaryFont} typography style`;
+          } else if (bp.visualIdentity?.typography?.style) {
+            brandTypographyDirective = `with ${bp.visualIdentity.typography.style} typography style`;
+          }
+        } catch (bpErr) {
+          console.warn("[NANOBANANA_REF] Falha ao processar businessProfile:", bpErr);
+        }
+      }
+
+      if (openaiKey) {
+        const STYLE_LABELS: Record<string, string> = {
+          PRODUCT_TECH:
+            "FUTURISTIC TECH HERO CLOSE-UP: Dark cyber-tech commercial poster. The product is the massive central hero resting on a glowing circular high-tech podium with cyan and orange neon rim lighting, floating sci-fi holographic HUD elements. Sleek UI aesthetic, zero full-body people, macro focus.",
+          PRODUCT_PREMIUM:
+            "ULTRA-LUXURY COMMERCIAL HERO CLOSE-UP: Opulent luxury advertising poster. The product is the massive central hero resting on an artisanal dark wood slab or polished Carrara marble pedestal with atmospheric warm studio glow and subtle embers/sparks. Macro product details.",
+          PRODUCT_METAAD:
+            "META ADS HIGH-CONVERSION PRODUCT HERO CLOSE-UP: High-impact social media commercial poster. The physical product is the massive central hero staged on a high-contrast commercial surface with sharp rim-light separation, dramatic lighting, bold promotional headline, and clean advertising design. No full-body people.",
+          PRODUCT_BILLBOARD:
+            "3D OUTDOOR BILLBOARD PRODUCT HERO: Giant anamorphic 3D billboard staging where the product breaks out of the billboard frame with massive 3D scale, dramatic volumetric spotlights, and urban city lights.",
+          PRODUCT_DYNAMIC:
+            "HIGH-SPEED DYNAMIC ACTION PRODUCT HERO: High-energy advertising poster with frozen water splashes, suspended ingredient slices or energy particles at 1/8000s shutter freeze around the hero product in close-up.",
+          PRODUCT_CATALOG:
+            "E-COMMERCE CLEAN CATALOG PRODUCT HERO: Minimalist studio catalog presentation. Pure neutral studio backdrop, uniform shadowless illumination, clean modern headline, and sharp product macro focus.",
+          PRODUCT_COSMETICS:
+            "HIGH-END BEAUTY & SKINCARE EDITORIAL PRODUCT HERO: Ethereal cosmetic advertising layout. Translucent acrylic ripple water tray, pastel studio backlighting, delicate organic floral petals and golden serum droplets around the hero bottle in close-up.",
+          PRODUCT_FLATLAY:
+            "90-DEGREE FLAT LAY KNOLLING PRODUCT HERO: Top-down orthographic product arrangement. Tactile linen or wood surface, perfectly organized complementary items around the central hero product.",
+          PRODUCT_GOURMET:
+            "ARTISANAL GOURMET CULINARY PRODUCT HERO: Mouthwatering gourmet food advertisement. Warm rustic restaurant setting, rising steam, appetizing macro textures and fresh ingredients around the hero item.",
+          PRODUCT_RUSTIC:
+            "ORGANIC & ARTISANAL CRAFT PRODUCT HERO: Raw organic wood slab, dried eucalyptus branches, warm sunbeams, handcrafted natural atmosphere around the central product in close-up.",
+          PRODUCT_LIFESTYLE:
+            "ASPIRATIONAL LIFESTYLE PRODUCT HERO (TIGHT CLOSE-UP): Real-world aspirational environment with natural morning window lighting, close-up macro focus on the product in use, with hands or background softly blurred.",
+          PRODUCT_TESTIMONIAL:
+            "CUSTOMER TESTIMONIAL & 5-STAR REVIEW AD: High-conversion social proof advertisement. The physical product is the prominent hero on an elegant studio surface, accompanied by a clean floating glassmorphism 5-star rating card and customer testimonial quote. No full-body standing people. Macro product focus.",
+          PRODUCT_UGC:
+            "AUTHENTIC UGC PRODUCT PHOTOGRAPHY: Real-world smartphone-style aesthetic (iPhone photography). Tight macro close-up of a hand holding or interacting with the hero product in an authentic sunlit environment (cafe, office, or modern room), with soft background blur. Real-world authentic texture, zero artificial stiffness.",
+          PRODUCT_PACKAGING:
+            "LUXURY PRODUCT & PACKAGING SHOWCASE: Staging of the hero product positioned directly next to its open premium rigid gift box and embossed brand packaging on a textured stone or wood pedestal. Studio rim lighting highlighting materials, embossing, and craftsmanship.",
+          PRODUCT_CUSTOMER_QUOTE:
+            "CUSTOMER PHOTO & QUOTE COMMERCIAL AD: Authentic customer moment with tight macro close-up on the product in use, paired with an elegant floating quotation bubble containing a heartfelt customer praise quote. Customer in soft background bokeh.",
+          PRODUCT_UNBOXING:
+            "AESTHETIC UNBOXING EXPERIENCE AD: Top-down / angle unboxing presentation. An open luxury matte unboxing box with delicate tissue paper revealing the pristine hero product nestled inside, surrounded by branded ribbon and thank you card on a clean tabletop.",
+          PRODUCT_MOCKUP:
+            "ULTRA-CLEAN 3D AGENCY PRODUCT MOCKUP: Floating minimalist commercial 3D render of the hero product with soft directional contact shadow, translucent materials, studio softbox illumination, and aesthetic clean pastel gradient backdrop.",
+        };
+
+        const styleHeader =
+          isProductPreset && STYLE_LABELS[effectiveLayoutStyle]
+            ? `[VISUAL THEME: ${STYLE_LABELS[effectiveLayoutStyle]}] `
+            : "";
+
+        let cleanPrompt = (prompt || "")
+          .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|testimonialad|ugcproductphoto|productpackaging|costumerphoto\+quote|customerphoto|quote|unboxingimagead|productmockup|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto|unboxing|mockup|packaging)/gi, "")
+          .trim();
+
+        const combinedContextLower = `${prompt} ${caption} ${textHeadline}`.toLowerCase();
+        const isApparelOrModelRequested =
+          combinedContextLower.includes("vestir") ||
+          combinedContextLower.includes("vestida") ||
+          combinedContextLower.includes("vestido") ||
+          combinedContextLower.includes("modelo") ||
+          combinedContextLower.includes("model") ||
+          combinedContextLower.includes("roupa") ||
+          combinedContextLower.includes("conjunto") ||
+          combinedContextLower.includes("clothing") ||
+          combinedContextLower.includes("apparel") ||
+          combinedContextLower.includes("fashion") ||
+          combinedContextLower.includes("look") ||
+          combinedContextLower.includes("t-shirt") ||
+          combinedContextLower.includes("shirt") ||
+          combinedContextLower.includes("pants") ||
+          combinedContextLower.includes("calça") ||
+          combinedContextLower.includes("camisa") ||
+          combinedContextLower.includes("suit");
+
+        if (isProductPreset && !isApparelOrModelRequested) {
+          cleanPrompt = cleanPrompt
+            .replace(/full[- ]body (shot|portrait|fashion|photo)[^\.]*\.?/gi, "")
+            .replace(/entire person visible from head to feet[^\.]*\.?/gi, "")
+            .replace(/showing the model from the (very )?top of their head down to their feet[^\.]*\.?/gi, "")
+            .replace(/a (confident|fit|handsome|beautiful)? ?(male|female)? ?(model|athlete|man|woman|person) (is the central subject|stands in a relaxed[^\.]*|is standing[^\.]*|stands[^\.]*)\.?/gi, "")
+            .replace(/no cropping of head or hair[^\.]*\.?/gi, "")
+            .replace(/generous headroom above the head[^\.]*\.?/gi, "")
+            .trim();
+        }
+
+        const heroProductRule = isProductPreset
+          ? isApparelOrModelRequested
+            ? "FASHION & APPAREL EDITORIAL FRAMING: The clothing/apparel from the input image is worn naturally by a professional fashion model in a stylish pose, perfectly showcasing the fit, silhouette, drape, and design of the outfit in a high-end commercial fashion advertisement. The outfit is the hero of the image, sharply rendered with realistic fabric textures."
+            : "CRITICAL FRAMING MANDATE — HERO PRODUCT MACRO CLOSE-UP (ABSOLUTE PROTAGONIST): The physical product from the input image MUST ALWAYS BE THE MASSIVE CENTRAL HERO occupying 55% to 80% of the entire image canvas in high-detail macro or close-up studio photography. STRICTLY FORBIDDEN: DO NOT generate full-body human models, standing people, or wide environmental room shots where the product appears small. If human interaction is depicted (e.g. wearing a watch or holding a bottle), the camera MUST BE A TIGHT MACRO CLOSE-UP focused solely on the product on the wrist/hand, with the human person completely out of focus or cropped out of frame. The product itself must dominate the visual hierarchy."
+          : isApparelOrModelRequested
+          ? "FASHION & APPAREL EDITORIAL FRAMING: The clothing/apparel from the input image is worn naturally by a professional fashion model in a stylish pose, showcasing the outfit with realistic fabric textures and studio fashion lighting."
+          : "";
+
+        const headlineToUse =
+          textHeadline ||
+          (caption && caption.trim().length > 0 && caption.trim().length < 80 ? caption.trim() : "") ||
+          "";
+
+        let agencyDirective = "";
+        if (textOverlayMode === "INFOGRAPHIC" || textOverlayMode === "BOTH") {
+          const headlineText = headlineToUse
+            ? `with the exact headline: "${headlineToUse}"`
+            : "with a short impactful Portuguese headline and quality seal";
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE — ZERO TEXT CROPPING): Construct a complete commercial advertising poster / infographic card in Portuguese (pt-BR). Include: (1) A compact, bold headline at the top in Portuguese (pt-BR) ${headlineText}, broken into 2-3 short centered lines occupying at most 70% of the canvas width, (2) A floating circular quality/guarantee seal badge (e.g. "QUALIDADE PREMIUM", "100% ORIGINAL" or "GARANTIA TOTAL") placed well inside the safe zone, (3) The hero product prominently staged in high fidelity with thematic lighting, (4) 3 compact floating benefit cards with minimalist icons and short 2-3 word Portuguese descriptors tailored to the product's features. [CRITICAL RULE — NO EDGE-FLUSH CARDS & 15%-20% SAFE INNER MARGIN]: Every headline word, badge, and floating benefit card MUST be inset with at least 15% to 20% empty background padding from the left, right, top, and bottom canvas edges. NEVER attach or bleed benefit cards onto the right or left border of the image — all 4 rounded corners of every card and 100% of all letters must be completely visible inside the frame.`;
+        } else if (textOverlayMode === "TITLE_ONLY") {
+          const headlineText = headlineToUse ? `"${headlineToUse}"` : '"O SEU PRODUTO EM DESTAQUE"';
+          agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE — ZERO TEXT CROPPING): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR): ${headlineText}, broken into 2-3 compact centered lines occupying at most 70% of the canvas width with at least 15% to 20% empty margin on the left, right, and top borders so NO letter is ever cut off, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom.`;
+        } else if (isProductPreset) {
+          agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
+        } else {
+          agencyDirective = "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
+        }
+
+        let typographyPrompt = "";
+        if (insertTextOnImage && headlineToUse) {
+          typographyPrompt = `CUSTOM HEADLINE & ANTI-CROPPING RULE: Use the exact headline text "${headlineToUse}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Break the headline into 2-3 compact centered lines within the central 70% of the frame width, maintaining a strict 15-20% inner safe margin from the left, right, top, and bottom borders so the first and last letters are NEVER clipped. Ensure perfect spelling in Portuguese, sharp crisp characters, and zero typos.`;
+        } else if (!insertTextOnImage && textOverlayMode === "NONE") {
+          typographyPrompt =
+            "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
+        }
+
+        const displaySystemHeader = displaySystemBlueprint
+          ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
+          : "";
+
+        const openaiPrompt = `${heroProductRule} ${styleHeader}${displaySystemHeader} Commercial advertising photography in 4:5 vertical portrait format (1024x1280) featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} The product must be sharply in focus, large-scale, with tactile textures and authentic material details. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+
+        const isHybridPersonScene = Boolean(secondaryFile);
+        const shouldRunOpenAiEdits = Boolean(openaiKey);
+
+        let openAiPersonScenePrompt = "";
+        if (isHybridPersonScene) {
+          let integrationDirective = "";
+          if (hybridPriority === "scenario") {
+            integrationDirective =
+              "Position the person from the input image standing or posing harmoniously integrated into the architecture/setting, naturally placed as a realistic human presence, maintaining full body and facial identity, while the physical environment, facade and building structure described dominate the scene with high architectural fidelity.";
+          } else if (hybridPriority === "person") {
+            integrationDirective =
+              "The person from the input image is the clear hero and protagonist of the photograph, retaining accurate face, hair, and physique, dressed stylishly and naturally in the environment described.";
+          } else {
+            integrationDirective =
+              "Harmoniously blend the person from the input image with the physical environment and architecture described, with realistic contact lighting, shadows, and natural depth of field.";
+          }
+
+          const scenarioDesc = displaySystemBlueprint
+            ? `[ARCHITECTURAL & ENVIRONMENT BLUEPRINT FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
+            : "";
+
+          const hybridTextDirective = insertTextOnImage
+            ? `${agencyDirective} ${typographyPrompt}`
+            : "ZERO written text, no watermarks, no artificial overlay badges.";
+
+          openAiPersonScenePrompt = `Commercial advertising and realistic lifestyle photography in 4:5 vertical portrait format (1024x1280). Integrate the person from this input image into this exact physical architectural environment: ${scenarioDesc}${cleanPrompt || "modern real estate and lifestyle setting"}. ${integrationDirective} ${hybridTextDirective} Professional photography, cinematic daylight, authentic textures, sharp focus, 8k resolution, photorealistic.`;
+        }
+
+        const finalOpenAiPrompt = isHybridPersonScene ? openAiPersonScenePrompt : openaiPrompt;
+        const openAiModelsToTry = [
+          "gpt-image-2.6-sunburst",
+          "gpt-image-2.6-flare",
+          "gpt-image-2.5-sunburst",
+          "gpt-image-2.5-flare",
+          "gpt-image-2",
+        ];
+
+        if (shouldRunOpenAiEdits) {
+          modelLoop: for (const currentOpenAiModel of openAiModelsToTry) {
+            for (let attempt = 1; attempt <= 2; attempt++) {
+              try {
+                const targetEditSize = attempt === 1 ? "1024x1280" : "1024x1536";
+                console.log(
+                  `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando para OpenAI /v1/images/edits (${currentOpenAiModel} - size: ${targetEditSize} - Tentativa ${attempt}/2)...`
+                );
+                const editsFormData = new FormData();
+                const productBlob = new Blob([buffer1], { type: "image/png" });
+                editsFormData.append("image", productBlob, "subject.png");
+                editsFormData.append("model", currentOpenAiModel);
+                editsFormData.append("prompt", finalOpenAiPrompt);
+                editsFormData.append("n", "1");
+                editsFormData.append("size", targetEditSize);
+                if (currentOpenAiModel.includes("2.5") || currentOpenAiModel.startsWith("gpt-image-")) {
+                  editsFormData.append("quality", "auto");
+                }
+
+                const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openaiKey}`,
+                  },
+                  body: editsFormData,
+                });
+
+                if (openaiRes.ok) {
+                  const resData = await openaiRes.json();
+                  let b64 = resData?.data?.[0]?.b64_json;
+                  if (!b64 && resData?.data?.[0]?.url) {
+                    const imgRes = await fetch(resData.data[0].url);
+                    if (imgRes.ok) {
+                      const ab = await imgRes.arrayBuffer();
+                      b64 = Buffer.from(ab).toString("base64");
+                    }
+                  }
+                  if (b64) {
+                    imageBytes = b64;
+                    modelUsed = currentOpenAiModel;
+                    console.log(
+                      `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${currentOpenAiModel} - ${targetEditSize})!`
+                    );
+                    break modelLoop;
+                  }
+                } else {
+                  const errTxt = await openaiRes.text().catch(() => "");
+                  console.warn(
+                    `[NANOBANANA_REF] OpenAI /v1/images/edits (${currentOpenAiModel}) tentativa ${attempt} falhou:`,
+                    errTxt.slice(0, 160)
+                  );
+                  if (attempt < 2) {
+                    await new Promise((r) => setTimeout(r, 1000));
+                  }
+                }
+              } catch (openaiErr: any) {
+                console.warn(
+                  `[NANOBANANA_REF] Exceção no Image-to-Image (${currentOpenAiModel} - Tentativa ${attempt}):`,
+                  openaiErr.message
+                );
+                if (attempt < 2) {
+                  await new Promise((r) => setTimeout(r, 1000));
+                }
+              }
+            }
+          }
+
+          // Fallback secundário OpenAI (/v1/images/generations com gpt-image-2.5-sunburst em 1024x1280) caso /v1/images/edits falhe
+          if (!imageBytes) {
+            for (const genModel of openAiModelsToTry) {
+              try {
+                console.log(
+                  `[NANOBANANA_REF] 🔄 Tentando OpenAI /v1/images/generations (${genModel} - 1024x1280)...`
+                );
+                const genRes = await fetch("https://api.openai.com/v1/images/generations", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openaiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: genModel,
+                    prompt: finalOpenAiPrompt,
+                    n: 1,
+                    size: "1024x1280",
+                    quality: "auto",
+                  }),
+                });
+                if (genRes.ok) {
+                  const genData = await genRes.json();
+                  let b64 = genData?.data?.[0]?.b64_json;
+                  if (!b64 && genData?.data?.[0]?.url) {
+                    const imgRes = await fetch(genData.data[0].url);
+                    if (imgRes.ok) {
+                      const ab = await imgRes.arrayBuffer();
+                      b64 = Buffer.from(ab).toString("base64");
+                    }
+                  }
+                  if (b64) {
+                    imageBytes = b64;
+                    modelUsed = genModel;
+                    console.log(
+                      `[NANOBANANA_REF] ✅ Sucesso com OpenAI /v1/images/generations (${genModel})!`
+                    );
+                    break;
+                  }
+                }
+              } catch (genErr: any) {
+                console.warn(
+                  `[NANOBANANA_REF] Falha no fallback /v1/images/generations (${genModel}):`,
+                  genErr.message
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // Se não gerou via OpenAI, utiliza o Nano Banana Pro como fallback de contingência
+      if (!imageBytes) {
+        for (const model of NANOBANANA_MODELS) {
+          let timeoutId: NodeJS.Timeout | null = null;
+          try {
+            console.log(`[NANOBANANA_REF] Tentando gerar com modelo ${model}...`);
+            const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => {
+              console.warn(
+                `[NANOBANANA_REF] Timeout de 75s atingido para o modelo ${model}. Abortando...`
+              );
+              controller.abort();
+            }, 75000);
+
+            let response = await fetch(nanobananaUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: contentsParts,
+                  },
+                ],
+                generationConfig: {
+                  responseModalities: ["IMAGE"],
+                  imageConfig: {
+                    aspectRatio: "3:4",
+                  },
+                },
+              }),
+              signal: controller.signal,
+            });
+
+            if (!response.ok && response.status === 400) {
+              response = await fetch(nanobananaUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: contentsParts,
+                    },
+                  ],
+                }),
+                signal: controller.signal,
+              });
+            }
+
+            if (timeoutId) clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              const bytes = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              if (bytes) {
+                imageBytes = bytes;
+                modelUsed = model;
+                console.log(`[NANOBANANA_REF] ✅ Sucesso total com o modelo ${model}!`);
+                break;
+              } else {
+                console.warn(
+                  `[NANOBANANA_REF] Resposta ok do modelo ${model}, mas bytes de imagem ausentes:`,
+                  JSON.stringify(data).substring(0, 200)
+                );
+              }
+            } else {
+              const errText = await response.text().catch(() => `status ${response.status}`);
+              console.warn(
+                `[NANOBANANA_REF] Modelo ${model} retornou erro (${response.status}): ${errText.substring(0, 150)}`
+              );
+            }
+          } catch (modelErr: any) {
+            if (timeoutId) clearTimeout(timeoutId);
+            console.warn(`[NANOBANANA_REF] Exceção na chamada do modelo ${model}:`, modelErr.message);
+          }
+        }
+      }
+
+      if (!imageBytes) {
+        return NextResponse.json(
+          {
+            error:
+              "Todos os motores de geração de imagem por referência (OpenAI gpt-image-2.5-sunburst e Google Gemini) falharam.",
+          },
+          { status: 500 }
+        );
+      }
+
+      // Pós-processamento Jimp: Redimensionar para 1080 x 1350 (4:5 Vertical Feed) SEM CROP DESTRUTIVO NAS BORDAS
+      try {
+        const jimpImage = await Jimp.read(Buffer.from(imageBytes, "base64"));
+        jimpImage.resize({ w: 1080, h: 1350 });
+        const processedBuffer = await jimpImage.getBuffer("image/jpeg");
+        imageBytes = processedBuffer.toString("base64");
+      } catch (jimpErr) {
+        console.warn("[NANOBANANA_REF] Falha ao redimensionar para 4:5 via Jimp:", jimpErr);
+      }
+
+      // 6. Gravar a imagem gerada no Firebase Storage
+      const bucket = admin
+        .storage()
+        .bucket(
+          `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
+        );
+      const generatedBuffer = Buffer.from(imageBytes, "base64");
+      const isOpAi =
+        modelUsed?.includes("gpt-image") ||
+        modelUsed?.includes("chatgpt-image") ||
+        modelUsed?.includes("dall-e");
+
+      const storageFileName = isOpAi ? "gpt_product_preset_generated.jpg" : "nanobanana_ref_generated.jpg";
+      const sourceTag = isOpAi ? "gpt_product_preset" : "nanobanana_ref";
+      const docId = isOpAi ? `${postId}_gpt_product_preset` : `${postId}_nanobanana_ref`;
+
+      const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/${storageFileName}`);
+      const downloadToken = crypto.randomUUID();
+
+      await fileRef.save(generatedBuffer, {
+        metadata: {
+          contentType: "image/jpeg",
+          metadata: { firebaseStorageDownloadTokens: downloadToken },
+        },
+      });
+
+      const firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+      console.log(
+        `[GERAR_REFERENCIA] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`
+      );
+
+      // 7. Salvar e carregar referências secundárias se houver
+      let firebaseSecondaryRefUrl = null;
+      if (secondaryFile && secondaryGarmentPublicUrl) {
+        try {
+          const refRes2 = await fetch(secondaryGarmentPublicUrl);
+          if (refRes2.ok) {
+            const refBuffer2 = Buffer.from(await refRes2.arrayBuffer());
+            const refFileRef2 = bucket.file(
+              `${userStoragePath}/posts/${postId}/secondary_reference_image.jpg`
+            );
+            const refDownloadToken2 = crypto.randomUUID();
+
+            await refFileRef2.save(refBuffer2, {
+              metadata: {
+                contentType: secondaryFile.type || "image/jpeg",
+                metadata: { firebaseStorageDownloadTokens: refDownloadToken2 },
+              },
+            });
+            firebaseSecondaryRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef2.name)}?alt=media&token=${refDownloadToken2}`;
+            console.log(
+              `[GERAR_REFERENCIA] Foto de referência secundária salva no Storage via Admin: ${firebaseSecondaryRefUrl}`
+            );
+          }
+        } catch (saveRefErr) {
+          console.error(
+            "[GERAR_REFERENCIA] Erro ao salvar referência secundária no Storage:",
+            saveRefErr
+          );
+        }
+      }
+
+      // 8. Atualizar post no Firestore
+      try {
+        await adminDb
+          .collection("users")
+          .doc(userId)
+          .collection("posts")
+          .doc(postId)
+          .set(
+            {
+              imageUrls: [firebaseDownloadUrl],
+              referenceImageUrl: garmentPublicUrl || null,
+              secondaryReferenceImageUrl: firebaseSecondaryRefUrl || null,
+              modelUsed: modelUsed,
+              layoutStyle: layoutStyle || null,
+              status: "completed",
+            },
+            { merge: true }
+          );
+      } catch (fsErr) {
+        console.error("[GERAR_REFERENCIA] Erro ao atualizar Firestore:", fsErr);
+      }
+
+      try {
+        const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
+        await galleryRef.doc(docId).set({
+          id: docId,
+          url: firebaseDownloadUrl,
+          storagePath: fileRef.name,
+          source: sourceTag,
+          prompt,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          usedInPostId: null,
+          fileName: storageFileName,
+          modelUsed,
+          caption,
+        });
+        console.log(`[GERAR_REFERENCIA] Imagem gravada na galeria.`);
+
+        // Registrar log de consumo do modelo utilizado
+        const isOpAi =
+          modelUsed?.includes("gpt-image") ||
+          modelUsed?.includes("chatgpt-image") ||
+          modelUsed?.includes("dall-e");
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: isOpAi ? "openai" : "google_gemini",
+          model: modelUsed || "gemini-3-pro-image",
+          costUsd: isOpAi ? 0.04 : 0.03,
+        });
+      } catch (galleryErr) {
+        console.error("[NANOBANANA_REF] Erro ao salvar na galeria:", galleryErr);
+      }
+
+      // Retorna no formato compatível com o polling
+      return NextResponse.json({
+        success: true,
+        status: "COMPLETED",
+        imageUrl: firebaseDownloadUrl,
+        modelUsed,
+      });
+    }
+
+    if (action === "submit-dalle") {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return NextResponse.json(
+          {
+            error:
+              "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o gpt-image-2.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const formData = await request.formData();
+      const prompt = formData.get("prompt") as string;
+      const postId = (formData.get("postId") as string) || "";
+      const userId = authUser.uid; // SEGURANÇA: sempre o usuário autenticado
+      const userStoragePath = await getUserStoragePathAdmin(userId);
+
+      if (!prompt) {
+        return NextResponse.json({ error: "Campo 'prompt' ausente." }, { status: 400 });
+      }
+
+      console.log(
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2.5-sunburst) para gerar imagem conceitual..."
+      );
+      try {
+        const dalleModels = ["gpt-image-2.5-sunburst", "gpt-image-2.5-flare", "gpt-image-2"];
+        let resData: any = null;
+        let lastDalleErr = "";
+        for (const dModel of dalleModels) {
+          const response = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openaiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: dModel,
+              prompt: prompt,
+              n: 1,
+              size: "1024x1280",
+              quality: "auto",
+            }),
+          });
+          if (response.ok) {
+            resData = await response.json();
+            break;
+          } else {
+            lastDalleErr = await response.text();
+            console.warn(`[GERAR_REFERENCIA] Falha em ${dModel}:`, lastDalleErr.slice(0, 160));
+          }
+        }
+
+        if (!resData) {
+          console.error("[GERAR_REFERENCIA] Erro na API da OpenAI (gpt-image-2.5-sunburst):", lastDalleErr);
+          throw new Error(`Erro na API da OpenAI (gpt-image-2.5-sunburst): ${lastDalleErr}`);
+        }
+
+        let b64Data = resData.data?.[0]?.b64_json;
+        const urlData = resData.data?.[0]?.url;
+
+        if (!b64Data && !urlData) {
+          throw new Error("Nenhum dado de imagem (url ou b64_json) retornado pela OpenAI.");
+        }
+
+        if (!b64Data && urlData) {
+          const urlRes = await fetch(urlData);
+          if (urlRes.ok) {
+            const ab = await urlRes.arrayBuffer();
+            b64Data = Buffer.from(ab).toString("base64");
+          }
+        }
+
+        let dalleImageUrl = urlData || "";
+
+        if (b64Data && postId && userId) {
+          console.log(
+            "[GERAR_REFERENCIA] Gravando imagem Base64 da OpenAI direto no Firebase Storage..."
+          );
+          try {
+            // Pós-processamento Jimp: Redimensionar para 1080 x 1350 (4:5 Vertical Feed) SEM CROP DESTRUTIVO
+            try {
+              const jimpImage = await Jimp.read(Buffer.from(b64Data, "base64"));
+              jimpImage.resize({ w: 1080, h: 1350 });
+              const processedBuffer = await jimpImage.getBuffer("image/jpeg");
+              b64Data = processedBuffer.toString("base64");
+            } catch (jimpErr) {
+              console.warn("[SUBMIT_DALLE] Falha ao ajustar resolução 4:5 via Jimp:", jimpErr);
+            }
+
+            const bucket = admin
+              .storage()
+              .bucket(
+                admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app"
+              );
+            const buffer = Buffer.from(b64Data, "base64");
+            const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/temp_dalle.jpg`);
+            const downloadToken = crypto.randomUUID();
+
+            await fileRef.save(buffer, {
+              metadata: {
+                contentType: "image/jpeg",
+                metadata: {
+                  firebaseStorageDownloadTokens: downloadToken,
+                },
+              },
+            });
+
+            dalleImageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+            console.log(
+              `[GERAR_REFERENCIA] Imagem Base64 salva temporariamente no Firebase Storage: ${dalleImageUrl}`
+            );
+          } catch (fsErr) {
+            console.error("[GERAR_REFERENCIA] Erro ao salvar Base64 no Firebase Storage:", fsErr);
+            throw fsErr;
+          }
+        }
+
+        console.log(`[GERAR_REFERENCIA] Imagem da OpenAI gerada com sucesso.`);
+
+        const origin = request.nextUrl.origin;
+        const fakeStatusUrl = `${origin}/api/conteudo/gerar-referencia?action=dalle-status&imageUrl=${encodeURIComponent(dalleImageUrl)}`;
+
+        return NextResponse.json({
+          success: true,
+          requestId: "dalle-direct",
+          statusUrl: fakeStatusUrl,
+          responseUrl: fakeStatusUrl,
+          garmentPublicUrl: dalleImageUrl,
+        });
+      } catch (dalleErr: any) {
+        console.error("[GERAR_REFERENCIA] Falha na geração da OpenAI (gpt-image-2):", dalleErr);
+        return NextResponse.json(
+          { error: "Falha ao gerar imagem na OpenAI (gpt-image-2).", details: dalleErr.message },
+          { status: 500 }
+        );
+      }
+    }
+
+    if (action === "upload-to-firebase") {
+      const {
+        postId,
+        userId,
+        finalImageUrl,
+        referenceImageUrl,
+        secondaryReferenceImageUrl,
+        caption,
+      } = await request.json();
+
+      if (!postId || !userId || !finalImageUrl) {
+        return NextResponse.json({ error: "Campos obrigatórios ausentes." }, { status: 400 });
+      }
+
+      console.log(
+        `[GERAR_REFERENCIA] Iniciando upload no backend com Firebase Admin para o post ${postId}...`
+      );
+
+      let firebaseDownloadUrl = finalImageUrl;
+      let firebaseRefUrl = null;
+      let firebaseSecondaryRefUrl = null;
+      const userStoragePath = `users/${userId}`;
+
+      try {
+        const bucket = admin
+          .storage()
+          .bucket(
+            admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app"
+          );
+
+        // 1. Obtenção do buffer da imagem (ou decodificação direta de Base64, ou download via fetch se for URL HTTP)
+        let buffer: Buffer;
+        let contentType = "image/jpeg";
+
+        if (finalImageUrl.startsWith("data:image/")) {
+          console.log("[GERAR_REFERENCIA] Detectado formato Base64/Data URI na imagem final.");
+          const match = finalImageUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (!match) {
+            throw new Error("Formato Data URI inválido para decodificação.");
+          }
+          contentType = match[1];
+          const base64Data = match[2];
+          buffer = Buffer.from(base64Data, "base64");
+        } else {
+          console.log(
+            `[GERAR_REFERENCIA] Fazendo download da imagem de URL externa: ${finalImageUrl}`
+          );
+          const imgRes = await fetch(finalImageUrl);
+          if (!imgRes.ok) {
+            throw new Error(
+              `Falha ao baixar imagem gerada de URL externa (status ${imgRes.status})`
+            );
+          }
+          const arrayBuffer = await imgRes.arrayBuffer();
+          buffer = Buffer.from(arrayBuffer);
+          contentType = imgRes.headers.get("Content-Type") || "image/jpeg";
+        }
+
+        const userStoragePath = `users/${userId}`;
+        const finalBuffer = buffer;
+
+        const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/generated_image.jpg`);
+        const downloadToken = crypto.randomUUID();
+
+        // Salvar o buffer no Storage com permissão total via Admin e registrar o download token
+        await fileRef.save(finalBuffer, {
+          metadata: {
+            contentType: contentType,
+            metadata: {
+              firebaseStorageDownloadTokens: downloadToken,
+            },
+          },
+        });
+
+        // Gerar URL de download compatível com a biblioteca cliente
+        firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+        console.log(
+          `[GERAR_REFERENCIA] Imagem gerada salva no Firebase Storage via Admin: ${firebaseDownloadUrl}`
+        );
+
+        // 2. Download e upload da foto de referência original (se existir)
+        if (referenceImageUrl) {
+          const refRes = await fetch(referenceImageUrl);
+          if (refRes.ok) {
+            const arrayBuffer = await refRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const contentType = refRes.headers.get("Content-Type") || "image/jpeg";
+
+            const refFileRef = bucket.file(`${userStoragePath}/posts/${postId}/reference_image.jpg`);
+            const refDownloadToken = crypto.randomUUID();
+
+            await refFileRef.save(buffer, {
+              metadata: {
+                contentType: contentType,
+                metadata: {
+                  firebaseStorageDownloadTokens: refDownloadToken,
+                },
+              },
+            });
+
+            firebaseRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef.name)}?alt=media&token=${refDownloadToken}`;
+            console.log(
+              `[GERAR_REFERENCIA] Imagem de referência salva no Firebase Storage via Admin: ${firebaseRefUrl}`
+            );
+          }
+        }
+
+        // Download e upload da foto de referência secundária (se existir)
+        if (secondaryReferenceImageUrl) {
+          const refRes2 = await fetch(secondaryReferenceImageUrl);
+          if (refRes2.ok) {
+            const arrayBuffer2 = await refRes2.arrayBuffer();
+            const buffer2 = Buffer.from(arrayBuffer2);
+            const contentType2 = refRes2.headers.get("Content-Type") || "image/jpeg";
+
+            const refFileRef2 = bucket.file(
+              `${userStoragePath}/posts/${postId}/secondary_reference_image.jpg`
+            );
+            const refDownloadToken2 = crypto.randomUUID();
+
+            await refFileRef2.save(buffer2, {
+              metadata: {
+                contentType: contentType2,
+                metadata: {
+                  firebaseStorageDownloadTokens: refDownloadToken2,
+                },
+              },
+            });
+
+            firebaseSecondaryRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef2.name)}?alt=media&token=${refDownloadToken2}`;
+            console.log(
+              `[GERAR_REFERENCIA] Imagem de referência secundária salva no Firebase Storage via Admin: ${firebaseSecondaryRefUrl}`
+            );
+          }
+        }
+      } catch (uploadError: any) {
+        console.error(
+          "[GERAR_REFERENCIA] Erro no upload para o Firebase Storage no backend via Admin:",
+          uploadError
+        );
+      }
+
+      // 3. Atualizar Firestore de forma resiliente no backend usando Admin SDK (set com merge)
+      try {
+        const postDocRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
+        await postDocRef.set(
+          {
+            imageUrls: [firebaseDownloadUrl],
+            referenceImageUrl: firebaseRefUrl || null,
+            secondaryReferenceImageUrl: firebaseSecondaryRefUrl || null,
+            status: "completed",
+            tempDalleB64: admin.firestore.FieldValue.delete(),
+          },
+          { merge: true }
+        );
+        console.log(
+          `[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}!`
+        );
+
+        try {
+          const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
+          const galleryMediaId = `${postId}_ref_generated`;
+
+          await galleryRef.doc(galleryMediaId).set({
+            id: galleryMediaId,
+            url: firebaseDownloadUrl,
+            storagePath: `${userStoragePath}/posts/${postId}/generated_image.jpg`,
+            source: "reference_generation",
+            prompt: "Imagem gerada a partir de foto do produto via IA.",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            usedInPostId: null,
+            fileName: "generated_image.jpg",
+            caption: caption || null,
+          });
+          console.log(
+            `[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`
+          );
+
+          logApiUsage({
+            userId,
+            type: "image_generation",
+            provider: "falai",
+            model: "flux-pro/kontext",
+            costUsd: 0.05,
+          });
+        } catch (galleryError) {
+          console.error(
+            "[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem gerada na galeria:",
+            galleryError
+          );
+        }
+      } catch (fsError: any) {
+        console.error(
+          "[GERAR_REFERENCIA] Erro ao gravar dados no Firestore via Admin no backend:",
+          fsError
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        imageUrl: firebaseDownloadUrl,
+        referenceImageUrl: firebaseRefUrl,
+        secondaryReferenceImageUrl: firebaseSecondaryRefUrl,
+      });
+    }
+
+    return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
+  } catch (error: any) {
+    console.error("[GERAR_REFERENCIA_ACTION_ERROR] Erro:", error);
+    return NextResponse.json(
+      {
+        error: "Erro interno no servidor ao processar ação de referência.",
+        details: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const authUser = await requireUser(request);
+  if (authUser instanceof NextResponse) return authUser;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+
+    if (action === "proxy") {
+      const url = searchParams.get("url");
+      if (!url) {
+        return NextResponse.json({ error: "URL ausente." }, { status: 400 });
+      }
+
+      console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
+      let imgRes: Response;
+      try {
+        imgRes = await safeFetch(url, { signal: AbortSignal.timeout(15000) });
+      } catch (e: any) {
+        if (e?.message === "URL_NAO_PERMITIDA") {
+          return NextResponse.json({ error: "URL não permitida." }, { status: 400 });
+        }
+        throw e;
+      }
+      if (!imgRes.ok) {
+        return NextResponse.json(
+          { error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` },
+          { status: 500 }
+        );
+      }
+
+      const blob = await imgRes.blob();
+      const headers = new Headers();
+      headers.set("Content-Type", imgRes.headers.get("Content-Type") || "image/jpeg");
+
+      return new NextResponse(blob, {
+        status: 200,
+        headers,
+      });
+    }
+
+    const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
+    if (!falKey) {
+      return NextResponse.json({ error: "FAL_KEY ausente." }, { status: 500 });
+    }
+
+    const rawFalKey = falKey.trim().startsWith("Key ")
+      ? falKey.trim().replace(/^Key\s+/i, "")
+      : falKey.trim();
+
+    const statusUrl = searchParams.get("statusUrl");
+    const responseUrl = searchParams.get("responseUrl");
+
+    if (action === "check-status") {
+      if (!statusUrl || !responseUrl) {
+        return NextResponse.json({ error: "statusUrl ou responseUrl ausentes." }, { status: 400 });
+      }
+
+      if (statusUrl.includes("action=dalle-status") || statusUrl.includes("dalle")) {
+        const parsedUrl = new URL(statusUrl);
+        const imageUrl = parsedUrl.searchParams.get("imageUrl");
+        console.log(
+          `[GERAR_REFERENCIA] Interceptando status da OpenAI síncrono. Retornando COMPLETED para: ${imageUrl}`
+        );
+        return NextResponse.json({
+          success: true,
+          status: "COMPLETED",
+          imageUrl: imageUrl,
+        });
+      }
+
+      console.log(`[GERAR_REFERENCIA] Consultando status via statusUrl dinâmico: ${statusUrl}`);
+      const checkResponse = await fetch(statusUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Key ${rawFalKey}`,
+        },
+      });
+
+      if (!checkResponse.ok) {
+        const errorText = await checkResponse.text();
+        console.error(
+          `[GERAR_REFERENCIA] Falha ao consultar status na Fal.ai (Status ${checkResponse.status}):`,
+          errorText
+        );
+        throw new Error(
+          `Falha ao consultar status na Fal.ai (Status ${checkResponse.status}): ${errorText}`
+        );
+      }
+
+      const checkData = await checkResponse.json();
+      console.log(
+        "[GERAR_REFERENCIA] Dados obtidos no status de requests:",
+        JSON.stringify(checkData)
+      );
+
+      let imageUrl = null;
+      let finalStatus = checkData.status;
+
+      const postId = searchParams.get("postId") || "";
+      const userId = searchParams.get("userId") || "";
+
+      if (checkData.status === "COMPLETED") {
+        console.log(
+          `[GERAR_REFERENCIA] Status COMPLETED! Buscando resultado real no responseUrl: ${responseUrl}`
+        );
+
+        const resultResponse = await fetch(responseUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Key ${rawFalKey}`,
+          },
+        });
+
+        if (resultResponse.ok) {
+          const resultData = await resultResponse.json();
+          console.log(
+            "[GERAR_REFERENCIA] Dados de resultado recebidos da Fal:",
+            JSON.stringify(resultData)
+          );
+
+          imageUrl =
+            resultData?.images?.[0]?.url ||
+            resultData?.image?.url ||
+            resultData?.output?.images?.[0]?.url ||
+            resultData?.output?.image?.url;
+        } else {
+          console.error(
+            "[GERAR_REFERENCIA] Falha ao ler responseUrl secundário:",
+            await resultResponse.text()
+          );
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        status: finalStatus,
+        imageUrl: imageUrl,
+        error: checkData.error,
+      });
+    }
+
+    return NextResponse.json({ error: "Ação GET inválida." }, { status: 400 });
+  } catch (error: any) {
+    console.error("[GERAR_REFERENCIA_GET_ERROR] Erro:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
