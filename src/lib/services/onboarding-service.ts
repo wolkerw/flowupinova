@@ -116,6 +116,7 @@ export interface OnboardingProfileData {
   clientProfile?: string;
   stylisticPreferences?: string;
   competitors?: CompetitorAnalysisItem[];
+  trendsCategory?: string;
 }
 
 const defaultLogo: OnboardingLogoData = {
@@ -143,6 +144,7 @@ const defaultOnboardingProfile: OnboardingProfileData = {
   cnpj: "",
   cnpjLocked: false,
   hasPendingCnpjRequest: false,
+  trendsCategory: "",
   logos: {
     horizontal: { url: "", width: 0, height: 0 },
     vertical: { url: "", width: 0, height: 0 },

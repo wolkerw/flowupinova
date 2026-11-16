@@ -2,9 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import {
   POST,
+  GET,
   buildStructuredTrendFallback,
   buildStructuredTrendAIPrompt,
+  parseGoogleTrendsHtmlDs0,
 } from "../route";
+import { GOOGLE_TRENDS_CATEGORIES } from "@/lib/constants/google-trends-categories";
 
 describe("Trends API - POST /api/trends (Estruturação com IA)", () => {
   beforeEach(() => {
@@ -160,5 +163,61 @@ describe("Trends API - POST /api/trends (Estruturação com IA)", () => {
     expect(data.success).toBe(true);
     expect(data.headline).toBe("IA no Varejo: 3 Segredos para Vender Mais");
     expect(data.source).toBe("gemini-2.5-flash");
+  });
+
+  it("parseGoogleTrendsHtmlDs0 extrai categorias oficiais do item (index 10) e mapeia para nomes", () => {
+    const mockHtml = `
+      AF_initDataCallback({key: 'ds:0', hash: '1', data:[null,[
+        ["Outlook 365",null,"BR",[1794595800],null,null,50000,null,1000,["outlook web"],[18]],
+        ["Sérvia x Alemanha",null,"BR",[1794595800],null,null,20000,null,1000,["copa"],[17]],
+        ["Nova Dieta Saudável",null,"BR",[1794595800],null,null,15000,null,1000,["saude"],[7]]
+      ]], sideChannel: {}});
+    `;
+
+    const items = parseGoogleTrendsHtmlDs0(mockHtml, "BR", new Map());
+    expect(items).toHaveLength(3);
+    expect(items[0].title).toBe("Outlook 365");
+    expect(items[0].categories).toEqual([18]);
+    expect(items[0].primaryCategory).toBe("Tecnologia");
+    expect(items[1].categories).toEqual([17]);
+    expect(items[1].primaryCategory).toBe("Esportes");
+    expect(items[2].categories).toEqual([7]);
+    expect(items[2].primaryCategory).toBe("Saúde e Bem-estar");
+  });
+
+  it("GET /api/trends prioriza pautas pertencentes à categoria do negócio selecionada", async () => {
+    const mockHtml = `
+      AF_initDataCallback({key: 'ds:0', hash: '1', data:[null,[
+        ["Campeonato de Futebol",null,"BR",[1794595800],null,null,80000,null,1000,[],[17]],
+        ["Novo Software de Gestão",null,"BR",[1794595800],null,null,10000,null,1000,[],[18]],
+        ["Show de Rock",null,"BR",[1794595800],null,null,50000,null,1000,[],[4]]
+      ]], sideChannel: {}});
+    `;
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === "string" && url.includes("trends.google.com/trending")) {
+        return Promise.resolve({
+          ok: true,
+          text: async () => mockHtml,
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        text: async () => "<rss></rss>",
+      });
+    });
+
+    // Categoria 18 = Tecnologia
+    const req = new NextRequest("http://localhost:9002/api/trends?period=today&category=18");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.activeCategory?.name).toBe("Tecnologia");
+    // O item da categoria 18 deve vir em primeiro lugar pela priorização!
+    expect(data.trends[0].title).toBe("Novo Software de Gestão");
+    expect(data.trends[0].isBusinessCategoryMatch).toBe(true);
+    expect(data.trends[1].title).toBe("Campeonato de Futebol");
+    expect(data.trends[1].isBusinessCategoryMatch).toBe(false);
   });
 });

@@ -30,6 +30,7 @@ import { updateBusinessProfile } from "@/lib/services/business-profile-service";
 import { getUserStoragePathClient } from "@/lib/utils/storage-utils-client";
 import { createCnpjRequest } from "@/lib/services/cnpj-request-service";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
+import { GOOGLE_TRENDS_CATEGORIES } from "@/lib/constants/google-trends-categories";
 import {
   Dialog,
   DialogContent,
@@ -156,6 +157,7 @@ export default function ConfiguracoesPage() {
   // Formulário Local
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [trendsCategory, setTrendsCategory] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [website, setWebsite] = useState("");
@@ -427,6 +429,7 @@ export default function ConfiguracoesPage() {
       const cleanProfileData: OnboardingProfileData = {
         name: data.name || "",
         category: data.category || "",
+        trendsCategory: data.trendsCategory || "",
         address: data.address || "",
         phone: data.phone || "",
         website: data.website || "",
@@ -492,6 +495,7 @@ export default function ConfiguracoesPage() {
       setProfile(data);
       setName(data.name || "");
       setCategory(data.category || "");
+      setTrendsCategory(data.trendsCategory || "");
       setPhone(data.phone || "");
       setAddress(data.address || "");
       setWebsite(data.website || "");
@@ -1050,6 +1054,7 @@ export default function ConfiguracoesPage() {
         {
           name,
           category,
+          trendsCategory,
           phone,
           address,
           website,
@@ -1194,10 +1199,11 @@ export default function ConfiguracoesPage() {
 
   const brainStats = React.useMemo(() => {
     let teoricoScore = 0;
-    const teoricoTotal = 9;
+    const teoricoTotal = 10;
     if (competitors && competitors.length > 0) teoricoScore++;
     if (name?.trim()) teoricoScore++;
     if (category?.trim()) teoricoScore++;
+    if (trendsCategory?.trim()) teoricoScore++;
     if (phone?.trim()) teoricoScore++;
     if (description?.trim()) teoricoScore++;
     if (slogan?.trim()) teoricoScore++;
@@ -1448,7 +1454,7 @@ export default function ConfiguracoesPage() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Categoria do Negócio</Label>
+                  <Label htmlFor="category">Ramo / Categoria Livre</Label>
                   <Input
                     id="category"
                     placeholder="Ex: Restaurantes / Alimentação"
@@ -1456,6 +1462,33 @@ export default function ConfiguracoesPage() {
                     onChange={(e) => setCategory(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="trendsCategory" className="flex items-center gap-1.5 font-semibold text-slate-800">
+                      <Sparkles className="h-3.5 w-3.5 text-[#FA6305]" />
+                      Categoria Google Trends
+                    </Label>
+                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                      Prioriza pautas
+                    </span>
+                  </div>
+                  <select
+                    id="trendsCategory"
+                    value={trendsCategory}
+                    onChange={(e) => setTrendsCategory(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0083C7]"
+                  >
+                    <option value="">Selecione uma categoria do Google Trends (Automático)</option>
+                    {GOOGLE_TRENDS_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.id.toString()}>
+                        {cat.icon} {cat.name} ({cat.description})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone / WhatsApp Comercial</Label>
                   <div className="relative">
@@ -1469,9 +1502,6 @@ export default function ConfiguracoesPage() {
                     />
                   </div>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
                 <div className="space-y-2">
                   <Label htmlFor="website">Website URL</Label>
                   <Input

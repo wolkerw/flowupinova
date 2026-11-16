@@ -1,4 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  GOOGLE_TRENDS_CATEGORIES,
+  getGoogleTrendsCategoryById,
+  getGoogleTrendsCategoryBySlug,
+  type GoogleTrendsCategoryOption,
+} from "@/lib/constants/google-trends-categories";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +30,10 @@ export interface GoogleTrendItem {
   trendsUrl: string;
   sourceLabel: string;
   newsArticles: TrendNewsArticle[];
+  categories?: number[];
+  categoryNames?: string[];
+  primaryCategory?: string;
+  isBusinessCategoryMatch?: boolean;
 }
 
 function decodeXmlEntities(text: string): string {
@@ -257,6 +267,14 @@ export function parseGoogleTrendsHtmlDs0(
     const encodedQuery = encodeURIComponent(title);
     const trendsUrl = `https://trends.google.com.br/trends/explore?q=${encodedQuery}&geo=${geo}&hl=pt-BR`;
 
+    const rawCategories = Array.isArray(entry[10])
+      ? (entry[10].filter((c): c is number => typeof c === "number"))
+      : [];
+    const categoryNames = rawCategories
+      .map((catId) => GOOGLE_TRENDS_CATEGORIES.find((c) => c.id === catId)?.name)
+      .filter((n): n is string => Boolean(n));
+    const primaryCategory = categoryNames[0] || undefined;
+
     items.push({
       id: `trend-${i}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
       title,
@@ -272,6 +290,9 @@ export function parseGoogleTrendsHtmlDs0(
       trendsUrl,
       sourceLabel: "Google Trends Brasil",
       newsArticles: rssMatch?.newsArticles || [],
+      categories: rawCategories,
+      categoryNames,
+      primaryCategory,
     });
   }
 
@@ -299,6 +320,10 @@ export async function GET(request: NextRequest) {
     const query = (searchParams.get("q") || "").trim();
     const period = (searchParams.get("period") || "today").toLowerCase();
     const rawNiche = (searchParams.get("niche") || "").trim();
+    const rawCategory = (searchParams.get("category") || "").trim();
+    const filterMode = (searchParams.get("filter") || "").toLowerCase().trim();
+    const activeCategory =
+      getGoogleTrendsCategoryById(rawCategory) || getGoogleTrendsCategoryBySlug(rawCategory);
 
     const commonHeaders = {
       "User-Agent":
@@ -440,12 +465,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Priorização e filtragem por categoria do negócio / Google Trends
+    if (activeCategory) {
+      trends = trends.map((item) => ({
+        ...item,
+        isBusinessCategoryMatch: item.categories?.includes(activeCategory.id) ?? false,
+      }));
+
+      if (filterMode === "only") {
+        const matching = trends.filter((item) => item.isBusinessCategoryMatch);
+        if (matching.length > 0) {
+          trends = matching;
+        }
+      } else {
+        // Ordenação prioritária: tendências da categoria do negócio em primeiro lugar
+        const matching = trends.filter((item) => item.isBusinessCategoryMatch);
+        const others = trends.filter((item) => !item.isBusinessCategoryMatch);
+        trends = [...matching, ...others];
+      }
+    }
+
     return NextResponse.json({
       success: true,
       fetchedAt: new Date().toISOString(),
       geo,
       period,
       hours,
+      activeCategory: activeCategory || null,
+      availableCategories: GOOGLE_TRENDS_CATEGORIES,
       sourceUrl: `https://trends.google.com.br/trending?geo=BR&hl=pt-BR&hours=${hours}`,
       trends,
       relatedSuggestions,

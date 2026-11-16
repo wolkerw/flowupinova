@@ -411,17 +411,21 @@ export function PromptsViewer() {
                 className="font-mono text-xs bg-slate-950/80 border-slate-700 text-slate-200 min-h-[160px]"
                 value={
                   prompts.avatar_identylock_prompt ||
-                  `DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
-1. TRAVAMENTO BIOMÉTRICO FACIAL RIGOROSO (/identylock ATIVO):
-- REGRA MANDATÓRIA /identylock: Trava todas as características faciais da pessoa. Você pode modificar livremente os elementos da imagem (cenário, iluminação, vestuário, pose corporal, ambiente e enquadramento) sem que o rosto seja alterado.
-- REPRODUÇÃO FIEL DA PESSOA (PRIORIDADE MÁXIMA E INEGOCIÁVEL): A pessoa na imagem final gerada DEVE SER INCONFUNDIVELMENTE A MESMA PESSOA enviada na selfie (IMAGEM 1). Mantenha com precisão absoluta a identidade facial, biometria, feições, formato e distância dos olhos, formato do nariz, lábios, mandíbula, formato do rosto, marcas características, sobrancelhas, linha e cor do cabelo, e barba exatamente como estão na selfie original. É TERMINANTEMENTE PROIBIDO gerar um rosto diferente ou genérico.
-2. FIDELIDADE E CONSISTÊNCIA TOTAL DO TOM DE PELE: O tom e a cor de pele observados na selfie (IMAGEM 1) DEVEM ser rigorosamente replicados e preservados em todas as partes visíveis do corpo.`
+                  `PROMPT v2 DE FIDELIDADE FACIAL (padrão desde 16/11/2026 — settings/aiModels.avatarPromptVersion = "v2"):
+1. Análise da selfie (Gemini 3.5 Flash): descreve os traços concretos que tornam a pessoa reconhecível — idade, formato do rosto, cabelo (volume, entradas, fios grisalhos), sobrancelhas, olhos, nariz, boca, barba por região e os 3 a 5 traços mais marcantes.
+2. Prompt final (em inglês) enviado ao GPT-Image-2.6 Sunburst e ao fallback Nano Banana Pro:
+- IMAGE 1 = selfie do cliente; IMAGE 2 = foto de estilo (enquadramento, câmera, pose, roupa, cenário e luz são recriados da IMAGE 2).
+- Lista dos traços reais da selfie que devem ser reproduzidos.
+- Sem embelezamento: mesmo volume de cabelo e entradas, mesmo desenho e grisalho da barba, mesma largura de rosto e idade.
+- Correção da lente grande-angular do celular para proporções de lente 85mm, mantendo os traços.
+- Expressão calma e próxima da selfie, com a luz da cena; tom de pele real em todo o corpo; proporções humanas naturais; sem texto ou logos.
+Para voltar ao prompt anterior (/identylock em português): settings/aiModels.avatarPromptVersion = "v1".`
                 }
                 onChange={(e) => handleChange("avatar_identylock_prompt", e.target.value)}
               />
               <div className="flex justify-between items-center">
                 <span className="text-[11px] text-slate-400">
-                  Regra protegida integrada nativamente no motor Nano Banana Pro.
+                  Texto de auditoria: o prompt aplicado é montado no código (src/lib/services/avatar/avatar-prompt-v2.ts) para o GPT-Image-2.6 Sunburst e o fallback Nano Banana Pro.
                 </span>
                 <Button 
                   size="sm" 

@@ -423,7 +423,7 @@ export function ModelsViewer() {
             </div>
           </div>
 
-          {/* Foto Profissional (Digital Twin) - Congelado */}
+          {/* Foto Profissional (Digital Twin) - GPT-Image-2.6 Sunburst + Fallback Nano Banana */}
           <div className="flex flex-col rounded-xl border border-purple-800/40 bg-purple-950/10 p-5 shadow-sm">
             <div className="mb-3 flex items-center justify-between border-b border-purple-800/30 pb-3">
               <div className="flex items-center gap-2 text-white">
@@ -432,21 +432,21 @@ export function ModelsViewer() {
               </div>
               <span className="flex items-center gap-1 rounded bg-purple-900/60 px-2 py-0.5 text-[11px] font-semibold text-purple-200 border border-purple-700/50">
                 <Lock className="h-3 w-3" />
-                CONGELADO & HOMOLOGADO
+                HOMOLOGADO
               </span>
             </div>
 
             <p className="mb-3 text-xs text-slate-400">
-              Fluxo protegido de fotos profissionais realistas. Utiliza arquitetura dual multimodal proprietária com envio simultâneo de Selfie e Foto de Estilo, com regras estritas de fidelidade facial e preservação do tom de pele natural.
+              Fluxo de fotos profissionais realistas. Utiliza como motor primário o <strong className="text-purple-300">GPT-Image-2.6 Sunburst</strong> (OpenAI Image-to-Image 1024×1024) com contingência e fallback automático na família <strong className="text-purple-300">Google Gemini Nano Banana Pro</strong> (gemini-3-pro-image), com trava estrita de biometria facial (/identylock) e preservação natural do tom de pele.
             </p>
 
             <div className="rounded-lg border border-purple-900/30 bg-purple-950/30 p-3 text-xs text-slate-300">
               <div className="flex items-center justify-between font-mono text-[11px] text-purple-300">
-                <span>Família Google Gemini Nano Banana Pro</span>
-                <span className="text-[10px] text-slate-400">Dual Multimodal parts[1] + parts[2]</span>
+                <span>Motor Primário: GPT-Image-2.6 Sunburst</span>
+                <span className="text-[10px] text-emerald-400">OpenAI Image-to-Image (1024×1024)</span>
               </div>
               <p className="mt-1 text-[11px] text-slate-400">
-                Modelos de contingência fixos: <code className="text-purple-300">gemini-3-pro-image</code>, <code className="text-purple-300">gemini-2.0-flash-exp</code>, <code className="text-purple-300">gemini-3.5-flash</code>, <code className="text-purple-300">gemini-2.5-flash</code>.
+                Fallback automático: <code className="text-purple-300">gemini-3-pro-image</code> (Nano Banana Pro), seguido por <code className="text-purple-300">gemini-2.0-flash-exp</code>.
               </p>
               <div className="mt-2.5 rounded border border-purple-800/50 bg-purple-900/40 p-2.5">
                 <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-purple-200">
@@ -457,8 +457,8 @@ export function ModelsViewer() {
                   Trava todas as características faciais. Você pode modificar os elementos da imagem (roupas, cenários, iluminação e pose) sem que o rosto seja alterado.
                 </p>
               </div>
-              <p className="mt-2 text-[10px] text-amber-400/90 font-medium">
-                🔒 Bloqueado para edição por regra de negócio e garantia de fidelidade facial biométrica e tom de pele.
+              <p className="mt-2 text-[10px] text-emerald-400/90 font-medium">
+                🔒 Configuração ativa com motor primário GPT-Image-2.6 Sunburst e contingência multimodal Nano Banana Pro.
               </p>
             </div>
           </div>

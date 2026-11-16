@@ -171,4 +171,23 @@ describe("Configurações da Marca - Gestão de Personas", () => {
     expect(screen.getByText("Múltiplas Logomarcas")).toBeInTheDocument();
     expect(screen.getByText("Personas da Marca")).toBeInTheDocument();
   });
+
+  it("renderiza o seletor de Categoria do Google Trends no Cérebro do Negócio", async () => {
+    render(
+      <AuthProvider>
+        <ConfiguracoesPage />
+      </AuthProvider>
+    );
+
+    await screen.findByText("Configurações da Marca");
+
+    expect(screen.getByLabelText(/Categoria Google Trends/i)).toBeInTheDocument();
+    expect(screen.getByText(/Prioriza pautas/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Negócios e Finanças/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Tecnologia/i })
+    ).toBeInTheDocument();
+  });
 });

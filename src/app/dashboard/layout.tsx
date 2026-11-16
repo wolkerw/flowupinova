@@ -115,11 +115,13 @@ const allNavigationItems: {
     url: "/dashboard/estudio-marca",
     icon: Palette,
   },
+  /* Guardado para reativação futura
   {
     title: "Foto Profissional",
     url: "/dashboard/avatar",
     icon: User,
   },
+  */
   {
     title: "Galeria",
     url: "/dashboard/galeria",

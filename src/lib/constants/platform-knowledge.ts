@@ -80,10 +80,10 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
    - **Conexões de Redes Sociais**:
      - Integrações com Instagram, Facebook (Meta Business), LinkedIn, TikTok e Google Meu Negócio.
 
-6. **Foto Profissional** -> [Foto Profissional](/dashboard/avatar)
-   - Criação de fotos de estúdio e retratos corporativos profissionais a partir de selfies do usuário ou equipe.
-   - Gera ensaios fotográficos em diferentes cenários mantendo a consistência rigorosa do rosto e tom de pele original.
-   - **Regra /identylock**: Trava 100% de todas as características faciais originais. Você pode modificar e estilizar livremente as roupas, cenário, iluminação e pose sem que o rosto seja alterado.
+6. **Foto Profissional (Temporariamente em Manutenção e Guardada)** -> [Foto Profissional](/dashboard/avatar)
+   - **Status**: Recurso temporariamente desativado da navegação e guardado para melhorias contínuas de alta fidelidade visual.
+   - **Orientação para o Assistente Vapti**: Se o usuário perguntar por fotos profissionais, avatares ou ensaios com IA, informe gentilmente que a ferramenta está passando por uma evolução técnica para garantir proporções e fotorrealismo perfeitos, retornando em breve.
+   - **Arquitetura Preservada**: Opera com **GPT-Image-2.6 Sunburst** (OpenAI Image-to-Image) como motor primário e contingência na família **Google Gemini Nano Banana Pro (gemini-3-pro-image)** com trava biométrica /identylock.
 
 7. **Estúdio de Marca & Papelaria (Mini Agência NumVapt)** -> [Estúdio de Marca](/dashboard/estudio-marca)
    - Transforma a NumVapt em uma verdadeira agência de publicidade e design para o negócio:
@@ -118,9 +118,13 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
 
 10. **Tendências do Google & Radar de Notícias** -> [Tendências](/dashboard/tendencias)
    - Radar em tempo real integrado diretamente ao **Google Trends Brasil** e **Google Notícias**.
+   - **Filtro de Categoria Oficial do Google Trends no Cérebro do Negócio**:
+     * Em [Configurações](/dashboard/configuracoes) (Cérebro do Negócio), a empresa pode selecionar sua categoria oficial do Google Trends (ex: *Negócios e Finanças*, *Tecnologia*, *Alimentos e Bebidas*, *Beleza e Moda*, *Saúde*, *Compras e Varejo*, etc.).
+     * Ao acessar [Tendências](/dashboard/tendencias), a plataforma prioriza e exibe automaticamente em **primeiro lugar** os assuntos em alta pertencentes ao nicho da empresa, marcados com badge de destaque.
+     * Na página de Tendências, o usuário também conta com um seletor interativo para alternar ou filtrar estritamente por qualquer categoria do Google Trends em tempo real.
    - Abas disponíveis:
      * **Seu Mercado**: Filtra automaticamente notícias e assuntos quentes do setor e nicho cadastrado no perfil da empresa.
-     * **Em Alta Hoje**: Assuntos com maior volume de buscas no Brasil nas últimas 24 horas.
+     * **Em Alta Hoje**: Assuntos com maior volume de buscas no Brasil nas últimas 24 horas (priorizando a categoria da empresa).
      * **Últimos 7 Dias**: Tendências consolidadas da semana.
    - **Botão "Criar Post sobre esse Assunto" com Resumo de Notícia por IA**:
      * Ao clicar no botão, a inteligência artificial analisa a notícia real conectada à tendência, sintetiza o fato que aconteceu e monta um briefing completo de direção de arte visual (fotografia editorial, iluminação suave e pessoas reais no ambiente do nicho).
@@ -175,7 +179,8 @@ Quando o usuário perguntar como configurar o Cérebro do Negócio ou a marca, o
 
 3. **Preencher os Dados Básicos do Negócio**:
    - **Nome Fantasia**: O nome comercial pelo qual os clientes conhecem a empresa.
-   - **Categoria/Segmento**: O nicho exato (ex: Loja infantil, Hamburgueria, Imobiliária, Clínica).
+   - **Categoria/Segmento**: O nicho livre (ex: Loja infantil, Hamburgueria, Imobiliária, Clínica).
+   - **Categoria Oficial do Google Trends**: Seleção da categoria oficial (ex: Alimentos e Bebidas, Tecnologia, Beleza e Moda) para filtrar e trazer os assuntos mais quentes do setor automaticamente em primeiro lugar na página de Tendências.
    - **Telefone/WhatsApp**: Para chamadas para ação e botões de contato.
    - **Website & Instagram**: URLs e usuário oficial (\`@seunegocio\`).
    - **Endereço Completo**: Fundamental para negócios locais e Google Meu Negócio.

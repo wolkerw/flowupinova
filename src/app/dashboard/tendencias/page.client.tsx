@@ -28,6 +28,11 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getOnboardingProfile } from "@/lib/services/onboarding-service";
 import type { GoogleTrendItem } from "@/app/api/trends/route";
+import {
+  GOOGLE_TRENDS_CATEGORIES,
+  getGoogleTrendsCategoryById,
+  type GoogleTrendsCategoryOption,
+} from "@/lib/constants/google-trends-categories";
 
 type PeriodMode = "niche" | "today" | "week";
 
@@ -118,38 +123,26 @@ export default function TendenciasPageClient() {
   const [period, setPeriod] = useState<PeriodMode>("today");
   const [companyNiche, setCompanyNiche] = useState<string>("");
   const [companyName, setCompanyName] = useState<string>("");
+  const [businessTrendsCategory, setBusinessTrendsCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [filterOnlyCategory, setFilterOnlyCategory] = useState<boolean>(false);
 
-  // Carrega automaticamente o ramo/nicho da empresa salva no perfil
-  useEffect(() => {
-    let active = true;
-    async function loadProfileNiche() {
-      if (!user?.uid) return;
-      try {
-        const profile = await getOnboardingProfile(user.uid);
-        if (!active || !profile) return;
-        const shortCat = extractShortCategoryLabel(profile.category || profile.keyProducts || "");
-        if (shortCat) {
-          setCompanyNiche(shortCat);
-        }
-        if (profile.name) {
-          setCompanyName(profile.name);
-        }
-      } catch (err) {
-        console.warn("[TRENDS_PROFILE_WARN]", err);
-      }
-    }
-    loadProfileNiche();
-    return () => {
-      active = false;
-    };
-  }, [user?.uid]);
+  const businessCategoryDef = useMemo(() => {
+    return getGoogleTrendsCategoryById(businessTrendsCategory);
+  }, [businessTrendsCategory]);
+
+  const activeCategoryDef = useMemo(() => {
+    return getGoogleTrendsCategoryById(selectedCategory);
+  }, [selectedCategory]);
 
   const fetchTrends = useCallback(
     async (
       queryParam = "",
       periodParam: PeriodMode = "today",
       nicheParam = "",
-      isManualRefresh = false
+      isManualRefresh = false,
+      categoryParam?: string,
+      strictFilter = false
     ) => {
       if (isManualRefresh) {
         setRefreshing(true);
@@ -169,6 +162,13 @@ export default function TendenciasPageClient() {
         if (periodParam === "niche") {
           params.set("niche", nicheParam || companyNiche || "empreendedorismo");
         }
+        const activeCat = categoryParam !== undefined ? categoryParam : selectedCategory;
+        if (activeCat) {
+          params.set("category", activeCat);
+          if (strictFilter) {
+            params.set("filter", "only");
+          }
+        }
 
         const res = await fetch(`/api/trends?${params.toString()}`, { cache: "no-store" });
         const data = await res.json();
@@ -187,37 +187,88 @@ export default function TendenciasPageClient() {
         setRefreshing(false);
       }
     },
-    [companyNiche]
+    [companyNiche, selectedCategory]
   );
 
+  // Carrega automaticamente o ramo/nicho e a categoria Google Trends salva no perfil
   useEffect(() => {
-    fetchTrends("", "today", "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let active = true;
+    async function loadProfileNiche() {
+      if (!user?.uid) {
+        fetchTrends("", "today", "");
+        return;
+      }
+      try {
+        const profile = await getOnboardingProfile(user.uid);
+        if (!active || !profile) {
+          fetchTrends("", "today", "");
+          return;
+        }
+        const shortCat = extractShortCategoryLabel(profile.category || profile.keyProducts || "");
+        if (shortCat) {
+          setCompanyNiche(shortCat);
+        }
+        if (profile.name) {
+          setCompanyName(profile.name);
+        }
+        if (profile.trendsCategory) {
+          setBusinessTrendsCategory(profile.trendsCategory);
+          setSelectedCategory(profile.trendsCategory);
+          // Prioriza imediatamente na entrada as tendências do negócio em questão
+          fetchTrends("", "today", shortCat, false, profile.trendsCategory);
+        } else {
+          fetchTrends("", "today", shortCat, false, "");
+        }
+      } catch (err) {
+        console.warn("[TRENDS_PROFILE_WARN]", err);
+        fetchTrends("", "today", "");
+      }
+    }
+    loadProfileNiche();
+    return () => {
+      active = false;
+    };
+  }, [user?.uid, fetchTrends]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const clean = searchQuery.trim();
     setSubmittedQuery(clean);
-    fetchTrends(clean, period, companyNiche, true);
+    fetchTrends(clean, period, companyNiche, true, selectedCategory, filterOnlyCategory);
   };
 
   const handlePeriodChange = (newPeriod: PeriodMode) => {
     setPeriod(newPeriod);
-    fetchTrends(submittedQuery, newPeriod, companyNiche, true);
+    fetchTrends(submittedQuery, newPeriod, companyNiche, true, selectedCategory, filterOnlyCategory);
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    setSelectedCategory(newCategory);
+    fetchTrends(submittedQuery, period, companyNiche, true, newCategory, filterOnlyCategory);
+  };
+
+  const handleToggleFilterOnly = () => {
+    const nextVal = !filterOnlyCategory;
+    setFilterOnlyCategory(nextVal);
+    fetchTrends(submittedQuery, period, companyNiche, true, selectedCategory, nextVal);
   };
 
   const filteredTrends = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q || period === "niche") return trends;
-    return trends.filter(
+    let result = trends;
+    if (filterOnlyCategory && selectedCategory && period !== "niche") {
+      const catId = parseInt(selectedCategory, 10);
+      result = result.filter((item) => item.categories?.includes(catId));
+    }
+    if (!q || period === "niche") return result;
+    return result.filter(
       (item) =>
         item.title.toLowerCase().includes(q) ||
         item.newsArticles.some(
           (n) => n.title.toLowerCase().includes(q) || n.source.toLowerCase().includes(q)
         )
     );
-  }, [trends, searchQuery, period]);
+  }, [trends, searchQuery, period, filterOnlyCategory, selectedCategory]);
 
   /**
    * Ao clicar no botão, a IA resume a notícia do tópico e gera um briefing estruturado
@@ -459,7 +510,7 @@ export default function TendenciasPageClient() {
                   onClick={() => {
                     setSearchQuery("");
                     setSubmittedQuery("");
-                    fetchTrends("", period, companyNiche, true);
+                    fetchTrends("", period, companyNiche, true, selectedCategory, filterOnlyCategory);
                   }}
                   className="h-10 rounded-lg border-slate-300 font-medium text-slate-600"
                 >
@@ -467,6 +518,65 @@ export default function TendenciasPageClient() {
                 </Button>
               )}
             </form>
+          </div>
+
+          {/* Seletor de Categoria do Google Trends e Feedback de Priorização */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                <Sparkles className="h-3.5 w-3.5 text-[#FA6305]" />
+                Filtrar por Categoria:
+              </span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-800 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0083C7]"
+              >
+                <option value="">Todas as Categorias {businessCategoryDef ? `(Priorizando ${businessCategoryDef.name})` : ""}</option>
+                {businessCategoryDef && (
+                  <option value={businessCategoryDef.id.toString()}>
+                    ★ Categoria do seu Negócio: {businessCategoryDef.icon} {businessCategoryDef.name}
+                  </option>
+                )}
+                {GOOGLE_TRENDS_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id.toString()}>
+                    {cat.icon} {cat.name}
+                  </option>
+                ))}
+              </select>
+
+              {selectedCategory && (
+                <button
+                  type="button"
+                  onClick={handleToggleFilterOnly}
+                  className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    filterOnlyCategory
+                      ? "bg-[#0083C7] text-white"
+                      : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <Target className="h-3.5 w-3.5" />
+                  {filterOnlyCategory ? "Mostrando apenas desta categoria" : "Ver apenas desta categoria"}
+                </button>
+              )}
+            </div>
+
+            {businessCategoryDef ? (
+              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                <span>Categoria no Cérebro:</span>
+                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800 font-semibold gap-1">
+                  {businessCategoryDef.icon} {businessCategoryDef.name}
+                </Badge>
+              </div>
+            ) : (
+              <a
+                href="/dashboard/configuracoes"
+                className="text-xs font-semibold text-[#0083C7] hover:underline flex items-center gap-1"
+              >
+                <Sparkles className="h-3 w-3 text-[#FA6305]" />
+                Definir Categoria no Cérebro do Negócio →
+              </a>
+            )}
           </div>
 
           {/* Aviso explicativo quando está na aba automática "Do Meu Ramo" */}
@@ -523,6 +633,27 @@ export default function TendenciasPageClient() {
         </CardContent>
       </Card>
 
+      {/* Dica amigável para definir a categoria no Cérebro caso ainda não tenha sido configurada */}
+      {!businessTrendsCategory && !loading && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-slate-800 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="h-4 w-4 shrink-0 text-[#0083C7]" />
+            <span>
+              <strong>Dica Estratégica:</strong> Escolha a categoria oficial do seu negócio no{" "}
+              <strong>Cérebro do Negócio</strong> para que as notícias e pautas quentes do seu mercado sempre apareçam em primeiro lugar.
+            </span>
+          </div>
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="h-8 shrink-0 border-[#0083C7] bg-white text-xs font-semibold text-[#0083C7] hover:bg-blue-100/50"
+          >
+            <a href="/dashboard/configuracoes">Configurar Categoria no Cérebro →</a>
+          </Button>
+        </div>
+      )}
+
       {/* Estado de Carregamento / Erro / Lista de Cards */}
       {loading ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-white py-20 text-center">
@@ -566,29 +697,48 @@ export default function TendenciasPageClient() {
           {filteredTrends.map((trend, index) => (
             <Card
               key={trend.id}
-              className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+              className={`flex flex-col justify-between rounded-lg bg-white shadow-xs transition-shadow hover:shadow-md ${
+                trend.isBusinessCategoryMatch
+                  ? "border-[#0083C7]/60 ring-1 ring-[#0083C7]/20 bg-gradient-to-b from-blue-50/20 to-white"
+                  : "border-slate-200"
+              }`}
             >
               <div>
                 <CardHeader className="space-y-3 border-b border-slate-100 p-5 pb-4">
-                  {/* Posição + Volume de Buscas Simples e Direto */}
-                  <div className="flex items-center justify-between gap-2">
+                  {/* Posição + Volume de Buscas + Categoria do Negócio */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                       {period === "niche" ? `#${index + 1} no seu setor` : `#${index + 1} no Brasil`}
                     </span>
-                    <Badge className="rounded-lg border-none bg-[#FA6305] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#FA6305]">
-                      <Flame className="mr-1 h-3.5 w-3.5" />
-                      {period === "niche" ? trend.approxTraffic : `${trend.approxTraffic} buscas`}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      {trend.isBusinessCategoryMatch && (
+                        <Badge className="rounded-lg border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-[#FA6305] hover:bg-orange-100">
+                          <Target className="mr-1 h-3 w-3" />
+                          Seu Negócio
+                        </Badge>
+                      )}
+                      <Badge className="rounded-lg border-none bg-[#FA6305] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#FA6305]">
+                        <Flame className="mr-1 h-3.5 w-3.5" />
+                        {period === "niche" ? trend.approxTraffic : `${trend.approxTraffic} buscas`}
+                      </Badge>
+                    </div>
                   </div>
 
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle
-                      className={`font-poppins text-lg font-bold leading-snug text-slate-900 ${
-                        period === "niche" ? "" : "capitalize"
-                      }`}
-                    >
-                      {trend.title}
-                    </CardTitle>
+                    <div className="space-y-1">
+                      <CardTitle
+                        className={`font-poppins text-lg font-bold leading-snug text-slate-900 ${
+                          period === "niche" ? "" : "capitalize"
+                        }`}
+                      >
+                        {trend.title}
+                      </CardTitle>
+                      {trend.primaryCategory && (
+                        <span className="inline-block text-[11px] font-semibold text-slate-500">
+                          {trend.primaryCategory}
+                        </span>
+                      )}
+                    </div>
                     {trend.picture && (
                       <img
                         src={trend.picture}

@@ -25,6 +25,7 @@ const defaultOnboardingProfile: OnboardingProfileData = {
   targetAudience: "",
   toneOfVoice: "",
   mainBenefits: [],
+  trendsCategory: "",
 };
 
 /**

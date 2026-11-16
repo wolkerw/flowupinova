@@ -8,6 +8,13 @@ import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
 import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
 import { getAuthenticatedUser } from "@/lib/api-auth";
+import { getAIModelsConfig } from "@/lib/services/system-ai-config-service";
+import {
+  IDENTITY_ANALYSIS_PROMPT,
+  buildAvatarPromptV2,
+  parseIdentityTraits,
+  type AvatarIdentityTraits,
+} from "@/lib/services/avatar/avatar-prompt-v2";
 
 export const maxDuration = 300;
 
@@ -206,16 +213,33 @@ export async function POST(request: NextRequest) {
         let styleJson: any = null;
         let styleBase64: string | null = null;
         let styleMime: string = "image/jpeg";
+        let styleBuffer: Buffer | null = null;
+        let targetOpenAiSize: "1024x1024" | "1024x1536" | "1536x1024" = "1024x1024";
+
+        if (styleFile) {
+          const styleArrayBuffer = await styleFile.arrayBuffer();
+          styleBuffer = Buffer.from(styleArrayBuffer);
+          styleBase64 = styleBuffer.toString("base64");
+          styleMime = styleFile.type || "image/jpeg";
+
+          // Preserva a proporção vertical/horizontal da foto de referência de estilo para evitar distorção de enquadramento
+          try {
+            const styleImg = await Jimp.read(styleBuffer);
+            if (styleImg.height > styleImg.width * 1.15) {
+              targetOpenAiSize = "1024x1536";
+            } else if (styleImg.width > styleImg.height * 1.15) {
+              targetOpenAiSize = "1536x1024";
+            }
+          } catch (dimErr) {
+            console.warn("[AVATAR_GENERATE] Não foi possível ler dimensões da foto de estilo:", dimErr);
+          }
+        }
 
         // Se uma foto de estilo profissional foi fornecida, analisa via Gemini 3.5 Flash Vision
-        if (styleFile && apiKey) {
+        if (styleFile && styleBuffer && apiKey) {
           console.log(
             "[AVATAR_GENERATE] Analisando imagem de estilo profissional via Gemini 3.5 Flash Vision..."
           );
-          const styleArrayBuffer = await styleFile.arrayBuffer();
-          const styleBuffer = Buffer.from(styleArrayBuffer);
-          styleBase64 = styleBuffer.toString("base64");
-          styleMime = styleFile.type || "image/jpeg";
 
           try {
             const visionPrompt = `Analise detalhadamente a imagem fornecida (que representa uma foto de estilo/inspiração) e extraia TODOS os elementos visuais exatos.
@@ -313,37 +337,105 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
           ? `REGRA CRÍTICA DE COMBINAÇÃO DAS DUAS IMAGENS:
 Nesta requisição foram fornecidas DUAS IMAGENS de referência:
 - IMAGEM 1 (Selfie do Usuário): Extraia e preserve 100% da identidade facial da pessoa (rosto, traços, feição, formato dos olhos, nariz, boca, tom exato de pele, sobrancelhas, cabelo e barba). A pessoa gerada DEVE SER EXATAMENTE E INCONFUNDIVELMENTE A MESMA PESSOA DA SELFIE.
-- IMAGEM 2 (Foto de Inspiração/Estilo): Copie e replique o estilo de vestuário, a pose corporal, a composição do cenário de fundo e a iluminação desta imagem de referência. NUNCA utilize a cor ou o tom de pele da IMAGEM 2.
-Sua missão é realizar a FUSÃO PERFEITA: coloque o rosto idêntico da pessoa da IMAGEM 1 com seu tom de pele natural em todo o corpo, vestindo a roupa, posando na atitude e no cenário inspirados na IMAGEM 2.`
-          : `REGRA CRÍTICA DE FIDELIDADE FACIAL: Preserve 100% da biometria facial, traços do rosto e tom de pele original da pessoa da selfie enviada. A pessoa gerada DEVE SER EXATAMENTE A MESMA PESSOA DA SELFIE.`;
+- IMAGEM 2 (Foto de Inspiração/Estilo): Preserve rigorosamente o enquadramento completo, a distância da câmera, o ângulo corporal, a pose exata, a proporção corporal, o estilo de vestuário, a composição do cenário de fundo e a iluminação desta imagem de referência. NUNCA utilize o rosto ou o tom de pele da pessoa da IMAGEM 2.
+- PROPORÇÃO ANATÔMICA E ESCALA EXATA DA CABEÇA (REGRA INVIOLÁVEL): Ao substituir o rosto na cena da IMAGEM 2 pela pessoa da IMAGEM 1, respeite 100% a escala real e o tamanho proporcional da cabeça em relação aos ombros, pescoço, tronco e cadeira/cenário da IMAGEM 2. É TERMINANTEMENTE PROIBIDO aumentar ou superdimensionar a cabeça (sem efeito "cabeça grande / bobblehead"). A largura dos ombros deve permanecer naturalmente proporcional (cerca de 2,5x a 3x a largura da cabeça) e compatível com o corpo inteiro ou plano da IMAGEM 2.
+Sua missão é realizar a FUSÃO ANATOMICAMENTE PERFEITA: encaixe a cabeça/rosto idêntico da pessoa da IMAGEM 1 na escala exata e natural da cabeça da IMAGEM 2, com o tom de pele natural da IMAGEM 1 em todas as partes visíveis do corpo.`
+          : `REGRA CRÍTICA DE FIDELIDADE FACIAL E PROPORÇÃO ANATÔMICA: Preserve 100% da biometria facial, traços do rosto e tom de pele original da pessoa da selfie enviada. A pessoa gerada DEVE SER EXATAMENTE A MESMA PESSOA DA SELFIE, mantendo sempre proporção anatômica realista entre cabeça, pescoço, ombros e tronco (sem cabeça superdimensionada).`;
+
+        const cameraDetailsDirective = styleBase64
+          ? `DETALHES DE CÂMERA, ENQUADRAMENTO E ESCALA: Preserve fielmente a mesma distância focal, enquadramento (corpo inteiro, plano médio ou americano conforme a IMAGEM 2), perspectiva e proporção cabeça-corpo da IMAGEM 2, com nitidez fotográfica profissional DSLR.`
+          : `DETALHES DE CÂMERA E LENTE: Fotografia estilo retrato editorial, qualidade de câmera profissional DSLR com lente prime de 85mm ajustada em abertura f/2.8, enquadramento harmônico com proporção anatômica natural entre cabeça e ombros, foco perfeito e nítido com profundidade de campo suave.`;
 
         const nanobananaPrompt = `Você é um Diretor de Fotografia e Retratista Editorial Sênior.
-Com base nas imagens de referência fornecidas, gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade.
+Com base nas imagens de referência fornecidas, gere uma fotografia profissional e ultra realista de altíssima fidelidade.
 
 ${dualImageInstruction}
 
 DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
 1. TRAVAMENTO BIOMÉTRICO FACIAL RIGOROSO (/identylock ATIVO):
-- REGRA MANDATÓRIA /identylock: Trava todas as características faciais da pessoa. Você pode modificar livremente os elementos da imagem (cenário, iluminação, vestuário, pose corporal, ambiente e enquadramento) sem que o rosto seja alterado.
+- REGRA MANDATÓRIA /identylock: Trava todas as características faciais da pessoa. Você pode adaptar os elementos da cena (cenário, iluminação, vestuário, pose corporal, ambiente e enquadramento) sem que o rosto seja alterado.
 - REPRODUÇÃO FIEL DA PESSOA (PRIORIDADE MÁXIMA E INEGOCIÁVEL): A pessoa na imagem final gerada DEVE SER INCONFUNDIVELMENTE A MESMA PESSOA enviada na selfie (IMAGEM 1). Mantenha com precisão absoluta a identidade facial, biometria, feições, formato e distância dos olhos, formato do nariz, lábios, mandíbula, formato do rosto, marcas características, sobrancelhas, linha e cor do cabelo, e barba exatamente como estão na selfie original. É TERMINANTEMENTE PROIBIDO gerar um rosto diferente ou genérico.
 2. FIDELIDADE E CONSISTÊNCIA TOTAL DO TOM DE PELE: O tom e a cor de pele observados na selfie (IMAGEM 1) DEVEM ser rigorosamente replicados e preservados em todas as partes visíveis do corpo (rosto, pescoço, colo, braços, mãos e pernas). Caso a foto de estilo (IMAGEM 2) possua partes do corpo que a selfie não mostre, recrie-as assegurando que a cor e textura da pele sejam 100% fiéis à selfie do usuário, e NUNCA à cor da pessoa da foto de referência/estilo.
-3. RECONSTRUÇÃO ANATÔMICA HARMONIOSA: Caso a foto de referência enviada exiba apenas o rosto ou busto (selfie), recrie e complete harmonicamente as partes do corpo que não estão na selfie original (ombros, torso, braços, mãos e postura) de forma anatomicamente perfeita, integrada e com a mesma tonalidade de pele da pessoa.
-4. APRIMORAMENTO E RECRIAÇÃO DO VESTUÁRIO: A roupa da pessoa pode ser adaptada, ajustada ou recriada com IA para um figurino de alta elegância e sofisticação (como alfaiataria fina, terno bem cortado ou figurino de estilo de vida premium), combinando com as instruções de estilo e cenário.
+3. PROPORÇÃO ANATÔMICA REALISTA E ESCALA NATURAL: Mantenha proporções humanas reais e harmônicas entre cabeça, pescoço, ombros, tronco, braços e pernas (largura dos ombros ~2,5 a 3x a largura da cabeça; altura total compatível com 7,5 a 8 cabeças quando de corpo inteiro). É ESTRITAMENTE PROIBIDO gerar cabeça inchada, grande demais ou desproporcional aos ombros.
+4. APRIMORAMENTO E RECRIAÇÃO DO VESTUÁRIO: A roupa da pessoa deve seguir o figurino elegante especificado ou da foto de estilo (alfaiataria, terno bem cortado ou look de estilo de vida premium), com caimento natural nos ombros e torso.
 
 DIRETRIZES ESTÉTICAS E TÉCNICAS (CONSOLIDADO):
 - ${poseSection}
 - ${lightingSection}
-- DETALHES DE CÂMERA E LENTE: Fotografia estilo retrato editorial, qualidade de câmera profissional DSLR com lente prime de 85mm ajustada em abertura f/2.8, foco perfeito e nítido nos olhos do sujeito com profundidade de campo rasa (fundo suavemente desfocado).
+- ${cameraDetailsDirective}
 - QUALIDADE E TEXTURA DA PELE: Retoque de pele profissional que preserve texturas naturais de pele (poros e imperfeições reais), eliminando qualquer visual artificial de cera ou distorções plásticas.
-- REGRAS NEGATIVAS: Sem textos escritos na imagem, sem logotipos, sem acessórios estranhos ou distorções anatômicas.
+- REGRAS NEGATIVAS: Sem cabeça desproporcional/grande demais, sem distorções anatômicas, sem textos escritos na imagem, sem logotipos ou acessórios estranhos.
 
 DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
 - ${clothingSection}
 - ${backgroundSection}`;
 
-        // Execução direta e exclusiva via família Gemini Nano Banana Pro (Multimodal)
-        if (!generatedImageUrl && apiKey) {
-          let cropBuffer = buffer;
+        // Prompt v2 (padrão): traços reais da selfie + sem embelezamento + correção da lente do celular.
+        // O prompt original (nanobananaPrompt) continua disponível com settings/aiModels.avatarPromptVersion = "v1".
+        const avatarPromptVersion = (await getAIModelsConfig().catch(() => null))?.avatarPromptVersion || "v2";
+        let finalAvatarPrompt = nanobananaPrompt;
+        if (avatarPromptVersion !== "v1") {
+          let identityTraits: AvatarIdentityTraits | null = null;
+          if (apiKey) {
+            try {
+              const identityRes = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [
+                      {
+                        parts: [
+                          { text: IDENTITY_ANALYSIS_PROMPT },
+                          { inlineData: { mimeType: file.type || "image/jpeg", data: buffer.toString("base64") } },
+                        ],
+                      },
+                    ],
+                    generationConfig: { responseMimeType: "application/json" },
+                  }),
+                }
+              );
+              if (identityRes.ok) {
+                const identityData = await identityRes.json();
+                const rawIdentity = identityData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+                identityTraits = parseIdentityTraits(
+                  JSON.parse(rawIdentity.replace(/^```json\s*/i, "").replace(/```$/, "").trim())
+                );
+                const usage = identityData?.usageMetadata;
+                if (usage && userId) {
+                  const pTokens = usage.promptTokenCount || 0;
+                  const cTokens = usage.candidatesTokenCount || 0;
+                  logApiUsage({
+                    userId,
+                    type: "vision_analysis",
+                    provider: "google_gemini",
+                    model: "gemini-3.5-flash",
+                    costUsd: pTokens * (0.075 / 1_000_000) + cTokens * (0.3 / 1_000_000),
+                    tokens: { promptTokens: pTokens, completionTokens: cTokens, totalTokens: pTokens + cTokens },
+                  });
+                }
+              } else {
+                console.warn(`[AVATAR_GENERATE] Análise de identidade da selfie retornou ${identityRes.status}`);
+              }
+            } catch (identityErr) {
+              console.warn("[AVATAR_GENERATE] Falha na análise de identidade da selfie (segue sem traços):", identityErr);
+            }
+          }
+          finalAvatarPrompt = buildAvatarPromptV2({
+            hasStyleImage: Boolean(styleBuffer),
+            style: styleJson,
+            identity: identityTraits,
+            userPrompt: prompt,
+          });
+          console.log(
+            `[AVATAR_GENERATE] Prompt v2 de fidelidade facial (traços da selfie: ${identityTraits ? "sim" : "não"})`
+          );
+        }
+
+        // Prepara a selfie mantendo enquadramento natural quando há foto de estilo (evita zoom excessivo que induz cabeça gigante)
+        let selfieBuffer = buffer;
+        if (!styleBuffer) {
           try {
             const image = await Jimp.read(buffer);
             const width = image.width;
@@ -353,13 +445,85 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
               const x = Math.max(0, Math.floor((width - size) / 2));
               const y = Math.max(0, Math.floor((height - size) / 2));
               image.crop({ x, y, w: size, h: size });
-              cropBuffer = await image.getBuffer("image/jpeg");
+              selfieBuffer = await image.getBuffer("image/jpeg");
             }
           } catch (e) {
             console.warn("[AVATAR_GENERATE] Falha no crop do Jimp:", e);
           }
+        } else {
+          try {
+            const image = await Jimp.read(buffer);
+            selfieBuffer = await image.getBuffer("image/jpeg");
+          } catch (e) {
+            console.warn("[AVATAR_GENERATE] Falha ao normalizar selfie em JPEG:", e);
+          }
+        }
 
-          const base64Image = cropBuffer.toString("base64");
+        const openaiKey = process.env.OPENAI_API_KEY;
+
+        // 6.1 MOTOR PRIMÁRIO: GPT-Image-2.6 Sunburst (OpenAI Image-to-Image / Edits com Trava Biométrica /identylock)
+        if (!generatedImageUrl && !imgBuffer && openaiKey) {
+          const openAiModels = ["gpt-image-2.6-sunburst", "gpt-image-2.5-sunburst"];
+          for (const openAiModel of openAiModels) {
+            try {
+              console.log(
+                `[AVATAR_GENERATE] 🚀 Tentando motor primário OpenAI Image-to-Image (${openAiModel} | size=${targetOpenAiSize} | dualRefs=${Boolean(styleBuffer)})...`
+              );
+              const editsFormData = new FormData();
+              if (styleBuffer) {
+                // Envia AMBAS as imagens (IMAGEM 1: Selfie + IMAGEM 2: Foto de Estilo) via image[]
+                editsFormData.append("image[]", new Blob([selfieBuffer], { type: "image/jpeg" }), "selfie.jpg");
+                editsFormData.append("image[]", new Blob([styleBuffer], { type: styleMime }), "style.jpg");
+              } else {
+                editsFormData.append("image", new Blob([selfieBuffer], { type: "image/jpeg" }), "selfie.jpg");
+              }
+              editsFormData.append("model", openAiModel);
+              editsFormData.append("prompt", finalAvatarPrompt);
+              editsFormData.append("n", "1");
+              editsFormData.append("size", targetOpenAiSize);
+              editsFormData.append("quality", "high");
+
+              const openAiRes = await fetch("https://api.openai.com/v1/images/edits", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${openaiKey}`,
+                },
+                body: editsFormData,
+              });
+
+              if (openAiRes.ok) {
+                const resData = await openAiRes.json();
+                let b64 = resData?.data?.[0]?.b64_json;
+                if (!b64 && resData?.data?.[0]?.url) {
+                  const imgRes = await fetch(resData.data[0].url);
+                  if (imgRes.ok) {
+                    const ab = await imgRes.arrayBuffer();
+                    b64 = Buffer.from(ab).toString("base64");
+                  }
+                }
+                if (b64) {
+                  imgBuffer = Buffer.from(b64, "base64");
+                  generatedBy = `openai_${openAiModel}`;
+                  source = "gpt_image_sunburst";
+                  console.log(`[AVATAR_GENERATE] ✅ Sucesso total via OpenAI (${openAiModel})!`);
+                  break;
+                }
+              } else {
+                const errTxt = await openAiRes.text().catch(() => "");
+                console.warn(
+                  `[AVATAR_GENERATE] OpenAI ${openAiModel} retornou ${openAiRes.status}: ${errTxt.slice(0, 160)}`
+                );
+              }
+            } catch (openAiErr: any) {
+              console.warn(`[AVATAR_GENERATE] Erro ao chamar OpenAI ${openAiModel}:`, openAiErr.message);
+            }
+          }
+        }
+
+        // 6.2 FALLBACK: Família Nano Banana Pro (gemini-3-pro-image e contingências)
+        if (!generatedImageUrl && !imgBuffer && apiKey) {
+          console.log("[AVATAR_GENERATE] 🍌 Acionando Fallback Nano Banana Pro (gemini-3-pro-image)...");
+          const base64Image = selfieBuffer.toString("base64");
           const mimeType = "image/jpeg";
 
           const NANOBANANA_MODELS = [
@@ -371,7 +535,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
 
           // Construção das partes multimodais (Selfie + Foto de Estilo se fornecida)
           const contentsParts: any[] = [
-            { text: nanobananaPrompt },
+            { text: finalAvatarPrompt },
             {
               inlineData: {
                 mimeType: mimeType,
@@ -394,7 +558,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
 
           for (const model of NANOBANANA_MODELS) {
             try {
-              console.log(`[AVATAR_GENERATE] 🍌 Tentando Nano Banana Pro Multimodal com modelo ${model}...`);
+              console.log(`[AVATAR_GENERATE] 🍌 Tentando Fallback Nano Banana Pro Multimodal com modelo ${model}...`);
               const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
               const response = await fetch(nanobananaUrl, {
@@ -421,7 +585,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
                   imgBuffer = Buffer.from(bytes, "base64");
                   generatedBy = `nanobanana_pro_${model}`;
                   source = "nanobanana_ref";
-                  console.log(`[AVATAR_GENERATE] ✅ Sucesso total via Nano Banana Pro Multimodal (${model})!`);
+                  console.log(`[AVATAR_GENERATE] ✅ Sucesso total via Fallback Nano Banana Pro (${model})!`);
                   break;
                 }
               }
@@ -432,14 +596,14 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
         }
 
         if (!imgBuffer && !generatedImageUrl) {
-          throw new Error("Falha ao gerar o avatar através do motor Gemini Nano Banana Pro.");
+          throw new Error("Falha ao gerar o avatar através dos motores GPT-Image-2.6 Sunburst e Gemini Nano Banana Pro.");
         }
 
         logApiUsage({
           userId,
           type: "avatar_generation",
-          provider: "falai",
-          model: "nanobanana_pro",
+          provider: generatedBy.startsWith("openai") ? "openai" : "google",
+          model: generatedBy || "gpt-image-2.6-sunburst",
           costUsd: 0.03,
         });
       } catch (bananaErr: any) {

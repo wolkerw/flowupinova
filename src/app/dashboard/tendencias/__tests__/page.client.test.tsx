@@ -209,4 +209,36 @@ describe("TendenciasPageClient", () => {
     expect(nicheItems[0].title).toBe("Mercado de Odontologia cresce 25% no Brasil");
     expect(nicheItems[0].sourceLabel).toBe("Valor Econômico");
   });
+
+  it("exibe o seletor de categorias do Google Trends e destaca pautas relevantes do negócio", async () => {
+    const mockCategorizedResponse = {
+      ...mockTrendsResponse,
+      trends: [
+        {
+          ...mockTrendsResponse.trends[0],
+          id: "trend-odonto-1",
+          title: "Novo Tratamento Dental",
+          categories: [7],
+          primaryCategory: "Saúde e Bem-estar",
+          isBusinessCategoryMatch: true,
+        },
+      ],
+    };
+
+    global.fetch = vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => mockCategorizedResponse,
+      } as any)
+    );
+
+    render(<TendenciasPageClient />);
+
+    expect(screen.getByText(/Filtrar por Categoria:/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Novo Tratamento Dental")).toBeInTheDocument();
+    });
+    expect(screen.getAllByText(/Seu Negócio/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Saúde e Bem-estar")).toBeInTheDocument();
+  });
 });
