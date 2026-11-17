@@ -44,6 +44,7 @@ interface PaymentSettings {
   creditLinkYearly: string;
   creditLinkYearlyRecurrent?: string;
   creditLinkTudoPronto?: string;
+  creditLinkTudoPronto20Off?: string;
 }
 
 export function SubscriptionModal({ isOpen, onClose, userId, initialPlan }: SubscriptionModalProps) {
@@ -80,6 +81,7 @@ export function SubscriptionModal({ isOpen, onClose, userId, initialPlan }: Subs
     creditLinkYearly: "",
     creditLinkYearlyRecurrent: "https://www.asaas.com/c/2unkh9p3t6apkcvm",
     creditLinkTudoPronto: "",
+    creditLinkTudoPronto20Off: "https://www.asaas.com/c/l476dddo1yo84fj4",
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
@@ -216,7 +218,11 @@ export function SubscriptionModal({ isOpen, onClose, userId, initialPlan }: Subs
       else if (selectedPlan === "anual") {
         targetLink = settings.creditLinkYearlyRecurrent || "https://www.asaas.com/c/2unkh9p3t6apkcvm";
       } else if (selectedPlan === "tudo_pronto") {
-        targetLink = settings.creditLinkTudoPronto || "";
+        if (discount?.percentage === 20) {
+          targetLink = settings.creditLinkTudoPronto20Off || "https://www.asaas.com/c/l476dddo1yo84fj4";
+        } else {
+          targetLink = settings.creditLinkTudoPronto || "";
+        }
       }
 
       if (targetLink) {
