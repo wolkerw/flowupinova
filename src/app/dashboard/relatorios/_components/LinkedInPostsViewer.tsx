@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -16,25 +15,24 @@ import {
 import {
   Linkedin,
   Eye,
-  Heart,
   MessageCircle,
   Share2,
-  TrendingUp,
   TrendingDown,
   Sparkles,
   AlertTriangle,
   Loader2,
   ExternalLink,
   Flame,
-  Award,
   BarChart,
-  Users,
-  Building2,
   ThumbsUp,
   ArrowUpRight,
+  MousePointerClick,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/components/auth/auth-provider";
 import type { LinkedInConnectionData } from "@/lib/services/linkedin-service";
+import type { LinkedInPostMetricItem } from "@/app/api/linkedin/metrics/route";
 
 export interface LinkedInPostsViewerProps {
   connection: LinkedInConnectionData | null;
@@ -44,11 +42,11 @@ export interface LinkedInPostsViewerProps {
 const linkedinAiRecommendations = [
   {
     id: "li-rec-1",
-    title: "Postar Artigos de Opinião de Líderes (Thought Leadership)",
+    title: "Postar Artigos de Opinião e Bastidores da Empresa",
     description:
-      "Posts com o formato de estória corporativa ou opinião de liderança geram maior engajamento no seu perfil do LinkedIn.",
-    actionText: "Gerar Post B2B",
-    badge: "Alta Relevância B2B",
+      "Posts com histórias reais da empresa ou visão de liderança costumam gerar maior alcance e engajamento no LinkedIn.",
+    actionText: "Gerar Post",
+    badge: "Alta Relevância",
     badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
   },
   {
@@ -63,37 +61,68 @@ const linkedinAiRecommendations = [
 ];
 
 export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInPostsViewerProps) {
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const { user, getIdToken } = useAuth();
+  const [selectedPost, setSelectedPost] = useState<LinkedInPostMetricItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "trending" | "declining">("all");
+  const [posts, setPosts] = useState<LinkedInPostMetricItem[]>([]);
+  const [orgName, setOrgName] = useState<string>(
+    connection?.selectedOrganizationName || connection?.personName || ""
+  );
+  const [orgTotals, setOrgTotals] = useState({
+    impressions: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    clicks: 0,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isConnected = connection?.isConnected ?? false;
 
-  if (!isConnected) {
-    return (
-      <div className="py-12 text-center text-slate-500">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#0077B5]">
-          <Linkedin className="h-10 w-10" />
-        </div>
-        <h3 className="font-poppins text-xl font-bold text-slate-900">
-          Conta do LinkedIn não conectada
-        </h3>
-        <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
-          Conecte sua conta do LinkedIn ou Página de Empresa para visualizar métricas B2B, estatísticas de postagens e recomendações da IA NumVapt.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Button asChild className="bg-[#0077B5] hover:bg-[#005e93] text-white font-semibold shadow-sm">
-            <Link href="/dashboard/posts">
-              <Linkedin className="mr-2 h-4 w-4" />
-              Conectar LinkedIn
-            </Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const fetchMetrics = useCallback(async () => {
+    if (!isConnected) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = user ? await getIdToken().catch(() => null) : null;
+      const res = await fetch("/api/linkedin/metrics", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Não foi possível carregar as métricas do LinkedIn.");
+      }
+      setPosts(Array.isArray(data.posts) ? data.posts : []);
+      if (data.organizationName) {
+        setOrgName(data.organizationName);
+      }
+      if (data.totals) {
+        setOrgTotals({
+          impressions: Number(data.totals.impressions || 0),
+          likes: Number(data.totals.likes || 0),
+          comments: Number(data.totals.comments || 0),
+          shares: Number(data.totals.shares || 0),
+          clicks: Number(data.totals.clicks || 0),
+        });
+      }
+      if (data.warning) {
+        setError(data.warning);
+      }
+    } catch (err: any) {
+      setError(err.message || "Erro ao buscar métricas no LinkedIn.");
+    } finally {
+      setLoading(false);
+    }
+  }, [isConnected, user, getIdToken]);
 
-  const [posts] = useState<any[]>([]);
+  useEffect(() => {
+    if (isConnected) {
+      fetchMetrics();
+    }
+  }, [isConnected, fetchMetrics]);
 
   const cutoffDate = React.useMemo(() => {
     const d = new Date();
@@ -112,22 +141,49 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
     });
   }, [posts, activeTab, cutoffDate]);
 
-  const totalImpressions = React.useMemo(
-    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.impressions || 0), 0),
-    [filteredPosts]
-  );
-  const totalLikes = React.useMemo(
-    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.likes || 0), 0),
-    [filteredPosts]
-  );
-  const totalComments = React.useMemo(
-    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.comments || 0), 0),
-    [filteredPosts]
-  );
-  const totalShares = React.useMemo(
-    () => filteredPosts.reduce((acc, p) => acc + (p.metrics?.shares || 0), 0),
-    [filteredPosts]
-  );
+  const sumPosts = React.useMemo(() => {
+    return filteredPosts.reduce(
+      (acc, p) => ({
+        impressions: acc.impressions + (p.metrics?.impressions || 0),
+        likes: acc.likes + (p.metrics?.likes || 0),
+        comments: acc.comments + (p.metrics?.comments || 0),
+        shares: acc.shares + (p.metrics?.shares || 0),
+        clicks: acc.clicks + (p.metrics?.clicks || 0),
+      }),
+      { impressions: 0, likes: 0, comments: 0, shares: 0, clicks: 0 }
+    );
+  }, [filteredPosts]);
+
+  // Se houver métricas nos posts filtrados, exibe a soma; caso contrário usa os totais da página corporativa
+  const totalImpressions = sumPosts.impressions || orgTotals.impressions;
+  const totalLikes = sumPosts.likes || orgTotals.likes;
+  const totalComments = sumPosts.comments || orgTotals.comments;
+  const totalShares = sumPosts.shares || orgTotals.shares;
+  const totalClicks = sumPosts.clicks || orgTotals.clicks;
+
+  if (!isConnected) {
+    return (
+      <div className="py-12 text-center text-slate-500">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#0077B5]">
+          <Linkedin className="h-10 w-10" />
+        </div>
+        <h3 className="font-poppins text-xl font-bold text-slate-900">
+          Conta do LinkedIn não conectada
+        </h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
+          Conecte sua conta do LinkedIn ou Página de Empresa para visualizar métricas, estatísticas de postagens e recomendações da IA NumVapt.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Button asChild className="bg-[#0077B5] hover:bg-[#005e93] text-white font-semibold shadow-sm">
+            <Link href="/dashboard/posts">
+              <Linkedin className="mr-2 h-4 w-4" />
+              Conectar LinkedIn
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 font-sans">
@@ -141,27 +197,49 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-poppins text-lg font-bold text-slate-900">
-                  {connection?.personName || connection?.selectedOrganizationName || "LinkedIn Profiler B2B"}
+                  {orgName || connection?.selectedOrganizationName || connection?.personName || "Página do LinkedIn"}
                 </h3>
                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
                   Conectado
                 </Badge>
               </div>
               <p className="text-xs text-slate-600">
-                Alvo de Publicação: {connection?.publishTarget === "organization" ? "Página de Empresa" : "Perfil Pessoal"}
+                Página Corporativa: {orgName || connection?.selectedOrganizationName || "Não selecionada"}
+                {connection?.personName ? ` • Admin: ${connection.personName}` : ""}
               </p>
             </div>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchMetrics}
+            disabled={loading}
+            className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Atualizar Métricas
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Cards de Métricas Gerais de LinkedIn */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {error && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-semibold">Aviso ao consultar métricas no LinkedIn</p>
+            <p className="mt-0.5 text-amber-800">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Cards de Métricas Gerais de LinkedIn (Impressões, Reações, Comentários, Compartilhamentos, Cliques) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="border border-slate-200 bg-white shadow-xs">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Impressões B2B
+                Impressões
               </span>
               <div className="rounded-lg bg-blue-50 p-2 text-[#0077B5]">
                 <Eye className="h-5 w-5" />
@@ -199,7 +277,7 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Comentários B2B
+                Comentários
               </span>
               <div className="rounded-lg bg-purple-50 p-2 text-purple-600">
                 <MessageCircle className="h-5 w-5" />
@@ -230,6 +308,25 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Reposts em redes profissionais</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-slate-200 bg-white shadow-xs">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Cliques
+              </span>
+              <div className="rounded-lg bg-sky-50 p-2 text-[#0083C7]">
+                <MousePointerClick className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-poppins text-3xl font-bold text-slate-900">
+                {totalClicks.toLocaleString("pt-BR")}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Cliques nas publicações</p>
           </CardContent>
         </Card>
       </div>
@@ -265,10 +362,19 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
           </Tabs>
         </CardHeader>
         <CardContent>
-          {filteredPosts.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+              <Loader2 className="mb-3 h-8 w-8 animate-spin text-[#0077B5]" />
+              <p className="text-sm font-medium text-slate-700">
+                Carregando publicações e métricas do LinkedIn...
+              </p>
+            </div>
+          ) : filteredPosts.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-xs">
               <Linkedin className="mx-auto mb-3 h-10 w-10 text-slate-400" />
-              <h4 className="text-base font-semibold text-slate-800">Nenhum post publicado no LinkedIn no período</h4>
+              <h4 className="text-base font-semibold text-slate-800">
+                Nenhum post publicado no LinkedIn no período
+              </h4>
               <p className="mt-1 text-xs text-slate-500">
                 Suas publicações realizadas pelo NumVapt ou pela sua Página Corporativa do LinkedIn aparecerão aqui com métricas em tempo real.
               </p>
@@ -276,73 +382,89 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredPosts.map((post) => (
-              <Card
-                key={post.id}
-                className="flex flex-col border border-slate-200 shadow-xs transition-shadow hover:shadow-md"
-              >
-                <CardHeader className="p-4 pb-2">
-                  <div className="relative aspect-video overflow-hidden rounded-md bg-slate-100">
-                    <Image
-                      src={post.imageUrl}
-                      alt="Thumbnail post LinkedIn"
-                      fill
-                      className="object-cover"
-                    />
-                    {post.status === "trending" && (
-                      <Badge className="absolute top-2 right-2 bg-orange-500 text-white font-bold border-none">
-                        <Flame className="mr-1 h-3 w-3" /> Em Alta
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow p-4 pt-2 space-y-3">
-                  <p className="line-clamp-2 text-sm text-slate-700 font-medium">
-                    {post.text}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Publicado em {format(new Date(post.createdTime), "dd/MM/yyyy 'às' HH:mm")}
-                  </p>
+                <Card
+                  key={post.id}
+                  className="flex flex-col border border-slate-200 shadow-xs transition-shadow hover:shadow-md"
+                >
+                  <CardHeader className="p-4 pb-2">
+                    <div className="relative aspect-video overflow-hidden rounded-md bg-slate-100">
+                      {post.imageUrl ? (
+                        <img
+                          src={post.imageUrl}
+                          alt="Thumbnail post LinkedIn"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-blue-50 text-[#0077B5]">
+                          <Linkedin className="h-10 w-10 opacity-40" />
+                        </div>
+                      )}
+                      {post.status === "trending" && (
+                        <Badge className="absolute top-2 right-2 bg-orange-500 text-white font-bold border-none">
+                          <Flame className="mr-1 h-3 w-3" /> Em Alta
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow p-4 pt-2 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="font-semibold text-[#0077B5]">
+                        {orgName || connection?.selectedOrganizationName || "Página Corporativa"}
+                      </span>
+                      <span>{format(new Date(post.createdTime), "dd/MM/yyyy 'às' HH:mm")}</span>
+                    </div>
+                    <p className="line-clamp-2 text-sm text-slate-700 font-medium">{post.text}</p>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <Eye className="h-3.5 w-3.5 text-blue-600" />
-                      <span className="font-bold text-slate-900">{post.metrics.impressions}</span>
-                      <span className="text-[11px]">Impr.</span>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <Eye className="h-3.5 w-3.5 text-blue-600" />
+                        <span className="font-bold text-slate-900">{post.metrics.impressions}</span>
+                        <span className="text-[11px]">Impr.</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <ThumbsUp className="h-3.5 w-3.5 text-emerald-600" />
+                        <span className="font-bold text-slate-900">{post.metrics.likes}</span>
+                        <span className="text-[11px]">Reações</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MessageCircle className="h-3.5 w-3.5 text-purple-600" />
+                        <span className="font-bold text-slate-900">{post.metrics.comments}</span>
+                        <span className="text-[11px]">Coment.</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Share2 className="h-3.5 w-3.5 text-orange-600" />
+                        <span className="font-bold text-slate-900">{post.metrics.shares}</span>
+                        <span className="text-[11px]">Shares</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <MousePointerClick className="h-3.5 w-3.5 text-[#0083C7]" />
+                        <span className="font-bold text-slate-900">{post.metrics.clicks}</span>
+                        <span className="text-[11px]">Cliques</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <ThumbsUp className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="font-bold text-slate-900">{post.metrics.likes}</span>
-                      <span className="text-[11px]">Reações</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="h-3.5 w-3.5 text-purple-600" />
-                      <span className="font-bold text-slate-900">{post.metrics.comments}</span>
-                      <span className="text-[11px]">Coment.</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Share2 className="h-3.5 w-3.5 text-orange-600" />
-                      <span className="font-bold text-slate-900">{post.metrics.shares}</span>
-                      <span className="text-[11px]">Shares</span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-4 pt-0">
-                  <Button
-                    variant="outline"
-                    className="w-full text-xs font-semibold"
-                    onClick={() => {
-                      setSelectedPost(post);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <BarChart className="mr-1.5 h-3.5 w-3.5 text-[#0077B5]" />
-                    Ver Insights do Post
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0 gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-xs font-semibold"
+                      onClick={() => {
+                        setSelectedPost(post);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <BarChart className="mr-1.5 h-3.5 w-3.5 text-[#0077B5]" />
+                      Ver Insights
+                    </Button>
+                    <Button asChild variant="ghost" size="icon" className="shrink-0">
+                      <a href={post.permalink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 text-slate-500" />
+                      </a>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -355,7 +477,7 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
             </div>
             <div>
               <CardTitle className="font-poppins text-lg font-bold text-slate-900">
-                Insights B2B & Estratégia LinkedIn (IA NumVapt)
+                Estratégia & Recomendações para LinkedIn
               </CardTitle>
               <CardDescription className="text-slate-600">
                 Recomendações orientadas a dados para fortalecer o posicionamento da sua marca no LinkedIn.
@@ -378,8 +500,10 @@ export function LinkedInPostsViewer({ connection, periodDays = "30" }: LinkedInP
                 <p className="mt-1 text-sm text-slate-600">{rec.description}</p>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-                <Button className="bg-[#0077B5] hover:bg-[#005e93] text-white text-xs font-semibold">
-                  {rec.actionText} <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                <Button asChild className="bg-[#0077B5] hover:bg-[#005e93] text-white text-xs font-semibold">
+                  <Link href="/dashboard/posts/gerar">
+                    {rec.actionText} <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
                 </Button>
               </div>
             </div>

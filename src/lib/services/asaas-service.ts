@@ -102,10 +102,26 @@ export interface AsaasWebhookPayload {
 }
 
 export class AsaasService {
-  private static getApiKey(): string {
-    const key = process.env.ASAAS_API_KEY || "";
+  private static async getApiKey(): Promise<string> {
+    let key = process.env.ASAAS_API_KEY || process.env.ASSAS_API_KEY || "";
+    if (key) return key;
+
+    try {
+      const { adminDb } = await import("@/lib/firebase-admin");
+      const snap = await adminDb.collection("settings").doc("payment").get();
+      if (snap.exists) {
+        const data = snap.data();
+        const candidate = data?.asaasApiKey || data?.assasApiKey;
+        if (candidate && typeof candidate === "string") {
+          key = candidate.trim();
+        }
+      }
+    } catch (err: any) {
+      console.warn("[ASAAS_SERVICE] Falha ao obter asaasApiKey do Firestore:", err.message);
+    }
+
     if (!key) {
-      console.warn("[ASAAS_SERVICE] Chave ASAAS_API_KEY não configurada no ambiente.");
+      console.warn("[ASAAS_SERVICE] Chave ASAAS_API_KEY não configurada no ambiente nem no Firestore.");
     }
     return key;
   }
@@ -121,7 +137,7 @@ export class AsaasService {
     path: string,
     options: RequestInit = {}
   ): Promise<{ ok: boolean; status: number; data: T }> {
-    const apiKey = this.getApiKey();
+    const apiKey = await this.getApiKey();
     const baseUrl = this.getApiUrl().replace(/\/$/, "");
     const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 
