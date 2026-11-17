@@ -308,10 +308,15 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({
             success: true,
             settings: {
-              pixKey: settingsData?.pixKey || "pix@numvapt.com.br",
+              pixKey: settingsData?.pixKey || "d696cfdb-a875-4219-ae41-494a619a9e00",
               pixQrCodeUrl: settingsData?.pixQrCodeUrl || "",
               creditLinkMonthly: settingsData?.creditLinkMonthly || "",
+              creditLinkTrimestral: settingsData?.creditLinkTrimestral || "",
+              creditLinkSemestral: settingsData?.creditLinkSemestral || "",
               creditLinkYearly: settingsData?.creditLinkYearly || "",
+              creditLinkYearlyRecurrent: settingsData?.creditLinkYearlyRecurrent || "https://www.asaas.com/c/2unkh9p3t6apkcvm",
+              creditLinkTudoPronto: settingsData?.creditLinkTudoPronto || "",
+              creditLinkTudoPronto20Off: settingsData?.creditLinkTudoPronto20Off || "https://www.asaas.com/c/l476dddo1yo84fj4",
             },
           });
         }

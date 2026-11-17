@@ -28,6 +28,17 @@ import { cn } from "@/lib/utils";
 import type { WhatsAppMessage, WhatsAppChatSession } from "@/lib/types/whatsapp";
 import KnowledgeCenterPanel from "@/components/admin/KnowledgeCenterPanel";
 
+function formatDayLabel(timestamp: string): string {
+  const d = new Date(timestamp);
+  if (Number.isNaN(d.getTime())) return "";
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Hoje";
+  if (d.toDateString() === yesterday.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
 export default function AdminWhatsAppPage() {
   const [activeTab, setActiveTab] = useState<"conversas" | "conhecimento">("conversas");
 
@@ -44,7 +55,17 @@ export default function AdminWhatsAppPage() {
   const [search, setSearch] = useState("");
   const [knowledgeReloadKey, setKnowledgeReloadKey] = useState(0);
 
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [oldestCursor, setOldestCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  // Rola para o fim só ao abrir a conversa ou enviar mensagem; ao carregar antigas, mantém a posição.
+  const scrollModeRef = useRef<"bottom" | "keep">("bottom");
+  const prevScrollHeightRef = useRef(0);
+  const selectedPhoneRef = useRef<string | null>(null);
 
   const fetchChats = useCallback(async () => {
     setLoadingChats(true);
@@ -65,29 +86,80 @@ export default function AdminWhatsAppPage() {
     }
   }, []);
 
+  const buildMessagesUrl = (chat: WhatsAppChatSession, before?: string | null) => {
+    const params = new URLSearchParams({ phone: chat.cleanPhone || chat.phone });
+    if (chat.lid) params.set("lid", chat.lid);
+    if (before) params.set("before", before);
+    return `/api/admin/whatsapp?${params.toString()}`;
+  };
+
   const loadMessages = useCallback(async (chat: WhatsAppChatSession) => {
+    const phone = chat.cleanPhone || chat.phone;
+    selectedPhoneRef.current = phone;
     setSelectedChat(chat);
+    setMessages([]);
+    setHasMoreMessages(false);
+    setOldestCursor(null);
+    setSendError(null);
     setLoadingMessages(true);
     try {
-      const res = await fetch(`/api/admin/whatsapp?phone=${chat.cleanPhone || chat.phone}`);
-      if (res.ok) {
+      const res = await fetch(buildMessagesUrl(chat));
+      if (res.ok && selectedPhoneRef.current === phone) {
         const data = await res.json();
+        scrollModeRef.current = "bottom";
         setMessages(data.messages || []);
+        setHasMoreMessages(Boolean(data.hasMore));
+        setOldestCursor(data.oldest || null);
       }
     } catch (err) {
       console.error("Erro ao carregar mensagens:", err);
     } finally {
-      setLoadingMessages(false);
+      if (selectedPhoneRef.current === phone) setLoadingMessages(false);
     }
   }, []);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedChat || !hasMoreMessages || loadingOlder || !oldestCursor) return;
+    const phone = selectedChat.cleanPhone || selectedChat.phone;
+    setLoadingOlder(true);
+    try {
+      const res = await fetch(buildMessagesUrl(selectedChat, oldestCursor));
+      if (res.ok && selectedPhoneRef.current === phone) {
+        const data = await res.json();
+        const older: WhatsAppMessage[] = data.messages || [];
+        prevScrollHeightRef.current = messagesContainerRef.current?.scrollHeight ?? 0;
+        scrollModeRef.current = "keep";
+        setMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          return [...older.filter((m) => !ids.has(m.id)), ...prev];
+        });
+        setHasMoreMessages(Boolean(data.hasMore));
+        setOldestCursor(data.oldest || null);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar mensagens anteriores:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [selectedChat, hasMoreMessages, loadingOlder, oldestCursor]);
+
+  const handleMessagesScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop < 80) loadOlderMessages();
+  };
 
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
 
   useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (scrollModeRef.current === "keep" && container) {
+      container.scrollTop = container.scrollHeight - prevScrollHeightRef.current;
+      scrollModeRef.current = "bottom";
+      return;
+    }
     if (typeof messagesEndRef.current?.scrollIntoView === "function") {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current.scrollIntoView({ block: "end" });
     }
   }, [messages]);
 
@@ -127,6 +199,7 @@ export default function AdminWhatsAppPage() {
 
     const currentText = inputText.trim();
     setInputText("");
+    setSendError(null);
     setSendingMessage(true);
 
     const tempMsg: WhatsAppMessage = {
@@ -158,9 +231,17 @@ export default function AdminWhatsAppPage() {
               : c
           )
         );
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
+        setInputText(currentText);
+        setSendError(data?.error || "Não foi possível enviar a mensagem.");
       }
     } catch (err) {
       console.error("Erro ao enviar mensagem manual:", err);
+      setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
+      setInputText(currentText);
+      setSendError("Não foi possível enviar a mensagem.");
     } finally {
       setSendingMessage(false);
     }
@@ -237,9 +318,9 @@ export default function AdminWhatsAppPage() {
 
       {/* CONTEÚDO DA ABA: CONVERSAS AO VIVO */}
       {activeTab === "conversas" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[720px] rounded-2xl border border-slate-700/60 bg-slate-900 overflow-hidden shadow-xl">
+        <div className="grid grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-6 h-[720px] rounded-2xl border border-slate-700/60 bg-slate-900 overflow-hidden shadow-xl">
           {/* Coluna Esquerda: Lista de Conversas (4 colunas) */}
-          <div className="lg:col-span-4 border-r border-slate-700/60 flex flex-col h-full bg-slate-900/90">
+          <div className="lg:col-span-4 border-r border-slate-700/60 flex flex-col h-full min-h-0 bg-slate-900/90">
             {/* Barra de Busca e Filtros */}
             <div className="p-4 border-b border-slate-700/60 space-y-3">
               <div className="relative">
@@ -285,7 +366,7 @@ export default function AdminWhatsAppPage() {
             </div>
 
             {/* Lista com scroll */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-800">
+            <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-800">
               {loadingChats ? (
                 <div className="flex flex-col items-center justify-center h-48 text-slate-400">
                   <Loader2 className="h-6 w-6 animate-spin mb-2" />
@@ -354,7 +435,7 @@ export default function AdminWhatsAppPage() {
           </div>
 
           {/* Coluna Direita: Janela de Chat (8 colunas) */}
-          <div className="lg:col-span-8 flex flex-col h-full bg-slate-900/50">
+          <div className="lg:col-span-8 flex flex-col h-full min-h-0 bg-slate-900/50">
             {selectedChat ? (
               <>
                 {/* Header do Chat Ativo */}
@@ -412,7 +493,24 @@ export default function AdminWhatsAppPage() {
                 </div>
 
                 {/* Área de Mensagens */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/40">
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={handleMessagesScroll}
+                  className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-slate-950/40"
+                >
+                  {!loadingMessages && messages.length > 0 && (hasMoreMessages || loadingOlder) && (
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={loadOlderMessages}
+                        disabled={loadingOlder}
+                        className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-[11px] text-slate-300 hover:bg-slate-700 disabled:opacity-60"
+                      >
+                        {loadingOlder ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
+                        {loadingOlder ? "Carregando..." : "Carregar mensagens anteriores"}
+                      </button>
+                    </div>
+                  )}
                   {loadingMessages ? (
                     <div className="flex items-center justify-center h-full text-slate-400">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -424,19 +522,31 @@ export default function AdminWhatsAppPage() {
                       Nenhuma mensagem registrada nesta conversa.
                     </div>
                   ) : (
-                    messages.map((msg) => {
+                    messages.map((msg, i) => {
                       const isUser = msg.role === "user";
                       const isAi = msg.role === "assistant";
-                      const isAdmin = msg.role === "admin";
+                      const dayLabel = formatDayLabel(msg.timestamp);
+                      const showDay = i === 0 || formatDayLabel(messages[i - 1].timestamp) !== dayLabel;
 
                       return (
+                        <React.Fragment key={msg.id}>
+                        {showDay && (
+                          <div className="flex justify-center">
+                            <span className="rounded-full bg-slate-800/80 px-3 py-0.5 text-[10px] text-slate-400">
+                              {dayLabel}
+                            </span>
+                          </div>
+                        )}
                         <div
-                          key={msg.id}
                           className={cn("flex flex-col", isUser ? "items-start" : "items-end")}
                         >
                           <div className="flex items-center gap-1.5 mb-1 px-1">
                             <span className="text-[10px] font-semibold text-slate-400">
-                              {isUser ? msg.senderName || "Cliente" : isAi ? "Maia (NumVapt IA)" : "Atendente Humano"}
+                              {isUser
+                                ? msg.senderName || "Cliente"
+                                : isAi
+                                ? "Maia (NumVapt IA)"
+                                : msg.senderName || "Atendente Humano"}
                             </span>
                             <span className="text-[9px] text-slate-500">
                               {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {
@@ -459,11 +569,18 @@ export default function AdminWhatsAppPage() {
                             {msg.text}
                           </div>
                         </div>
+                        </React.Fragment>
                       );
                     })
                   )}
                   <div ref={messagesEndRef} />
                 </div>
+
+                {sendError && (
+                  <div className="px-4 py-2 text-[11px] text-red-300 bg-red-950/40 border-t border-red-900/50 flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" /> {sendError}
+                  </div>
+                )}
 
                 {/* Input de Envio Manual */}
                 <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-700/60 bg-slate-900/90 flex gap-2">

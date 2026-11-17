@@ -63,7 +63,7 @@ describe("Configuração de Metadados e SEO", () => {
     it("deve definir tags OpenGraph e Twitter específicas da Home", () => {
       const og = homeMetadata?.openGraph as any;
       expect(og?.title).toContain("Marketing no modo Ultra Vapt");
-      expect(og?.url).toBe("https://numvapt.com.br");
+      expect(og?.url).toBe("https://numvapt.com");
       expect(og?.images).toEqual([
         {
           url: "/logo-numvapt.png",
@@ -99,11 +99,11 @@ describe("Configuração de Metadados e SEO", () => {
       expect(sitemapResult).toHaveLength(3);
 
       const urls = sitemapResult.map((entry) => entry.url);
-      expect(urls).toContain("https://numvapt.com.br");
-      expect(urls).toContain("https://numvapt.com.br/termos");
-      expect(urls).toContain("https://numvapt.com.br/privacidade");
+      expect(urls).toContain("https://numvapt.com");
+      expect(urls).toContain("https://numvapt.com/termos");
+      expect(urls).toContain("https://numvapt.com/privacidade");
 
-      const homeEntry = sitemapResult.find((entry) => entry.url === "https://numvapt.com.br");
+      const homeEntry = sitemapResult.find((entry) => entry.url === "https://numvapt.com");
       expect(homeEntry?.priority).toBe(1.0);
     });
 
@@ -118,7 +118,7 @@ describe("Configuração de Metadados e SEO", () => {
       expect(disallowRules).toContain("/acesso/");
       expect(disallowRules).toContain("/api/");
 
-      expect(robotsResult.sitemap).toBe("https://numvapt.com.br/sitemap.xml");
+      expect(robotsResult.sitemap).toBe("https://numvapt.com/sitemap.xml");
     });
   });
 });

@@ -111,15 +111,15 @@ describe("Instagram AI Service", () => {
 
     expect(systemInstruction).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
     expect(systemInstruction).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
-    expect(systemInstruction).toContain("https://numvapt.com.br/dashboard/posts");
-    expect(systemInstruction).toContain("https://numvapt.com.br/dashboard/configuracoes");
+    expect(systemInstruction).toContain("https://numvapt.com/dashboard/posts");
+    expect(systemInstruction).toContain("https://numvapt.com/dashboard/configuracoes");
     expect(systemInstruction).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA INSTAGRAM DIRECT (MAIA)");
   });
   it("aplica guardrail de saída caso o modelo alucine preço de R$ 79,90 ou link /planos", async () => {
     process.env.GEMINI_API_KEY = "test-gemini-key";
 
     const mockAiJson = JSON.stringify({
-      replyText: "O plano mensal custa R$ 79,90 por mês. Veja no site https://numvapt.com.br/planos!",
+      replyText: "O plano mensal custa R$ 79,90 por mês. Veja no site https://numvapt.com/planos!",
       needsHumanSupport: false,
       suggestedAction: "plan_details",
       planMentioned: "mensal",
@@ -140,7 +140,7 @@ describe("Instagram AI Service", () => {
     expect(res.replyText).not.toContain("79,90");
     expect(res.replyText).toContain("R$ 490,00/mês");
     expect(res.replyText).not.toContain("/planos");
-    expect(res.replyText).toContain("https://numvapt.com.br/acesso/cadastro");
+    expect(res.replyText).toContain("https://numvapt.com/acesso/cadastro");
   });
 
   it("filtra mensagens corrompidas do histórico para não contaminar o contexto do modelo", async () => {
@@ -215,11 +215,12 @@ describe("Instagram AI Service", () => {
     const requestBody = JSON.parse(fetchArgs[1].body);
     const systemInstruction = requestBody.systemInstruction.parts[0].text;
 
-    expect(systemInstruction).toContain("EXEMPLOS OBRIGATÓRIOS DE RESPOSTA (FEW-SHOT)");
-    expect(systemInstruction).toContain("O plano mensal da NumVapt custa R$ 490,00/mês");
+    expect(systemInstruction).toContain("# EXEMPLOS");
+    expect(systemInstruction).toContain("O plano Mensal custa R$ 490,00/mês");
+    expect(systemInstruction).toContain("SEM BOAS-VINDAS AUTOMÁTICAS");
     expect(res.replyText).not.toContain("97");
     expect(res.replyText).toContain("R$ 490,00/mês");
-    expect(res.replyText).toContain("https://numvapt.com.br/acesso/cadastro");
+    expect(res.replyText).toContain("https://numvapt.com/acesso/cadastro");
   });
 });
 

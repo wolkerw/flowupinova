@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function PrivacidadePage() {
   const privacidadeHtml = `
     <h2><span style="color: rgb(68, 68, 68);">Política de Privacidade</span></h2>
-    <p><span style="color: rgb(68, 68, 68);">A sua privacidade é importante para nós. É política do numvapt.com.br respeitar a sua privacidade em relação a qualquer informação sua que possamos coletar no site <a href="https://numvapt.com.br">numvapt.com.br</a>, e outros sites que possuímos e operamos.</span></p>
+    <p><span style="color: rgb(68, 68, 68);">A sua privacidade é importante para nós. É política do numvapt.com respeitar a sua privacidade em relação a qualquer informação sua que possamos coletar no site <a href="https://numvapt.com">numvapt.com</a>, e outros sites que possuímos e operamos.</span></p>
     
     <p><span style="color: rgb(68, 68, 68);">Solicitamos informações pessoais apenas quando realmente precisamos delas para lhe fornecer um serviço. Fazemo-lo por meios justos e legais, com o seu conhecimento e consentimento. Também informamos por que estamos coletando e como será usado.</span></p>
     
@@ -61,11 +61,11 @@ export default function PrivacidadePage() {
     <p><span style="color: rgb(68, 68, 68);">Adicionalmente, você pode revogar as permissões concedidas ao NumVapt acessando a página de configurações de segurança da sua própria Conta do Google.</span></p>
 
     <h3><span style="color: rgb(68, 68, 68);">Compromisso do Usuário</span></h3>
-    <p><span style="color: rgb(68, 68, 68);">O usuário se compromete a fazer uso adequado dos conteúdos e da informação que o numvapt.com.br oferece no site e com caráter enunciativo, mas não limitativo:</span></p>
+    <p><span style="color: rgb(68, 68, 68);">O usuário se compromete a fazer uso adequado dos conteúdos e da informação que o numvapt.com oferece no site e com caráter enunciativo, mas não limitativo:</span></p>
     <ul>
       <li><span style="color: rgb(68, 68, 68);">A) Não se envolver em atividades que sejam ilegais ou contrárias à boa fé e à ordem pública;</span></li>
       <li><span style="color: rgb(68, 68, 68);">B) Não difundir propaganda ou conteúdo de natureza racista, xenofóbica, jogos de sorte ou azar, qualquer tipo de pornografia ilegal, de apologia ao terrorismo ou contra os direitos humanos;</span></li>
-      <li><span style="color: rgb(68, 68, 68);">C) Não causar danos aos sistemas físicos (hardwares) e lógicos (softwares) do numvapt.com.br, de seus fornecedores ou terceiros, para introduzir ou disseminar vírus informáticos ou quaisquer outros sistemas de hardware ou software que sejam capazes de causar danos anteriormente mencionados.</span></li>
+      <li><span style="color: rgb(68, 68, 68);">C) Não causar danos aos sistemas físicos (hardwares) e lógicos (softwares) do numvapt.com, de seus fornecedores ou terceiros, para introduzir ou disseminar vírus informáticos ou quaisquer outros sistemas de hardware ou software que sejam capazes de causar danos anteriormente mencionados.</span></li>
     </ul>
 
     <h3><span style="color: rgb(68, 68, 68);">Mais informações</span></h3>

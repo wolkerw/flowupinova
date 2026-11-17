@@ -19,7 +19,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "planos",
     title: "Planos e Preços Oficiais NumVapt",
     content:
-      "• Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser).\n• Plano Trimestral: R$ 441,00/mês (10% de desconto | R$ 1.323,00 por trimestre).\n• Plano Semestral: R$ 416,50/mês (15% de desconto | R$ 2.499,00 por semestre).\n• Plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis): R$ 399,00/mês (13 meses de acesso — 12 meses pagos + 1 mês bônus gratuito! Neste plano o valor mensal fica R$ 368,30 se dividirmos o valor total da assinatura de R$ 4.788,00 por 13 meses).\n• Plano Tudo Pronto: R$ 699,00/mês. Oferece todas as funcionalidades dos outros planos porém com o plus de fazermos toda a execução da plataforma pra você. É ideal para aqueles empresários que precisam de marketing mas não tem tempo para executar (ou simplesmente não querem). Nossa equipe faz toda a gestão da plataforma NumVapt, desde integração, configuração do negócio, criação de posts, agendamento e criação de campanhas de anúncios. O usuário recebe um acesso de 'cliente aprovador' e só precisa aprovar as criações feitas por nossa equipe.\nIMPORTANTE SOBRE O PAGAMENTO DO PLANO ANUAL:\n- A cobrança é feita de forma MENSAL no cartão de crédito (R$ 399,00 por mês).\n- NÃO compromete nem trava o limite total de R$ 4.788,00 no cartão do cliente! Todo mês entra apenas a parcela de R$ 399,00.\n- Não oferecemos parcelamento do valor total de R$ 4.788,00 em 12x, oferecemos exclusivamente essa modalidade mensal recorrente de R$ 399/mês que não bloqueia o limite do cartão.\n- Link de Assinatura Oficial: https://www.asaas.com/c/2unkh9p3t6apkcvm\n- Link de Cadastro para Teste: https://numvapt.com.br/acesso/cadastro",
+      "• Plano Mensal: R$ 490,00/mês (sem fidelidade, cancele quando quiser).\n• Plano Trimestral: R$ 441,00/mês (10% de desconto | R$ 1.323,00 por trimestre).\n• Plano Semestral: R$ 416,50/mês (15% de desconto | R$ 2.499,00 por semestre).\n• Plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis): R$ 399,00/mês (13 meses de acesso — 12 meses pagos + 1 mês bônus gratuito! Neste plano o valor mensal fica R$ 368,30 se dividirmos o valor total da assinatura de R$ 4.788,00 por 13 meses).\n• Plano Tudo Pronto: R$ 699,00/mês. Oferece todas as funcionalidades dos outros planos porém com o plus de fazermos toda a execução da plataforma pra você. É ideal para aqueles empresários que precisam de marketing mas não tem tempo para executar (ou simplesmente não querem). Nossa equipe faz toda a gestão da plataforma NumVapt, desde integração, configuração do negócio, criação de posts, agendamento e criação de campanhas de anúncios. O usuário recebe um acesso de 'cliente aprovador' e só precisa aprovar as criações feitas por nossa equipe.\nIMPORTANTE SOBRE O PAGAMENTO DO PLANO ANUAL:\n- A cobrança é feita de forma MENSAL no cartão de crédito (R$ 399,00 por mês).\n- NÃO compromete nem trava o limite total de R$ 4.788,00 no cartão do cliente! Todo mês entra apenas a parcela de R$ 399,00.\n- Não oferecemos parcelamento do valor total de R$ 4.788,00 em 12x, oferecemos exclusivamente essa modalidade mensal recorrente de R$ 399/mês que não bloqueia o limite do cartão.\n- Link de Assinatura Oficial: https://www.asaas.com/c/2unkh9p3t6apkcvm\n- Link de Cadastro para Teste: https://numvapt.com/acesso/cadastro",
     isActive: true,
     order: 1,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -59,7 +59,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Passo a Passo: Como Publicar e Agendar Posts (5 Etapas)",
     content:
-      "Roteiro completo em 5 etapas para publicação no app da NumVapt:\n• Etapa 1: Ir na aba Posts (https://numvapt.com.br/dashboard/posts) no menu lateral e escolher o fluxo desejado (Manual ou IA).\n• Etapa 2: Adicionar foto/vídeo do celular/computador ou da Galeria (opção de retocar com Editor GPT para alterações com IA ou Editor Manual para retoques de pincel).\n• Etapa 3: Escrever legenda atrativa com gancho, chamada para ação, emojis e hashtags do nicho.\n• Etapa 4: Selecionar as redes sociais conectadas (Instagram, Facebook, LinkedIn, TikTok, Google Meu Negócio).\n• Etapa 5: Clicar em 'Publicar Agora' para postar na hora ou agendar data e hora no calendário.",
+      "Roteiro completo em 5 etapas para publicação no app da NumVapt:\n• Etapa 1: Ir na aba Posts (https://numvapt.com/dashboard/posts) no menu lateral e escolher o fluxo desejado (Manual ou IA).\n• Etapa 2: Adicionar foto/vídeo do celular/computador ou da Galeria (opção de retocar com Editor GPT para alterações com IA ou Editor Manual para retoques de pincel).\n• Etapa 3: Escrever legenda atrativa com gancho, chamada para ação, emojis e hashtags do nicho.\n• Etapa 4: Selecionar as redes sociais conectadas (Instagram, Facebook, LinkedIn, TikTok, Google Meu Negócio).\n• Etapa 5: Clicar em 'Publicar Agora' para postar na hora ou agendar data e hora no calendário.",
     isActive: true,
     order: 5,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -69,7 +69,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Cérebro do Negócio e Configurações da Marca",
     content:
-      "Como configurar o Cérebro do Negócio (https://numvapt.com.br/dashboard/configuracoes):\n• O Cérebro do Negócio calibra a inteligência artificial para que os posts tenham a identidade visual e o tom de voz autênticos da empresa.\n• Preencher: Nome Comercial, Categoria/Nicho, Descrição do Negócio, WhatsApp e Redes Sociais.\n• Identidade Visual: Upload das logomarcas (horizontal, vertical, símbolo, avatar) e paleta de cores primária e secundária.\n• Estratégia: Cadastro do Público-Alvo, Personas, Diferenciais Competitivos e Tom de Voz.\n• Brand Book com IA: Possibilidade de enviar o PDF da marca ou responder às perguntas do Vapti para preenchimento automático.\n• Regra de Ouro para Produtos: Instrução expressa para a IA preservar fielmente rótulo, embalagem, cores e proporção real de produtos físicos.",
+      "Como configurar o Cérebro do Negócio (https://numvapt.com/dashboard/configuracoes):\n• O Cérebro do Negócio calibra a inteligência artificial para que os posts tenham a identidade visual e o tom de voz autênticos da empresa.\n• Preencher: Nome Comercial, Categoria/Nicho, Descrição do Negócio, WhatsApp e Redes Sociais.\n• Identidade Visual: Upload das logomarcas (horizontal, vertical, símbolo, avatar) e paleta de cores primária e secundária.\n• Estratégia: Cadastro do Público-Alvo, Personas, Diferenciais Competitivos e Tom de Voz.\n• Brand Book com IA: Possibilidade de enviar o PDF da marca ou responder às perguntas do Vapti para preenchimento automático.\n• Regra de Ouro para Produtos: Instrução expressa para a IA preservar fielmente rótulo, embalagem, cores e proporção real de produtos físicos.",
     isActive: true,
     order: 6,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -79,7 +79,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Os 5 Fluxos de Criação de Posts na NumVapt",
     content:
-      "Na aba Posts (https://numvapt.com.br/dashboard/posts), o cliente conta com 5 formas especializadas de criar:\n1. Fluxo Manual: Para fotos ou vídeos próprios já prontos, com suporte ao Editor GPT (alterações com IA) e Editor Manual (retoques de pincel).\n2. Fluxo Conceito: Criação de campanhas institucionais e ideias de nicho a partir de temas livres.\n3. Fluxo Produto: Envio de foto real do produto para a IA criar cenários comerciais profissionais mantendo o rótulo e embalagem originais intactos.\n4. Fluxo Pessoa + Cenário: Combina a selfie/retrato da equipe com cenários de estúdio ou ambientes personalizados.\n5. Fluxo Geral: Geração aberta com suporte ao modo 'Identidade de Campanha', que replica o design system e estética de uma arte de referência.",
+      "Na aba Posts (https://numvapt.com/dashboard/posts), o cliente conta com 5 formas especializadas de criar:\n1. Fluxo Manual: Para fotos ou vídeos próprios já prontos, com suporte ao Editor GPT (alterações com IA) e Editor Manual (retoques de pincel).\n2. Fluxo Conceito: Criação de campanhas institucionais e ideias de nicho a partir de temas livres.\n3. Fluxo Produto: Envio de foto real do produto para a IA criar cenários comerciais profissionais mantendo o rótulo e embalagem originais intactos.\n4. Fluxo Pessoa + Cenário: Combina a selfie/retrato da equipe com cenários de estúdio ou ambientes personalizados.\n5. Fluxo Geral: Geração aberta com suporte ao modo 'Identidade de Campanha', que replica o design system e estética de uma arte de referência.",
     isActive: true,
     order: 7,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -89,7 +89,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Recursos da Plataforma: Galeria, Aprovações e Redes Conectadas",
     content:
-      "Outras ferramentas essenciais da plataforma:\n• Galeria de Mídias (https://numvapt.com.br/dashboard/galeria): Nuvem para salvar e baixar criativos em alta definição e criar posts com 1 clique.\n• Central de Aprovações (https://numvapt.com.br/dashboard/aprovacoes): Visualização de prévia e aprovação em 1 clique para clientes e gestores no modo Concierge.\n• Foto Profissional / Avatar IA (https://numvapt.com.br/dashboard/avatar): Fotos de estúdio e retratos corporativos a partir de selfies mantendo fidelidade facial rigorosa.\n• Conexões Sociais: Integração com Instagram, Facebook, LinkedIn, TikTok e Google Meu Negócio.",
+      "Outras ferramentas essenciais da plataforma:\n• Galeria de Mídias (https://numvapt.com/dashboard/galeria): Nuvem para salvar e baixar criativos em alta definição e criar posts com 1 clique.\n• Central de Aprovações (https://numvapt.com/dashboard/aprovacoes): Visualização de prévia e aprovação em 1 clique para clientes e gestores no modo Concierge.\n• Foto Profissional / Avatar IA (https://numvapt.com/dashboard/avatar): Fotos de estúdio e retratos corporativos a partir de selfies mantendo fidelidade facial rigorosa.\n• Conexões Sociais: Integração com Instagram, Facebook, LinkedIn, TikTok e Google Meu Negócio.",
     isActive: true,
     order: 8,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -112,7 +112,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Anúncios na Meta e no Google",
     content:
-      "Anúncios (https://numvapt.com.br/dashboard/anuncios):\n• Criação e gestão de campanhas na Meta (Instagram e Facebook) e no Google Ads direto pela NumVapt, sem precisar entrar no Gerenciador de Anúncios.\n• A IA sugere o público ideal com base no Cérebro do Negócio e estima o alcance antes de publicar.\n• É possível criar anúncios que levam o cliente direto para o WhatsApp da empresa.\n• Acompanhamento dos resultados com relatório detalhado por campanha e por criativo.\nIMPORTANTE: o valor investido nos anúncios (verba de mídia) NÃO está incluso na assinatura da NumVapt. Ele é cobrado diretamente pela Meta ou pelo Google, na forma de pagamento cadastrada na conta de anúncios do próprio cliente.",
+      "Anúncios (https://numvapt.com/dashboard/anuncios):\n• Criação e gestão de campanhas na Meta (Instagram e Facebook) e no Google Ads direto pela NumVapt, sem precisar entrar no Gerenciador de Anúncios.\n• A IA sugere o público ideal com base no Cérebro do Negócio e estima o alcance antes de publicar.\n• É possível criar anúncios que levam o cliente direto para o WhatsApp da empresa.\n• Acompanhamento dos resultados com relatório detalhado por campanha e por criativo.\nIMPORTANTE: o valor investido nos anúncios (verba de mídia) NÃO está incluso na assinatura da NumVapt. Ele é cobrado diretamente pela Meta ou pelo Google, na forma de pagamento cadastrada na conta de anúncios do próprio cliente.",
     isActive: true,
     order: 10,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -125,7 +125,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Relatórios de Desempenho",
     content:
-      "Relatórios (https://numvapt.com.br/dashboard/relatorios):\n• Painel com o desempenho das redes sociais conectadas e das campanhas de anúncios (Meta e Google Ads).\n• Ajuda o cliente a entender o que está funcionando e a decidir os próximos conteúdos e investimentos.",
+      "Relatórios (https://numvapt.com/dashboard/relatorios):\n• Painel com o desempenho das redes sociais conectadas e das campanhas de anúncios (Meta e Google Ads).\n• Ajuda o cliente a entender o que está funcionando e a decidir os próximos conteúdos e investimentos.",
     isActive: true,
     order: 11,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -138,7 +138,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Relacionamento com Leads e Clientes",
     content:
-      "Relacionamento (https://numvapt.com.br/dashboard/relacionamento):\n• Cadastro e gestão dos leads e clientes da empresa (nome, e-mail e WhatsApp).\n• Indicadores de total de contatos, leads ativos, taxa de abertura e conversão.",
+      "Relacionamento (https://numvapt.com/dashboard/relacionamento):\n• Cadastro e gestão dos leads e clientes da empresa (nome, e-mail e WhatsApp).\n• Indicadores de total de contatos, leads ativos, taxa de abertura e conversão.",
     isActive: true,
     order: 12,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -151,7 +151,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Estúdio de Marca: Logos, Mockups e Papelaria",
     content:
-      "Estúdio de Marca (https://numvapt.com.br/dashboard/estudio-marca):\n• Logo Studio: cria logomarcas profissionais do zero com IA (estilos minimalista, emblema, monograma, abstrato ou orgânico) ou moderniza um logo antigo de baixa qualidade.\n• Prévia do logo em fundo claro, escuro e transparente, com download em PNG de fundo transparente.\n• Mockups e materiais de papelaria e ponto de venda com a identidade visual da marca.",
+      "Estúdio de Marca (https://numvapt.com/dashboard/estudio-marca):\n• Logo Studio: cria logomarcas profissionais do zero com IA (estilos minimalista, emblema, monograma, abstrato ou orgânico) ou moderniza um logo antigo de baixa qualidade.\n• Prévia do logo em fundo claro, escuro e transparente, com download em PNG de fundo transparente.\n• Mockups e materiais de papelaria e ponto de venda com a identidade visual da marca.",
     isActive: true,
     order: 13,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -164,7 +164,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "suporte",
     title: "Requisitos para Conectar as Redes Sociais",
     content:
-      "Requisitos para conectar as redes (em Configurações: https://numvapt.com.br/dashboard/configuracoes):\n• Instagram: a conta precisa ser Profissional (Comercial ou Criador de conteúdo). Contas pessoais não permitem publicação automática.\n• Facebook: é preciso ser administrador da Página da empresa.\n• Anúncios na Meta: é necessária uma conta de anúncios com forma de pagamento cadastrada.\n• Google Meu Negócio: o perfil da empresa precisa estar verificado no Google.",
+      "Requisitos para conectar as redes (em Configurações: https://numvapt.com/dashboard/configuracoes):\n• Instagram: a conta precisa ser Profissional (Comercial ou Criador de conteúdo). Contas pessoais não permitem publicação automática.\n• Facebook: é preciso ser administrador da Página da empresa.\n• Anúncios na Meta: é necessária uma conta de anúncios com forma de pagamento cadastrada.\n• Google Meu Negócio: o perfil da empresa precisa estar verificado no Google.",
     isActive: true,
     order: 14,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -177,7 +177,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "suporte",
     title: "Problemas Comuns e Como Resolver",
     content:
-      "Problemas comuns de clientes e como orientar:\n• 'Meu post não foi publicado': confira o status do post em Posts (https://numvapt.com.br/dashboard/posts). Se aparecer falha, reconecte a rede em Configurações e publique novamente.\n• 'A conexão com a rede caiu': as redes pedem nova autorização de tempos em tempos. Basta reconectar a conta em Configurações (https://numvapt.com.br/dashboard/configuracoes).\n• 'A imagem não ficou como eu queria': gere uma nova versão ou use o Editor GPT para ajustar só a parte desejada, sem refazer a arte toda.\n• 'A arte não parece com a minha marca': complete o Cérebro do Negócio (logos, cores, fontes e tom de voz). Quanto mais completo, mais fiel o resultado.\n• Se o problema continuar, transfira para o atendimento humano.",
+      "Problemas comuns de clientes e como orientar:\n• 'Meu post não foi publicado': confira o status do post em Posts (https://numvapt.com/dashboard/posts). Se aparecer falha, reconecte a rede em Configurações e publique novamente.\n• 'A conexão com a rede caiu': as redes pedem nova autorização de tempos em tempos. Basta reconectar a conta em Configurações (https://numvapt.com/dashboard/configuracoes).\n• 'A imagem não ficou como eu queria': gere uma nova versão ou use o Editor GPT para ajustar só a parte desejada, sem refazer a arte toda.\n• 'A arte não parece com a minha marca': complete o Cérebro do Negócio (logos, cores, fontes e tom de voz). Quanto mais completo, mais fiel o resultado.\n• Se o problema continuar, transfira para o atendimento humano.",
     isActive: true,
     order: 15,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -203,7 +203,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Carrossel com IA (5 ou 7 Slides)",
     content:
-      "[PREENCHER] Ative somente depois que o Carrossel com IA estiver publicado em produção; confirme o link abaixo e apague esta linha.\nCarrossel com IA (https://numvapt.com.br/dashboard/posts/gerar?mode=carousel):\n• Cria posts carrossel de 5 ou 7 slides no formato 1080×1350.\n• A capa é uma arte criada pela IA com uma chamada que prende a atenção; os demais slides desenvolvem o assunto da capa com o mesmo visual.\n• Ideal para dicas, listas passo a passo, comparativos e conteúdos educativos, que geram mais salvamentos e compartilhamentos.\n• O texto de cada slide pode ser editado livremente antes de publicar.\n• Publicação direta no Instagram como carrossel ou agendamento no calendário.",
+      "[PREENCHER] Ative somente depois que o Carrossel com IA estiver publicado em produção; confirme o link abaixo e apague esta linha.\nCarrossel com IA (https://numvapt.com/dashboard/posts/gerar?mode=carousel):\n• Cria posts carrossel de 5 ou 7 slides no formato 1080×1350.\n• A capa é uma arte criada pela IA com uma chamada que prende a atenção; os demais slides desenvolvem o assunto da capa com o mesmo visual.\n• Ideal para dicas, listas passo a passo, comparativos e conteúdos educativos, que geram mais salvamentos e compartilhamentos.\n• O texto de cada slide pode ser editado livremente antes de publicar.\n• Publicação direta no Instagram como carrossel ou agendamento no calendário.",
     isActive: false,
     order: 17,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -216,7 +216,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "planos",
     title: "Teste Grátis",
     content:
-      "[PREENCHER] Duração do teste grátis, o que fica liberado durante o teste, se é preciso cartão para começar e o que acontece ao final do período.\nLink de cadastro: https://numvapt.com.br/acesso/cadastro",
+      "[PREENCHER] Duração do teste grátis, o que fica liberado durante o teste, se é preciso cartão para começar e o que acontece ao final do período.\nLink de cadastro: https://numvapt.com/acesso/cadastro",
     isActive: false,
     order: 18,
     updatedAt: DEFAULTS_UPDATED_AT,
@@ -268,7 +268,7 @@ export const DEFAULT_KNOWLEDGE_TOPICS: WhatsAppKnowledgeTopic[] = [
     category: "funcionalidades",
     title: "Marketplace de Módulos",
     content:
-      "[PREENCHER] Confirme se os módulos do Marketplace (https://numvapt.com.br/dashboard/marketplace) já estão à venda, quais são e os preços. Atenção: a Maia bloqueia respostas que contenham alguns valores (por exemplo R$ 79) para evitar preços inventados; revise essa regra antes de ativar este tópico.",
+      "[PREENCHER] Confirme se os módulos do Marketplace (https://numvapt.com/dashboard/marketplace) já estão à venda, quais são e os preços. Atenção: a Maia bloqueia respostas que contenham alguns valores (por exemplo R$ 79) para evitar preços inventados; revise essa regra antes de ativar este tópico.",
     isActive: false,
     order: 22,
     updatedAt: DEFAULTS_UPDATED_AT,

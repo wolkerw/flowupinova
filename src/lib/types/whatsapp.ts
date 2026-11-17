@@ -11,7 +11,12 @@ export interface WhatsAppMessage {
 }
 
 export interface WhatsAppChatSession {
+  id?: string;
   phone: string;
+  /** Dígitos do LID quando o WhatsApp identifica o contato por LID em vez do telefone. */
+  lid?: string | null;
+  senderName?: string;
+  lastMessage?: string;
   cleanPhone: string;
   contactName: string;
   lastMessageText: string;

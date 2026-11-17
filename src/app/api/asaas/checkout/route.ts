@@ -92,21 +92,40 @@ export async function POST(request: NextRequest) {
       console.warn("[ASAAS_CHECKOUT] Aviso ao buscar/criar cliente:", custErr.message);
     }
 
-    // 5. Criar Link de Pagamento no Asaas
+    // 5. Criar Link de Pagamento no Asaas (ou usar link oficial pré-gerado para tudo_pronto com 20% OFF)
     const externalReference = `${authUser.uid}:${plan}:${Date.now()}`;
 
-    const paymentLink = await AsaasService.createPaymentLink({
-      name: `${planConfig.name}${validCouponCode ? ` (Cupom: ${validCouponCode})` : ""}`,
-      description: `${planConfig.description}${appliedDiscount > 0 ? ` Desconto de ${appliedDiscount}% aplicado.` : ""}`,
-      value: finalValue,
-      billingType: "CREDIT_CARD",
-      chargeType: planConfig.chargeType,
-      subscriptionCycle: (planConfig as any).subscriptionCycle,
-      maxInstallmentCount: planConfig.installmentCount,
-      dueDateLimitDays: 3,
-      externalReference: externalReference,
-      notificationEnabled: true,
-    });
+    let paymentLink: { id: string; url: string } | null = null;
+    if (plan === "tudo_pronto" && appliedDiscount === 20) {
+      paymentLink = {
+        id: "l476dddo1yo84fj4",
+        url: "https://www.asaas.com/c/l476dddo1yo84fj4",
+      };
+    } else {
+      try {
+        paymentLink = await AsaasService.createPaymentLink({
+          name: `${planConfig.name}${validCouponCode ? ` (Cupom: ${validCouponCode})` : ""}`,
+          description: `${planConfig.description}${appliedDiscount > 0 ? ` Desconto de ${appliedDiscount}% aplicado.` : ""}`,
+          value: finalValue,
+          billingType: "CREDIT_CARD",
+          chargeType: planConfig.chargeType,
+          subscriptionCycle: (planConfig as any).subscriptionCycle,
+          maxInstallmentCount: planConfig.installmentCount,
+          dueDateLimitDays: 3,
+          externalReference: externalReference,
+          notificationEnabled: true,
+        });
+      } catch (linkErr: any) {
+        if (plan === "tudo_pronto" && appliedDiscount === 20) {
+          paymentLink = {
+            id: "l476dddo1yo84fj4",
+            url: "https://www.asaas.com/c/l476dddo1yo84fj4",
+          };
+        } else {
+          throw linkErr;
+        }
+      }
+    }
 
     // 6. Registrar a transação preliminar no Firestore
     const transactionRef = adminDb.collection("transactions").doc();

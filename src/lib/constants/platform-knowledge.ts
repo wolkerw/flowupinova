@@ -266,7 +266,7 @@ export type PlatformKnowledgeChannel = "web" | "whatsapp" | "instagram";
 /**
  * Retorna a Central de Informações adaptada especificamente para o canal de atendimento.
  * - 'web': Formato original com links markdown relativos e foco no tutor Vapti.
- * - 'whatsapp': Converte para links absolutos (https://numvapt.com.br/...), formatação nativa *negrito* e diretrizes para a Maia.
+ * - 'whatsapp': Converte para links absolutos (https://numvapt.com/...), formatação nativa *negrito* e diretrizes para a Maia.
  * - 'instagram': Converte para links absolutos completos e síntese para mensagens no Direct.
  */
 export function getPlatformKnowledgeForChannel(channel: PlatformKnowledgeChannel = "web"): string {
@@ -274,7 +274,7 @@ export function getPlatformKnowledgeForChannel(channel: PlatformKnowledgeChannel
     return PLATFORM_KNOWLEDGE_BASE;
   }
 
-  const BASE_URL = "https://numvapt.com.br";
+  const BASE_URL = "https://numvapt.com";
   let knowledge = PLATFORM_KNOWLEDGE_BASE;
 
   if (channel === "whatsapp") {

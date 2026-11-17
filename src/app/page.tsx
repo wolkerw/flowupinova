@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "NumVapt - Marketing no modo Ultra Vapt com Inteligência Artificial",
     description:
       "A primeira plataforma com IA que cria textos brilhantes, gera imagens com a sua marca e agenda seus posts automaticamente. Economize 90% do seu tempo com marketing digital.",
-    url: "https://numvapt.com.br",
+    url: "https://numvapt.com",
     type: "website",
     images: [
       {

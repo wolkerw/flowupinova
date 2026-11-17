@@ -70,18 +70,28 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Mensagens de uma conversa específica
     if (senderId) {
-      const messagesSnap = await adminDb
-        .collection(`instagram_chats/${senderId}/messages`)
-        .orderBy("timestamp", "asc")
-        .limit(100)
-        .get();
+      // Página mais recente (ou anterior a `before`), devolvida em ordem cronológica
+      const PAGE_SIZE = 50;
+      const before = searchParams.get("before");
+      let query = adminDb.collection(`instagram_chats/${senderId}/messages`).orderBy("timestamp", "desc");
+      if (before && !Number.isNaN(Date.parse(before))) query = query.where("timestamp", "<", before);
+      const messagesSnap = await query.limit(PAGE_SIZE).get();
 
-      const messages: InstagramMessage[] = messagesSnap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
-      }));
+      const messages: InstagramMessage[] = messagesSnap.docs
+        .map((d) => ({
+          id: d.id,
+          ...(d.data() as any),
+        }))
+        .reverse();
 
-      return NextResponse.json({ messages }, { status: 200 });
+      return NextResponse.json(
+        {
+          messages,
+          hasMore: messagesSnap.docs.length === PAGE_SIZE,
+          oldest: messages[0]?.timestamp ?? null,
+        },
+        { status: 200 }
+      );
     }
 
     // 2. Lista geral de conversas

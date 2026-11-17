@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/dashboard/", "/acesso/", "/api/"],
     },
-    sitemap: "https://numvapt.com.br/sitemap.xml",
+    sitemap: "https://numvapt.com/sitemap.xml",
   };
 }
