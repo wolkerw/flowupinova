@@ -158,11 +158,12 @@ export class ImageModelExecutor {
           const isGptImage = cfg.model.startsWith("gpt-image-");
           const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 
-          // Resolução estrita aceita pelo endpoint /v1/images/edits da OpenAI:
-          // A OpenAI rejeita com erro 400 resoluções personalizadas em edits (como 1024x1280 ou 864x1536).
-          // Os valores válidos permitidos são exclusivamente: 1024x1024, 1024x1536 e 1536x1024.
-          // O ImageResultValidator redimensiona o resultado para as dimensões finais da rede sem crop destrutivo.
-          const targetEditSize: "1024x1024" | "1024x1536" | "1536x1024" =
+          // Resolução para o endpoint /v1/images/edits da OpenAI:
+          // Prioriza a resolução nativa de proporção idêntica (ex: 1024x1280 para 4:5 / 864x1536 para 9:16).
+          // Se a API recusar proporções customizadas, o fallback automático tenta 1024x1536 / 1536x1024 ou 1024x1024,
+          // que o ImageResultValidator agora enquadra proporcionalmente via .cover() com ZERO distorção.
+          const preferredEditSize = nativeSize;
+          const fallbackEditSize: "1024x1024" | "1024x1536" | "1536x1024" =
             params.format === "portrait" || params.format === "story"
               ? "1024x1536"
               : params.format === "landscape" || params.format === "banner"
@@ -177,25 +178,28 @@ export class ImageModelExecutor {
 
           if (validUserRefs.length > 0) {
             try {
-              const editsFormData = new FormData();
-              const fieldName = validUserRefs.length > 1 ? "image[]" : "image";
-              validUserRefs.slice(0, 4).forEach((ref, idx) => {
-                const imageBuf = Buffer.from(ref.base64!, "base64");
-                const mime = ref.mimeType || "image/png";
-                const ext = mime.includes("png") ? "png" : "jpg";
-                const refBlob = new Blob([imageBuf], { type: mime });
-                editsFormData.append(fieldName, refBlob, `ref_${idx + 1}.${ext}`);
-              });
-              editsFormData.append("model", cfg.model);
-              editsFormData.append("prompt", openaiPrompt);
-              editsFormData.append("n", "1");
-              editsFormData.append("size", targetEditSize);
-              if (isGptImage || isGpt25) {
-                editsFormData.append("quality", selectedQuality);
-              }
+              const buildEditsFormData = (sizeToUse: string) => {
+                const fd = new FormData();
+                const fieldName = validUserRefs.length > 1 ? "image[]" : "image";
+                validUserRefs.slice(0, 4).forEach((ref, idx) => {
+                  const imageBuf = Buffer.from(ref.base64!, "base64");
+                  const mime = ref.mimeType || "image/png";
+                  const ext = mime.includes("png") ? "png" : "jpg";
+                  const refBlob = new Blob([imageBuf], { type: mime });
+                  fd.append(fieldName, refBlob, `ref_${idx + 1}.${ext}`);
+                });
+                fd.append("model", cfg.model);
+                fd.append("prompt", openaiPrompt);
+                fd.append("n", "1");
+                fd.append("size", sizeToUse);
+                if (isGptImage || isGpt25) {
+                  fd.append("quality", selectedQuality);
+                }
+                return fd;
+              };
 
               console.log(
-                `[ImageModelExecutor] 🎯 Image-to-Image ativo! Enviando ${validUserRefs.length} referência(s) da Etapa 5 para OpenAI images/edits (${cfg.model} - size: ${targetEditSize})...`
+                `[ImageModelExecutor] 🎯 Image-to-Image ativo! Enviando ${validUserRefs.length} referência(s) da Etapa 5 para OpenAI images/edits (${cfg.model} - size: ${preferredEditSize})...`
               );
 
               let editRes = await fetch("https://api.openai.com/v1/images/edits", {
@@ -203,38 +207,38 @@ export class ImageModelExecutor {
                 headers: {
                   Authorization: `Bearer ${openaiKey}`,
                 },
-                body: editsFormData,
+                body: buildEditsFormData(preferredEditSize),
               });
 
-              // Fallback automático para 1024x1024 caso a API rejeite tamanho retangular
-              if (!editRes.ok && targetEditSize !== "1024x1024") {
+              // Fallback automático caso a API rejeite a dimensão nativa (ex: erro 400 por tamanho não permitido)
+              if (!editRes.ok && preferredEditSize !== fallbackEditSize) {
                 const errTxt = await editRes.text().catch(() => "");
                 console.warn(
-                  `[ImageModelExecutor] OpenAI edits (${cfg.model} - ${targetEditSize}) retornou ${editRes.status}: ${errTxt.slice(0, 150)}. Tentando fallback 1024x1024...`
+                  `[ImageModelExecutor] OpenAI edits (${cfg.model} - ${preferredEditSize}) retornou ${editRes.status}: ${errTxt.slice(0, 150)}. Retentando com fallback ${fallbackEditSize}...`
                 );
-
-                const fallbackFormData = new FormData();
-                validUserRefs.slice(0, 4).forEach((ref, idx) => {
-                  const imageBuf = Buffer.from(ref.base64!, "base64");
-                  const mime = ref.mimeType || "image/png";
-                  const ext = mime.includes("png") ? "png" : "jpg";
-                  const refBlob = new Blob([imageBuf], { type: mime });
-                  fallbackFormData.append(fieldName, refBlob, `ref_${idx + 1}.${ext}`);
-                });
-                fallbackFormData.append("model", cfg.model);
-                fallbackFormData.append("prompt", openaiPrompt);
-                fallbackFormData.append("n", "1");
-                fallbackFormData.append("size", "1024x1024");
-                if (isGptImage || isGpt25) {
-                  fallbackFormData.append("quality", selectedQuality);
-                }
 
                 editRes = await fetch("https://api.openai.com/v1/images/edits", {
                   method: "POST",
                   headers: {
                     Authorization: `Bearer ${openaiKey}`,
                   },
-                  body: fallbackFormData,
+                  body: buildEditsFormData(fallbackEditSize),
+                });
+              }
+
+              // Fallback secundário para 1024x1024 quadrado se ainda persistir erro
+              if (!editRes.ok && fallbackEditSize !== "1024x1024") {
+                const errTxt = await editRes.text().catch(() => "");
+                console.warn(
+                  `[ImageModelExecutor] OpenAI edits (${cfg.model} - ${fallbackEditSize}) retornou ${editRes.status}: ${errTxt.slice(0, 150)}. Tentando fallback 1024x1024...`
+                );
+
+                editRes = await fetch("https://api.openai.com/v1/images/edits", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openaiKey}`,
+                  },
+                  body: buildEditsFormData("1024x1024"),
                 });
               }
 

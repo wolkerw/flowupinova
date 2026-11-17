@@ -13,6 +13,8 @@ vi.mock("jimp", () => ({
       width: 1080,
       height: 1350,
       resize: vi.fn(),
+      cover: vi.fn(),
+      crop: vi.fn(),
       getBuffer: vi.fn().mockResolvedValue(Buffer.from("processed-image-data")),
     }),
   },
@@ -841,7 +843,7 @@ describe("Image Orchestrator Suite", () => {
       expect(capturedBody.prompt).toContain("NO extra fingers, six fingers, fused digits");
     });
 
-    it("chama OpenAI images/edits com resolução homologada (1024x1536) quando format é portrait e há imagens da Etapa 5", async () => {
+    it("chama OpenAI images/edits com resolução nativa de proporção exata 4:5 (1024x1280) quando format é portrait e há imagens da Etapa 5", async () => {
       process.env.OPENAI_API_KEY = "test-key";
       let capturedEditsUrl = "";
       let capturedFormData: FormData | null = null;
@@ -881,7 +883,7 @@ describe("Image Orchestrator Suite", () => {
 
       expect(capturedEditsUrl).toContain("api.openai.com/v1/images/edits");
       expect(capturedFormData).not.toBeNull();
-      expect(capturedFormData!.get("size")).toBe("1024x1536");
+      expect(capturedFormData!.get("size")).toBe("1024x1280");
       expect(capturedFormData!.get("model")).toBe("gpt-image-2.6-sunburst");
       expect(res.imageBuffer).toBeDefined();
     });
@@ -928,7 +930,7 @@ describe("Image Orchestrator Suite", () => {
       expect(capturedFormData).not.toBeNull();
       const images = capturedFormData!.getAll("image[]");
       expect(images.length).toBe(2);
-      expect(capturedFormData!.get("size")).toBe("1024x1536");
+      expect(capturedFormData!.get("size")).toBe("1024x1280");
     });
   });
 
@@ -940,6 +942,24 @@ describe("Image Orchestrator Suite", () => {
       );
       expect(result.width).toBe(1080);
       expect(result.height).toBe(1350);
+      expect(result.buffer).toBeDefined();
+    });
+
+    it("preserva proporção 1:1 sem estiramento anamórfico quando a imagem tem proporção 2:3", async () => {
+      const { Jimp } = await import("jimp");
+      const mockCover = vi.fn();
+      (Jimp.read as any).mockResolvedValueOnce({
+        width: 1024,
+        height: 1536,
+        cover: mockCover,
+        resize: vi.fn(),
+        getBuffer: vi.fn().mockResolvedValue(Buffer.from("processed-image-data")),
+      });
+
+      const result = await ImageResultValidator.validateAndNormalize(Buffer.from("raw-bytes"), "portrait");
+      expect(result.width).toBe(1080);
+      expect(result.height).toBe(1350);
+      expect(mockCover).toHaveBeenCalledWith({ w: 1080, h: 1350 });
       expect(result.buffer).toBeDefined();
     });
   });
