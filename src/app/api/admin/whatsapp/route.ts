@@ -1,30 +1,50 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { validateAdminToken } from "@/lib/admin-auth";
 import { adminDb } from "@/lib/firebase-admin";
-import type { WhatsAppMessage, WhatsAppChatSession } from "@/lib/types/whatsapp";
+import type { WhatsAppMessage } from "@/lib/types/whatsapp";
+import {
+  findEvolutionChats,
+  findEvolutionMessages,
+  sendEvolutionText,
+} from "@/lib/whatsapp/evolution-client";
+import { extractMessageContent, jidToDigits, resolveContactFromKey } from "@/lib/whatsapp/evolution-message";
+import {
+  cutAtCompleteBoundary,
+  evolutionRecordToMessage,
+  mergeHistory,
+  type EvolutionHistoryMessage,
+} from "@/lib/whatsapp/history-merge";
 
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || "https://evolution-api.flowupinova.com.br";
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || "8869f3644b0923bb1c982dc2a3c10241";
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || "numvapt-atendimento";
+const PAGE_SIZE = 50;
 
-async function fetchFromEvolution(endpoint: string, body: any = {}) {
-  try {
-    const res = await fetch(`${EVOLUTION_API_URL}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: EVOLUTION_API_KEY,
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
+function onlyDigits(value: unknown): string {
+  return String(value ?? "").replace(/\D/g, "");
+}
 
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (err) {
-    console.error("[EVOLUTION_API_SYNC_ERROR]:", err);
-    return null;
-  }
+async function loadFirestorePage(docId: string, before: string | null) {
+  let query = adminDb.collection(`whatsapp_chats/${docId}/messages`).orderBy("timestamp", "desc");
+  if (before) query = query.where("timestamp", "<", before);
+  const snap = await query.limit(PAGE_SIZE).get();
+  const messages = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as WhatsAppMessage[];
+  return {
+    messages,
+    full: messages.length === PAGE_SIZE,
+    oldest: messages.length ? messages[messages.length - 1].timestamp : null,
+  };
+}
+
+async function loadEvolutionPage(remoteJid: string, before: string | null) {
+  const page = await findEvolutionMessages(remoteJid, { before, pageSize: PAGE_SIZE });
+  const beforeMs = before ? new Date(before).getTime() : Infinity;
+  const messages = page.records
+    .map(evolutionRecordToMessage)
+    .filter((m): m is EvolutionHistoryMessage => !!m && new Date(m.timestamp).getTime() < beforeMs);
+  const oldest = messages.reduce<string | null>(
+    (acc, m) => (!acc || m.timestamp < acc ? m.timestamp : acc),
+    null
+  );
+  // Página cheia = pode haver mais mensagens antigas nessa fonte.
+  return { messages, full: page.records.length >= PAGE_SIZE && messages.length > 0, oldest };
 }
 
 export async function GET(request: NextRequest) {
@@ -39,137 +59,112 @@ export async function GET(request: NextRequest) {
   const phone = searchParams.get("phone");
 
   try {
-    // 1. Mensagens de um chat específico
+    // 1. Mensagens de um chat (página mais recente, ou anteriores a `before`)
     if (phone) {
-      const cleanPhone = phone.replace(/\D/g, "");
-      const jid = cleanPhone.includes("@") ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
+      const cleanPhone = onlyDigits(phone);
+      const before = searchParams.get("before");
+      const beforeIso = before && !Number.isNaN(Date.parse(before)) ? new Date(before).toISOString() : null;
 
-      // Busca mensagens no Firestore
-      const messagesSnap = await adminDb
-        .collection(`whatsapp_chats/${cleanPhone}/messages`)
-        .orderBy("timestamp", "asc")
-        .limit(100)
-        .get();
+      const chatDoc = await adminDb.collection("whatsapp_chats").doc(cleanPhone).get();
+      const lid = onlyDigits(searchParams.get("lid")) || onlyDigits(chatDoc.data()?.lid) || "";
 
-      const firestoreMessages: WhatsAppMessage[] = messagesSnap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
-      }));
+      // Firestore: documento do telefone e, se o contato veio por LID antes da correção, o do LID.
+      const firestoreDocIds = Array.from(new Set([cleanPhone, lid].filter(Boolean)));
+      const evolutionJids = [`${cleanPhone}@s.whatsapp.net`, ...(lid ? [`${lid}@lid`] : [])];
 
-      // Busca mensagens na Evolution API
-      const evolutionData = await fetchFromEvolution(`/chat/findMessages/${EVOLUTION_INSTANCE}`, {
-        where: {
-          key: {
-            remoteJid: jid,
-          },
-        },
-      });
+      const [firestorePages, evolutionPages] = await Promise.all([
+        Promise.all(firestoreDocIds.map((id) => loadFirestorePage(id, beforeIso))),
+        Promise.all(evolutionJids.map((jid) => loadEvolutionPage(jid, beforeIso))),
+      ]);
 
-      const evolutionRecords = evolutionData?.messages?.records || [];
-      const evolutionMessages: WhatsAppMessage[] = evolutionRecords.map((rec: any) => {
-        const text =
-          rec.message?.conversation ||
-          rec.message?.extendedTextMessage?.text ||
-          rec.message?.imageMessage?.caption ||
-          "";
-
-        const isMe = Boolean(rec.key?.fromMe);
-        const timestamp = rec.messageTimestamp
-          ? new Date(Number(rec.messageTimestamp) * 1000).toISOString()
-          : new Date().toISOString();
-
-        return {
-          id: rec.key?.id || rec.id,
-          role: isMe ? "assistant" : "user",
-          text,
-          timestamp,
-          senderName: isMe ? "Maia (NumVapt IA)" : rec.pushName || "Cliente",
-        };
-      });
-
-      // Mescla mensagens sem duplicar
-      const map = new Map<string, WhatsAppMessage>();
-      for (const m of firestoreMessages) {
-        if (m.text?.trim()) map.set(m.id, m);
-      }
-      for (const m of evolutionMessages) {
-        if (m.text?.trim()) map.set(m.id, m);
-      }
-
-      const merged = Array.from(map.values()).sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      const merged = mergeHistory(
+        firestorePages.flatMap((p) => p.messages),
+        evolutionPages.flatMap((p) => p.messages)
       );
+      const { messages, hasMore, oldest } = cutAtCompleteBoundary(merged, [
+        ...firestorePages,
+        ...evolutionPages,
+      ]);
 
-      return NextResponse.json({ messages: merged }, { status: 200 });
+      return NextResponse.json({ messages, hasMore, oldest }, { status: 200 });
     }
 
     // 2. Lista geral de conversas
-    // Busca chats no Firestore
     const chatsSnap = await adminDb
       .collection("whatsapp_chats")
       .orderBy("lastMessageAt", "desc")
-      .limit(50)
+      .limit(100)
       .get();
 
     const firestoreChats: Record<string, any> = {};
+    const lidToPhone = new Map<string, string>();
     chatsSnap.docs.forEach((d) => {
-      firestoreChats[d.id] = d.data();
+      const data = d.data();
+      firestoreChats[d.id] = data;
+      const lid = onlyDigits(data?.lid);
+      if (lid && lid !== d.id) lidToPhone.set(lid, d.id);
     });
 
-    // Busca chats na Evolution API
-    const evolutionChatsRaw = (await fetchFromEvolution(`/chat/findChats/${EVOLUTION_INSTANCE}`)) || [];
-    const chatsMap = new Map<string, WhatsAppChatSession>();
+    const evolutionChatsRaw = await findEvolutionChats();
+    const chatsMap = new Map<string, any>();
 
-    // Processa chats da Evolution API
-    if (Array.isArray(evolutionChatsRaw)) {
-      for (const c of evolutionChatsRaw) {
-        const rawJid = c.remoteJid || "";
-        if (rawJid.includes("@g.us") || rawJid.includes("broadcast")) continue;
-
-        const clean = rawJid.replace(/@.*$/, "").replace(/\D/g, "");
-        if (!clean) continue;
-
-        const firestoreConfig = firestoreChats[clean] || {};
-        const lastMsgText =
-          c.lastMessage?.message?.conversation ||
-          c.lastMessage?.message?.extendedTextMessage?.text ||
-          firestoreConfig.lastMessageText ||
-          firestoreConfig.lastMessage ||
-          "";
-
-        const contactName = c.pushName || firestoreConfig.senderName || firestoreConfig.contactName || clean;
-
-        chatsMap.set(clean, {
-          id: clean,
-          phone: clean,
-          cleanPhone: clean,
-          senderName: contactName,
-          contactName: contactName,
-          lastMessage: lastMsgText,
-          lastMessageText: lastMsgText,
-          lastMessageAt: c.updatedAt || firestoreConfig.lastMessageAt || new Date().toISOString(),
-          aiEnabled: firestoreConfig.aiEnabled !== false,
-          status: firestoreConfig.aiEnabled === false ? "waiting_human" : "active",
-        });
+    for (const c of evolutionChatsRaw) {
+      const rawJid: string = c.remoteJid || "";
+      if (!rawJid || rawJid.includes("@g.us") || rawJid.includes("broadcast") || rawJid.includes("@newsletter")) {
+        continue;
       }
+
+      let clean = jidToDigits(rawJid);
+      let lid: string | null = null;
+      if (rawJid.endsWith("@lid")) {
+        lid = clean;
+        const fromKey = resolveContactFromKey(c.lastMessage?.key ?? { remoteJid: rawJid }, c.lastMessage);
+        clean = lidToPhone.get(lid) || (fromKey.phone !== lid ? fromKey.phone : "") || lid;
+      }
+      if (!clean) continue;
+
+      const firestoreConfig = firestoreChats[clean] || {};
+      const evoLast = c.lastMessage?.message ? extractMessageContent(c.lastMessage.message).displayText : "";
+      const evoAt = c.updatedAt || (c.lastMessage?.messageTimestamp ? new Date(Number(c.lastMessage.messageTimestamp) * 1000).toISOString() : "");
+      const fsAt = firestoreConfig.lastMessageAt || "";
+      const useFirestore = fsAt && (!evoAt || fsAt >= evoAt);
+      const lastMsgText = (useFirestore ? firestoreConfig.lastMessageText || firestoreConfig.lastMessage : evoLast) || evoLast || firestoreConfig.lastMessageText || "";
+      const contactName = firestoreConfig.contactName || firestoreConfig.senderName || c.pushName || clean;
+
+      const existing = chatsMap.get(clean);
+      const lastMessageAt = [existing?.lastMessageAt, evoAt, fsAt].filter(Boolean).sort().pop() || new Date().toISOString();
+
+      chatsMap.set(clean, {
+        id: clean,
+        phone: clean,
+        cleanPhone: clean,
+        lid: lid || existing?.lid || firestoreConfig.lid || null,
+        senderName: existing?.senderName && existing.senderName !== clean ? existing.senderName : contactName,
+        contactName: existing?.contactName && existing.contactName !== clean ? existing.contactName : contactName,
+        lastMessage: existing && existing.lastMessageAt > (useFirestore ? fsAt : evoAt) ? existing.lastMessage : lastMsgText,
+        lastMessageText: existing && existing.lastMessageAt > (useFirestore ? fsAt : evoAt) ? existing.lastMessageText : lastMsgText,
+        lastMessageAt,
+        aiEnabled: firestoreConfig.aiEnabled !== false,
+        status: firestoreConfig.aiEnabled === false ? "waiting_human" : "active",
+      });
     }
 
-    // Inclui chats que estejam no Firestore mas não retornaram na Evolution
+    // Chats que estão no Firestore mas não vieram da Evolution (ignora docs antigos salvos pelo LID já mapeado)
     for (const [clean, fData] of Object.entries(firestoreChats)) {
-      if (!chatsMap.has(clean)) {
-        chatsMap.set(clean, {
-          id: clean,
-          phone: fData.phone || clean,
-          cleanPhone: clean,
-          senderName: fData.senderName || fData.contactName || clean,
-          contactName: fData.contactName || fData.senderName || clean,
-          lastMessage: fData.lastMessage || fData.lastMessageText || "",
-          lastMessageText: fData.lastMessageText || fData.lastMessage || "",
-          lastMessageAt: fData.lastMessageAt || new Date().toISOString(),
-          aiEnabled: fData.aiEnabled !== false,
-          status: fData.aiEnabled === false ? "waiting_human" : "active",
-        });
-      }
+      if (chatsMap.has(clean) || lidToPhone.has(clean)) continue;
+      chatsMap.set(clean, {
+        id: clean,
+        phone: fData.phone || clean,
+        cleanPhone: clean,
+        lid: fData.lid || null,
+        senderName: fData.senderName || fData.contactName || clean,
+        contactName: fData.contactName || fData.senderName || clean,
+        lastMessage: fData.lastMessage || fData.lastMessageText || "",
+        lastMessageText: fData.lastMessageText || fData.lastMessage || "",
+        lastMessageAt: fData.lastMessageAt || new Date().toISOString(),
+        aiEnabled: fData.aiEnabled !== false,
+        status: fData.aiEnabled === false ? "waiting_human" : "active",
+      });
     }
 
     const chatsList = Array.from(chatsMap.values()).sort(
@@ -199,7 +194,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Telefone obrigatório." }, { status: 400 });
     }
 
-    const cleanPhone = String(phone).replace(/\D/g, "");
+    const cleanPhone = onlyDigits(phone);
     await adminDb.collection("whatsapp_chats").doc(cleanPhone).set(
       {
         aiEnabled: Boolean(aiEnabled),
@@ -228,20 +223,23 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { phone, message, text } = body;
-    const messageContent = (message || text || "").trim();
+    const messageContent = String(message || text || "").trim();
 
     if (!phone || !messageContent) {
       return NextResponse.json({ error: "Telefone e mensagem são obrigatórios." }, { status: 400 });
     }
 
-    const cleanPhone = String(phone).replace(/\D/g, "");
+    const cleanPhone = onlyDigits(phone);
     const now = new Date().toISOString();
 
-    // 1. Dispara a mensagem para a Evolution API para entregar no WhatsApp real do cliente
-    await fetchFromEvolution(`/message/sendText/${EVOLUTION_INSTANCE}`, {
-      number: cleanPhone,
-      text: messageContent,
-    });
+    // 1. Entrega a mensagem no WhatsApp real do cliente
+    const sent = await sendEvolutionText(cleanPhone, messageContent);
+    if (!sent) {
+      return NextResponse.json(
+        { error: "A Evolution API não confirmou o envio. A mensagem não foi entregue." },
+        { status: 502 }
+      );
+    }
 
     // 2. Registra no Firestore como mensagem do Atendente Humano
     const messageId = `msg_admin_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -264,7 +262,7 @@ export async function POST(request: NextRequest) {
         lastMessageText: messageContent,
         lastMessageAt: now,
         humanTakeover: true,
-        aiEnabled: false, // Desativa IA temporariamente quando o atendente humano responde
+        aiEnabled: false, // Desativa IA quando o atendente humano responde
         updatedAt: now,
       },
       { merge: true }

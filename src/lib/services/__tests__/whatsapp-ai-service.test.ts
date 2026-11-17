@@ -29,7 +29,41 @@ vi.mock("@/lib/firebase-admin", () => {
   };
 });
 
-import { generateWhatsAppAIResponse } from "../whatsapp-ai-service";
+import { buildConversationContents, generateWhatsAppAIResponse } from "../whatsapp-ai-service";
+
+describe("buildConversationContents", () => {
+  it("envia as mensagens novas juntas, sem duplicar a pergunta atual", () => {
+    const contents = buildConversationContents(
+      [
+        { id: "1", role: "user", text: "oi", timestamp: "t1" },
+        { id: "2", role: "assistant", text: "Oi! Como posso ajudar?", timestamp: "t2" },
+      ],
+      ["tem teste grátis?", "precisa de cartão?"],
+      "Ana"
+    );
+    expect(contents.map((c) => c.role)).toEqual(["user", "model", "user"]);
+    const last = contents[2].parts[0].text;
+    expect(last).toContain("1. tem teste grátis?");
+    expect(last).toContain("2. precisa de cartão?");
+    expect(JSON.stringify(contents).match(/precisa de cartão/g)).toHaveLength(1);
+  });
+
+  it("junta turnos seguidos do mesmo papel e marca mensagens do atendente humano", () => {
+    const contents = buildConversationContents(
+      [
+        { id: "0", role: "assistant", text: "boas-vindas", timestamp: "t0" },
+        { id: "1", role: "user", text: "a", timestamp: "t1" },
+        { id: "2", role: "user", text: "b", timestamp: "t2" },
+        { id: "3", role: "admin", text: "Oi, aqui é a equipe", timestamp: "t3" },
+      ],
+      ["c"],
+      "Ana"
+    );
+    // começa pelo usuário (o turno inicial do modelo é descartado)
+    expect(contents[0]).toEqual({ role: "user", parts: [{ text: "a\nb" }] });
+    expect(contents[1].parts[0].text).toContain("[Atendente humano da NumVapt]");
+  });
+});
 
 describe("whatsapp-ai-service", () => {
   const originalEnv = process.env;
@@ -88,8 +122,8 @@ describe("whatsapp-ai-service", () => {
     const systemText = requestBody.systemInstruction.parts[0].text;
     expect(systemText).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
     expect(systemText).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
-    expect(systemText).toContain("https://numvapt.com.br/dashboard/posts");
-    expect(systemText).toContain("https://numvapt.com.br/dashboard/configuracoes");
+    expect(systemText).toContain("https://numvapt.com/dashboard/posts");
+    expect(systemText).toContain("https://numvapt.com/dashboard/configuracoes");
     expect(systemText).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA WHATSAPP (MAIA)");
   });
 
@@ -143,6 +177,6 @@ describe("whatsapp-ai-service", () => {
 
     expect(res.replyText).not.toContain("97");
     expect(res.replyText).toContain("R$ 490,00/mês");
-    expect(res.replyText).toContain("https://numvapt.com.br/acesso/cadastro");
+    expect(res.replyText).toContain("https://numvapt.com/acesso/cadastro");
   });
 });

@@ -1,8 +1,25 @@
 import type { WhatsAppMessage, WhatsAppAIResponse } from "@/lib/types/whatsapp";
 import { buildChannelKnowledge, CENTRAL_KNOWLEDGE_HEADER } from "@/lib/services/knowledge-base-service";
+import {
+  buildConversationContents,
+  callMaiaModel,
+  MAIA_FINAL_REMINDER,
+  MAIA_HISTORY_LIMIT,
+  readCandidateText,
+  SIGNUP_URL,
+} from "@/lib/services/maia-shared";
+
+export { buildConversationContents };
 
 interface GenerateWhatsAppAIOptions {
+  /** Última mensagem do cliente (compatibilidade). */
   incomingMessage: string;
+  /**
+   * Todas as mensagens do cliente ainda sem resposta, em ordem. Quando o cliente manda várias
+   * mensagens seguidas, a Maia responde todas de uma vez.
+   */
+  pendingMessages?: string[];
+  /** Conversa anterior (já respondida), mais antiga primeiro. */
   history?: WhatsAppMessage[];
   senderName?: string;
   clientPhone?: string;
@@ -10,78 +27,103 @@ interface GenerateWhatsAppAIOptions {
   audioMimeType?: string;
 }
 
+/** Quantas mensagens anteriores a Maia recebe como contexto. */
+export const WHATSAPP_HISTORY_LIMIT = MAIA_HISTORY_LIMIT;
+
 const WHATSAPP_SYSTEM_INSTRUCTION = `
-Você é a Maia, consultora de atendimento e inteligência artificial da NumVapt — plataforma líder em automação de marketing digital, criação de posts com design profissional, geração de imagens realistas de produtos e vitrine digital para empresas e empreendedores.
+Você é a Maia, consultora de atendimento da NumVapt no WhatsApp oficial (51) 92004-4035. A NumVapt é uma plataforma que automatiza o marketing digital de empresas: cria posts com design profissional, gera imagens de produtos com IA, agenda e publica nas redes e oferece vitrine digital.
 
-# SEU OBJETIVO
-Atender potenciais clientes e usuários ativos da NumVapt via WhatsApp no número oficial (51) 92004-4035 com naturalidade, empatia e consultoria humanizada.
+# COMO RESPONDER (REGRAS MAIS IMPORTANTES)
+1. Responda exatamente ao que o cliente perguntou na(s) mensagem(ns) nova(s). Se ele mandou várias mensagens seguidas, responda todas numa única resposta, na ordem.
+2. Seja breve: por padrão de 1 a 3 frases curtas (até uns 350 caracteres). Use lista só quando o cliente pedir para comparar planos ou listar opções.
+3. Não acrescente o que não foi pedido. Só fale de preços, planos, garantia, contrato ou formas de pagamento se o cliente perguntar sobre isso. Envie o link de cadastro só quando ele quiser testar, assinar ou criar conta.
+4. Se a pergunta for vaga ou ambígua, faça UMA pergunta curta para entender o que ele precisa, em vez de despejar informações.
+5. O histórico serve só de contexto: não repita respostas já dadas e não volte a assuntos encerrados.
+6. Termine com uma pergunta apenas quando ela ajudar a continuar a conversa. Não é obrigatório.
+7. Se a informação não estiver nesta instrução ou na base de conhecimento, diga que vai confirmar com a equipe e ofereça o atendimento humano. Nunca invente.
+8. Mensagens que começam com "[Áudio]" trazem a transcrição do áudio do cliente. Se vier apenas "[Áudio]", sem texto, peça com gentileza que ele escreva a dúvida. Em "[Imagem]", "[Vídeo]", "[Documento]" ou "[Figurinha]" você não vê o arquivo: use só a legenda, se houver.
 
-# REGRA DE OURO SOBRE SAUDAÇÕES (MUITO IMPORTANTE)
-1. NUNCA repita saudações ou cumprimentos (como "Olá [Nome]", "Oi [Nome], que bom que você perguntou!", "Tudo bem [Nome]?") a cada mensagem!
-2. Se a conversa já estiver em andamento ou se o cliente fizer uma pergunta direta (ex: "quanto custa?", "como funciona a garantia?", "qual a diferença dos planos?"), responda DIRETAMENTE à dúvida, com tom amigável e acolhedor, sem qualquer cumprimento ou introdução formal.
-3. Cumprimentos ("Oi, tudo bem?", "Olá, [Nome]!") são reservados EXCLUSIVAMENTE para a primeiríssima mensagem de boas-vindas ou se o usuário apenas disser "oi/olá/bom dia".
+# SAUDAÇÕES
+Cumprimente apenas na primeira mensagem da conversa ou quando o cliente só disser "oi/olá/bom dia". No resto, vá direto à resposta, sem "Olá, [Nome]!".
 
-# TOM DE VOZ E ESTILO (HUMANIZADO PARA WHATSAPP)
-1. Fale como uma pessoa real e atenciosa no WhatsApp: tom caloroso, empático, ágil e espontâneo (sem parecer um robô corporativo ou panfleto publicitário).
-2. NUNCA utilize markdown complexo de tabelas ou títulos com hashtags (# ou ###).
-3. Use formatação nativa do WhatsApp: *negrito* para dar destaque, emojis moderados (✨, 🚀, 😉, ✅) e listas com "•" ou traço.
-4. Mantenha as mensagens concisas: entre 2 a 3 parágrafos curtos, fáceis e gostosos de ler no celular.
-5. Sempre termine com uma pergunta leve e natural para manter a conversa fluindo.
+# TOM E FORMATO
+Fale como uma pessoa real e atenciosa: calorosa, direta e sem parecer panfleto. Formato do WhatsApp: *negrito* para destaque, no máximo 1 emoji por mensagem, listas com "•". Nunca use tabelas, títulos com # ou links em markdown.
 
-# TABELA DE PLANOS E PREÇOS PADRÃO (SEMPRE DÊ PREVALÊNCIA SOBERANA À CENTRAL DE CONHECIMENTO ABAIXO)
-• *Plano Mensal*: R$ 490,00/mês (sem fidelidade, cancele quando quiser).
-• *Plano Trimestral*: Cobrado 3x de R$ 441,00/mês (10% de desconto | total de R$ 1.323,00 por trimestre no cartão recorrente ou Pix).
-• *Plano Semestral*: Cobrado 6x de R$ 416,50/mês (15% de desconto | total de R$ 2.499,00 por semestre no cartão recorrente ou Pix).
-• *Plano Anual*: Cobrado 12x de R$ 399,00/mês (+ 1 mês bônus gratuito! Considerando 13 meses de acesso, o valor mensal equivale a R$ 368,30/mês). Cobrança mensal debitada mês a mês sem travar o limite total de crédito no cartão.
-• *Plano Tudo Pronto (Execução VIP)*: R$ 699,00/mês (A equipe da NumVapt executa 100% da criação, postagens e campanhas, e o cliente apenas aprova na Central de Aprovações).
-• Link Oficial de Cadastro para Teste Grátis: https://numvapt.com.br/acesso/cadastro (ou Checkout Direto: https://www.asaas.com/c/2unkh9p3t6apkcvm)
+# PLANOS E PREÇOS OFICIAIS (use só quando perguntarem; a Central de Conhecimento tem prioridade se divergir)
+• *Mensal*: R$ 490,00/mês, sem fidelidade.
+• *Trimestral*: 3x de R$ 441,00 (10% de desconto, R$ 1.323,00 por trimestre).
+• *Semestral*: 6x de R$ 416,50 (15% de desconto, R$ 2.499,00 por semestre).
+• *Anual*: 12x de R$ 399,00 + 1 mês grátis (equivale a R$ 368,30/mês em 13 meses).
+• *Tudo Pronto*: R$ 699,00/mês, a equipe NumVapt cria e publica tudo e o cliente só aprova.
+No cartão, todos os planos são assinatura mensal recorrente: não comprometem o limite total do cartão. Também aceitamos Pix.
+Garantia: 7 dias com devolução total do valor pago.
+Link de cadastro: ${SIGNUP_URL}
 
+# EXEMPLOS
+Cliente: "quanto custa?"
+Maia: "O plano *Mensal* custa R$ 490,00/mês, sem fidelidade. No *Anual* sai por R$ 399,00/mês no cartão recorrente e você ganha 1 mês grátis."
 
-# EXEMPLOS OBRIGATÓRIOS DE ATENDIMENTO (FEW-SHOT):
-• Se o cliente perguntar: "quanto custa?" ou "quanto custa por mês?" ou "qual o valor?":
-  Resposta direta: "O *Plano Mensal* da NumVapt custa R$ 490,00/mês (sem fidelidade, você pode cancelar quando quiser). ✨ Se você optar pelo *Plano Anual*, a cobrança é mensal no cartão por R$ 399,00/mês (sem travar o limite total de crédito) e você ainda ganha o 13º mês grátis! Crie sua conta gratuita para experimentar agora mesmo: https://numvapt.com.br/acesso/cadastro"
+Cliente: "vocês postam no Instagram automaticamente?"
+Maia: "Sim! Você cria o post na NumVapt e ele é publicado no Instagram na data e hora que escolher, sem precisar abrir o app."
 
-• Se o cliente perguntar sobre todos os planos:
-  Resposta: "Confira nossos planos oficiais:
-• *Plano Mensal*: R$ 490,00/mês
-• *Plano Trimestral*: 3x de R$ 441,00/mês (10% OFF | R$ 1.323/trimestre)
-• *Plano Semestral*: 6x de R$ 416,50/mês (15% OFF | R$ 2.499/semestre)
-• *Plano Anual*: 12x de R$ 399,00/mês (+ 1 mês grátis, saindo R$ 368,30/mês)
-• *Plano Tudo Pronto*: R$ 699,00/mês (equipe da NumVapt executa 100% das postagens e anúncios)
+Cliente: "oi" / "tudo bem?" / "quero saber mais"
+Maia: "Oi! Tudo ótimo por aqui 😊 Me conta: o que você gostaria de saber sobre a NumVapt?"
 
-Todos são cobrados na modalidade Assinatura Mensal Recorrente, sem comprometer o limite total do cartão de crédito! Você pode criar sua conta para testar: https://numvapt.com.br/acesso/cadastro"
+Cliente (duas mensagens seguidas): "tem teste grátis?" + "precisa de cartão?"
+Maia: responde as duas dúvidas, em uma mensagem curta.
 
-# REGRA CRÍTICA ANTI-ALUCINAÇÃO
-- NUNCA invente outros planos, preços, cupons ou URLs não oficiais (como /planos).
-- Esclareça que todos os planos no cartão utilizam Assinatura Mensal Recorrente, de modo que NÃO comprometem o limite total do cartão de crédito.
+# ANTI-ALUCINAÇÃO
+Nunca invente planos, preços, cupons, prazos ou páginas (como /planos). Use só links que estão nesta instrução ou na base de conhecimento.
 
-# BASE DE CONHECIMENTO NUMVAPT
-• O que a NumVapt faz:
-  - Cria posts completos com texto persuasivo, legendas e hashtags em segundos.
-  - Gera imagens profissionais de produtos contextualizados com IA.
-  - Vitrine Digital automatizada para vendas.
-  - Agendamento e publicação automática de posts no Instagram e LinkedIn.
+# TRANSBORDO HUMANO
+Se o cliente pedir para falar com atendente/pessoa/suporte, ou trouxer reclamação, cancelamento, reembolso ou negociação, diga que está chamando a equipe e marque needsHumanSupport como true.
 
-• Formas de Pagamento:
-  - Cartão de crédito (modalidade mensal recorrente sem bloquear o limite total).
-  - Pix com liberação imediata.
-
-• Contrato e Segurança:
-  - Contrato digital formal de 19 cláusulas com 10 aceites de confirmação consciente.
-  - 7 dias de garantia incondicional (direito de arrependimento) com devolução total do valor pago.
-
-• Regra de Transbordo Humano:
-  - Se o cliente pedir expressamente "falar com atendente", "falar com pessoa", "atendente humano", "falar com suporte" ou apresentar caso de negociação/reclamação avançada, confirme cordialmente que está transferindo para nossa equipe humana da NumVapt e marque needsHumanSupport como true.
-
-# FORMATO DE SAÍDA EXCLUSIVO (JSON ESTRITO)
-Responda APENAS com um objeto JSON válido, sem blocos de código ou markdown:
+# FORMATO DE SAÍDA (JSON ESTRITO)
+Responda APENAS com um objeto JSON válido, sem blocos de código:
 {
-  "replyText": "Texto formatado da sua resposta para o WhatsApp",
+  "replyText": "sua resposta para o WhatsApp",
   "needsHumanSupport": false,
   "suggestedAction": "plan_details | checkout_link | pix_info | human_transfer | faq",
   "planMentioned": "mensal | trimestral | semestral | anual | null"
 }
 `;
+
+/** Transcreve um áudio do cliente (pt-BR). Devolve null se não conseguir. */
+export async function transcribeWhatsAppAudio(base64: string, mimeType = "audio/ogg"): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || !base64) return null;
+  const mime = (mimeType || "audio/ogg").split(";")[0].trim() || "audio/ogg";
+
+  for (const model of ["gemini-2.5-flash", "gemini-flash-latest"]) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { inlineData: { mimeType: mime, data: base64 } },
+                {
+                  text: "Transcreva fielmente este áudio em português do Brasil. Responda só com a transcrição, sem comentários. Se não houver fala compreensível, responda vazio.",
+                },
+              ],
+            },
+          ],
+          generationConfig: { temperature: 0, maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      });
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      const text = readCandidateText(await response.json());
+      return text || null;
+    } catch (err: any) {
+      console.warn(`[WHATSAPP_AI] Falha ao transcrever áudio com ${model}:`, err?.message || err);
+    }
+  }
+  return null;
+}
 
 export async function generateWhatsAppAIResponse(
   options: GenerateWhatsAppAIOptions
@@ -100,49 +142,19 @@ export async function generateWhatsAppAIResponse(
 
   const { incomingMessage, history = [], senderName = "Cliente", audioBase64, audioMimeType } = options;
 
-  // Monta histórico de mensagens anteriores
-  const conversationParts: any[] = [];
-
-  for (const msg of history.slice(-6)) {
-    const msgText = msg.text || "";
-    // Blindagem anti-contaminação de histórico
-    if (
-      msg.role === "assistant" &&
-      (msgText.includes("79,90") ||
-        msgText.includes("79.90") ||
-        msgText.includes("79 reais") ||
-        msgText.includes("/planos"))
-    ) {
-      continue;
-    }
-    conversationParts.push({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msgText }],
-    });
-  }
-
-  // Adiciona a mensagem atual
-  const currentParts: any[] = [];
+  // Áudio sem transcrição prévia (payload direto): transcreve aqui.
+  let pending = (options.pendingMessages?.length ? options.pendingMessages : [incomingMessage]).filter(
+    (p) => typeof p === "string" && p.trim()
+  );
   if (audioBase64) {
-    currentParts.push({
-      inlineData: {
-        mimeType: audioMimeType || "audio/ogg",
-        data: audioBase64,
-      },
-    });
-    currentParts.push({
-      text: `[ÁUDIO ENVIADO PELO CLIENTE ${senderName}]: Ouça o áudio e responda em texto conforme suas diretrizes da NumVapt. Complemento textual se houver: "${incomingMessage || ""}"`,
-    });
-  } else {
-    currentParts.push({
-      text: `Cliente (${senderName}): ${incomingMessage}`,
-    });
+    const transcript = await transcribeWhatsAppAudio(audioBase64, audioMimeType);
+    const audioText = transcript ? `[Áudio] ${transcript}` : "[Áudio]";
+    pending = pending.filter((p) => p.trim() !== "[Áudio]");
+    pending.push(incomingMessage && incomingMessage !== "[Áudio]" ? `${audioText}\n${incomingMessage}` : audioText);
   }
+  if (pending.length === 0) pending = ["[mensagem vazia]"];
 
-  conversationParts.push({
-    role: "user",
-    parts: currentParts,
-  });
+  const contents = buildConversationContents(history, pending, senderName);
 
   // Central de Informações (filtrada por canal e validade) + conhecimento da plataforma sem detalhes internos
   const { platformKnowledge, centralKnowledge } = await buildChannelKnowledge("whatsapp");
@@ -150,82 +162,20 @@ export async function generateWhatsAppAIResponse(
   if (centralKnowledge) {
     dynamicInstruction += CENTRAL_KNOWLEDGE_HEADER + centralKnowledge;
   }
+  dynamicInstruction += MAIA_FINAL_REMINDER;
 
-  const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
-  let lastError: any = null;
+  const parsed = await callMaiaModel<WhatsAppAIResponse>({
+    apiKey,
+    systemInstruction: dynamicInstruction,
+    contents,
+    logTag: "WHATSAPP_AI",
+  });
+  if (parsed) return parsed;
 
-  for (const model of modelsToTry) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: dynamicInstruction }],
-          },
-          contents: conversationParts,
-          generationConfig: {
-            temperature: 0.1, // Ultrabaixa para precisão factual estrita
-            maxOutputTokens: 2500,
-            thinkingConfig: {
-              thinkingBudget: 150,
-            },
-            responseMimeType: "application/json",
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Status ${response.status}: ${errText}`);
-      }
-
-      const resData = await response.json();
-      const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!rawText) {
-        throw new Error("Resposta vazia do Gemini.");
-      }
-
-      const cleaned = rawText
-        .replace(/^\s*\`\`\`(json)?/i, "")
-        .replace(/\`\`\`\s*$/i, "")
-        .trim();
-
-      const parsed: WhatsAppAIResponse = JSON.parse(cleaned);
-
-      if (parsed && typeof parsed.replyText === "string") {
-        parsed.replyText = parsed.replyText
-          .replace(/https?:\/\/[^\s]*\/planos/gi, "https://numvapt.com.br/acesso/cadastro")
-          .replace(/https?:\/\/numvapt\.com(?![.\w])/gi, "https://numvapt.com.br");
-
-        const hasInvalidPrice =
-          /R\$\s*(?:79[,.]90|79|89|97|99|149|199|299)(?:\/mês|\s*por\s*mês)?/i.test(parsed.replyText) ||
-          parsed.replyText.includes("79,90") ||
-          parsed.replyText.includes("79.90") ||
-          parsed.replyText.includes("79 reais");
-
-        if (hasInvalidPrice) {
-          console.warn("[WHATSAPP_AI_GUARDRAIL] Preço incorreto detectado e retificado para R$ 490,00/mês.");
-          parsed.replyText = parsed.replyText
-            .replace(/R\$\s*(?:79[,.]90|79|89|97|99|149|199|299)(?:\/mês|\s*por\s*mês)?/gi, "R$ 490,00/mês")
-            .replace(/R\$\s*79[,.]90(\/mês)?/gi, "R$ 490,00/mês")
-            .replace(/79\s*reais(\s*por\s*mês)?/gi, "R$ 490,00/mês");
-        }
-      }
-      return parsed;
-    } catch (err: any) {
-      console.warn(`[WHATSAPP_AI] Falha com modelo ${model}:`, err?.message || err);
-      lastError = err;
-    }
-  }
-
-  console.error("[WHATSAPP_AI] Todos os modelos falharam:", lastError);
+  console.error("[WHATSAPP_AI] Todos os modelos falharam.");
   return {
     replyText:
-      "Olá! Obrigado por entrar em contato com a *NumVapt*. Recebi sua mensagem e já encaminhei para um de nossos especialistas. Em instantes te responderemos por aqui! ✨",
+      "Obrigada pela mensagem! Já encaminhei para um de nossos especialistas da *NumVapt*, que te responde por aqui em instantes.",
     needsHumanSupport: true,
     suggestedAction: "human_transfer",
   };

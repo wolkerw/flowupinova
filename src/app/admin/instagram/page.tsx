@@ -46,7 +46,16 @@ export default function AdminInstagramPage() {
   const [filter, setFilter] = useState<"all" | "ai" | "human">("all");
   const [search, setSearch] = useState("");
 
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [oldestCursor, setOldestCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  // Rola para o fim ao abrir/enviar; ao carregar mensagens antigas, mantém a posição.
+  const scrollModeRef = useRef<"bottom" | "keep">("bottom");
+  const prevScrollHeightRef = useRef(0);
+  const selectedIdRef = useRef<string | null>(null);
 
   // Busca lista de conversas
   const fetchChats = useCallback(async () => {
@@ -70,29 +79,69 @@ export default function AdminInstagramPage() {
 
   // Busca mensagens de uma conversa específica
   const loadMessages = useCallback(async (chat: InstagramChatSession) => {
+    const id = chat.senderId || chat.id;
+    selectedIdRef.current = id;
     setSelectedChat(chat);
+    setMessages([]);
+    setHasMoreMessages(false);
+    setOldestCursor(null);
     setLoadingMessages(true);
     try {
-      const res = await fetch(`/api/admin/instagram?senderId=${chat.senderId || chat.id}`);
-      if (res.ok) {
+      const res = await fetch(`/api/admin/instagram?senderId=${encodeURIComponent(id)}`);
+      if (res.ok && selectedIdRef.current === id) {
         const data = await res.json();
+        scrollModeRef.current = "bottom";
         setMessages(data.messages || []);
+        setHasMoreMessages(Boolean(data.hasMore));
+        setOldestCursor(data.oldest || null);
       }
     } catch (err) {
       console.error("Erro ao carregar mensagens do chat:", err);
     } finally {
-      setLoadingMessages(false);
+      if (selectedIdRef.current === id) setLoadingMessages(false);
     }
   }, []);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedChat || !hasMoreMessages || loadingOlder || !oldestCursor) return;
+    const id = selectedChat.senderId || selectedChat.id;
+    setLoadingOlder(true);
+    try {
+      const params = new URLSearchParams({ senderId: id, before: oldestCursor });
+      const res = await fetch(`/api/admin/instagram?${params.toString()}`);
+      if (res.ok && selectedIdRef.current === id) {
+        const data = await res.json();
+        const older: InstagramMessage[] = data.messages || [];
+        prevScrollHeightRef.current = messagesContainerRef.current?.scrollHeight ?? 0;
+        scrollModeRef.current = "keep";
+        setMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          return [...older.filter((m) => !ids.has(m.id)), ...prev];
+        });
+        setHasMoreMessages(Boolean(data.hasMore));
+        setOldestCursor(data.oldest || null);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar mensagens anteriores:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [selectedChat, hasMoreMessages, loadingOlder, oldestCursor]);
 
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
 
-  // Scroll automático para a última mensagem
+  // Scroll automático para a última mensagem (ou mantém a posição ao carregar antigas)
   useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (scrollModeRef.current === "keep" && container) {
+      container.scrollTop = container.scrollHeight - prevScrollHeightRef.current;
+      scrollModeRef.current = "bottom";
+      return;
+    }
     if (typeof messagesEndRef.current?.scrollIntoView === "function") {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current.scrollIntoView({ block: "end" });
     }
   }, [messages]);
 
@@ -317,7 +366,7 @@ export default function AdminInstagramPage() {
 
       {/* Conteúdo Principal */}
       {activeTab === "conversas" ? (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Coluna Esquerda: Lista de Conversas */}
           <div className="flex w-full flex-col border-r border-slate-200 bg-white md:w-80 lg:w-96">
             {/* Campo de Busca */}
@@ -459,7 +508,7 @@ export default function AdminInstagramPage() {
           </div>
 
           {/* Coluna Direita: Área de Mensagens */}
-          <div className="flex flex-1 flex-col bg-slate-100">
+          <div className="flex flex-1 min-h-0 flex-col bg-slate-100">
             {selectedChat ? (
               <>
                 {/* Header do Chat */}
@@ -526,7 +575,26 @@ export default function AdminInstagramPage() {
                 </div>
 
                 {/* Histórico de Mensagens */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={(e) => {
+                    if (e.currentTarget.scrollTop < 80) loadOlderMessages();
+                  }}
+                  className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4"
+                >
+                  {!loadingMessages && messages.length > 0 && (hasMoreMessages || loadingOlder) && (
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={loadOlderMessages}
+                        disabled={loadingOlder}
+                        className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {loadingOlder ? "Carregando..." : "Carregar mensagens anteriores"}
+                      </button>
+                    </div>
+                  )}
                   {loadingMessages ? (
                     <div className="flex h-full items-center justify-center">
                       <Loader2 className="h-6 w-6 animate-spin text-pink-500" />
@@ -565,12 +633,19 @@ export default function AdminInstagramPage() {
                               <span>•</span>
                               <span>
                                 {m.timestamp
-                                  ? new Date(m.timestamp).toLocaleTimeString("pt-BR", {
+                                  ? new Date(m.timestamp).toLocaleString("pt-BR", {
+                                      day: "2-digit",
+                                      month: "2-digit",
                                       hour: "2-digit",
                                       minute: "2-digit",
                                     })
                                   : ""}
                               </span>
+                              {(m as any).noReply && (
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+                                  sem resposta automática
+                                </span>
+                              )}
                             </div>
                             <button
                               type="button"
@@ -662,7 +737,7 @@ export default function AdminInstagramPage() {
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
                 <span className="font-bold text-slate-900 block mb-1">1. URL do Webhook da NumVapt</span>
                 <code className="rounded bg-slate-200 px-2 py-1 text-slate-900 select-all font-mono text-[11px]">
-                  https://numvapt.com.br/api/webhooks/instagram
+                  https://numvapt.com/api/webhooks/instagram
                 </code>
                 <p className="mt-1.5 text-slate-500 text-[11px]">
                   Cole essa URL no campo <strong>Callback URL</strong> do produto <em>Instagram &gt; Webhooks</em> no seu painel da Meta.
@@ -710,7 +785,7 @@ export default function AdminInstagramPage() {
                     <li>No painel do produto <strong>Instagram</strong>, abra o item <strong>"Configuração da API com login empresarial no Instagram"</strong> (App ID: <code className="font-mono bg-blue-100 px-1 rounded">1290699978892113</code>).</li>
                     <li>No item <strong className="font-semibold">2. Configure webhooks</strong>:
                       <ul className="list-disc list-inside pl-4 mt-1 space-y-0.5 text-[10.5px] text-blue-900">
-                        <li><strong>URL de callback:</strong> <code className="bg-blue-100 px-1 rounded font-mono">https://numvapt.com.br/api/webhooks/instagram</code> <em>(ou a URL do ngrok para testes locais)</em></li>
+                        <li><strong>URL de callback:</strong> <code className="bg-blue-100 px-1 rounded font-mono">https://numvapt.com/api/webhooks/instagram</code> <em>(ou a URL do ngrok para testes locais)</em></li>
                         <li><strong>Verificar token:</strong> <code className="bg-blue-100 px-1 rounded font-mono">numvapt_instagram_verify_token</code></li>
                       </ul>
                     </li>

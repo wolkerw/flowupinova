@@ -45,7 +45,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.body) }}",
         "options": {
-          "timeout": 30000
+          "timeout": 60000
         }
       },
       "id": "node-http-ai-agent",
