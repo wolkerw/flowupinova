@@ -72,6 +72,7 @@ vi.mock("@/hooks/use-subscription-gate", () => ({
     checkSubscriptionOrPrompt: mockCheckSubscriptionOrPrompt,
     openSubscriptionModal: vi.fn(),
   }),
+  isAdminEmail: vi.fn().mockReturnValue(true),
 }));
 
 describe("Posts Page", () => {
