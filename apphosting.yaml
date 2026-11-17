@@ -18,7 +18,5 @@ env:
 # Grant access to secrets in Cloud Secret Manager.
 # You can create secrets with the CLI command `firebase apphosting:secrets:set <secretName>`.
 # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  - variable: ASAAS_API_KEY
-    secret: ASSAS_API_KEY
-    availability:
-      - RUNTIME
+# - variable: MY_SECRET
+#   secret: mySecretRef
