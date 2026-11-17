@@ -13,6 +13,13 @@ const ADMIN_EMAILS = [
   "flowupinova@gmail.com",
 ];
 
+/** Verifica se o e-mail pertence a um administrador autorizado da plataforma. */
+export function isAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const normalized = email.trim().toLowerCase();
+  return ADMIN_EMAILS.some((adminEmail) => adminEmail.trim().toLowerCase() === normalized);
+}
+
 export interface SubscriptionGateStatus {
   isSubscribed: boolean;
   userPlan: string;

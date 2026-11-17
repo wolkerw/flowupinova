@@ -80,7 +80,7 @@ import {
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { useSubscriptionGate } from "@/hooks/use-subscription-gate";
+import { useSubscriptionGate, isAdminEmail } from "@/hooks/use-subscription-gate";
 import {
   deletePost,
   getScheduledPosts,
@@ -576,6 +576,7 @@ function ConnectionStatus({
   onConnect,
   onDisconnect,
   isLoading,
+  isComingSoon = false,
 }: {
   platform: "facebook" | "instagram" | "linkedin" | "tiktok";
   isConnected: boolean;
@@ -583,6 +584,7 @@ function ConnectionStatus({
   onConnect: () => void;
   onDisconnect: () => void;
   isLoading: boolean;
+  isComingSoon?: boolean;
 }) {
   const platformConfig = {
     facebook: {
@@ -646,7 +648,7 @@ function ConnectionStatus({
         </div>
       ) : (
         <div key={`btn-disconnected-${platform}`} className="flex flex-col items-end gap-1">
-          {platform === "linkedin" && (
+          {isComingSoon && (
             <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-800">
               Em Breve
             </span>
@@ -655,7 +657,7 @@ function ConnectionStatus({
             variant="outline"
             size="sm"
             onClick={onConnect}
-            disabled={isLoading || platform === "linkedin"}
+            disabled={isLoading || isComingSoon}
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Conectar</span>}
           </Button>
@@ -2098,6 +2100,7 @@ export default function Conteudo() {
                   onConnect={handleConnectLinkedIn}
                   onDisconnect={handleDisconnectLinkedIn}
                   isLoading={checkingConnection}
+                  isComingSoon={!isAdminEmail(user?.email)}
                 />
                 <Separator />
                 <ConnectionStatus
