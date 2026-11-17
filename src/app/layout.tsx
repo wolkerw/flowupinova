@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     "NumVapt",
   ],
   authors: [{ name: "NumVapt Soluções e Inovações I.S." }],
-  metadataBase: new URL("https://numvapt.com.br"),
+  metadataBase: new URL("https://numvapt.com"),
   alternates: {
     canonical: "/",
   },
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: "NumVapt - Marketing com Inteligência Artificial",
     description:
       "Sua plataforma definitiva para criação de conteúdo, anúncios e gestão de negócio com IA.",
-    url: "https://numvapt.com.br",
+    url: "https://numvapt.com",
     siteName: "NumVapt",
     locale: "pt_BR",
     type: "website",

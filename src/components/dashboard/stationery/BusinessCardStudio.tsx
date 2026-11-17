@@ -77,7 +77,7 @@ export function BusinessCardStudio({
   const cleanPhone = phone.replace(/\D/g, "");
   const cardShareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/c/${cleanPhone || "contato"}`
-    : `https://numvapt.com.br/c/${cleanPhone || "contato"}`;
+    : `https://numvapt.com/c/${cleanPhone || "contato"}`;
 
   // Gerador de arquivo vCard (.vcf) para salvar na agenda
   const handleDownloadVCard = () => {

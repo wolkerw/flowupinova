@@ -80,14 +80,14 @@ describe("sanitizeKnowledgeForExternalChannel", () => {
       "- **Regra /identylock**: mantém o rosto original.",
       "* Roteiro em 1 chamada de LLM de texto (`gemini-2.5-flash`).",
       "* Capa gerada com `GPT-image-2.6 Sunburst`.",
-      "Acesse *Posts* (https://numvapt.com.br/dashboard/posts) para criar.",
+      "Acesse *Posts* (https://numvapt.com/dashboard/posts) para criar.",
     ].join("\n");
     const out = sanitizeKnowledgeForExternalChannel(input);
     expect(out).not.toMatch(/\/handlock|\/typolayout|\/fontlock|\/identylock/);
     expect(out).not.toMatch(/gemini|GPT-image|LLM/i);
     expect(out).toContain("Trava Anatômica de Mãos");
     expect(out).toContain("Regra**: mantém o rosto original.");
-    expect(out).toContain("https://numvapt.com.br/dashboard/posts");
+    expect(out).toContain("https://numvapt.com/dashboard/posts");
   });
 
   it("aplicado ao conhecimento real da plataforma não deixa vazar detalhes internos", () => {
@@ -96,7 +96,7 @@ describe("sanitizeKnowledgeForExternalChannel", () => {
       const out = sanitizeKnowledgeForExternalChannel(raw);
       expect(out).not.toMatch(/(^|[\s(])\/[a-z]+lock\b/im);
       expect(out).not.toMatch(/gemini-|gpt-image|fabric\.js|firestore/i);
-      expect(out).toContain("https://numvapt.com.br/dashboard/posts");
+      expect(out).toContain("https://numvapt.com/dashboard/posts");
       // continua com o essencial: a maior parte do conteúdo permanece
       expect(out.length).toBeGreaterThan(raw.length * 0.5);
     }

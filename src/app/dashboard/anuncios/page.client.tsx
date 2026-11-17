@@ -2084,7 +2084,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             businessProfile?.website ||
             businessProfile?.instagram ||
             initialProfile?.website ||
-            "https://numvapt.com.br";
+            "https://numvapt.com";
         }
         if (!/^https?:\/\//i.test(linkToUse)) {
           linkToUse = `https://${linkToUse}`;
@@ -3898,8 +3898,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                               <Globe className="h-3 w-3 text-sky-600" /> URL do Site (Destino)
                             </span>
-                            <p className="text-xs font-bold text-slate-800 truncate" title={customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com.br"}>
-                              {customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com.br"}
+                            <p className="text-xs font-bold text-slate-800 truncate" title={customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com"}>
+                              {customDestination || businessProfile?.website || businessProfile?.instagram || "https://numvapt.com"}
                             </p>
                             <p className="text-[11px] text-slate-500">Redirecionamento ao clicar</p>
                           </>

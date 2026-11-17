@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://numvapt.com.br";
+  const baseUrl = "https://numvapt.com";
 
   const routes = ["", "/termos", "/privacidade"];
 

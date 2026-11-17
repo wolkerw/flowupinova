@@ -68,8 +68,8 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
 
     it("adapta links para URLs absolutas e negrito nativo para o canal 'whatsapp'", () => {
       const waKb = getPlatformKnowledgeForChannel("whatsapp");
-      expect(waKb).toContain("https://numvapt.com.br/dashboard/posts");
-      expect(waKb).toContain("https://numvapt.com.br/dashboard/configuracoes");
+      expect(waKb).toContain("https://numvapt.com/dashboard/posts");
+      expect(waKb).toContain("https://numvapt.com/dashboard/configuracoes");
       expect(waKb).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA WHATSAPP (MAIA)");
       expect(waKb).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
       expect(waKb).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
@@ -79,8 +79,8 @@ describe("PLATFORM_KNOWLEDGE_BASE", () => {
 
     it("adapta links para URLs absolutas para o canal 'instagram'", () => {
       const igKb = getPlatformKnowledgeForChannel("instagram");
-      expect(igKb).toContain("https://numvapt.com.br/dashboard/posts");
-      expect(igKb).toContain("https://numvapt.com.br/dashboard/configuracoes");
+      expect(igKb).toContain("https://numvapt.com/dashboard/posts");
+      expect(igKb).toContain("https://numvapt.com/dashboard/configuracoes");
       expect(igKb).toContain("DIRETRIZES ESPECÍFICAS DE ATENDIMENTO PARA INSTAGRAM DIRECT (MAIA)");
       expect(igKb).toContain("GUIA PASSO A PASSO: COMO CONFIGURAR O CÉREBRO DO NEGÓCIO");
       expect(igKb).toContain("ROTEIRO PASSO A PASSO ATÉ A PUBLICAÇÃO FINAL");
