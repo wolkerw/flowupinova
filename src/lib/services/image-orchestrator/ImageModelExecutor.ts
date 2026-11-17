@@ -56,6 +56,8 @@ export class ImageModelExecutor {
 
     const subjectRefs = params.references?.filter((r) => r.role === "product_subject") || [];
     const subjectRef = subjectRefs[0];
+    const styleRefs = params.references?.filter((r) => r.role === "style_reference") || [];
+    const styleRef = styleRefs[0];
     const logoRef = params.references?.find(
       (r) => r.role === "business_logo" || r.role === "official_logo"
     );
@@ -127,6 +129,12 @@ export class ImageModelExecutor {
             } else {
               openaiPrompt = `[STRICT PRODUCT GEOMETRY LOCK (/productlock) + 1:1 PACKAGING LABEL LOCK (/labellock) & ZERO SCENE LOGOS DIRECTIVE: The uploaded Step 5 reference image(s) show a physical product, packaging, equipment, or person. Preserve 100% of its exact geometry, packaging container, and authentic printed product labels 1:1 intact (including the exact printed brand logo on the label WITHOUT adding green ovals/ellipses around it, exact label stripe colors, seal typography, weight text, and printed product photo) WITHOUT redesigning or altering the label or hardware. Do NOT draw loose company logos, acrylic tabletop plaques, totens, or wall signs in the scene background! Keep the designated header corner 100% blank negative space for digital overlay.] ${openaiPrompt}`;
             }
+          } else if (styleRef) {
+            const styleDirective =
+              " [CRITICAL MANDATE — INSPIRATION & STYLE REFERENCE: The user uploaded an aesthetic style reference image in Step 5. Faithfully adopt and replicate its lighting mood, color palette, and cinematic atmosphere into the generated scene.]";
+            if (!openaiPrompt.includes("INSPIRATION & STYLE REFERENCE")) {
+              openaiPrompt += styleDirective;
+            }
           } else if (hasLogo) {
             if (!openaiPrompt.includes("MANDATORY LOGO INTEGRATION") && !openaiPrompt.includes("MANDATORY BUSINESS LOGO INTEGRATION")) {
               openaiPrompt += logoDirective;
@@ -150,27 +158,47 @@ export class ImageModelExecutor {
           const isGptImage = cfg.model.startsWith("gpt-image-");
           const selectedQuality = params.quality || (isGpt25 ? "auto" : "medium");
 
-          // Todas as fotos reais de sujeito/produto enviadas na Etapa 5 vão para edits. Logomarcas do BrandKit NUNCA são enviadas como base para edits.
-          const validSubjectRefs = subjectRefs.filter((r) => Boolean(r.base64));
+          // Resolução estrita aceita pelo endpoint /v1/images/edits da OpenAI:
+          // A OpenAI rejeita com erro 400 resoluções personalizadas em edits (como 1024x1280 ou 864x1536).
+          // Os valores válidos permitidos são exclusivamente: 1024x1024, 1024x1536 e 1536x1024.
+          // O ImageResultValidator redimensiona o resultado para as dimensões finais da rede sem crop destrutivo.
+          const targetEditSize: "1024x1024" | "1024x1536" | "1536x1024" =
+            params.format === "portrait" || params.format === "story"
+              ? "1024x1536"
+              : params.format === "landscape" || params.format === "banner"
+                ? "1536x1024"
+                : "1024x1024";
 
-          if (validSubjectRefs.length > 0) {
+          // Todas as fotos enviadas na Etapa 5 (Produto/Pessoa do Card 1 e Estilo do Card 2) vão para edits.
+          // Logomarcas do BrandKit NUNCA são enviadas como base para edits (são aplicadas digitalmente no pós-processamento).
+          const validUserRefs = (params.references || []).filter(
+            (r) => (r.role === "product_subject" || r.role === "style_reference") && Boolean(r.base64)
+          );
+
+          if (validUserRefs.length > 0) {
             try {
               const editsFormData = new FormData();
-              const fieldName = validSubjectRefs.length > 1 ? "image[]" : "image";
-              validSubjectRefs.slice(0, 4).forEach((ref, idx) => {
+              const fieldName = validUserRefs.length > 1 ? "image[]" : "image";
+              validUserRefs.slice(0, 4).forEach((ref, idx) => {
                 const imageBuf = Buffer.from(ref.base64!, "base64");
-                const refBlob = new Blob([imageBuf], { type: ref.mimeType || "image/png" });
-                editsFormData.append(fieldName, refBlob, `subject_${idx + 1}.png`);
+                const mime = ref.mimeType || "image/png";
+                const ext = mime.includes("png") ? "png" : "jpg";
+                const refBlob = new Blob([imageBuf], { type: mime });
+                editsFormData.append(fieldName, refBlob, `ref_${idx + 1}.${ext}`);
               });
               editsFormData.append("model", cfg.model);
               editsFormData.append("prompt", openaiPrompt);
               editsFormData.append("n", "1");
-              editsFormData.append("size", nativeSize);
+              editsFormData.append("size", targetEditSize);
               if (isGptImage || isGpt25) {
                 editsFormData.append("quality", selectedQuality);
               }
 
-              const editRes = await fetch("https://api.openai.com/v1/images/edits", {
+              console.log(
+                `[ImageModelExecutor] 🎯 Image-to-Image ativo! Enviando ${validUserRefs.length} referência(s) da Etapa 5 para OpenAI images/edits (${cfg.model} - size: ${targetEditSize})...`
+              );
+
+              let editRes = await fetch("https://api.openai.com/v1/images/edits", {
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${openaiKey}`,
@@ -178,11 +206,46 @@ export class ImageModelExecutor {
                 body: editsFormData,
               });
 
+              // Fallback automático para 1024x1024 caso a API rejeite tamanho retangular
+              if (!editRes.ok && targetEditSize !== "1024x1024") {
+                const errTxt = await editRes.text().catch(() => "");
+                console.warn(
+                  `[ImageModelExecutor] OpenAI edits (${cfg.model} - ${targetEditSize}) retornou ${editRes.status}: ${errTxt.slice(0, 150)}. Tentando fallback 1024x1024...`
+                );
+
+                const fallbackFormData = new FormData();
+                validUserRefs.slice(0, 4).forEach((ref, idx) => {
+                  const imageBuf = Buffer.from(ref.base64!, "base64");
+                  const mime = ref.mimeType || "image/png";
+                  const ext = mime.includes("png") ? "png" : "jpg";
+                  const refBlob = new Blob([imageBuf], { type: mime });
+                  fallbackFormData.append(fieldName, refBlob, `ref_${idx + 1}.${ext}`);
+                });
+                fallbackFormData.append("model", cfg.model);
+                fallbackFormData.append("prompt", openaiPrompt);
+                fallbackFormData.append("n", "1");
+                fallbackFormData.append("size", "1024x1024");
+                if (isGptImage || isGpt25) {
+                  fallbackFormData.append("quality", selectedQuality);
+                }
+
+                editRes = await fetch("https://api.openai.com/v1/images/edits", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openaiKey}`,
+                  },
+                  body: fallbackFormData,
+                });
+              }
+
               if (editRes.ok) {
                 const data = await editRes.json();
                 const b64 = data?.data?.[0]?.b64_json;
                 const imgUrl = data?.data?.[0]?.url;
                 if (b64) {
+                  console.log(
+                    `[ImageModelExecutor] ✅ Sucesso total via OpenAI edits (${cfg.model}) usando imagem da Etapa 5!`
+                  );
                   return {
                     imageBuffer: Buffer.from(b64, "base64"),
                     modelUsed: cfg.model,
@@ -192,6 +255,9 @@ export class ImageModelExecutor {
                   const downloadRes = await fetch(imgUrl);
                   if (downloadRes.ok) {
                     const ab = await downloadRes.arrayBuffer();
+                    console.log(
+                      `[ImageModelExecutor] ✅ Sucesso total via OpenAI edits (${cfg.model}) usando imagem da Etapa 5!`
+                    );
                     return {
                       imageBuffer: Buffer.from(ab),
                       modelUsed: cfg.model,
@@ -201,7 +267,9 @@ export class ImageModelExecutor {
                 }
               } else {
                 const editErrTxt = await editRes.text().catch(() => "");
-                console.warn(`[ImageModelExecutor] OpenAI edits (${cfg.model}) retornou ${editRes.status}: ${editErrTxt.slice(0, 150)}`);
+                console.warn(
+                  `[ImageModelExecutor] OpenAI edits (${cfg.model}) retornou ${editRes.status}: ${editErrTxt.slice(0, 150)}`
+                );
               }
             } catch (editEx) {
               console.warn(`[ImageModelExecutor] Falha na chamada de edits OpenAI:`, editEx);

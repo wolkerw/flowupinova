@@ -1795,6 +1795,29 @@ export function ImageGenerationWizard() {
                       placeholder="Ex: sem pessoas ao fundo, sem reflexos fortes, sem texto borrado"
                       className="text-xs rounded-xl bg-white"
                     />
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[11px] text-gray-500 font-medium mr-1">Sugestões rápidas:</span>
+                      {[
+                        { label: "+ Sem pessoas", value: "sem pessoas" },
+                        { label: "+ Sem reflexos", value: "sem reflexos fortes" },
+                        { label: "+ Sem texto borrado", value: "sem texto borrado" },
+                      ].map((chip) => (
+                        <button
+                          key={chip.value}
+                          type="button"
+                          onClick={() => {
+                            if (!negativeInstructions.toLowerCase().includes(chip.value)) {
+                              setNegativeInstructions((prev) =>
+                                prev ? `${prev}, ${chip.value}` : chip.value
+                              );
+                            }
+                          }}
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors shadow-2xs"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

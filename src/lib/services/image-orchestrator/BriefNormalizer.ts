@@ -5,6 +5,17 @@ import type {
 } from "@/lib/types/ai-image-general";
 import type { NormalizedBrief } from "./types";
 
+/**
+ * Detecta se o texto solicita ausência de pessoas na imagem (/nopeople).
+ * Cobre variações comuns em português e inglês.
+ */
+export function isNoPeopleRequested(text?: string | null): boolean {
+  if (!text) return false;
+  return /\b(sem pessoas?|sem gente|sem humanos?|sem modelo|sem modelos|sem ningu[eé]m|zero pessoas?|n[aã]o (?:quero|desejo|colocar|coloque|inserir|insira|incluir|inclua|ter|tenha|usar|use|mostrar|mostre|traga|gerar|gere|desenhar|desenhe|renderizar|renderize) pessoas?|n[aã]o (?:quero|desejo|colocar|coloque|inserir|insira|incluir|inclua|ter|tenha|usar|use|mostrar|mostre|traga|gerar|gere|desenhar|desenhe|renderizar|renderize) humanos?|n[aã]o (?:quero|desejo|colocar|coloque|inserir|insira|incluir|inclua|ter|tenha|usar|use|mostrar|mostre|traga|gerar|gere|desenhar|desenhe|renderizar|renderize) modelos?|no people|without people|no humans?|nobody|no person|no model)\b/i.test(
+    text
+  );
+}
+
 export class BriefNormalizer {
   public static normalize(params: {
     rawBrief: string;
@@ -75,6 +86,19 @@ export class BriefNormalizer {
       }
     }
 
+    // Detectar pedido explícito de não inserir pessoas (/nopeople)
+    const combinedTexts = `${raw} ${params.negativeInstructions || ""} ${explicitHeadline || ""}`;
+    const noPeople = isNoPeopleRequested(combinedTexts);
+
+    let negativeDirectives = params.negativeInstructions?.trim() || undefined;
+    if (noPeople) {
+      const strictNoPeopleClause =
+        "strictly no people, zero humans, no human models, no faces, no hands, no human presence";
+      negativeDirectives = negativeDirectives
+        ? `${negativeDirectives}, ${strictNoPeopleClause}`
+        : strictNoPeopleClause;
+    }
+
     // Detectar sujeito principal
     const detectedSubject = cleaned.split(".")[0]?.slice(0, 100) || cleaned.slice(0, 100);
 
@@ -85,8 +109,9 @@ export class BriefNormalizer {
       detectedSubject,
       detectedStyle,
       explicitHeadline: explicitHeadline || undefined,
-      negativeDirectives: params.negativeInstructions?.trim() || undefined,
+      negativeDirectives,
       requestedTextOverlayMode: overlayMode,
+      isNoPeopleRequested: noPeople,
     };
   }
 }

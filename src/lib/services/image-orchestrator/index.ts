@@ -133,6 +133,7 @@ export class ImageGenerationOrchestrator {
       negativeInstructions: normalized.negativeDirectives,
       preferredModel: aiConfig.generalPlannerModel,
       referenceMode: params.referenceMode,
+      isNoPeopleRequested: normalized.isNoPeopleRequested,
     });
 
     // Memória de direção de arte do cliente (motor v2): evita repetir as últimas direções

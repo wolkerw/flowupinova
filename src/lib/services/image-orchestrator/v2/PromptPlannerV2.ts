@@ -18,6 +18,7 @@ import type {
   OrchestratorPlanResult,
 } from "../types";
 import { Gpt5PromptPlanner } from "../Gpt5PromptPlanner";
+import { isNoPeopleRequested } from "../BriefNormalizer";
 import { getArtDirection, selectArtDirections, type ArtDirection } from "./art-direction-library";
 
 export interface PlannerV2Input extends Gpt5PlannerInput {
@@ -218,8 +219,14 @@ export class PromptPlannerV2 {
     const headline = clip(input.productHeadline || llm.headline, 60);
     const subline = clip(llm.subline, 70);
 
+    const isNoPeople =
+      input.isNoPeopleRequested ||
+      isNoPeopleRequested(input.negativeInstructions) ||
+      isNoPeopleRequested(input.userBrief) ||
+      isNoPeopleRequested(input.compiledPrompt);
+
     const peopleRaw = clip(v.people, 260);
-    const noPeople = direction.people === "none" || /^none\b/i.test(peopleRaw) || !peopleRaw;
+    const noPeople = isNoPeople || direction.people === "none" || /^none\b/i.test(peopleRaw) || !peopleRaw;
 
     const lines: string[] = [
       clip(concept?.idea, 300) || clip(input.userBrief, 200),
@@ -227,7 +234,9 @@ export class PromptPlannerV2 {
       v.subject ? `Subject: ${clip(v.subject, 300)}.` : "",
       v.setting ? `Setting: ${clip(v.setting, 260)}.` : "",
       v.composition ? `Composition: ${clip(v.composition, 220)}.` : "",
-      noPeople ? "No people in the image." : `People: ${peopleRaw}; candid and natural, real-looking, believable hands.`,
+      noPeople
+        ? "No people in the image. Strictly zero humans, no faces, no hands, no human presence."
+        : `People: ${peopleRaw}; candid and natural, real-looking, believable hands.`,
       `Light: ${direction.lightEn}. Camera: ${direction.cameraEn}.`,
       v.palette ? `${clip(v.palette, 200)}. ${this.paletteLine(input)}` : this.paletteLine(input),
       v.mood ? `Mood: ${clip(v.mood, 80)}.` : "",
@@ -341,11 +350,18 @@ export class PromptPlannerV2 {
     const hasProductReference = Boolean(
       input.referenceImages?.some((r) => r.role === "product_subject") && !Gpt5PromptPlanner.isStep5LogoUpload(input)
     );
+    const isNoPeople =
+      input.isNoPeopleRequested ||
+      isNoPeopleRequested(input.negativeInstructions) ||
+      isNoPeopleRequested(input.userBrief) ||
+      isNoPeopleRequested(input.compiledPrompt);
+
     const candidates = selectArtDirections({
       objective: input.objective,
       segment: input.brandKit?.rawSegment || input.brandKit?.segment,
       brief: input.userBrief,
       hasProductReference,
+      noPeople: isNoPeople,
       recentIds: input.recentArtDirectionIds || input.brandKit?.lastArtDirectionIds,
     });
 

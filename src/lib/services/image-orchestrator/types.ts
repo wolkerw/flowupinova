@@ -23,6 +23,8 @@ export interface NormalizedBrief {
   explicitHeadline?: string;
   negativeDirectives?: string;
   requestedTextOverlayMode: AIImageTextOverlayMode;
+  /** Indica se o usuário solicitou ausência de pessoas (/nopeople) */
+  isNoPeopleRequested?: boolean;
 }
 
 export type BrandLogoPlacement = "top-left" | "top-right" | "top-center" | "bottom-right" | "bottom-left";
@@ -80,6 +82,8 @@ export interface Gpt5PlannerInput {
   lastLogoPosition?: BrandLogoPlacement;
   personaId?: string;
   lastPersonaId?: string;
+  /** Trava mandatória de ausência de pessoas (/nopeople) */
+  isNoPeopleRequested?: boolean;
 }
 
 export interface SocialCaptionPlan {
@@ -118,6 +122,7 @@ export interface Gpt5VisualPlanResponse {
     useColors: boolean;
     useLogo: boolean;
     logoPosition?: BrandLogoPlacement;
+    personaId?: string;
     brandElementsToPreserve: string[];
   };
   referenceInstructions?: Array<{
@@ -135,7 +140,7 @@ export interface Gpt5VisualPlanResponse {
   negativePrompt: string;
   preserve: string[];
   generationParameters: {
-    model: "gpt-image-2";
+    model: string;
     quality: "low" | "medium" | "high";
     size: string;
     background: "opaque" | "transparent";

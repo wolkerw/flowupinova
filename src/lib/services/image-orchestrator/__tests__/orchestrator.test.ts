@@ -840,6 +840,96 @@ describe("Image Orchestrator Suite", () => {
       expect(capturedBody.prompt).toContain("precisely five fingers per hand");
       expect(capturedBody.prompt).toContain("NO extra fingers, six fingers, fused digits");
     });
+
+    it("chama OpenAI images/edits com resolução homologada (1024x1536) quando format é portrait e há imagens da Etapa 5", async () => {
+      process.env.OPENAI_API_KEY = "test-key";
+      let capturedEditsUrl = "";
+      let capturedFormData: FormData | null = null;
+
+      global.fetch = vi.fn().mockImplementation((url, opts) => {
+        const urlStr = String(url);
+        if (urlStr.includes("api.openai.com/v1/images/edits")) {
+          capturedEditsUrl = urlStr;
+          capturedFormData = opts?.body as FormData;
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: [{ b64_json: Buffer.from("fake-edits-image").toString("base64") }],
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: [{ b64_json: Buffer.from("fake-gen-image").toString("base64") }],
+          }),
+        });
+      });
+
+      const res = await ImageModelExecutor.execute({
+        prompt: "Commercial product ad with real bottle",
+        format: "portrait",
+        preferredModel: "gpt-image-2.6-sunburst",
+        references: [
+          {
+            role: "product_subject",
+            base64: Buffer.from("fake-subject-bytes").toString("base64"),
+            mimeType: "image/png",
+          },
+        ],
+      });
+
+      expect(capturedEditsUrl).toContain("api.openai.com/v1/images/edits");
+      expect(capturedFormData).not.toBeNull();
+      expect(capturedFormData!.get("size")).toBe("1024x1536");
+      expect(capturedFormData!.get("model")).toBe("gpt-image-2.6-sunburst");
+      expect(res.imageBuffer).toBeDefined();
+    });
+
+    it("envia tanto produto/sujeito quanto foto de estilo da Etapa 5 para images/edits", async () => {
+      process.env.OPENAI_API_KEY = "test-key";
+      let capturedFormData: FormData | null = null;
+
+      global.fetch = vi.fn().mockImplementation((url, opts) => {
+        const urlStr = String(url);
+        if (urlStr.includes("api.openai.com/v1/images/edits")) {
+          capturedFormData = opts?.body as FormData;
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: [{ b64_json: Buffer.from("fake-edits-multi").toString("base64") }],
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ data: [{ b64_json: "fake" }] }),
+        });
+      });
+
+      await ImageModelExecutor.execute({
+        prompt: "Ad with subject and style reference",
+        format: "portrait",
+        preferredModel: "gpt-image-2.6-sunburst",
+        references: [
+          {
+            role: "product_subject",
+            base64: Buffer.from("fake-subject").toString("base64"),
+            mimeType: "image/jpeg",
+          },
+          {
+            role: "style_reference",
+            base64: Buffer.from("fake-style").toString("base64"),
+            mimeType: "image/jpeg",
+          },
+        ],
+      });
+
+      expect(capturedFormData).not.toBeNull();
+      const images = capturedFormData!.getAll("image[]");
+      expect(images.length).toBe(2);
+      expect(capturedFormData!.get("size")).toBe("1024x1536");
+    });
   });
 
   describe("ImageResultValidator", () => {

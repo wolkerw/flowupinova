@@ -4,6 +4,7 @@ import type {
   Gpt5VisualPlanResponse,
   OrchestratorPlanResult,
 } from "./types";
+import { isNoPeopleRequested } from "./BriefNormalizer";
 
 export interface DynamicTypographyStyle {
   id: string;
@@ -62,7 +63,8 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO DO PROMPT DO GPT IMAGE 2:
    [1. INTENDED GOAL]: Objetivo comercial/editorial claro e personalidade de direção de arte conforme a Etapa 3 (Vender Produto, Post para Redes, Anúncio/Oferta, Empresa & Serviços, Conceito Criativo ou Thumb de Alta Performance). REGRA ANTI-VIÉS CONSERVADOR: Mesmo quando o objetivo for "commercial" (Vender Produto), "presentation" (Empresa & Serviços) ou "ad" (Anúncio/Oferta), é TERMINANTEMENTE PROIBIDO adotar um layout engessado, careta ou com título sempre reto e centralizado no topo! Todos os objetivos devem exibir direção de arte ousada de agência internacional e liberdade espacial de títulos (/typolayout), priorizando 100% as fontes do BrandKit (/fontlock).
    [2. SCENE & CONTEXT]: Descrição do ambiente publicitário, iluminação e atmosfera.
    [3. HERO SUBJECT]: Detalhes fiéis do sujeito, produto ou logomarca principal.
-   - DIVERSIDADE HUMANA E ALTERNÂNCIA DINÂMICA DE PERSONAGENS (/personadiversity): Sempre que a cena retratar pessoas/profissionais (a menos que uma foto de pessoa real tenha sido enviada na Etapa 5 ou especificada no briefing):
+   - REGRA INVIOLÁVEL DE AUSÊNCIA DE PESSOAS (/nopeople): Se o briefing, as instruções negativas ou o prompt do usuário solicitarem expressamente "sem pessoas", "não inserir pessoas", "sem modelos", "no people", "sem humanos" ou qualquer variação, É TERMINANTEMENTE PROIBIDO incluir qualquer pessoa, modelo, rosto, mão ou corpo humano na cena! A composição DEVE focar 100% no imóvel, produto, arquitetura, ambiente ou objeto heroico, escrevendo expressamente: "No people in the image. Strictly zero humans, no faces, no hands, no human presence."
+   - DIVERSIDADE HUMANA E ALTERNÂNCIA DINÂMICA DE PERSONAGENS (/personadiversity): Sempre que a cena retratar pessoas/profissionais (e o usuário NÃO tiver pedido para ficar sem pessoas, a menos que uma foto de pessoa real tenha sido enviada na Etapa 5 ou especificada no briefing):
      * É TERMINANTEMENTE PROIBIDO gerar sempre a mesma mulher de blazer escuro e traços latinos repetidamente!
      * Alterne e especifique detalhadamente no prompt para a IA de difusão características humanas ricas e variadas entre as gerações: gênero (homens carismáticos, mulheres executivas, duplas profissionais colaborativas), etnias autênticas (afrodescendentes, pardos/latinos, asiáticos, caucasianos), faixas etárias reais (profissionais jovens e dinâmicos de 28-35 anos, executivos sêniores de 45-55 anos com cabelos grisalhos e autoridade madura), estilos de vestuário e penteados variados.
      * Se houver fotos ou personas cadastradas no BrandKit, integre a diversidade dessas personas de forma rotativa e autêntica.
@@ -259,8 +261,7 @@ REGRAS DE CONFORMIDADE:
 
   public static getNextLogoPlacement(lastPos?: BrandLogoPlacement): (typeof Gpt5PromptPlanner.BRAND_LOGO_PLACEMENTS)[number] {
     if (!lastPos) {
-      const randomIdx = Math.floor(Math.random() * this.BRAND_LOGO_PLACEMENTS.length);
-      return this.BRAND_LOGO_PLACEMENTS[randomIdx];
+      return this.BRAND_LOGO_PLACEMENTS[0];
     }
     const currentIdx = this.BRAND_LOGO_PLACEMENTS.findIndex((p) => p.id === lastPos);
     const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % this.BRAND_LOGO_PLACEMENTS.length : 0;
@@ -569,8 +570,8 @@ REGRAS DE CONFORMIDADE:
       input.personaId = nextFromHistory.id;
       return nextFromHistory;
     }
-    const randomIdx = Math.floor(Math.random() * profiles.length);
-    const selected = profiles[randomIdx];
+    const idx = (this.personaDiversityCursor++) % profiles.length;
+    const selected = profiles[idx];
     if (input) input.personaId = selected.id;
     return selected;
   }
@@ -579,6 +580,16 @@ REGRAS DE CONFORMIDADE:
     input: Gpt5PlannerInput,
     profile?: DynamicPersonaDiversityProfile
   ): string {
+    const isNoPeople =
+      input.isNoPeopleRequested ||
+      isNoPeopleRequested(input.negativeInstructions) ||
+      isNoPeopleRequested(input.userBrief) ||
+      isNoPeopleRequested(input.compiledPrompt);
+
+    if (isNoPeople) {
+      return "[STRICT PROHIBITION — ZERO PEOPLE / NO HUMANS MANDATORY (/nopeople): CRITICAL INVIOLABLE MANDATE: Absolutely NO people, NO human models, NO faces, NO hands, NO silhouettes, and NO human bodies in this image. The scene must depict ONLY the property/architecture, physical environment, objects, landscape, products, and graphic layout. ZERO HUMANS. NO PEOPLE.]";
+    }
+
     const subjectRef = input.referenceImages?.find((r) => r.role === "product_subject");
     const isStep5Logo = this.isStep5LogoUpload(input);
 
@@ -602,6 +613,16 @@ REGRAS DE CONFORMIDADE:
   }
 
   public static buildAgencyQualityAndAnatomyMandate(input?: Gpt5PlannerInput): string {
+    const isNoPeople =
+      input?.isNoPeopleRequested ||
+      isNoPeopleRequested(input?.negativeInstructions) ||
+      isNoPeopleRequested(input?.userBrief) ||
+      isNoPeopleRequested(input?.compiledPrompt);
+
+    if (isNoPeople) {
+      return "[PREMIUM AGENCY STUDIO QUALITY & ENVIRONMENT REALISM (/agencystudio): Render with high-end commercial advertising studio standards shot on 85mm f/1.8 lens with shallow optical depth of field, authentic real-world textures, clean lighting, and volumetric depth. ZERO HUMANS: Absolutely no people, human figures, faces, or hands in the entire image.]";
+    }
+
     return "[PREMIUM AGENCY STUDIO QUALITY & 5-FINGER HAND ANATOMY LOCK (/agencystudio & /handlock): Render with high-end commercial advertising studio standards shot on 85mm f/1.8 lens with shallow optical depth of field and soft cinematic bokeh. STRICT HUMAN HAND ANATOMY LOCK: Every human hand depicted MUST feature precisely 5 distinct, anatomically accurate fingers (one thumb and four fingers) with natural knuckles, proportional phalanges, and realistic fingernails. Hands must adopt grounded, biomechanically natural postures (firm ergonomic grip around products/smartphone, resting naturally on surfaces, or neatly in pockets) with coherent contact shadows. ZERO EXTRA FINGERS, ZERO FUSED DIGITS. AUTHENTIC SKIN TEXTURE: Render natural human skin with visible microscopic pores, subtle epidermal texture, and organic subsurface scattering. Strictly FORBIDDEN: plastic waxy skin, porcelain doll face, airbrushed mannequin sheen, deformed hands, six fingers, mutated digits, or disembodied floating hands.]";
   }
 
@@ -821,11 +842,22 @@ REGRAS DE CONFORMIDADE:
     const allowCtaButton = isFlyer || this.isExplicitCtaButtonRequested(input.userBrief);
 
     if (isFlyer) {
+      const isNoPeople =
+        input.isNoPeopleRequested ||
+        isNoPeopleRequested(input.negativeInstructions) ||
+        isNoPeopleRequested(input.userBrief) ||
+        isNoPeopleRequested(input.compiledPrompt);
+
       const brandFonts = input.brandKit?.fonts;
       const fontLock = brandFonts && (brandFonts.primaryFont || brandFonts.secondaryFont)
         ? ` STRICT BRANDKIT FONT LOCK (/fontlock): Render all titles, list items and footer labels strictly adhering to "${brandFonts.primaryFont || 'Geometric Sans-Serif Bold'}" and "${brandFonts.secondaryFont || 'Geometric Sans-Serif Regular'}" with zero font deviations.`
         : "";
-      return `[AWARD-WINNING CREATIVE ART DIRECTION & HIGH-DENSITY FLYER ARCHITECTURE (/anticliche — FLYER EXCEPTION): For this Panfleto Digital / Flyer objective, the anti-list and anti-CTA button restrictions are UNLOCKED. Render a rich, full-fledged commercial flyer layout in Portuguese (pt-BR): (1) Authority headline at the top; (2) Side column with 3 to 5 structured benefit items with stylized circular icons in brand accent colors (#FA6305 / #0083C7); (3) Dynamic hero subject presenting a high-res app UI mockup on a smartphone or hero deliverable, strictly adhering to the dynamic rotated persona archetype (/personadiversity); (4) Structured footer banner with location badge and a prominent brand-colored CTA button/pill; (5)${fontLock} Ban flat sterile beige walls; ground the flyer in a real, atmospheric environment with 20% safe margins.]`;
+
+      const heroSubjectClause = isNoPeople
+        ? "(3) Pristine architectural setting, property exterior/interior, or hero deliverable showcase with ZERO human presence (strictly NO people, NO persons, NO hands, NO human models, NO human figures);"
+        : "(3) Dynamic hero subject presenting a high-res app UI mockup on a smartphone or hero deliverable, strictly adhering to the dynamic rotated persona archetype (/personadiversity);";
+
+      return `[AWARD-WINNING CREATIVE ART DIRECTION & HIGH-DENSITY FLYER ARCHITECTURE (/anticliche — FLYER EXCEPTION): For this Panfleto Digital / Flyer objective, the anti-list and anti-CTA button restrictions are UNLOCKED. Render a rich, full-fledged commercial flyer layout in Portuguese (pt-BR): (1) Authority headline at the top; (2) Side column with 3 to 5 structured benefit items with stylized circular icons in brand accent colors (#FA6305 / #0083C7); ${heroSubjectClause} (4) Structured footer banner with location badge and a prominent brand-colored CTA button/pill; (5)${fontLock} Ban flat sterile beige walls; ground the flyer in a real, atmospheric environment with 20% safe margins.]`;
     }
 
     const conceptClause = artConcept
@@ -1162,11 +1194,33 @@ DIREÇÃO DE ARTE TIPOGRÁFICA SELECIONADA (/typolayout):
 - INSTRUÇÃO DE LIBERDADE CRIATIVA: Atue como Diretor de Arte Sênior! Crie uma composição tipográfica surpreendente, autoral e personalizada para este nicho, variando alinhamentos, contrastes de escala display, palavras destacadas em faixas/tarjas sólidas da marca e esquemas de cores no imagePrompt. NUNCA gere sempre a mesma fórmula repetitiva!`
       : "";
 
-    const personaSection = `
+    const isNoPeople =
+      input.isNoPeopleRequested ||
+      isNoPeopleRequested(input.negativeInstructions) ||
+      isNoPeopleRequested(input.userBrief) ||
+      isNoPeopleRequested(input.compiledPrompt);
+
+    const personaSection = isNoPeople
+      ? `
+DIRETRIZ MANDATÓRIA DE AUSÊNCIA DE PESSOAS (/nopeople):
+- O usuário instruiu expressamente NÃO INSERIR PESSOAS na imagem.
+- É TERMINANTEMENTE PROIBIDO incluir personagens humanos, modelos, rostos, mãos ou silhuetas!
+- O sujeito da imagem DEVE focar exclusivamente no produto físico, arquitetura/imóvel, objetos, ambiente ou layout gráfico.
+- No bloco [3. HERO SUBJECT] do imagePrompt, escreva obrigatoriamente: "No people in the image. Strictly zero humans, no faces, no hands, no human bodies or models."`
+      : `
 DIRETRIZ DE DIVERSIDADE HUMANA E ALTERNÂNCIA DE PERSONAGENS (/personadiversity):
 - Perfil e Arquétipo Sorteado: ${dynamicPersona.labelPt} (Gênero: ${dynamicPersona.genderPt}, Faixa Etária: ${dynamicPersona.ageBracketPt})
 - Diretriz em Inglês para o Bloco [3. HERO SUBJECT]: "${dynamicPersona.directiveEn}"
 - REGRA ANTI-MONOTONIA: Se a cena incluir pessoas/profissionais, aplique o arquétipo sorteado acima (ou integre de forma rotativa as personas do BrandKit). É TERMINANTEMENTE PROIBIDO gerar sempre a mesma mulher de blazer escuro em todas as artes! Varie gênero, idade, etnia, roupas e corte de cabelo.`;
+
+    const agencyQualitySection = isNoPeople
+      ? `DIRETRIZES DE ESTÚDIO DE ELITE (/agencystudio & /nopeople):
+- Aplique acabamento de fotografia publicitária de alto padrão com iluminação sofisticada, profundidade de campo suave e texturas reais.
+- ZERO PESSOAS: Proibido desenhar qualquer humano, modelo, rosto, mão ou figura humana.`
+      : `DIRETRIZES DE AGÊNCIA DE ELITE & ANATOMIA DE MÃOS (/handlock & /agencystudio):
+- Garanta anatomia humana perfeita: exatamente 5 dedos por mão (1 polegar e 4 dedos), articulações naturais, unhas proporcionais e pegada ergonômica verossímil.
+- Proíba dedos extras, 6 dedos, dedos colados, mãos atrofiadas ou soltas.
+- Aplique acabamento de estúdio publicitário com lente 85mm f/1.8, bokeh suave, iluminação de recorte e pele hiper-realista com microporos (banindo aspecto plástico ou encerado).`;
 
     return `
 BRIEFING ORIGINAL DO USUÁRIO:
@@ -1186,10 +1240,7 @@ ${objectiveCreativeSection}
 ${creativeDirectionSection}
 ${personaSection}
 ${typographySection}
-DIRETRIZES DE AGÊNCIA DE ELITE & ANATOMIA DE MÃOS (/handlock & /agencystudio):
-- Garanta anatomia humana perfeita: exatamente 5 dedos por mão (1 polegar e 4 dedos), articulações naturais, unhas proporcionais e pegada ergonômica verossímil.
-- Proíba dedos extras, 6 dedos, dedos colados, mãos atrofiadas ou soltas.
-- Aplique acabamento de estúdio publicitário com lente 85mm f/1.8, bokeh suave, iluminação de recorte e pele hiper-realista com microporos (banindo aspecto plástico ou encerado).
+${agencyQualitySection}
 
 ${input.compiledPrompt ? `\nDIRETRIZES TÉCNICAS PRÉ-COMPILADAS:\n${input.compiledPrompt}\n` : ""}
 

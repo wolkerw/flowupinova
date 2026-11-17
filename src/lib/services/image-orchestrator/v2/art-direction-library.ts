@@ -222,6 +222,8 @@ export interface DirectionSelectionInput {
   segment?: string;
   brief?: string;
   hasProductReference?: boolean;
+  /** Se o usuário solicitou expressamente ausência de pessoas (/nopeople) */
+  noPeople?: boolean;
   /** Últimas direções usadas por este cliente (mais recente primeiro). */
   recentIds?: string[];
   /** Quantas direções recentes evitar. */
@@ -251,6 +253,8 @@ export function selectArtDirections(input: DirectionSelectionInput, count = 3): 
       if (haystack.includes(normalize(hint))) score += 2;
     }
     if (input.hasProductReference) score += d.productFriendly ? 2 : -4;
+    if (input.noPeople && d.people === "required") score -= 100;
+    if (input.noPeople && d.people === "none") score += 5;
     if (avoid.has(d.id)) score -= 10;
     return { d, score, index };
   });
