@@ -122,4 +122,17 @@ describe("SubscriptionModal Component", () => {
       expect(screen.getByText(/Tudo Pronto \(Execução Completa\)/i)).toBeInTheDocument();
     });
   });
+
+  it("exibe o valor correto de R$ 399 no plano anual", async () => {
+    render(<SubscriptionModal isOpen={true} onClose={vi.fn()} userId="user-123" initialPlan="anual" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Escolha o seu plano")).toBeInTheDocument();
+    });
+
+    const anualBtn = screen.getByRole("button", { name: /Anual/i });
+    fireEvent.click(anualBtn);
+
+    expect(screen.getAllByText(/R\$\s*399/i).length).toBeGreaterThan(0);
+  });
 });

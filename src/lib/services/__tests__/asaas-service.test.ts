@@ -44,7 +44,7 @@ describe("AsaasService", () => {
     it("retorna as configurações corretas para o plano Anual (Cobrança Mensal no Cartão + 1 Mês Grátis)", () => {
       const config = AsaasService.getPlanConfig("anual");
       expect(config.name).toContain("Anual");
-      expect(config.totalValue).toBe(400.0);
+      expect(config.totalValue).toBe(399.0);
       expect(config.installmentCount).toBe(1);
       expect(config.chargeType).toBe("RECURRENT");
       expect(config.subscriptionCycle).toBe("MONTHLY");
@@ -54,7 +54,7 @@ describe("AsaasService", () => {
     it("retorna as configurações corretas para o alias anual_recorrente", () => {
       const config = AsaasService.getPlanConfig("anual_recorrente");
       expect(config.name).toContain("Anual");
-      expect(config.totalValue).toBe(400.0);
+      expect(config.totalValue).toBe(399.0);
       expect(config.chargeType).toBe("RECURRENT");
       expect(config.subscriptionCycle).toBe("MONTHLY");
     });

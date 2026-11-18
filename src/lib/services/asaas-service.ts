@@ -310,12 +310,12 @@ export class AsaasService {
       case "anual_recorrente":
         return {
           name: "NumVapt Pro - Plano Anual (Cobrança Mensal + 1 Mês Grátis)",
-          description: "Benefícios completos do plano anual com cobrança de apenas R$ 400,00 por mês no cartão, sem comprometer o limite total (+ 1 mês grátis)!",
-          totalValue: 400.0,
+          description: "Benefícios completos do plano anual com cobrança de apenas R$ 399,00 por mês no cartão, sem comprometer o limite total (+ 1 mês grátis)!",
+          totalValue: 399.0,
           installmentCount: 1,
           chargeType: "RECURRENT" as const,
           subscriptionCycle: "MONTHLY" as const,
-          durationDays: 30, // Renovado a cada mensalidade de R$ 400
+          durationDays: 30, // Renovado a cada mensalidade de R$ 399
         };
       case "tudo_pronto":
         return {

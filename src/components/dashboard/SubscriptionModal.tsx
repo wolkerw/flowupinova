@@ -518,10 +518,10 @@ export function SubscriptionModal({ isOpen, onClose, userId, initialPlan }: Subs
                       Mensalidade no Cartão de Crédito
                     </span>
                     <p className="mt-1 text-2xl font-black text-[#0083C7]">
-                      R$ 400,00 <span className="text-sm font-bold text-slate-400">/mês</span>
+                      R$ 399,00 <span className="text-sm font-bold text-slate-400">/mês</span>
                     </p>
                     <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                      Entra apenas <strong>R$ 400 por mês</strong> no seu cartão. Você aproveita todos os benefícios do plano anual com <strong>13 meses liberados</strong> sem comprometer o limite total!
+                      Entra apenas <strong>R$ 399 por mês</strong> no seu cartão. Você aproveita todos os benefícios do plano anual com <strong>13 meses liberados</strong> sem comprometer o limite total!
                     </p>
                   </div>
                 ) : selectedPlan === "tudo_pronto" ? (
