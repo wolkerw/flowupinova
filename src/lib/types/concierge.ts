@@ -56,3 +56,15 @@ export interface ConciergeApprovalPublicView {
   reviewerFeedback?: string | null;
   isExpired: boolean;
 }
+
+export interface WeeklyPlanningTopics {
+  month: string; // Formato YYYY-MM (ex: "2026-11")
+  week1: string; // Assuntos da Semana 1 (Dias 01 a 07)
+  week2: string; // Assuntos da Semana 2 (Dias 08 a 14)
+  week3: string; // Assuntos da Semana 3 (Dias 15 a 21)
+  week4: string; // Assuntos da Semana 4 (Dias 22 a 31)
+  notes?: string; // Observações gerais do mês
+  updatedAt?: string; // Data ISO da última atualização
+  updatedBy?: string; // E-mail ou identificador de quem atualizou
+  updatedByRole?: "client_approver" | "creator" | "admin";
+}

@@ -48,6 +48,7 @@ import {
 import type { ClientApproverAccount } from "@/lib/types/concierge";
 import { cn, isVideoMedia } from "@/lib/utils";
 import { ImageAiEditorModal } from "@/components/dashboard/ImageAiEditorModal";
+import { WeeklyPlanningTopicsCard } from "@/components/dashboard/concierge/WeeklyPlanningTopicsCard";
 
 type TabType = "pending" | "changes" | "approved" | "published";
 
@@ -55,6 +56,7 @@ interface ClientPostItem extends PostData {
   id: string;
   createdAt?: any;
   videoUrl?: string;
+  caption?: string;
 }
 
 export default function ClientApprovalsPage() {
@@ -240,7 +242,8 @@ export default function ClientApprovalsPage() {
             snapshot.forEach((docSnap) => {
               const data = docSnap.data() as PostData;
               const postText = isTechnicalInstruction(data.text) ? "" : (data.text || "");
-              const postCaption = isTechnicalInstruction(data.caption) ? "" : (data.caption || "");
+              const rawCaption = (data as any).caption;
+              const postCaption = isTechnicalInstruction(rawCaption) ? "" : (rawCaption || "");
               loadedPosts.push({
                 ...data,
                 id: docSnap.id,
@@ -722,6 +725,12 @@ export default function ClientApprovalsPage() {
           )}
         </div>
       </div>
+
+      {/* Planejamento de Pautas Semanais do Mês */}
+      <WeeklyPlanningTopicsCard
+        workspaceId={effectiveWorkspaceId}
+        isApproverRole={isApproverRole}
+      />
 
       {/* Abas de Navegação */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800">
