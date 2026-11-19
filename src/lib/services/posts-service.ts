@@ -948,6 +948,103 @@ export async function scheduleApprovedPostByCreator(
   }
 }
 
+export async function updateScheduledPost(
+  userId: string,
+  postId: string,
+  updates: {
+    scheduledAt?: Date | string;
+    text?: string;
+  }
+): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para atualizar a publicação agendada.");
+  }
+
+  // 1. Tenta atualizar via endpoint /api/posts/schedule-update
+  try {
+    const res = await fetch("/api/posts/schedule-update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        postId,
+        scheduledAt:
+          updates.scheduledAt instanceof Date
+            ? updates.scheduledAt.toISOString()
+            : updates.scheduledAt,
+        text: updates.text,
+      }),
+    });
+
+    if (res.ok) {
+      return;
+    }
+
+    const errJson = await res.json().catch(() => ({}));
+    if (errJson?.error) {
+      throw new Error(errJson.error);
+    }
+  } catch (error: any) {
+    if (
+      error?.message &&
+      !error.message.includes("fetch") &&
+      !error.message.includes("URL") &&
+      !error.message.includes("network")
+    ) {
+      throw error;
+    }
+  }
+
+  // 2. Fallback direto via Firestore Client SDK
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    const updatePayload: Record<string, any> = {
+      updatedAt: serverTimestamp(),
+    };
+
+    if (updates.scheduledAt) {
+      const dateObj =
+        updates.scheduledAt instanceof Date
+          ? updates.scheduledAt
+          : new Date(updates.scheduledAt);
+      updatePayload.scheduledAt = Timestamp.fromDate(dateObj);
+      updatePayload.status = "scheduled";
+    }
+
+    if (typeof updates.text === "string") {
+      updatePayload.text = updates.text.trim();
+      updatePayload.caption = updates.text.trim();
+    }
+
+    await updateDoc(postDocRef, updatePayload);
+  } catch (fallbackErr: any) {
+    console.error(`Error updating scheduled post ${postId} for user ${userId}:`, fallbackErr);
+    throw new Error("Não foi possível atualizar o agendamento da publicação.");
+  }
+}
+
+export async function publishScheduledPostNow(
+  userId: string,
+  postId: string
+): Promise<void> {
+  if (!userId || !postId) {
+    throw new Error("UserID e PostID são obrigatórios para publicar imediatamente.");
+  }
+
+  // Define scheduledAt para agora e status para publishing
+  try {
+    const postDocRef = doc(db, "users", userId, "posts", postId);
+    await updateDoc(postDocRef, {
+      scheduledAt: Timestamp.now(),
+      status: "publishing",
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error: any) {
+    console.error(`Error triggering immediate publish for post ${postId}:`, error);
+    throw new Error("Não foi possível antecipar a publicação.");
+  }
+}
+
 export async function deletePost(userId: string, postId: string): Promise<void> {
   if (!userId || !postId) {
     throw new Error("UserID e PostID são necessários para excluir a publicação.");

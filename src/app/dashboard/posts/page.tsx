@@ -85,8 +85,14 @@ import {
   deletePost,
   getScheduledPosts,
   schedulePost,
+  updateScheduledPost,
+  publishScheduledPostNow,
   type PostDataInput,
 } from "@/lib/services/posts-service";
+import {
+  ScheduledPostsPlanner,
+  type PlannerPostItem,
+} from "@/components/dashboard/posts/ScheduledPostsPlanner";
 import {
   getMetaConnection,
   updateMetaConnection,
@@ -613,7 +619,7 @@ function ConnectionStatus({
 
   return (
     <div className="flex items-center justify-between rounded-lg p-3 hover:bg-gray-50/50">
-      <div className="flex flex-1 items-center gap-3 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <div
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm`}
         >
@@ -700,7 +706,9 @@ export default function Conteudo() {
 
   // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectingPlatform, setConnectingPlatform] = useState<"facebook" | "linkedin" | null>(null);
+  const [connectingPlatform, setConnectingPlatform] = useState<"facebook" | "linkedin" | null>(
+    null
+  );
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
   const [pendingPages, setPendingPages] = useState<FacebookPage[]>([]);
   const [pendingLinkedInOrgs, setPendingLinkedInOrgs] = useState<{ urn: string; name: string }[]>(
@@ -1264,6 +1272,50 @@ export default function Conteudo() {
     }
   }, [fetchPageData, postToDelete, toast, user]);
 
+  const handleUpdateSchedule = useCallback(
+    async (postId: string, updates: { scheduledAt: Date; text: string }) => {
+      if (!user) return;
+      try {
+        await updateScheduledPost(user.uid, postId, updates);
+        toast({
+          title: "Agendamento atualizado!",
+          description: "Data/horário e conteúdo salvos com sucesso.",
+        });
+        await fetchPageData();
+      } catch (err: any) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao atualizar",
+          description: err?.message || "Não foi possível atualizar o agendamento.",
+        });
+        throw err;
+      }
+    },
+    [fetchPageData, toast, user]
+  );
+
+  const handlePublishNow = useCallback(
+    async (post: PlannerPostItem) => {
+      if (!user) return;
+      try {
+        await publishScheduledPostNow(user.uid, post.id);
+        toast({
+          title: "Publicação iniciada!",
+          description: "O post foi enviado para publicação imediata.",
+        });
+        await fetchPageData();
+      } catch (err: any) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao antecipar",
+          description: err?.message || "Não foi possível antecipar a publicação.",
+        });
+        throw err;
+      }
+    },
+    [fetchPageData, toast, user]
+  );
+
   const handleRepublish = useCallback(
     (post: DisplayPost) => {
       if (!user) return;
@@ -1770,7 +1822,7 @@ export default function Conteudo() {
           setIsSelectionModalOpen(false);
           setPendingPages([]);
           setIsConnecting(false);
-        setConnectingPlatform(null);
+          setConnectingPlatform(null);
         }}
       />
       <LinkedInOrgSelectionModal
@@ -1781,7 +1833,7 @@ export default function Conteudo() {
           setIsLinkedInSelectionModalOpen(false);
           setPendingLinkedInOrgs([]);
           setIsConnecting(false);
-        setConnectingPlatform(null);
+          setConnectingPlatform(null);
         }}
       />
 
@@ -1824,7 +1876,8 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Geral</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/90">
-                      Crie imagens a partir de uma ideia, referência ou foto e personalize com sua marca.
+                      Crie imagens a partir de uma ideia, referência ou foto e personalize com sua
+                      marca.
                     </p>
                   </button>
 
@@ -1846,7 +1899,8 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Conceito</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do post.
+                      Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do
+                      post.
                     </p>
                   </button>
 
@@ -1868,7 +1922,8 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Produto</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Mande uma foto do seu produto e a IA gera imagem e texto profissionais para você usar.
+                      Mande uma foto do seu produto e a IA gera imagem e texto profissionais para
+                      você usar.
                     </p>
                   </button>
 
@@ -1887,9 +1942,7 @@ export default function Conteudo() {
                       <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
                         <Sparkles className="h-6 w-6 text-white" />
                       </div>
-                      <h3 className="text-xl font-black leading-tight">
-                        Pessoa + Cenário
-                      </h3>
+                      <h3 className="text-xl font-black leading-tight">Pessoa + Cenário</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
                       Gere uma imagem combinando uma pessoa com um cenário de sua escolha.
@@ -1911,7 +1964,8 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Manual</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/80">
-                      Envie sua própria imagem a ser postada, escreva sua legenda livremente e agende para as redes sociais.
+                      Envie sua própria imagem a ser postada, escreva sua legenda livremente e
+                      agende para as redes sociais.
                     </p>
                   </button>
 
@@ -1934,47 +1988,23 @@ export default function Conteudo() {
                       <h3 className="text-xl font-black leading-tight">Carrossel com IA</h3>
                     </div>
                     <p className="text-sm font-medium leading-relaxed text-white/90">
-                      Crie carrosséis de 5 ou 7 slides com roteiro unificado, capa por IA e slides na mesma família visual.
+                      Crie carrosséis de 5 ou 7 slides com roteiro unificado, capa por IA e slides
+                      na mesma família visual.
                     </p>
                   </button>
                 </div>
               </div>
             </div>
 
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Clock className="h-5 w-5 text-blue-500" />
-                  Posts Agendados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-60 space-y-4 overflow-y-auto pr-3">
-                  <AnimatePresence>
-                    {isLoadingInitial ? (
-                      <div className="flex h-24 items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                      </div>
-                    ) : scheduledPosts.length > 0 ? (
-                      scheduledPosts.map((post) => (
-                        <PostItem
-                          key={post.id}
-                          post={post}
-                          onRepublish={handleRepublish}
-                          isRepublishing={isRepublishing}
-                          onDelete={handleDeleteRequest}
-                        />
-                      ))
-                    ) : (
-                      <div className="py-6 text-center text-gray-500">
-                        <Clock className="mx-auto mb-2 h-8 w-8 text-gray-400" />
-                        <p>Nenhum post agendado.</p>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </CardContent>
-            </Card>
+            <ScheduledPostsPlanner
+              posts={scheduledPosts}
+              isLoading={isLoadingInitial}
+              onUpdateSchedule={handleUpdateSchedule}
+              onPublishNow={handlePublishNow}
+              onDeletePost={handleDeleteRequest}
+              onRepublish={handleRepublish}
+              isRepublishing={isRepublishing}
+            />
             <Card className="border-none shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-xl">

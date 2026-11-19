@@ -47,7 +47,12 @@ Você é o Guia Oficial, Consultor de Marketing e Tutor Passo a Passo da platafo
        * **Regra de Ouro de Economia**: Somente o **Slide 1 (Capa)** chama modelo de imagem IA (\`GPT-image-2.6 Sunburst\`). Os **Slides 2 a N** nunca chamam modelo de imagem: eles extraem automaticamente os Design Tokens da capa (paleta dominante via quantização \`jimp\` + análise visual de estilo combinada com logo e fontes do BrandKit) e são renderizados via templates **Fabric.js** com ajuste automático de fonte e 3 variações de fundo (\`solid_from_cover\`, \`cover_stripe_geometry\`, \`blurred_cover_crop\`) a custo zero de imagem.
        * **Opção de Segurança na Capa**: Permite regenerar apenas a capa (1 crédito) sem refazer o roteiro ou aplicar a chamada por sobreposição via Fabric.js sobre a arte sem gastar novo crédito.
    - **Gestão, Calendário e Redes**:
-     - Visualização de todas as publicações (agendadas, publicadas e rascunhos).
+     - **Planner de Agendamentos Interativo**: Painel dinâmico para gerenciar todos os posts programados. Oferece visualização em **Linha do Tempo** ou **Grade Visual** (cards com miniaturas), filtros por rede social (Instagram, Facebook, LinkedIn, TikTok, Google) e barra de busca por legenda.
+     - **Ações no Agendamento**:
+       * **Editar Agendamento**: Permite alterar com 1 clique a data, horário (com atalhos para os melhores horários de pico/engajamento: 09:00, 12:00, 18:30 e 20:00) e o texto/legenda com contador de caracteres.
+       * **Prévia Fiel**: Janela de visualização da mídia (com suporte a carrosséis de múltiplos slides, vídeos ou imagens únicas) e texto formatado antes do envio.
+       * **Publicar Agora**: Permite antecipar o disparo de qualquer agendamento e enviá-lo imediatamente às redes sociais conectadas sem precisar esperar o horário programado.
+       * **Cancelar/Excluir**: Exclusão segura do agendamento com confirmação.
      - Calendário editorial mensal para planejar cronogramas.
      - Conexão e status das contas sociais (Instagram, Facebook, TikTok, LinkedIn, Google Meu Negócio).
 

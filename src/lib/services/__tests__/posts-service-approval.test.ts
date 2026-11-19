@@ -6,6 +6,8 @@ import {
   updatePostImageByCreator,
   updatePostTextByCreator,
   scheduleApprovedPostByCreator,
+  updateScheduledPost,
+  publishScheduledPostNow,
 } from "../posts-service";
 import * as firestore from "firebase/firestore";
 
@@ -162,6 +164,42 @@ describe("Posts Service — Aprovação e Revisão pelo Cliente", () => {
       expect.objectContaining({
         text: "Nova legenda incrível",
         caption: "Nova legenda incrível",
+      })
+    );
+  });
+
+  it("deve atualizar data/horário e legenda da publicação agendada (updateScheduledPost)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    } as any);
+
+    const newDate = new Date("2026-11-28T18:00:00Z");
+    await updateScheduledPost("user-123", "post-456", {
+      scheduledAt: newDate,
+      text: "Texto atualizado no Planner",
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/posts/schedule-update",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining("Texto atualizado no Planner"),
+      })
+    );
+  });
+
+  it("deve antecipar publicação agendada para agora (publishScheduledPostNow)", async () => {
+    vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined as any);
+
+    await publishScheduledPostNow("user-123", "post-456");
+
+    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), "users", "user-123", "posts", "post-456");
+    expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        status: "publishing",
       })
     );
   });

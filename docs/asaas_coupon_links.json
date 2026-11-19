@@ -1,0 +1,252 @@
+[
+  {
+    "plan": "mensal",
+    "discountPercentage": 10,
+    "finalValue": 441,
+    "id": "yv2q7oanwbpu7zwa",
+    "url": "https://www.asaas.com/000/c/yv2q7oanwbpu7zwa",
+    "chargeType": "DETACHED",
+    "subscriptionCycle": null,
+    "name": "NumVapt Pro - Plano Mensal - 10% OFF"
+  },
+  {
+    "plan": "mensal",
+    "discountPercentage": 15,
+    "finalValue": 416.5,
+    "id": "40jg3i6t1cgajtmt",
+    "url": "https://www.asaas.com/000/c/40jg3i6t1cgajtmt",
+    "chargeType": "DETACHED",
+    "subscriptionCycle": null,
+    "name": "NumVapt Pro - Plano Mensal - 15% OFF"
+  },
+  {
+    "plan": "mensal",
+    "discountPercentage": 20,
+    "finalValue": 392,
+    "id": "gd6sikzws1vgddcs",
+    "url": "https://www.asaas.com/000/c/gd6sikzws1vgddcs",
+    "chargeType": "DETACHED",
+    "subscriptionCycle": null,
+    "name": "NumVapt Pro - Plano Mensal - 20% OFF"
+  },
+  {
+    "plan": "mensal",
+    "discountPercentage": 25,
+    "finalValue": 367.5,
+    "id": "mygxrijzh378sk4n",
+    "url": "https://www.asaas.com/000/c/mygxrijzh378sk4n",
+    "chargeType": "DETACHED",
+    "subscriptionCycle": null,
+    "name": "NumVapt Pro - Plano Mensal - 25% OFF"
+  },
+  {
+    "plan": "mensal",
+    "discountPercentage": 30,
+    "finalValue": 343,
+    "id": "c7h2y0zdh4na2vg9",
+    "url": "https://www.asaas.com/000/c/c7h2y0zdh4na2vg9",
+    "chargeType": "DETACHED",
+    "subscriptionCycle": null,
+    "name": "NumVapt Pro - Plano Mensal - 30% OFF"
+  },
+  {
+    "plan": "trimestral",
+    "discountPercentage": 10,
+    "finalValue": 396.9,
+    "id": "8l2t6zxectsct63y",
+    "url": "https://www.asaas.com/000/c/8l2t6zxectsct63y",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Trimestral (Cobrança Mensal) - 10% OFF"
+  },
+  {
+    "plan": "trimestral",
+    "discountPercentage": 15,
+    "finalValue": 374.85,
+    "id": "1yhi29d4vvdhtxtp",
+    "url": "https://www.asaas.com/000/c/1yhi29d4vvdhtxtp",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Trimestral (Cobrança Mensal) - 15% OFF"
+  },
+  {
+    "plan": "trimestral",
+    "discountPercentage": 20,
+    "finalValue": 352.8,
+    "id": "apw95p56fovslnmf",
+    "url": "https://www.asaas.com/000/c/apw95p56fovslnmf",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Trimestral (Cobrança Mensal) - 20% OFF"
+  },
+  {
+    "plan": "trimestral",
+    "discountPercentage": 25,
+    "finalValue": 330.75,
+    "id": "lu1muaq2gjnjk59b",
+    "url": "https://www.asaas.com/000/c/lu1muaq2gjnjk59b",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Trimestral (Cobrança Mensal) - 25% OFF"
+  },
+  {
+    "plan": "trimestral",
+    "discountPercentage": 30,
+    "finalValue": 308.7,
+    "id": "id2q62lbmei4gany",
+    "url": "https://www.asaas.com/000/c/id2q62lbmei4gany",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Trimestral (Cobrança Mensal) - 30% OFF"
+  },
+  {
+    "plan": "semestral",
+    "discountPercentage": 10,
+    "finalValue": 374.85,
+    "id": "2memmd7h7crf3n8s",
+    "url": "https://www.asaas.com/000/c/2memmd7h7crf3n8s",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Semestral (Cobrança Mensal) - 10% OFF"
+  },
+  {
+    "plan": "semestral",
+    "discountPercentage": 15,
+    "finalValue": 354.03,
+    "id": "87ytv703zs7cpc9n",
+    "url": "https://www.asaas.com/000/c/87ytv703zs7cpc9n",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Semestral (Cobrança Mensal) - 15% OFF"
+  },
+  {
+    "plan": "semestral",
+    "discountPercentage": 20,
+    "finalValue": 333.2,
+    "id": "kqiistbzb3fg7py3",
+    "url": "https://www.asaas.com/000/c/kqiistbzb3fg7py3",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Semestral (Cobrança Mensal) - 20% OFF"
+  },
+  {
+    "plan": "semestral",
+    "discountPercentage": 25,
+    "finalValue": 312.38,
+    "id": "cn0p73pv0j6d5w95",
+    "url": "https://www.asaas.com/000/c/cn0p73pv0j6d5w95",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Semestral (Cobrança Mensal) - 25% OFF"
+  },
+  {
+    "plan": "semestral",
+    "discountPercentage": 30,
+    "finalValue": 291.55,
+    "id": "tkmebstsg6aufd5f",
+    "url": "https://www.asaas.com/000/c/tkmebstsg6aufd5f",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Semestral (Cobrança Mensal) - 30% OFF"
+  },
+  {
+    "plan": "anual",
+    "discountPercentage": 10,
+    "finalValue": 359.1,
+    "id": "rm4q3dsz8ip45ekl",
+    "url": "https://www.asaas.com/000/c/rm4q3dsz8ip45ekl",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Anual (+1 Mês Grátis | Cobrança Mensal) - 10% OFF"
+  },
+  {
+    "plan": "anual",
+    "discountPercentage": 15,
+    "finalValue": 339.15,
+    "id": "9mobxqc2x6e00iy4",
+    "url": "https://www.asaas.com/000/c/9mobxqc2x6e00iy4",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Anual (+1 Mês Grátis | Cobrança Mensal) - 15% OFF"
+  },
+  {
+    "plan": "anual",
+    "discountPercentage": 20,
+    "finalValue": 319.2,
+    "id": "4m8p22rg1ukzrico",
+    "url": "https://www.asaas.com/000/c/4m8p22rg1ukzrico",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Anual (+1 Mês Grátis | Cobrança Mensal) - 20% OFF"
+  },
+  {
+    "plan": "anual",
+    "discountPercentage": 25,
+    "finalValue": 299.25,
+    "id": "vn78dm82zw20502l",
+    "url": "https://www.asaas.com/000/c/vn78dm82zw20502l",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Anual (+1 Mês Grátis | Cobrança Mensal) - 25% OFF"
+  },
+  {
+    "plan": "anual",
+    "discountPercentage": 30,
+    "finalValue": 279.3,
+    "id": "xsoa7ey8v7hme5zj",
+    "url": "https://www.asaas.com/000/c/xsoa7ey8v7hme5zj",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Plano Anual (+1 Mês Grátis | Cobrança Mensal) - 30% OFF"
+  },
+  {
+    "plan": "tudo_pronto",
+    "discountPercentage": 10,
+    "finalValue": 629.1,
+    "id": "ki1k5awe42gur96k",
+    "url": "https://www.asaas.com/000/c/ki1k5awe42gur96k",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Módulo Tudo Pronto (Cobrança Mensal) - 10% OFF"
+  },
+  {
+    "plan": "tudo_pronto",
+    "discountPercentage": 15,
+    "finalValue": 594.15,
+    "id": "4xvwdfgnktohy7p6",
+    "url": "https://www.asaas.com/000/c/4xvwdfgnktohy7p6",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Módulo Tudo Pronto (Cobrança Mensal) - 15% OFF"
+  },
+  {
+    "plan": "tudo_pronto",
+    "discountPercentage": 20,
+    "finalValue": 559.2,
+    "id": "l476dddo1yo84fj4",
+    "url": "https://www.asaas.com/c/l476dddo1yo84fj4",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt_TudoPronto_20%"
+  },
+  {
+    "plan": "tudo_pronto",
+    "discountPercentage": 25,
+    "finalValue": 524.25,
+    "id": "i8ggz8buwqrjxv6z",
+    "url": "https://www.asaas.com/000/c/i8ggz8buwqrjxv6z",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Módulo Tudo Pronto (Cobrança Mensal) - 25% OFF"
+  },
+  {
+    "plan": "tudo_pronto",
+    "discountPercentage": 30,
+    "finalValue": 489.3,
+    "id": "70tcmv7fl70tapah",
+    "url": "https://www.asaas.com/000/c/70tcmv7fl70tapah",
+    "chargeType": "RECURRENT",
+    "subscriptionCycle": "MONTHLY",
+    "name": "NumVapt Pro - Módulo Tudo Pronto (Cobrança Mensal) - 30% OFF"
+  }
+]
