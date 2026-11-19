@@ -30,6 +30,7 @@ import {
   Crown,
   CheckSquare,
   TrendingUp,
+  CalendarClock,
 } from "lucide-react";
 import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
 import type { SubscriptionPlanModalidade } from "@/lib/types/contract";
@@ -89,6 +90,11 @@ const allNavigationItems: {
     title: "Posts",
     url: "/dashboard/posts",
     icon: FileText,
+  },
+  {
+    title: "Planner",
+    url: "/dashboard/planner",
+    icon: CalendarClock,
   },
   {
     title: "Tendências",
@@ -187,7 +193,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isConcierge, setIsConcierge] = useState<boolean>(false);
   const [isClientApprover, setIsClientApprover] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [initialSubscriptionPlan, setInitialSubscriptionPlan] = useState<SubscriptionPlanModalidade | undefined>(undefined);
+  const [initialSubscriptionPlan, setInitialSubscriptionPlan] = useState<
+    SubscriptionPlanModalidade | undefined
+  >(undefined);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
@@ -222,91 +230,103 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       let unsubscribePosts: (() => void) | null = null;
 
       const userDocRef = doc(db, `users/${user.uid}`);
-      const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const uData = docSnap.data();
-          setUserPlan(uData.plan || "free");
-          const clientApproverMode = Boolean(
-            uData.conciergeRole === "client_approver" ||
-            uData.plan === "client_approver" ||
-            uData.role === "client_approver" ||
-            String(uData.plan || "").toLowerCase() === "client_approver"
-          );
-          setIsClientApprover(clientApproverMode);
-          setIsConcierge(
-            Boolean(uData.isConcierge || uData.managedService?.serviceMode === "concierge" || clientApproverMode)
-          );
+      const unsubscribeUser = onSnapshot(
+        userDocRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const uData = docSnap.data();
+            setUserPlan(uData.plan || "free");
+            const clientApproverMode = Boolean(
+              uData.conciergeRole === "client_approver" ||
+              uData.plan === "client_approver" ||
+              uData.role === "client_approver" ||
+              String(uData.plan || "").toLowerCase() === "client_approver"
+            );
+            setIsClientApprover(clientApproverMode);
+            setIsConcierge(
+              Boolean(
+                uData.isConcierge ||
+                uData.managedService?.serviceMode === "concierge" ||
+                clientApproverMode
+              )
+            );
 
-          // Escuta os posts do workspace vinculado (se for aprovador) ou do próprio usuário (se for criador)
-          const targetWorkspaceUid = uData.linkedWorkspaceId || user.uid;
-          if (unsubscribePosts) unsubscribePosts();
+            // Escuta os posts do workspace vinculado (se for aprovador) ou do próprio usuário (se for criador)
+            const targetWorkspaceUid = uData.linkedWorkspaceId || user.uid;
+            if (unsubscribePosts) unsubscribePosts();
 
-          const postsColRef = collection(db, `users/${targetWorkspaceUid}/posts`);
-          unsubscribePosts = onSnapshot(
-            postsColRef,
-            (snap) => {
-              let count = 0;
-              snap.forEach((d) => {
-                const data = d.data();
-                if (data.status === "pending_approval" || data.approval?.status === "pending") {
-                  count++;
-                }
-              });
-              setPendingApprovalsCount(count);
-            },
-            (err) => {
-              console.warn("[DashboardLayout] Erro ao carregar contagem de aprovações:", err);
-            }
-          );
+            const postsColRef = collection(db, `users/${targetWorkspaceUid}/posts`);
+            unsubscribePosts = onSnapshot(
+              postsColRef,
+              (snap) => {
+                let count = 0;
+                snap.forEach((d) => {
+                  const data = d.data();
+                  if (data.status === "pending_approval" || data.approval?.status === "pending") {
+                    count++;
+                  }
+                });
+                setPendingApprovalsCount(count);
+              },
+              (err) => {
+                console.warn("[DashboardLayout] Erro ao carregar contagem de aprovações:", err);
+              }
+            );
+          }
+        },
+        (err) => {
+          console.warn("[DashboardLayout] Erro snapshot user:", err);
         }
-      }, (err) => {
-        console.warn("[DashboardLayout] Erro snapshot user:", err);
-      });
+      );
 
       const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
-      const unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const profile = {
-            name: "",
-            category: "",
-            address: "",
-            phone: "",
-            website: "",
-            instagram: "",
-            description: "",
-            logo: { url: "", width: 0, height: 0 },
-            primaryColor: "#3b82f6",
-            secondaryColor: "#1e293b",
-            onboardingCompleted: false,
-            slogan: "",
-            targetAudience: "",
-            toneOfVoice: "",
-            mainBenefits: [],
-            ...data,
-          } as OnboardingProfileData;
+      const unsubscribeOnboarding = onSnapshot(
+        onboardingDocRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const profile = {
+              name: "",
+              category: "",
+              address: "",
+              phone: "",
+              website: "",
+              instagram: "",
+              description: "",
+              logo: { url: "", width: 0, height: 0 },
+              primaryColor: "#3b82f6",
+              secondaryColor: "#1e293b",
+              onboardingCompleted: false,
+              slogan: "",
+              targetAudience: "",
+              toneOfVoice: "",
+              mainBenefits: [],
+              ...data,
+            } as OnboardingProfileData;
 
-          setBusinessProfile(profile);
-
-          const isDashboardHome = pathname === "/dashboard";
-          if (profile.onboardingCompleted !== true && isDashboardHome) {
-            setShowOnboarding(true);
-          } else {
-            setShowOnboarding(false);
-          }
-        } else {
-          // Se o documento não existir, busca/cria
-          getOnboardingProfile(user.uid).then((profile) => {
             setBusinessProfile(profile);
+
             const isDashboardHome = pathname === "/dashboard";
             if (profile.onboardingCompleted !== true && isDashboardHome) {
               setShowOnboarding(true);
+            } else {
+              setShowOnboarding(false);
             }
-          });
+          } else {
+            // Se o documento não existir, busca/cria
+            getOnboardingProfile(user.uid).then((profile) => {
+              setBusinessProfile(profile);
+              const isDashboardHome = pathname === "/dashboard";
+              if (profile.onboardingCompleted !== true && isDashboardHome) {
+                setShowOnboarding(true);
+              }
+            });
+          }
+        },
+        (err) => {
+          console.warn("[DashboardLayout] Erro snapshot onboarding:", err);
         }
-      }, (err) => {
-        console.warn("[DashboardLayout] Erro snapshot onboarding:", err);
-      });
+      );
 
       return () => {
         if (typeof unsubscribeUser === "function") {
@@ -510,15 +530,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
                 {isConcierge && (
-                  <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FA6305]/10 text-[#FA6305] border border-[#FA6305]/20">
-                    <Crown className="w-3.5 h-3.5" />
+                  <span className="hidden items-center gap-1.5 rounded-full border border-[#FA6305]/20 bg-[#FA6305]/10 px-2.5 py-1 text-xs font-semibold text-[#FA6305] sm:inline-flex">
+                    <Crown className="h-3.5 w-3.5" />
                     NumVapt Concierge
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-3">
-                {!isConcierge && !isClientApprover &&
+                {!isConcierge &&
+                  !isClientApprover &&
                   (userPlan === "trial" || userPlan === "free" || userPlan === "unsubscribed") && (
                     <Button
                       onClick={() => setShowSubscriptionModal(true)}
@@ -655,7 +676,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex-1 overflow-auto">
             {isClientApprover && pathname !== "/dashboard/aprovacoes" ? (
               <div className="flex h-full w-full flex-col items-center justify-center p-8 text-slate-400">
-                <Loader2 className="h-8 w-8 animate-spin text-[#0083C7] mb-2" />
+                <Loader2 className="mb-2 h-8 w-8 animate-spin text-[#0083C7]" />
                 <p className="text-sm">Redirecionando para a Central de Aprovações...</p>
               </div>
             ) : (

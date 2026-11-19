@@ -85,14 +85,8 @@ import {
   deletePost,
   getScheduledPosts,
   schedulePost,
-  updateScheduledPost,
-  publishScheduledPostNow,
   type PostDataInput,
 } from "@/lib/services/posts-service";
-import {
-  ScheduledPostsPlanner,
-  type PlannerPostItem,
-} from "@/components/dashboard/posts/ScheduledPostsPlanner";
 import {
   getMetaConnection,
   updateMetaConnection,
@@ -1272,50 +1266,6 @@ export default function Conteudo() {
     }
   }, [fetchPageData, postToDelete, toast, user]);
 
-  const handleUpdateSchedule = useCallback(
-    async (postId: string, updates: { scheduledAt: Date; text: string }) => {
-      if (!user) return;
-      try {
-        await updateScheduledPost(user.uid, postId, updates);
-        toast({
-          title: "Agendamento atualizado!",
-          description: "Data/horário e conteúdo salvos com sucesso.",
-        });
-        await fetchPageData();
-      } catch (err: any) {
-        toast({
-          variant: "destructive",
-          title: "Erro ao atualizar",
-          description: err?.message || "Não foi possível atualizar o agendamento.",
-        });
-        throw err;
-      }
-    },
-    [fetchPageData, toast, user]
-  );
-
-  const handlePublishNow = useCallback(
-    async (post: PlannerPostItem) => {
-      if (!user) return;
-      try {
-        await publishScheduledPostNow(user.uid, post.id);
-        toast({
-          title: "Publicação iniciada!",
-          description: "O post foi enviado para publicação imediata.",
-        });
-        await fetchPageData();
-      } catch (err: any) {
-        toast({
-          variant: "destructive",
-          title: "Erro ao antecipar",
-          description: err?.message || "Não foi possível antecipar a publicação.",
-        });
-        throw err;
-      }
-    },
-    [fetchPageData, toast, user]
-  );
-
   const handleRepublish = useCallback(
     (post: DisplayPost) => {
       if (!user) return;
@@ -1996,61 +1946,36 @@ export default function Conteudo() {
               </div>
             </div>
 
-            <ScheduledPostsPlanner
-              posts={scheduledPosts}
-              isLoading={isLoadingInitial}
-              onUpdateSchedule={handleUpdateSchedule}
-              onPublishNow={handlePublishNow}
-              onDeletePost={handleDeleteRequest}
-              onRepublish={handleRepublish}
-              isRepublishing={isRepublishing}
-            />
-            <Card className="border-none shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <History className="h-5 w-5 text-purple-500" />
-                  Histórico de Posts
-                </CardTitle>
-                <Select
-                  value={historyFilter}
-                  onValueChange={(v) => setHistoryFilter(v as HistoryFilter)}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filtrar por período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
-                    <SelectItem value="this-month">Este mês</SelectItem>
-                    <SelectItem value="this-year">Este ano</SelectItem>
-                    <SelectItem value="all-time">Todo o período</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-96 space-y-4 overflow-y-auto pr-3">
-                  <AnimatePresence>
-                    {isLoadingInitial ? (
-                      <div className="flex h-40 items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                      </div>
-                    ) : pastPosts.length > 0 ? (
-                      pastPosts.map((post) => (
-                        <PostItem
-                          key={post.id}
-                          post={post}
-                          onRepublish={handleRepublish}
-                          isRepublishing={isRepublishing}
-                          onDelete={handleDeleteRequest}
-                        />
-                      ))
-                    ) : (
-                      <div className="py-10 text-center text-gray-500">
-                        <Facebook className="mx-auto mb-2 h-10 w-10 text-gray-400" />
-                        <p>Nenhuma publicação encontrada no histórico.</p>
-                      </div>
-                    )}
-                  </AnimatePresence>
+            <Card className="rounded-lg border border-slate-200/80 shadow-sm">
+              <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0083C7] text-white">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-['Poppins'] text-lg font-bold text-slate-900">
+                        Planner de Agendamentos & Histórico
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className="border-[#0083C7]/30 bg-[#0083C7]/10 text-[#0083C7]"
+                      >
+                        {scheduledPosts.length} agendado{scheduledPosts.length === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Gerencie suas publicações futuras, altere datas ou horários e consulte todo o
+                      histórico em uma página dedicada.
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  asChild
+                  className="shrink-0 rounded-lg bg-[#0083C7] font-semibold text-white hover:bg-[#006da6]"
+                >
+                  <Link href="/dashboard/planner">Abrir Planner</Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
